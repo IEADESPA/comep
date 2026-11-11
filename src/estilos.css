@@ -223,10 +223,23 @@ a:focus-visible {
 }
 
 .usuario-nome {
+  /* min-width: 0 deixa o nome encolher (com "…") em vez de cobrir o botão "Sair" */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--cor-texto-suave);
+}
+
+.usuario .botao {
+  flex-shrink: 0;
+}
+
+/* Celular: o nome já aparece em "Olá, …" logo abaixo; no topo fica só o botão "Sair" */
+@media (max-width: 520px) {
+  .usuario-nome {
+    display: none;
+  }
 }
 
 .botao-menu {

@@ -75,6 +75,7 @@ Fotos do site publicado, tiradas pelo Edge sem janela, em 1280 px e 390 px: pág
 | 7 | Importante | O gatilho do cadastro automático (`auth.users`) não vem na exportação da estrutura | Restauração passa a ser: migrações do repositório + dados do backup (README do `comep-backups`) | ✅ procedimento revisto |
 | 8 | Menor | Testes de ponta a ponta falhavam quando o login no Supabase demorava mais de 5 s | Espera aumentada para 15 s | ✅ 22 de 22 |
 | 9 | Menor | Membro `presidente-ai` da organização sem verificação em duas etapas | Recomendado ligar; não bloqueia (não é dono) | — |
+| 10 | Importante | **No celular, o nome do usuário no topo cobria o botão "Sair"** (achado pelos testes de ponta a ponta no Chrome do GitHub; no Windows a fonte é mais estreita e o defeito não aparecia) | O nome encolhe com "…", o botão nunca encolhe e, em telas estreitas, o nome sai do topo (já aparece em "Olá, …") | ✅ 22 de 22 no computador e no GitHub |
 
 ## Trava 4 — Aceite
 
