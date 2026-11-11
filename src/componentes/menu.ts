@@ -17,7 +17,7 @@ const MINISTRO: readonly Perfil[] = ['ministro']
 const DIRETORIA_CADASTRO: readonly Perfil[] = ['secretaria', 'presidencia']
 
 export const ITENS_MENU: readonly ItemMenu[] = [
-  { caminho: '/', titulo: 'Início', descricao: 'Resumo e atalhos', perfis: 'todos', fase: 0 },
+  { caminho: '/painel', titulo: 'Início', descricao: 'Resumo e atalhos', perfis: 'todos', fase: 0 },
   { caminho: '/meu-perfil', titulo: 'Meu perfil', descricao: 'Seus dados, foto e histórico', perfis: 'todos', fase: 1 },
   { caminho: '/minhas-mensalidades', titulo: 'Minhas mensalidades', descricao: 'Situação e envio de comprovantes', perfis: MINISTRO, fase: 2 },
   { caminho: '/minha-carteirinha', titulo: 'Minha carteirinha', descricao: 'Carteirinha digital com QR Code', perfis: MINISTRO, fase: 3 },

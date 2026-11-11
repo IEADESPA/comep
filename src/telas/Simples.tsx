@@ -1,4 +1,3 @@
-import { Link } from 'react-router'
 import { Aviso } from '../componentes/Basicos'
 import type { ItemMenu } from '../componentes/menu'
 
@@ -9,16 +8,6 @@ export function EmConstrucao({ item }: { item: ItemMenu }) {
       <p>{item.descricao}</p>
       <p className="selo">Em construção — prevista para a Fase {item.fase}</p>
     </>
-  )
-}
-
-export function NaoEncontrado() {
-  return (
-    <Aviso titulo="Página não encontrada">
-      <p>
-        Este endereço não existe no sistema. <Link to="/">Voltar ao início</Link>
-      </p>
-    </Aviso>
   )
 }
 

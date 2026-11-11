@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useLocation } from 'react-router'
+import { Link, Navigate, useLocation } from 'react-router'
 import { entrarComEmail } from '../dados/autenticacao'
 import { useSessao } from '../estado/contexto'
 
@@ -12,7 +12,7 @@ export function Entrar() {
   const [enviando, setEnviando] = useState(false)
 
   if (estado.situacao === 'logado') {
-    const destino = (location.state as { voltarPara?: string } | null)?.voltarPara ?? '/'
+    const destino = (location.state as { voltarPara?: string } | null)?.voltarPara ?? '/painel'
     return <Navigate to={destino} replace />
   }
 
@@ -64,7 +64,9 @@ export function Entrar() {
         </form>
 
         <p className="rodape-entrada">
-          Ainda não é inscrito no Conselho? O pedido de inscrição pelo app chega na próxima fase.
+          Ainda não é associado? <Link to="/associar">Veja como se associar</Link>
+          <br />
+          <Link to="/">← Voltar para o site</Link>
         </p>
       </div>
     </main>

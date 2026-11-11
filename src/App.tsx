@@ -7,7 +7,8 @@ import { bancoConfigurado } from './dados/cliente'
 import { ProvedorSessao } from './estado/ProvedorSessao'
 import { Entrar } from './telas/Entrar'
 import { Inicio } from './telas/Inicio'
-import { ConfiguracaoAusente, EmConstrucao, NaoEncontrado } from './telas/Simples'
+import { ConfiguracaoAusente, EmConstrucao } from './telas/Simples'
+import { PaginaInicial, PaginaNaoEncontrada, QueroMeAssociar } from './telas/Site'
 
 // "/comep/" vira "/comep"; com VITE_BASE=/ fica sem prefixo
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
@@ -20,11 +21,16 @@ export default function App() {
       <FaixaAmbiente />
       <BrowserRouter basename={basename}>
         <Routes>
+          {/* Site institucional (público) */}
+          <Route index element={<PaginaInicial />} />
+          <Route path="associar" element={<QueroMeAssociar />} />
           <Route path="entrar" element={<Entrar />} />
+
+          {/* Portal do membro (exige login) */}
           <Route element={<RotaProtegida />}>
             <Route element={<Layout />}>
-              <Route index element={<Inicio />} />
-              {ITENS_MENU.filter((item) => item.caminho !== '/').map((item) => (
+              <Route path="painel" element={<Inicio />} />
+              {ITENS_MENU.filter((item) => item.caminho !== '/painel').map((item) => (
                 <Route
                   key={item.caminho}
                   path={item.caminho.slice(1)}
@@ -35,9 +41,10 @@ export default function App() {
                   }
                 />
               ))}
-              <Route path="*" element={<NaoEncontrado />} />
             </Route>
           </Route>
+
+          <Route path="*" element={<PaginaNaoEncontrada />} />
         </Routes>
       </BrowserRouter>
     </ProvedorSessao>

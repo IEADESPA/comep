@@ -21,7 +21,8 @@ export default defineConfig({
         theme_color: '#1d3a6e',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: base,
+        // O app instalado no celular abre direto no Portal do membro
+        start_url: `${base}painel`,
         scope: base,
       },
       workbox: {

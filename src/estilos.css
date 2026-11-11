@@ -209,6 +209,8 @@ a:focus-visible {
   gap: 0.5rem;
   font-weight: 700;
   font-size: 1.1rem;
+  color: inherit;
+  text-decoration: none;
 }
 
 .usuario {
@@ -410,4 +412,233 @@ a:focus-visible {
   .girador {
     animation: none;
   }
+}
+
+/* ---------- Site institucional (público) ---------- */
+
+.site {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cor-superficie);
+}
+
+.site main {
+  flex: 1;
+}
+
+.site-largura {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.site-topo {
+  background: var(--cor-superficie);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.site-topo-conteudo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.site-marca {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--cor-marca);
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+}
+
+.site-marca svg {
+  width: 28px;
+  height: 28px;
+}
+
+.botao-pequeno {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.site .botao {
+  text-decoration: none;
+}
+
+.site-hero {
+  background: linear-gradient(135deg, #142a52 0%, #1d3a6e 60%, #2b5296 100%);
+  color: #ffffff;
+  padding: 4rem 0 4.5rem;
+}
+
+.site-sobretitulo {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  opacity: 0.8;
+}
+
+.site-hero h1 {
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  line-height: 1.15;
+  max-width: 20ch;
+  margin: 0.4rem 0 1rem;
+}
+
+.site-lead {
+  max-width: 60ch;
+  margin: 0 0 2rem;
+  font-size: 1.1rem;
+  opacity: 0.92;
+}
+
+.site-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.site-hero .botao-claro {
+  background: #ffffff;
+  color: #142a52;
+}
+
+.site-hero .botao-contorno {
+  background: transparent;
+  color: #ffffff;
+  border: 2px solid rgb(255 255 255 / 0.75);
+}
+
+.site-secao {
+  padding: 3rem 0;
+}
+
+.site-secao-alt {
+  background: var(--cor-fundo);
+}
+
+.site-secao h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.site-secao p {
+  max-width: 70ch;
+}
+
+.site-cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.site-cartao {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-top: 4px solid var(--cor-marca);
+  border-radius: var(--raio);
+  padding: 1.25rem;
+}
+
+.site-cartao h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.site-cartao p {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.95rem;
+}
+
+.site-duas-colunas {
+  display: grid;
+  gap: 2.5rem;
+}
+
+@media (min-width: 800px) {
+  .site-duas-colunas {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.site-texto {
+  max-width: 760px;
+}
+
+.site-texto h1 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+}
+
+.site-texto h2 {
+  margin-top: 2rem;
+}
+
+.site-lista li {
+  margin-bottom: 0.4rem;
+}
+
+.site-passos {
+  list-style: none;
+  counter-reset: passo;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+}
+
+.site-passos li {
+  counter-increment: passo;
+  position: relative;
+  padding: 0.75rem 1rem 0.75rem 3.25rem;
+  background: var(--cor-fundo);
+  border-radius: var(--raio);
+}
+
+.site-passos li::before {
+  content: counter(passo);
+  position: absolute;
+  left: 1rem;
+  top: 0.75rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cor-marca);
+  color: var(--cor-superficie);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.site-aviso {
+  margin: 2rem 0;
+}
+
+.site-aviso h2 {
+  margin-top: 0;
+}
+
+.site-rodape {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1.5rem 16px;
+  border-top: 1px solid var(--cor-borda);
+  text-align: center;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.site-rodape strong {
+  color: var(--cor-texto);
 }

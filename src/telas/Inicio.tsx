@@ -40,7 +40,7 @@ export function Inicio() {
       )
     case 'ok': {
       const { conta } = resultado
-      const atalhos = itensVisiveis(conta.perfis).filter((item) => item.caminho !== '/')
+      const atalhos = itensVisiveis(conta.perfis).filter((item) => item.caminho !== '/painel')
       const primeiroNome = conta.nome.split(' ')[0]
 
       return (

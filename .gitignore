@@ -29,3 +29,6 @@ npm-debug.log*
 
 # Permissões locais do Claude Code (só deste computador)
 .claude/settings.local.json
+
+# Documentos originais do Conselho (ficam fora do repositório; o resumo está no PROJETO.md)
+Estatuto do COMEP.pdf
