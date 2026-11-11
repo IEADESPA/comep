@@ -18,7 +18,7 @@ export default defineConfig({
         short_name: 'COMEP',
         description: 'Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas',
         lang: 'pt-BR',
-        theme_color: '#1d3a6e',
+        theme_color: '#b91c1c',
         background_color: '#ffffff',
         display: 'standalone',
         // O app instalado no celular abre direto no Portal do membro

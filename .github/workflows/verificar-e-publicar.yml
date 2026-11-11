@@ -55,10 +55,61 @@ jobs:
         with:
           path: dist
 
+  ponta-a-ponta:
+    # Trava 3 (PROJETO.md, seção 14): um navegador de verdade usa o app ligado ao banco de TESTE,
+    # com usuários fictícios de cada perfil, em tamanho de computador e de celular.
+    name: Testes de ponta a ponta (banco de teste)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build ligado ao banco de teste
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.TESTE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.TESTE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_AMBIENTE: teste
+
+      - name: Navegador
+        run: |
+          if command -v google-chrome >/dev/null; then
+            google-chrome --version
+            echo "E2E_CANAL=chrome" >> "$GITHUB_ENV"
+          else
+            npx playwright install chromium
+            echo "E2E_CANAL=chromium" >> "$GITHUB_ENV"
+          fi
+
+      - name: Testes de ponta a ponta
+        run: npx playwright test
+        env:
+          E2E_SENHA_PRESIDENCIA: ${{ secrets.E2E_SENHA_PRESIDENCIA }}
+          E2E_SENHA_MINISTRO: ${{ secrets.E2E_SENHA_MINISTRO }}
+          E2E_SENHA_SEM_PERFIL: ${{ secrets.E2E_SENHA_SEM_PERFIL }}
+
+      - name: Guardar o relatório (só quando falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-ponta-a-ponta
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14
+
   publicar:
     name: Publicar no GitHub Pages
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: verificar
+    needs: [verificar, ponta-a-ponta]
     runs-on: ubuntu-latest
     permissions:
       pages: write
