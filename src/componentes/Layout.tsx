@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet } from 'react-router'
 import { useSessao } from '../estado/contexto'
 import { itensVisiveis } from './menu'
 
@@ -24,10 +24,10 @@ export function Layout() {
             Menu
           </button>
         )}
-        <div className="marca">
+        <Link to="/" className="marca" title="Ir para o site do COMEP">
           <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" width={32} height={32} />
           <span>COMEP</span>
-        </div>
+        </Link>
         <div className="usuario">
           {conta && <span className="usuario-nome">{conta.nome}</span>}
           <button type="button" className="botao botao-secundario" onClick={() => void sair()}>
@@ -41,7 +41,7 @@ export function Layout() {
           <ul>
             {itens.map((item) => (
               <li key={item.caminho}>
-                <NavLink to={item.caminho} end={item.caminho === '/'} onClick={() => setMenuAberto(false)}>
+                <NavLink to={item.caminho} end={item.caminho === '/painel'} onClick={() => setMenuAberto(false)}>
                   {item.titulo}
                 </NavLink>
               </li>

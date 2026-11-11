@@ -39,6 +39,7 @@ src/
 supabase/
   migrations/   Estrutura do banco (tabelas, regras de acesso, auditoria), em ordem
 testes/banco/   Testes automáticos das regras do banco
+docs/revisoes/  Registro das travas de revisão de cada fase (PROJETO.md, seção 14)
 .github/workflows/  Verificação em todo pull request e publicação ao entrar na main
 ```
 
