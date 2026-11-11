@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Aviso, BotaoConfirmar, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { GerarCodigo } from '../../componentes/GerarCodigo'
 import {
   arquivarAssociado,
   atualizarContato,
@@ -144,7 +145,7 @@ function Conteudo({ ficha, titulos, igrejas, valores, retorno, concluir }: Props
               <dt>Assembleia</dt>
               <dd>
                 {formatarData(associado.assembleia_data)}
-                {associado.assembleia_ata && ` — ata ${associado.assembleia_ata}`}
+                {associado.assembleia_ata && ` — ${associado.assembleia_ata}`}
               </dd>
             </>
           )}
@@ -241,12 +242,22 @@ function Contato({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>)
           </div>
         </form>
       ) : (
-        <dl className="definicoes">
-          <dt>Telefone</dt>
-          <dd>{associado.telefone || 'Não informado'}</dd>
-          <dt>E-mail</dt>
-          <dd>{associado.email || 'Não informado'}</dd>
-        </dl>
+        <>
+          <dl className="definicoes">
+            <dt>Telefone</dt>
+            <dd>{associado.telefone || 'Não informado'}</dd>
+            <dt>E-mail</dt>
+            <dd>{associado.email || 'Não informado'}</dd>
+            <dt>Login</dt>
+            <dd>{associado.tem_login ? 'Já tem login no portal' : 'Ainda sem login no portal'}</dd>
+          </dl>
+          <GerarCodigo
+            pessoaId={associado.pessoa_id}
+            nome={associado.nome}
+            temLogin={associado.tem_login}
+            telefone={associado.telefone}
+          />
+        </>
       )}
     </section>
   )

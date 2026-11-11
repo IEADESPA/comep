@@ -8,13 +8,16 @@ import { ProvedorSessao } from './estado/ProvedorSessao'
 import { Acessos } from './telas/administracao/Acessos'
 import { Auditoria } from './telas/administracao/Auditoria'
 import { Configuracoes } from './telas/administracao/Configuracoes'
+import { NovaSenha, PrimeiroAcesso } from './telas/acesso/PrimeiroAcesso'
 import { Entrar } from './telas/Entrar'
 import { EditarIgreja, NovaIgreja } from './telas/igrejas/FormIgreja'
 import { ListaIgrejas } from './telas/igrejas/ListaIgrejas'
 import { Inicio } from './telas/Inicio'
+import { DetalheInscricao, ListaInscricoes } from './telas/inscricoes/Inscricoes'
 import { DetalheMinistro } from './telas/ministros/DetalheMinistro'
 import { ListaMinistros } from './telas/ministros/ListaMinistros'
 import { NovoMinistro } from './telas/ministros/NovoMinistro'
+import { CriarAcessoPedido, MeuPedido } from './telas/pedido/MeuPedido'
 import { ConfiguracaoAusente, EmConstrucao } from './telas/Simples'
 import { PaginaInicial, PaginaNaoEncontrada, QueroMeAssociar } from './telas/Site'
 
@@ -43,12 +46,21 @@ export default function App() {
           {/* Site institucional (público) */}
           <Route index element={<PaginaInicial />} />
           <Route path="associar" element={<QueroMeAssociar />} />
+          <Route path="associar/pedido" element={<CriarAcessoPedido />} />
           <Route path="entrar" element={<Entrar />} />
+          <Route path="primeiro-acesso" element={<PrimeiroAcesso />} />
+          <Route path="nova-senha" element={<NovaSenha />} />
 
           {/* Portal do membro (exige login) */}
           <Route element={<RotaProtegida />}>
             <Route element={<Layout />}>
               <Route path="painel" element={<Inicio />} />
+              <Route path="meu-pedido" element={<MeuPedido />} />
+
+              <Route path="inscricoes" element={<Area caminho="/inscricoes" />}>
+                <Route index element={<ListaInscricoes />} />
+                <Route path=":id" element={<DetalheInscricao />} />
+              </Route>
 
               <Route path="igrejas" element={<Area caminho="/igrejas" />}>
                 <Route index element={<ListaIgrejas />} />

@@ -35,8 +35,10 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'computador', use: { ...devices['Desktop Chrome'], channel: canal } },
-    { name: 'celular', use: { ...devices['Pixel 7'], channel: canal } },
+    // Cada usuário fictício entra UMA vez; os testes reaproveitam a sessão (o Supabase limita logins por minuto)
+    { name: 'preparar', testMatch: /.*\.setup\.ts/, use: { ...devices['Desktop Chrome'], channel: canal } },
+    { name: 'computador', use: { ...devices['Desktop Chrome'], channel: canal }, dependencies: ['preparar'] },
+    { name: 'celular', use: { ...devices['Pixel 7'], channel: canal }, dependencies: ['preparar'] },
   ],
   webServer: urlExterna
     ? undefined

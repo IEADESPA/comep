@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { GerarCodigo } from '../../componentes/GerarCodigo'
 import { concederPerfil, listarPessoasComPerfis, retirarPerfil, type PessoaComPerfis } from '../../dados/acessos'
 import { NOME_DO_PERFIL, PERFIS, type Perfil } from '../../dados/perfis'
 import { useCarregar } from '../../estado/useCarregar'
@@ -139,6 +140,10 @@ function LinhaPessoa({
           </button>
         </form>
       )}
+      <details className="acao-recolhida">
+        <summary>Código de acesso</summary>
+        <GerarCodigo pessoaId={pessoa.id} nome={pessoa.nome} temLogin={Boolean(pessoa.usuario_id)} />
+      </details>
     </li>
   )
 }

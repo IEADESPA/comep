@@ -8,7 +8,8 @@ export type ItemMenu = {
   caminho: string
   titulo: string
   descricao: string
-  perfis: readonly Perfil[] | 'todos'
+  /** 'sem_perfil' = só para quem ainda não tem perfil nenhum (ex.: candidato à associação) */
+  perfis: readonly Perfil[] | 'todos' | 'sem_perfil'
   /** Fase de entrega em que a tela fica pronta (PROJETO.md, seção 9). */
   fase: number
   /** A tela já funciona (as demais mostram "Em construção"). */
@@ -20,11 +21,12 @@ const DIRETORIA_CADASTRO: readonly Perfil[] = ['secretaria', 'presidencia']
 
 export const ITENS_MENU: readonly ItemMenu[] = [
   { caminho: '/painel', titulo: 'Início', descricao: 'Resumo e atalhos', perfis: 'todos', fase: 0, pronto: true },
+  { caminho: '/meu-pedido', titulo: 'Meu pedido', descricao: 'Pedido de associação ao COMEP', perfis: 'sem_perfil', fase: 1, pronto: true },
   { caminho: '/meu-perfil', titulo: 'Meu perfil', descricao: 'Seus dados, foto e histórico', perfis: 'todos', fase: 1 },
   { caminho: '/minhas-mensalidades', titulo: 'Minhas mensalidades', descricao: 'Situação e envio de comprovantes', perfis: MINISTRO, fase: 2 },
   { caminho: '/minha-carteirinha', titulo: 'Minha carteirinha', descricao: 'Carteirinha digital com QR Code', perfis: MINISTRO, fase: 3 },
   { caminho: '/minha-igreja', titulo: 'Minha igreja', descricao: 'Ministros vinculados e pedidos pendentes', perfis: ['presidente_igreja'], fase: 1 },
-  { caminho: '/inscricoes', titulo: 'Inscrições', descricao: 'Pedidos de inscrição para análise', perfis: DIRETORIA_CADASTRO, fase: 1 },
+  { caminho: '/inscricoes', titulo: 'Inscrições', descricao: 'Pedidos de associação para análise', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
   { caminho: '/ministros', titulo: 'Ministros', descricao: 'Cadastro de ministros', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
   { caminho: '/igrejas', titulo: 'Igrejas', descricao: 'Cadastro de igrejas e denominações', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
   { caminho: '/financeiro', titulo: 'Financeiro', descricao: 'Mensalidades, lançamentos e relatórios', perfis: ['tesouraria', 'presidencia'], fase: 2 },
@@ -52,6 +54,7 @@ export function perfisEfetivos(perfis: readonly Perfil[]): Set<Perfil> {
 
 export function podeVer(item: ItemMenu, perfis: readonly Perfil[]): boolean {
   if (item.perfis === 'todos') return true
+  if (item.perfis === 'sem_perfil') return perfis.length === 0
   const efetivos = perfisEfetivos(perfis)
   return item.perfis.some((p) => efetivos.has(p))
 }

@@ -44,6 +44,7 @@ testes/banco/   Testes automáticos das regras do banco
 testes/unidade/ Testes das validações das telas
 testes/e2e/     Testes de ponta a ponta (navegador de verdade + banco de teste)
 docs/revisoes/  Registro das travas de revisão de cada fase (PROJETO.md, seção 14)
+docs/configuracao-login.md  Configuração de login do Supabase (sem e-mail) em cada ambiente
 .github/workflows/  Verificação em todo pull request e publicação ao entrar na main
 ```
 

@@ -183,34 +183,32 @@ export function QueroMeAssociar() {
           <h2>Como funciona</h2>
           <ol className="site-passos">
             <li>
-              <strong>Pedido:</strong> você envia seus dados e o comprovante do seu título.
+              <strong>Pedido:</strong> você cria o seu acesso e envia seus dados, sua foto e o comprovante do seu título.
             </li>
             <li>
-              <strong>Análise:</strong> a diretoria analisa o pedido.
+              <strong>Análise:</strong> a diretoria analisa o pedido e um diretor assina a ficha com você.
             </li>
             <li>
               <strong>Assembleia:</strong> o pedido é apresentado e votado na Assembleia Ordinária (abril ou outubro).
             </li>
             <li>
-              <strong>Ficha e inscrição:</strong> aprovado, você assina a ficha de associação com um diretor e paga a
-              taxa de inscrição.
-            </li>
-            <li>
-              <strong>Bem-vindo:</strong> você passa a ter acesso ao Portal do membro.
+              <strong>Bem-vindo:</strong> aprovado, você passa a ter acesso ao Portal do membro e paga a taxa de
+              inscrição.
             </li>
           </ol>
 
-          <section className="aviso site-aviso">
-            <h2>Formulário on-line em construção</h2>
-            <p>
-              O pedido de associação pelo site chega na próxima etapa do sistema. Por enquanto, procure a secretaria do
-              COMEP em uma das reuniões mensais.
-            </p>
-          </section>
-
-          <Link to="/painel" className="botao botao-secundario">
-            Já sou associado: Portal do membro
-          </Link>
+          <div className="site-acoes site-acoes-pedido">
+            <Link to="/associar/pedido" className="botao">
+              Fazer meu pedido
+            </Link>
+            <Link to="/painel" className="botao botao-secundario">
+              Já sou associado: Portal do membro
+            </Link>
+          </div>
+          <p className="detalhe">
+            Já é associado e ainda não tem login? Peça um código à secretaria e use o{' '}
+            <Link to="/primeiro-acesso">primeiro acesso</Link>.
+          </p>
         </div>
       </main>
       <RodapeSite />

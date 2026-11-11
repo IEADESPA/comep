@@ -1,14 +1,13 @@
 // Fase 1.2 (parte 1): configurações, pastor presidente/jubilado e as duas colunas independentes.
 // Dados FICTÍCIOS no banco de teste; o que o teste cria, ele mesmo arquiva no fim (nada se apaga).
 import { expect, test } from '@playwright/test'
-import { USUARIOS, entrar, sufixoUnico } from './ajuda'
+import { arquivoDaSessao, sufixoUnico } from './ajuda'
 
 const mensagem = (page: import('@playwright/test').Page, texto: string) =>
   page.getByRole('status').filter({ hasText: texto })
 
-test.beforeEach(async ({ page }) => {
-  await entrar(page, USUARIOS.presidencia)
-})
+// Sessão da presidência fictícia, guardada em autenticacao.setup.ts (sem novo login a cada teste)
+test.use({ storageState: arquivoDaSessao('presidencia') })
 
 test('a presidência adiciona, altera e arquiva um bairro', async ({ page }, info) => {
   const nome = `Bairro E2E ${sufixoUnico(info.project.name)}`
