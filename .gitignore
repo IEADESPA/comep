@@ -1,0 +1,28 @@
+# Dependências e build
+node_modules
+dist
+dist-ssr
+dev-dist
+*.local
+
+# Segredos — NUNCA versionar (ver PROJETO.md, seção 12)
+.env
+.env.*
+!.env.example
+
+# Supabase CLI (arquivos locais do vínculo com o projeto)
+supabase/.temp
+supabase/.branches
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.sw?
