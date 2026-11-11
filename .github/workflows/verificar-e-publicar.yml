@@ -40,9 +40,11 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Informações PÚBLICAS do projeto Supabase de produção (variáveis do repositório, não segredos)
+          # Informações PÚBLICAS do projeto Supabase (variáveis do repositório, não segredos).
+          # Até a liberação oficial apontam para o comep-teste, com AMBIENTE=teste (faixa amarela no site).
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          VITE_AMBIENTE: ${{ vars.AMBIENTE }}
 
       - name: "Links diretos (ex.: validação da carteirinha) abrem o app no GitHub Pages"
         run: cp dist/index.html dist/404.html

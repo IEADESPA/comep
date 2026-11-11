@@ -62,6 +62,18 @@ a {
   color: var(--cor-marca);
 }
 
+.faixa-teste {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0.35rem 16px;
+  background: #f0c36d;
+  color: #3a2a00;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+
 /* ---------- Botões e formulários ---------- */
 
 .botao {

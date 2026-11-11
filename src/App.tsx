@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
+import { FaixaAmbiente } from './componentes/Basicos'
 import { Layout } from './componentes/Layout'
 import { ITENS_MENU } from './componentes/menu'
 import { ExigePerfil, RotaProtegida } from './componentes/Rotas'
@@ -16,6 +17,7 @@ export default function App() {
 
   return (
     <ProvedorSessao>
+      <FaixaAmbiente />
       <BrowserRouter basename={basename}>
         <Routes>
           <Route path="entrar" element={<Entrar />} />
