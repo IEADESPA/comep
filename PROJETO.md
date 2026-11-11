@@ -152,7 +152,7 @@ Segurança por **RLS (Row Level Security)**: as regras de "quem vê o quê" fica
 
 Enquanto o Conselho não tiver CNPJ regularizado e estrutura própria, **todas as contas ficam em nome da associação mantenedora** (a organização da qual a equipe de desenvolvimento faz parte). Nada é criado em nome do Conselho ou de terceiros.
 
-**Situação atual (11/11/2026):** GitHub — repositórios `IEADESPA/comep` e `IEADESPA/comep-backups` (privados) na organização da IEADESPA. Supabase — organização da IEADESPA (plano Free), projetos `comep-producao` e `comep-teste`.
+**Situação atual (11/11/2026):** GitHub — repositórios `IEADESPA/comep` e `IEADESPA/comep-backups` (privados) na organização da IEADESPA. Supabase — organização da IEADESPA (plano Free), projetos `comep-producao` e `comep-teste`, ambos na região **São Paulo (sa-east-1)**: os dados ficam no Brasil. A tela do Supabase só oferece o continente; a região exata foi escolhida pelo Supabase CLI.
 
 **Antes de cadastrar dados reais**, formalizar por escrito (ofício ou termo simples, assinado pela presidência do Conselho e pela associação):
 - que o Conselho solicitou o sistema;
