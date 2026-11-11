@@ -25,7 +25,7 @@ O que entrou:
 
 | Pull request | Resultado | Data |
 |---|---|---|
-| Fase 1.1 — cadastros | ver o pull request | 11/11/2026 |
+| #6 — Fase 1.1, cadastros | verde (lint, 51 testes, build e 30 testes de ponta a ponta no GitHub) | 11/11/2026 |
 
 ### Trava 2 — Revisão técnica no banco de teste (`comep-teste`)
 
