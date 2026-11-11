@@ -1,15 +1,16 @@
-/* Cores PROVISÓRIAS até a diretoria aprovar a identidade visual (PROJETO.md, decisão 9). */
+/* Cores do COMEP (PROJETO.md, seção 11.1): vermelho (principal), branco e cinza.
+   Os tons exatos podem ser ajustados quando chegar o arquivo oficial do logo. */
 :root {
-  --cor-marca: #1d3a6e;
-  --cor-marca-forte: #142a52;
-  --cor-marca-suave: #e6ecf6;
-  --cor-fundo: #f5f6f8;
+  --cor-marca: #b91c1c;
+  --cor-marca-forte: #7f1d1d;
+  --cor-marca-suave: #fdecec;
+  --cor-fundo: #f4f4f5;
   --cor-superficie: #ffffff;
-  --cor-texto: #1b1f27;
-  --cor-texto-suave: #5a6270;
-  --cor-borda: #d9dde4;
-  --cor-erro: #b42318;
-  --cor-erro-fundo: #fdecea;
+  --cor-texto: #18181b;
+  --cor-texto-suave: #52525b;
+  --cor-borda: #d4d4d8;
+  --cor-erro: #9f1239;
+  --cor-erro-fundo: #fff1f2;
   --cor-aviso-fundo: #fff8e6;
   --cor-aviso-borda: #f0c36d;
   --raio: 10px;
@@ -19,16 +20,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --cor-marca: #7ea6e8;
-    --cor-marca-forte: #a8c3f0;
-    --cor-marca-suave: #1d2a40;
-    --cor-fundo: #12151b;
-    --cor-superficie: #1b1f27;
-    --cor-texto: #e8eaee;
-    --cor-texto-suave: #a3aab6;
-    --cor-borda: #2f3540;
-    --cor-erro: #ff8a80;
-    --cor-erro-fundo: #3a1c1a;
+    --cor-marca: #f87171;
+    --cor-marca-forte: #fca5a5;
+    --cor-marca-suave: #3a1618;
+    --cor-fundo: #141416;
+    --cor-superficie: #1c1c1f;
+    --cor-texto: #f4f4f5;
+    --cor-texto-suave: #a1a1aa;
+    --cor-borda: #34343a;
+    --cor-erro: #fda4af;
+    --cor-erro-fundo: #3b1220;
     --cor-aviso-fundo: #2e2814;
     --cor-aviso-borda: #8a6d24;
     color-scheme: dark;
@@ -222,10 +223,23 @@ a:focus-visible {
 }
 
 .usuario-nome {
+  /* min-width: 0 deixa o nome encolher (com "…") em vez de cobrir o botão "Sair" */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--cor-texto-suave);
+}
+
+.usuario .botao {
+  flex-shrink: 0;
+}
+
+/* Celular: o nome já aparece em "Olá, …" logo abaixo; no topo fica só o botão "Sair" */
+@media (max-width: 520px) {
+  .usuario-nome {
+    display: none;
+  }
 }
 
 .botao-menu {
@@ -475,7 +489,7 @@ a:focus-visible {
 }
 
 .site-hero {
-  background: linear-gradient(135deg, #142a52 0%, #1d3a6e 60%, #2b5296 100%);
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 55%, #b91c1c 100%);
   color: #ffffff;
   padding: 4rem 0 4.5rem;
 }
@@ -510,7 +524,7 @@ a:focus-visible {
 
 .site-hero .botao-claro {
   background: #ffffff;
-  color: #142a52;
+  color: #7f1d1d;
 }
 
 .site-hero .botao-contorno {

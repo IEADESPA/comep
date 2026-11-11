@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "db:novo": "supabase migration new",
     "db:aplicar": "supabase db push",
-    "db:tipos": "supabase gen types typescript --linked --schema public > src/dados/banco.gerado.ts"
+    "db:tipos": "supabase gen types typescript --linked --schema public > src/dados/banco.gerado.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16",
+    "@playwright/test": "^1.65.0",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

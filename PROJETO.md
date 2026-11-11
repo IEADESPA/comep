@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.2 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021). Rascunho para discussão.
+> Versão 0.3 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), as cores do COMEP, a decisão de não enviar e-mails e a Fase 0 concluída. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -67,7 +67,10 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
   - termo de consentimento LGPD.
 - **Fluxo do estatuto (Art. 7º):** pedido → análise da Diretoria (secretaria) → **aprovação na Assembleia Ordinária** (registrada com a data e a ata) → ficha aceita pelo associado e por um diretor (aceite eletrônico dos dois) → taxa de inscrição → associado ativo.
 - **Associados atuais** ("já cadastrados nesta data", Art. 7º, a): a secretaria cadastra direto, sem passar pela assembleia.
-- Login com e-mail e senha, ou com conta Google.
+- Login com conta Google (o mais prático no celular Android) ou com e-mail e senha.
+- **Sem envio de e-mail** (decisão de 11/11/2026, seção 5):
+  - não há e-mail de confirmação; o pedido só vira associado depois da aprovação na assembleia, então ninguém ganha acesso só por criar login;
+  - senha esquecida é trocada pela secretaria ou pelo administrador técnico, dentro do sistema.
 
 ### 4.2 Ministros (perfil do associado)
 
@@ -182,13 +185,13 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 | Banco de dados | **Supabase** (PostgreSQL) — plano Free | Banco relacional de verdade |
 | Login | **Supabase Auth** | E-mail/senha e Google |
 | Fotos e arquivos | **Supabase Storage** | Pastas privadas; links temporários |
-| E-mails de login | **SMTP do Gmail institucional** (senha de app) | Obrigatório — ver seção 10. Sem serviço extra |
+| E-mails | **Nenhum** (decisão de 11/11/2026) | Os serviços gratuitos de envio não servem para isso, e o e-mail da IEADESPA (Azure) não será usado. Ver seção 4.1 e 10 |
 | Código-fonte | **GitHub** — repositório `IEADESPA/comep` (privado) | Provisório até a transferência ao Conselho (seção 8); 2–3 donos |
 | Backups | Repositório `IEADESPA/comep-backups` **privado** | Só arquivos criptografados |
 | Automação | **GitHub Actions** | Testes das regras do banco antes de publicar, publicação do app, backup semanal criptografado e aviso anti-pausa |
 | APK (futuro) | Empacotar o PWA (TWA/Capacitor) | Instalação direta, sem Play Store |
 
-**Serviços usados: apenas GitHub + Supabase** (mais o Gmail institucional, que já existe).
+**Serviços usados: apenas GitHub + Supabase.**
 
 **Regra do repositório:** hoje o repositório `comep` é privado (o plano Team da IEADESPA permite). Se um dia precisar ficar público (ex.: organização do Conselho no plano gratuito), isso não reduz a segurança: o código das telas é baixado pelo navegador de qualquer usuário, e a proteção está nas regras RLS do banco. No repositório **nunca** entram dados, senhas ou a chave secreta (`service_role`/`sb_secret_`) do Supabase — só a chave pública (`publishable`), feita para ser pública.
 
@@ -229,10 +232,16 @@ Segurança por **RLS (Row Level Security)**: as regras de "quem vê o quê" fica
 1. **Contas da associação mantenedora (IEADESPA)** como donas do GitHub e do Supabase nesta fase — decisão de 11/11/2026, porque o Conselho ainda não tem e-mail institucional. Quando tiver, tudo passa para as contas dele (seção 8).
 2. **Verificação em duas etapas** ligada; códigos de recuperação impressos e guardados em envelope lacrado, com registro em ata de quem os guarda.
 3. **2 a 3 donos** em cada serviço (presidência, secretaria, tesouraria). Nunca um dono só.
-4. **Backup semanal automático**: o GitHub Actions exporta o banco e os arquivos, **criptografa** e salva num repositório privado separado (`comep-backups`). A chave de descriptografia fica só com a diretoria — nunca dentro do app ou do repositório. As senhas dos bancos já estão nos *Secrets* desse repositório.
-5. **Teste de restauração** a cada 3 meses (restaurar o backup num projeto de teste e conferir).
-6. Ninguém tem botão de "apagar"; só arquivar.
-7. Troca de diretoria: checklist de transferência de acessos registrado em ata.
+4. **Backup semanal automático** — funcionando desde 11/11/2026:
+   - todo domingo, às 3h, o GitHub Actions exporta os dois bancos, **criptografa** e salva no repositório privado `comep-backups`;
+   - o primeiro backup foi conferido: abre com a chave e não abre sem ela, e os dados batem com o banco;
+   - a chave que abre os backups fica **fora do repositório**, num arquivo guardado pela IEADESPA, e também como segredo do GitHub, só para testes de restauração;
+   - os arquivos de fotos e documentos entram no backup quando existirem (Fase 1);
+   - o passo a passo de restauração está no README do `comep-backups`.
+5. **Aviso anti-pausa** — funcionando desde 11/11/2026: a cada 3 dias uma consulta simples mantém os dois bancos ativos.
+6. **Teste de restauração** a cada 3 meses (restaurar o backup num projeto de teste e conferir).
+7. Ninguém tem botão de "apagar"; só arquivar.
+8. Troca de diretoria: checklist de transferência de acessos registrado em ata.
 
 ## 8. Hospedagem provisória e transferência ao Conselho
 
@@ -269,17 +278,24 @@ Cada fase só é considerada entregue depois de passar pelas **4 travas de revis
 
 ### Fase 0 — Fundação (versão 0.1, só em teste)
 
-- [ ] Assinar o termo de solicitação/hospedagem provisória (seção 8)
-- [x] Usar as contas da IEADESPA (decisão de 11/11/2026, seção 7) — [ ] conferir verificação em duas etapas
-- [x] Repositórios `IEADESPA/comep` e `IEADESPA/comep-backups` (privados) — [ ] incluir 2º dono na organização
-- [x] Projetos `comep-producao` e `comep-teste` no Supabase, em São Paulo — [ ] configurar o SMTP do e-mail de envio
+- [x] Usar as contas da IEADESPA (decisão de 11/11/2026, seção 7); dono da organização com verificação em duas etapas
+- [x] Repositórios `IEADESPA/comep` e `IEADESPA/comep-backups` (privados)
+- [x] Projetos `comep-producao` e `comep-teste` no Supabase, em São Paulo
+- [x] Decisão: sem envio de e-mail (seção 5)
 - [x] GitHub Pages ativo, com publicação automática via GitHub Actions
 - [x] Esqueleto do app (PWA instalável, login, menu por perfil)
 - [x] Estrutura inicial do banco (pessoas, perfis de acesso, auditoria) com testes automáticos das regras
 - [x] Página inicial institucional com "Portal do membro" e "Quero me associar"
-- [x] Travas de revisão: verificação obrigatória antes de aprovar, roteiro e registro de revisão (seção 14)
-- [ ] Backup semanal criptografado + aviso anti-pausa funcionando
-- [ ] Revisão da Fase 0 concluída (`docs/revisoes/fase-0.md`)
+- [x] Cores do COMEP: vermelho, branco e cinza
+- [x] Travas de revisão (seção 14), com testes de ponta a ponta automáticos
+- [x] Backup semanal criptografado + aviso anti-pausa funcionando (testados em 11/11/2026)
+- [x] Revisão da Fase 0 concluída (`docs/revisoes/fase-0.md`)
+
+**Fica para depois, sem travar a Fase 1:**
+
+- incluir o presidente da igreja (IEADESPA) como 2º dono da organização no GitHub;
+- o membro `presidente-ai` da organização está sem verificação em duas etapas (recomendado ligar);
+- o termo da seção 8 passa a ser exigido no lançamento da versão 1.0, antes de entrar dado real.
 
 ### Fase 1 — Associação, ministros e igrejas (versão 1.0 — primeira versão em produção)
 
@@ -339,7 +355,7 @@ Cada fase só é considerada entregue depois de passar pelas **4 travas de revis
 |---|---|---|
 | **Pausa por inatividade** | Projeto gratuito pausa após 7 dias sem acesso ao banco (os dados **não** são apagados) | GitHub Actions acessa o banco a cada 3 dias |
 | **Sem backup automático no plano Free** | O Supabase não guarda cópias para nós | Backup semanal próprio, criptografado, no GitHub |
-| **E-mail de login padrão** | Só envia para a equipe do projeto e com limite de poucos e-mails por hora | Configurar o SMTP do Gmail institucional desde a Fase 0 |
+| **Sem envio de e-mail** | O Supabase gratuito só manda poucos e-mails por hora, e só para a equipe; não haverá serviço de e-mail | Confirmação por e-mail desligada; acesso só depois da aprovação em assembleia; senha esquecida trocada pela secretaria ou pelo administrador; login com Google |
 | **Código das telas é visível** | Mesmo com repositório privado, o navegador baixa o código das telas | Nenhum segredo ou dado no repositório; segurança garantida pelo banco (RLS) |
 | **Limites de espaço** | 500 MB de banco, 1 GB de arquivos, 5 GB de tráfego/mês | Comprimir fotos (~100 KB); PDFs pequenos; acompanhar o painel de uso |
 | **Usuários** | 50.000 usuários **diferentes** por mês | Muito acima do necessário |
@@ -364,9 +380,12 @@ Cada fase só é considerada entregue depois de passar pelas **4 travas de revis
 | Quem autoriza despesas? | O presidente | Art. 12, §2º, VI |
 | Prestação de contas | Balanço anual do 1º tesoureiro, analisado pela diretoria, com parecer do Conselho Fiscal, apreciado em assembleia | Art. 12, §6º; Art. 14; Art. 15 |
 | Nome oficial | COMEP — Conselho de Ministros Evangélicos de Parauapebas (o Art. 1º escreve "em Parauapebas") | Art. 1º |
-| Identidade visual | O logo existe (letras COMEP com um círculo no "O"); faltam o arquivo original e as cores (decisão 16) | Capa |
+| Identidade visual | O logo existe (letras COMEP com um círculo no "O"). **Cores** (informadas em 11/11/2026): vermelho (principal), branco e cinza. O arquivo original do logo será pedido depois | Capa |
+| Envio de e-mails | **Não haverá** (decisão de 11/11/2026) — ver seção 5 | — |
 
 ### 11.2 Ainda pendentes (o estatuto não responde ou se contradiz)
+
+As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026.
 
 1. **Valores** da taxa de inscrição e da contribuição, e regras de isenção (ex.: jubilados). O estatuto diz que a Assembleia Ordinária define os valores (Art. 7º, §3º), mas não traz os números: enviar a ata com os valores aprovados.
 2. **A contribuição é anual ou mensal?** O Art. 7º, §3º fala em "taxa anual"; o Art. 10, V fala em "mensalidade".
@@ -382,8 +401,11 @@ Cada fase só é considerada entregue depois de passar pelas **4 travas de revis
 12. **Perfil "presidente de igreja"** (ver os ministros da sua igreja e se estão em dia): não está no estatuto. A diretoria quer manter?
 13. **Cópia completa do estatuto:** na cópia recebida faltam o §2º do Art. 7º e os Artigos 19 e 20 (provavelmente sobre dissolução, citada no título do Capítulo V).
 14. **Dados para o site:** o COMEP tem CNPJ? Qual a sede atual (o estatuto fala em sede provisória)? Quais os contatos oficiais (telefone/WhatsApp, e-mail, redes sociais)?
-15. Quem serão os 2–3 donos das contas (na associação) e quem guarda os códigos de recuperação.
-16. **Identidade visual:** enviar o arquivo original do logo e as cores oficiais.
+
+### 11.3 Internas (equipe técnica, sem levar à diretoria)
+
+15. Donos das contas e quem guarda os códigos de recuperação — resolver com o tempo (o próximo dono será o presidente da igreja, na IEADESPA).
+16. Arquivo original do logo — pedir depois; as cores já estão aplicadas.
 
 ## 12. Convenções de desenvolvimento
 
@@ -505,8 +527,8 @@ Criar não basta: cada fase precisa ser **testada, corrigida e aprovada no ambie
 |---|---|---|---|
 | **1. Verificação automática** | Lint, testes das regras do banco (RLS, nada se apaga, auditoria) e build rodam em todo pull request. O GitHub **bloqueia** a aprovação se algo falhar | Automático (GitHub Actions) | Verificação verde no pull request |
 | **2. Revisão técnica no banco de teste** | Migração aplicada **primeiro** no `comep-teste`; conferência das tabelas, regras e gatilhos; verificador de segurança do Supabase sem alertas; teste de fora como visitante sem login | Claude Code + administrador técnico | Resultado registrado no arquivo de revisão da fase |
-| **3. Teste de uso no ambiente de teste** | Roteiro de teste **por perfil** (ministro, secretaria, tesouraria, presidência…), com dados fictícios, no site de teste. Cada erro vira item na lista de problemas; corrige → testa de novo, até não sobrar nenhum problema bloqueante ou importante | Administrador técnico + pelo menos 1 pessoa da diretoria para conferir as regras do estatuto | Roteiro preenchido e lista de problemas em `docs/revisoes/fase-N.md` |
-| **4. Aceite e lançamento** | Aceite registrado; a mesma migração aplicada no `comep-producao`; publicação; conferência rápida em produção (entrar, ver o menu, abrir uma tela de cada perfil) | Administrador técnico + presidência (aceite das regras) | Aceite com data no arquivo de revisão e a versão marcada no GitHub (ex.: `v1.0`) |
+| **3. Teste de uso no ambiente de teste** | **Testes de ponta a ponta automáticos**: um navegador de verdade usa o app ligado ao banco de teste, com usuários **fictícios** de cada perfil, em tamanho de computador e de celular. Rodam em todo pull request, e o GitHub bloqueia a aprovação se falharem. Cada fase acrescenta os testes das suas telas. Junto vem a conferência visual (fotos das telas). Problema encontrado → corrige → testa de novo | Claude Code (não precisa de roteiro manual — decisão de 11/11/2026) | Testes verdes no pull request e lista de problemas em `docs/revisoes/fase-N.md` |
+| **4. Aceite e lançamento** | Aceite registrado; a mesma migração aplicada no `comep-producao`; publicação; conferência rápida em produção (entrar, ver o menu, abrir uma tela de cada perfil) | Administrador técnico + presidência (aceite das regras do estatuto) | Aceite com data no arquivo de revisão e a versão marcada no GitHub (ex.: `v1.0`) |
 
 ### 14.2 Gravidade dos problemas encontrados
 

@@ -11,7 +11,7 @@
 
 - [ ] **Trava 1 — Verificação automática:** lint, testes das regras do banco e build verdes neste pull request
 - [ ] **Trava 2 — Revisão técnica no banco de teste:** migração aplicada no `comep-teste`, verificador de segurança do Supabase sem alertas, visitante sem login recusado
-- [ ] **Trava 3 — Teste de uso:** roteiro por perfil executado no site de teste; problemas registrados e corrigidos em `docs/revisoes/fase-N.md`
+- [ ] **Trava 3 — Teste de uso:** testes de ponta a ponta verdes (banco de teste, usuários fictícios, computador e celular); telas novas com testes novos; problemas registrados e corrigidos em `docs/revisoes/fase-N.md`
 - [ ] **Trava 4 — Aceite e lançamento:** aceite registrado; migração aplicada no `comep-producao`; conferência em produção
 
 > Pull requests que não lançam versão (documentação, ajustes de teste) marcam só as travas que se aplicam e dizem por quê.

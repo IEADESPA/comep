@@ -19,13 +19,15 @@
 
 Observações:
 
-## Trava 3 — Teste de uso no site de teste
+## Trava 3 — Teste de uso no ambiente de teste
 
-Dados **fictícios**. Marcar ✅ (funcionou), ❌ (problema — anotar na lista abaixo) ou ➖ (não se aplica).
+Feito pelo Claude Code com **testes de ponta a ponta** (`npm run e2e`), usuários **fictícios** e banco de teste, em tamanho de computador e de celular. Cada fase acrescenta os testes das suas telas, por perfil.
 
-| # | Perfil | O que testar | Resultado | Quem testou | Data |
-|---|---|---|---|---|---|
-| 1 | | | | | |
+| O que é testado (por perfil) | Resultado |
+|---|---|
+| | ✅ / ❌ |
+
+Conferência visual (fotos das telas novas em 1280 px e 390 px):
 
 ### Problemas encontrados
 

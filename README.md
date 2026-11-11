@@ -23,6 +23,7 @@ npm run dev                  # abre em http://localhost:5173/comep/
 |---|---|
 | `npm run dev` | App em modo de desenvolvimento |
 | `npm test` | Testa as regras do banco (RLS, "nada se apaga", auditoria) num PostgreSQL local, sem Docker |
+| `npm run e2e` | Testes de ponta a ponta: navegador de verdade, banco de teste, usuários fictícios (senhas em `.env.e2e.local`, fora do repositório) — rodar depois do `npm run build` |
 | `npm run lint` | Confere o código, inclusive a regra de portabilidade |
 | `npm run build` | Gera a versão de publicação em `dist/` |
 | `npm run db:novo <nome>` | Cria um arquivo de migração novo em `supabase/migrations/` |
@@ -39,6 +40,7 @@ src/
 supabase/
   migrations/   Estrutura do banco (tabelas, regras de acesso, auditoria), em ordem
 testes/banco/   Testes automáticos das regras do banco
+testes/e2e/     Testes de ponta a ponta (navegador de verdade + banco de teste)
 docs/revisoes/  Registro das travas de revisão de cada fase (PROJETO.md, seção 14)
 .github/workflows/  Verificação em todo pull request e publicação ao entrar na main
 ```
