@@ -22,6 +22,13 @@
 
 ## Trava 3 — Teste de uso no site de teste (https://ieadespa.github.io/comep/)
 
+**Conferência visual automática (Claude Code, 11/11/2026):** fotos do site publicado, tiradas pelo Edge sem janela, em 1280 px (computador) e 390 px (celular):
+
+- página inicial, "Quero me associar" e "Entrar": nada cortado ou desalinhado nas duas larguras;
+- `/painel` sem login leva para a tela de entrar.
+
+A conferência automática **não substitui** o roteiro abaixo, que precisa ser feito por uma pessoa.
+
 | # | Perfil | O que testar | Resultado | Quem testou | Data |
 |---|---|---|---|---|---|
 | 1 | Visitante | Abrir a página inicial; ver a faixa "versão de teste"; botões "Portal do membro" e "Quero me associar" funcionam | | | |
@@ -41,6 +48,7 @@
 | 1 | Bloqueante | O fluxo de verificação do GitHub não rodava: texto com dois-pontos sem aspas no arquivo do fluxo | PR #1 (commit "Corrige o arquivo do fluxo…") | ✅ verificação verde |
 | 2 | Importante | Projetos do Supabase criados nos EUA (a tela só oferece o continente) | Recriados em São Paulo pelo CLI | ✅ conferido |
 | 3 | Menor | Arquivo de senhas dos bancos salvo numa pasta escondida do Windows | Senhas movidas para os *Secrets* do `comep-backups`; arquivo apagado | ✅ conferido |
+| 4 | Menor | Ícones diferentes: cruz na tela de entrar e no app; círculo no site | Ícone único com o círculo do logo do COMEP (PR "ajuste-icone") | |
 
 ## Trava 4 — Aceite
 
