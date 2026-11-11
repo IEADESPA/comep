@@ -1,11 +1,11 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.4 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.5 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
-> - As perguntas que o estatuto **não** responde estão na **seção 11**.
+> - As perguntas que o estatuto **não** responde, e as respostas da diretoria, estão na **seção 11**.
 
 ---
 
@@ -40,7 +40,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 | **Visitante** | Qualquer pessoa | Ver o site institucional e as convocações públicas; pedir associação; validar uma carteirinha pelo QR Code |
 | **Ministro** | Pastor ou líder evangélico associado (Art. 7º) | Ver/atualizar o próprio perfil e foto; ver a carteirinha; ver suas contribuições e informar pagamento com comprovante; pedir troca de igreja; confirmar presença em reuniões e assembleias; justificar falta |
 | **Presidente de igreja** | Pastor presidente de uma igreja cadastrada. **Não previsto no estatuto** (decisão 12) | Tudo do ministro + ver os ministros vinculados à sua igreja e se estão em dia; atualizar dados da igreja; confirmar vínculos com a sua igreja |
-| **Secretaria** | 1º e 2º secretários (Art. 12, §4º e §5º) | Receber os pedidos de associação e levá-los à assembleia; cadastros de ministros e igrejas; preparar convocações; registrar presença; redigir atas (1º secretário); comunicação e avisos (2º secretário) |
+| **Secretaria** | 1º e 2º secretários (Art. 12, §4º e §5º) | Receber os pedidos de associação e levá-los à assembleia; cadastros de ministros e igrejas; preparar convocações; registrar presença; aceitar ou recusar justificativas de falta (1º secretário); redigir atas (1º secretário); comunicação e avisos (2º secretário) |
 | **Tesouraria** | 1º e 2º tesoureiros (Art. 12, §6º e §7º) | Conferir/confirmar pagamentos; lançar entradas e saídas; preparar o balanço anual e os relatórios |
 | **Presidência** | Presidente e vice-presidente (Art. 12, §2º e §3º) | Visualizar tudo; convocar assembleias; **autorizar despesas** (Art. 12, §2º, VI); assinar atas com o 1º secretário; gerenciar perfis de acesso |
 | **Secretário Executivo** | Art. 12, §8º | Apoiar a presidência, a diretoria e o Conselho Fiscal: ver cadastros, financeiro e assembleias, sem aprovar nada |
@@ -105,11 +105,22 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 
 ### 4.4 Financeiro
 
-- **Taxa de inscrição** e **contribuição periódica**:
-  - os valores são definidos pela Assembleia Ordinária (Art. 7º, §3º), ficam configuráveis e guardam o histórico de cada valor;
-  - a periodicidade fica configurável até a diretoria decidir, porque o estatuto diz "taxa anual" (Art. 7º, §3º) e também "mensalidade" (Art. 10, V) — decisão 2.
+- **Contribuição dos associados** (respondido pela diretoria em 11/11/2026):
+
+  | Categoria do associado | Mensal | Anual (pago em abril) |
+  |---|---|---|
+  | Presidente de igreja | R$ 40,00 | R$ 400,00 |
+  | Não presidente de igreja | R$ 20,00 | R$ 200,00 |
+  | Jubilado | isento | isento |
+
+  - o associado paga **por mês** ou **o ano inteiro em abril**;
+  - o **exercício** vai de **1º de abril a 31 de março**;
+  - a categoria (presidente de igreja, não presidente, jubilado) fica no cadastro do associado, mantida pela secretaria;
+  - os valores são definidos pela Assembleia Ordinária (Art. 7º, §3º): ficam configuráveis e guardam o histórico, para os próximos reajustes;
+  - vencimentos e escolha entre mensal e anual: pergunta 18.
+- **Taxa de inscrição:** valor a definir (pergunta 17).
 - **Informar pagamento**: o ministro anexa o comprovante (PIX/depósito); a tesouraria confere e confirma.
-- Situação automática **em dia / em atraso** (define quem vota — Art. 11), com lista de inadimplentes.
+- Situação automática **em dia / em atraso**, com lista de inadimplentes. Só vota e é votado quem está com a mensalidade em dia (Art. 11; diretoria, 11/11/2026).
 - **Categorias de receita do estatuto** (Art. 17): contribuições dos associados, ofertas, doações e outras receitas.
 - **Despesas**: lançadas pela tesouraria e **autorizadas pelo presidente** (Art. 12, §2º, VI). O sistema registra quem autorizou e quando.
 - **Contas** (caixa, conta bancária) e lançamentos com comprovante e categoria.
@@ -127,7 +138,8 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 
 ### 4.5 Carteirinha digital
 
-- Frente/verso com foto, nome, título, igreja, nº de registro, validade e situação.
+- Frente/verso com foto, nome, título, igreja, nº de registro, validade e situação (o conteúdo final depende da pergunta 8).
+- **Validade de 4 anos, acompanhando o pleito** (diretoria, 11/11/2026): a carteirinha vence junto com o mandato da diretoria (pergunta 21).
 - **QR Code** que abre uma página pública de validação mostrando **apenas** nome, foto, título e se está ativo/em dia — nenhum dado sensível.
 - Download em PDF/imagem para impressão.
 
@@ -136,20 +148,22 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 - **Três tipos de encontro:**
   - Assembleia Geral Ordinária: na **2ª quinzena de abril e de outubro** (Art. 16, §6º);
   - Assembleia Geral Extraordinária: quando necessário (Art. 15);
-  - **reunião mensal** (Art. 7º, §3º).
+  - **reunião mensal** (Art. 7º, §3º): **não tem efeito de AGO nem de AGE** (diretoria, 11/11/2026). Nela não se vota o que é da assembleia; o sistema registra a presença e as faltas.
 - **Convocação:**
   - feita pelo presidente com **no mínimo 30 dias de antecedência**; o sistema não deixa marcar com menos;
   - publicada no site e avisada por e-mail/WhatsApp (Art. 16, §2º).
 - **Pedido de Assembleia Extraordinária:** por **3/5 dos associados** ou pela maioria simples do Conselho Diretor, sempre com a pauta (Art. 16, §3º).
 - **Presença:** registrada no sistema, que vale como "livro ou outro controle similar" (Art. 16, §1º), com check-in pelo QR Code da carteirinha.
-- **Quórum de instalação:** metade mais um na 1ª convocação; qualquer número 60 minutos depois (Art. 16, §4º).
+- **Quórum de instalação** (Art. 16, §4º; diretoria, 11/11/2026):
+  - 1ª chamada: **metade mais um dos associados aptos** (em dia na data da assembleia);
+  - 2ª chamada, 60 minutos depois: com os presentes.
 - **Votação:**
   - só associados **em dia** votam e são votados (Art. 11);
   - maiorias: simples; **3/5** para desligamento (Art. 8º); **2/3** para reforma do estatuto, em assembleia convocada para isso (Art. 21);
   - o sistema calcula se cada deliberação atingiu a maioria exigida.
 - **Atas:** redigidas pelo 1º secretário e assinadas por ele e pelo presidente (Art. 12, §2º, IV e §4º), com anexo da ata assinada.
 - **Faltas às reuniões mensais:**
-  - o associado pode justificar a falta;
+  - o associado justifica a falta ao **1º secretário**, que aceita ou recusa a justificativa (diretoria, 11/11/2026);
   - com **2 faltas seguidas** sem justificativa, o sistema avisa o associado e a secretaria;
   - com **3**, o caso vai para a pauta da assembleia (Art. 8º, IV).
 - Histórico de assembleias e reuniões.
@@ -172,7 +186,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 ### 4.10 Diretoria e Conselho Fiscal
 
 - **Composição do Conselho Diretor** (Art. 12): presidente, vice-presidente, 1º e 2º secretários, 1º e 2º tesoureiros e secretário executivo.
-- **Conselho Fiscal:** 3 ou 5 membros (decisão 4).
+- **Conselho Fiscal:** **3 membros**, mandato de **4 anos**, com as mesmas datas do Conselho Diretor (diretoria, 11/11/2026).
 - **Mandato:** 4 anos, com reeleição permitida; cargos voluntários e sem salário (Art. 12).
 - **Eleições:** registradas na assembleia; só candidatos e eleitores em dia (Art. 11).
 - **Perfis automáticos:** os perfis de acesso da diretoria vêm do mandato vigente.
@@ -321,6 +335,7 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 - [ ] Código de acesso: primeiro acesso dos associados atuais, sem e-mail (seção 4.1)
 - [ ] Formulário "Quero me associar": título e comprovante, igreja, foto, declaração dos princípios de fé (Art. 7º, §1º) e consentimento LGPD
 - [ ] Análise pela diretoria (aceite de um diretor na ficha) e registro da aprovação em Assembleia Ordinária (Art. 7º)
+- [ ] Categoria do associado para a contribuição (presidente de igreja, não presidente, jubilado), já no cadastro, para a Fase 2 começar com tudo preenchido
 
 **1.3 — Portal do ministro** (versão 1.0-teste.3)
 
@@ -337,7 +352,7 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 
 ### Fase 2 — Financeiro (versão 2.0)
 
-- [ ] Taxa de inscrição e contribuição periódica (anual ou mensal — decisão 2), com valores aprovados em assembleia
+- [ ] Contribuição mensal ou anual por categoria (presidente de igreja, não presidente, jubilado isento), no exercício de abril a março, com valores aprovados em assembleia; taxa de inscrição (pergunta 17)
 - [ ] Informar pagamento com comprovante; conferência pela tesouraria
 - [ ] Em dia / em atraso (define o direito a voto — Art. 11); lista de inadimplentes
 - [ ] Contas e lançamentos com as categorias do Art. 17; despesas autorizadas pelo presidente
@@ -346,15 +361,15 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 
 ### Fase 3 — Carteirinha digital (versão 3.0)
 
-- [ ] Carteirinha com foto e QR Code
+- [ ] Carteirinha com foto e QR Code, válida até o fim do mandato da diretoria
 - [ ] Página pública de validação
 - [ ] Download para impressão
 
 ### Fase 4 — Assembleias, reuniões e diretoria (versão 4.0)
 
 - [ ] Assembleias ordinárias e extraordinárias e reuniões mensais; convocação com 30 dias, pauta e edital publicados no site
-- [ ] Presença, check-in por QR Code e justificativa de falta; aviso de faltas seguidas (Art. 8º, IV)
-- [ ] Quórum (Art. 16, §4º), só votantes em dia (Art. 11) e maiorias exigidas (3/5, 2/3)
+- [ ] Presença, check-in por QR Code e justificativa de falta (aceita pelo 1º secretário); aviso de faltas seguidas (Art. 8º, IV)
+- [ ] Quórum sobre os associados aptos (Art. 16, §4º), só votantes em dia (Art. 11) e maiorias exigidas (3/5, 2/3)
 - [ ] Deliberações e ata assinada pelo presidente e pelo 1º secretário
 - [ ] Desligamentos decididos em assembleia (Art. 8º)
 - [ ] Diretoria e Conselho Fiscal: eleições, mandatos e perfis automáticos pelo cargo
@@ -411,26 +426,45 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 | Identidade visual | O logo existe (letras COMEP com um círculo no "O"). **Cores** (informadas em 11/11/2026): vermelho (principal), branco e cinza. O arquivo original do logo será pedido depois | Capa |
 | Envio de e-mails | **Não haverá** (decisão de 11/11/2026) — ver seção 5 | — |
 
-### 11.2 Ainda pendentes (o estatuto não responde ou se contradiz)
+### 11.2 Respondidas pela diretoria (11/11/2026)
 
-As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026.
+As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respostas chegaram no mesmo dia. Os números das perguntas não mudam.
 
-1. **Valores** da taxa de inscrição e da contribuição, e regras de isenção (ex.: jubilados). O estatuto diz que a Assembleia Ordinária define os valores (Art. 7º, §3º), mas não traz os números: enviar a ata com os valores aprovados.
-2. **A contribuição é anual ou mensal?** O Art. 7º, §3º fala em "taxa anual"; o Art. 10, V fala em "mensalidade".
-3. **Quando o associado passa a estar "em atraso"** e perde o direito a voto (ex.: contribuição do ano não paga até 31 de março)?
-4. **Conselho Fiscal:** 3 membros (Art. 12) ou 5 membros (Art. 14)? Mandato de 2 anos (Art. 14) ou igual ao da diretoria, de 4 anos (Art. 12)?
+| Pergunta | Resposta da diretoria | Como fica no sistema |
+|---|---|---|
+| 1. Valores | **Presidente de igreja:** R$ 40,00 por mês ou R$ 400,00 por ano. **Não presidente:** R$ 20,00 por mês ou R$ 200,00 por ano. **Jubilado:** isento. O anual é pago em abril | Valores configuráveis, com histórico; categoria no cadastro do associado (seção 4.4). Falta o valor da taxa de inscrição (pergunta 17) |
+| 2. Anual ou mensal? | Os dois: o associado paga por mês ou o ano inteiro em abril | Escolha do associado; detalhes na pergunta 18 |
+| 3. Quando fica "em atraso"? | O exercício termina no último dia de março. Só vota e é votado quem está com a mensalidade em dia | Exercício de 1º de abril a 31 de março; "em dia" calculado pelos vencimentos (perguntas 18 e 19) |
+| 4. Conselho Fiscal | 3 membros, mandato de 4 anos, com as mesmas datas do Conselho Diretor | Regra fixa no sistema |
+| 6. Quórum | 1ª chamada: 50% + 1 dos associados aptos. 2ª chamada: com os presentes | Quórum calculado sobre os associados em dia na data da assembleia |
+| 7. Reuniões mensais | Não têm efeito de AGO nem de AGE. A justificativa de falta vai ao 1º secretário | Reunião mensal registra presença e faltas, sem votações de assembleia; o 1º secretário aceita ou recusa a justificativa. Continua pendente: têm dia fixo? |
+| 8. Carteirinha | Validade de 4 anos, correspondente ao pleito | Vence junto com o mandato da diretoria (pergunta 21). Continua pendente: o que aparece nela |
+
+### 11.3 Ainda pendentes
+
+**Levadas à diretoria em 11/11/2026, ainda sem resposta:**
+
 5. **Desligamento:** todos os casos do Art. 8º passam por votação de 3/5 em assembleia, ou só conduta (II) e faltas (IV)? Pedido próprio, transferência e falecimento podem ser registrados direto pela secretaria e só comunicados à assembleia?
 6. **Quórum:** a "metade mais um" conta todos os associados ativos ou só os em dia?
-7. **Reuniões mensais:** têm dia fixo? O que vale como justificativa de falta, e quem aceita a justificativa?
-8. **Carteirinha:** validade (anual?) e o que aparece nela.
+7. **Reuniões mensais:** têm dia fixo? *(quem aceita a justificativa já foi respondido: o 1º secretário)*
+8. **Carteirinha:** o que aparece nela? *(validade já respondida: 4 anos, pelo pleito)*
 9. **Títulos ministeriais aceitos** (pastor, evangelista, presbítero, missionário, líder…). O estatuto não fecha a lista: fala em "títulos reconhecidos por sua denominação". *Enquanto isso, o sistema usa esses cinco; a lista muda quando a diretoria responder.*
 10. **Diretoria atual:** quem são hoje o Conselho Diretor e o Conselho Fiscal, e as datas dos mandatos. A diretoria que assinou o estatuto em maio de 2021 tinha mandato de 4 anos, que terminou em 2025.
 11. **Regimento Interno:** existe um aprovado (Art. 10, I e Art. 13)? Se existir, enviar — pode responder várias perguntas acima.
-12. **Perfil "presidente de igreja"** (ver os ministros da sua igreja e se estão em dia): não está no estatuto. A diretoria quer manter?
+12. **Perfil "presidente de igreja"** (ver os ministros da sua igreja e se estão em dia): não está no estatuto. A diretoria quer manter? *(É outra coisa que a categoria "presidente de igreja" da contribuição, que já está definida.)*
 13. **Cópia completa do estatuto:** na cópia recebida faltam o §2º do Art. 7º e os Artigos 19 e 20 (provavelmente sobre dissolução, citada no título do Capítulo V).
 14. **Dados para o site:** o COMEP tem CNPJ? Qual a sede atual (o estatuto fala em sede provisória)? Quais os contatos oficiais (telefone/WhatsApp, e-mail, redes sociais)?
 
-### 11.3 Internas (equipe técnica, sem levar à diretoria)
+**Dúvidas sobre as respostas de 11/11/2026:**
+
+17. **Taxa de inscrição:** qual é o valor? O jubilado também é isento dela?
+18. **Vencimentos:** a mensalidade vence em que dia do mês? O anual pode ser pago até que dia de abril? A escolha entre mensal e anual vale para o exercício inteiro? Quem entra no meio do exercício paga só os meses que faltam?
+19. **Voto na assembleia de abril:** ela acontece na 2ª quinzena de abril, logo no começo do exercício novo. Para votar, basta estar em dia até março, ou também com abril (ou o anual) pago?
+20. **Jubilado:** sendo isento, ele vota e pode ser votado normalmente? Quem define que o associado é jubilado?
+21. **Validade da carteirinha:** quem se associa no meio do mandato recebe uma carteirinha que vence no fim desse mandato, e não 4 anos depois?
+22. **Faltas:** a regra de desligamento por 3 faltas seguidas sem justificativa (Art. 8º, IV) vale para as reuniões mensais?
+
+### 11.4 Internas (equipe técnica, sem levar à diretoria)
 
 15. Donos das contas e quem guarda os códigos de recuperação — o 2º dono é o presidente da igreja (IEADESPA), pelo login `presidente-ai`: falta mudá-lo de membro para dono no GitHub e ligar a verificação em duas etapas.
 16. Arquivo original do logo — pedir depois; as cores já estão aplicadas.
@@ -483,7 +517,7 @@ Fonte: **Estatuto do COMEP**, Parauapebas, 25 de maio de 2021. Cópia digitaliza
   - a Igreja universal como comunidade dos santos.
 - **Compromissos** (§3º e Art. 10):
   - participar das reuniões mensais e das convocadas;
-  - pagar a taxa de inscrição e a contribuição (anual ou mensal — decisão 2);
+  - pagar a taxa de inscrição e a contribuição (mensal ou anual, à escolha do associado — seção 4.4);
   - cumprir o estatuto e o regimento interno;
   - zelar pela unidade do corpo de Cristo;
   - levar à diretoria fatos de interesse do Conselho.
@@ -498,7 +532,7 @@ Fonte: **Estatuto do COMEP**, Parauapebas, 25 de maio de 2021. Cópia digitaliza
 ### 13.4 Administração (Cap. III)
 
 - **Conselho Diretor** (Art. 12): presidente, vice-presidente, 1º e 2º secretários, 1º e 2º tesoureiros e secretário executivo. Os cargos são voluntários e sem salário. O mandato é de **4 anos**, com reeleição permitida.
-- **Conselho Fiscal**: 3 membros (Art. 12) ou 5, eleitos a cada 2 anos (Art. 14). Examina as contas e dá parecer anual à Assembleia Geral.
+- **Conselho Fiscal**: 3 membros (Art. 12) ou 5, eleitos a cada 2 anos (Art. 14). A diretoria esclareceu em 11/11/2026: **3 membros, mandato de 4 anos**, com as mesmas datas do Conselho Diretor. Examina as contas e dá parecer anual à Assembleia Geral.
 - **Atribuições que viram regra no sistema:**
   - **presidente:** convoca e preside as assembleias; representa o COMEP; assina as atas com o secretário; movimenta contas com os tesoureiros; **autoriza compras e pagamentos**;
   - **vice-presidente:** substitui o presidente;
@@ -539,10 +573,10 @@ Fonte: **Estatuto do COMEP**, Parauapebas, 25 de maio de 2021. Cópia digitaliza
 
 1. Falta o **§2º do Art. 7º** (o texto pula do §1º para o §3º).
 2. Faltam os **Artigos 19 e 20** (o Capítulo V cita "Dissolução" no título, mas não há artigo sobre isso na cópia) — a cópia pode estar sem uma página.
-3. **Taxa anual** (Art. 7º, §3º) × **mensalidade** (Art. 10, V).
-4. **Conselho Fiscal** com 3 membros (Art. 12) × 5 membros eleitos a cada 2 anos (Art. 14), "coincidindo com o mandato da diretoria", que é de 4 anos.
+3. **Taxa anual** (Art. 7º, §3º) × **mensalidade** (Art. 10, V). *Resolvido pela diretoria (11/11/2026): o associado escolhe entre mensal e anual.*
+4. **Conselho Fiscal** com 3 membros (Art. 12) × 5 membros eleitos a cada 2 anos (Art. 14), "coincidindo com o mandato da diretoria", que é de 4 anos. *Resolvido pela diretoria (11/11/2026): 3 membros, 4 anos.*
 5. O Art. 15 diz "a cada 06 (seis)" sem a unidade; entende-se **meses**, o que bate com abril e outubro.
-6. O Art. 8º, IV fala em "assembleias mensais"; o Art. 7º, §3º fala em "reuniões mensais". Entende-se que são as **reuniões mensais**.
+6. O Art. 8º, IV fala em "assembleias mensais"; o Art. 7º, §3º fala em "reuniões mensais". Entende-se que são as **reuniões mensais**, que, segundo a diretoria, não têm efeito de AGO nem de AGE (pergunta 22).
 7. O mandato de 4 anos da diretoria que assinou em maio de 2021 terminou em 2025 — confirmar a diretoria atual (decisão 10).
 
 ## 14. Processo de entrega e travas de revisão
