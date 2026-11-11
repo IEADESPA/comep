@@ -63,6 +63,11 @@ export function Entrar() {
           </button>
         </form>
 
+        <p className="rodape-entrada links-acesso">
+          <Link to="/primeiro-acesso">Primeiro acesso (recebi um código)</Link>
+          <Link to="/nova-senha">Esqueci a senha</Link>
+        </p>
+
         <p className="rodape-entrada">
           Ainda não é associado? <Link to="/associar">Veja como se associar</Link>
           <br />

@@ -31,8 +31,9 @@ export async function entrarComEmail(email: string, senha: string): Promise<{ er
   return { erro: error ? mensagemDeErro(error) : null }
 }
 
+/** Sai só deste aparelho (os outros aparelhos da pessoa continuam conectados). */
 export async function sair(): Promise<void> {
-  await cliente().auth.signOut()
+  await cliente().auth.signOut({ scope: 'local' })
 }
 
 export async function sessaoAtual(): Promise<Sessao | null> {

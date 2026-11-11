@@ -1,7 +1,7 @@
 // Portal do membro: login e "cada um vê só o que lhe cabe", com usuários fictícios do banco de teste.
 // A proteção real dos dados está no banco (testes/banco/); aqui se confere o que cada perfil enxerga.
 import { expect, test } from '@playwright/test'
-import { USUARIOS, abrirMenu, entrar, preencherLogin } from './ajuda'
+import { USUARIOS, abrirMenu, arquivoDaSessao, entrar, preencherLogin } from './ajuda'
 
 test('senha errada mostra uma mensagem clara', async ({ page }) => {
   await preencherLogin(page, USUARIOS.presidencia.email, 'senha-errada-de-proposito')
@@ -35,8 +35,10 @@ test.describe('presidência', () => {
 })
 
 test.describe('ministro', () => {
+  test.use({ storageState: arquivoDaSessao('ministro') })
+
   test('vê só os itens de ministro', async ({ page }) => {
-    await entrar(page, USUARIOS.ministro)
+    await page.goto('painel')
     await expect(page.getByRole('heading', { name: 'Olá, Ministro!' })).toBeVisible()
 
     const menu = await abrirMenu(page)
@@ -48,17 +50,31 @@ test.describe('ministro', () => {
   })
 
   test('não abre as áreas da diretoria nem digitando o endereço', async ({ page }) => {
-    await entrar(page, USUARIOS.ministro)
-    for (const area of ['auditoria', 'acessos', 'ministros', 'ministros/novo', 'igrejas', 'igrejas/nova']) {
+    for (const area of [
+      'auditoria',
+      'acessos',
+      'ministros',
+      'ministros/novo',
+      'igrejas',
+      'igrejas/nova',
+      'inscricoes',
+      'configuracoes',
+    ]) {
       await page.goto(area)
       await expect(page.getByRole('heading', { name: 'Sem acesso' }), area).toBeVisible()
     }
   })
 })
 
-test('pessoa sem perfil entra mas é avisada', async ({ page }) => {
-  await entrar(page, USUARIOS.semPerfil)
-  await expect(page.getByText('Nenhum perfil foi atribuído a você ainda.')).toBeVisible()
-  const menu = await abrirMenu(page)
-  await expect(menu.getByRole('link', { name: 'Financeiro', exact: true })).toHaveCount(0)
+test.describe('pessoa sem perfil', () => {
+  test.use({ storageState: arquivoDaSessao('semPerfil') })
+
+  test('entra, é avisada e vê o caminho para o pedido de associação', async ({ page }) => {
+    await page.goto('painel')
+    await expect(page.getByText('Nenhum perfil foi atribuído a você ainda.')).toBeVisible()
+    await expect(page.getByRole('link', { name: /Faça ou acompanhe o seu pedido/ })).toBeVisible()
+    const menu = await abrirMenu(page)
+    await expect(menu.getByRole('link', { name: 'Financeiro', exact: true })).toHaveCount(0)
+    await expect(menu.getByRole('link', { name: 'Meu pedido', exact: true })).toBeVisible()
+  })
 })

@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.6 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.7 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -241,9 +241,10 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - `associados` — nº de registro, situação, forma e data de admissão ✅ criada
 - `vinculos_igreja` — histórico de ministro ↔ igreja (com data de início/fim) ✅ criada
 - `titulos_ministeriais` (lista) e `titulos_pessoa` (histórico de títulos de cada um) ✅ criadas
-- `pedidos_associacao` — pedidos do formulário, análise da diretoria, assembleia que aprovou, aceites do associado e do diretor
+- `pedidos_associacao` — pedidos do formulário, análise da diretoria, assembleia que aprovou, aceites do associado e do diretor ✅ criada
+- `codigos_acesso` — códigos de primeiro acesso e de nova senha (o código em si fica só como resumo, numa tabela interna) ✅ criada
 - `desligamentos` — motivo (Art. 8º), assembleia e resultado da votação
-- `documentos` — anexos (referência ao arquivo no Storage)
+- Arquivos (fotos e comprovantes): Storage, bucket privado `documentos`, uma pasta por pessoa; ninguém sobrescreve nem apaga ✅ criado
 - `configuracoes_contribuicao` — valores e periodicidade, com data de vigência e assembleia que aprovou
 - `contribuicoes` — cobranças de cada associado (inscrição e periódicas: valor, vencimento, situação)
 - `pagamentos_informados` — comprovantes enviados e conferência da tesouraria
@@ -272,7 +273,7 @@ Segurança por **RLS (Row Level Security)**: as regras de "quem vê o quê" fica
    - todo domingo, às 3h, o GitHub Actions exporta os dois bancos, **criptografa** e salva no repositório privado `comep-backups`;
    - o primeiro backup foi conferido: abre com a chave e não abre sem ela, e os dados batem com o banco;
    - a chave que abre os backups fica **fora do repositório**, num arquivo guardado pela IEADESPA, e também como segredo do GitHub, só para testes de restauração;
-   - os arquivos de fotos e documentos entram no backup quando existirem (Fase 1);
+   - os arquivos de fotos e comprovantes (Storage) existem desde a entrega 1.2 e entram no backup antes do lançamento da versão 1.0 (entrega 1.4);
    - o passo a passo de restauração está no README do `comep-backups`.
 5. **Aviso anti-pausa** — funcionando desde 11/11/2026: a cada 3 dias uma consulta simples mantém os dois bancos ativos.
 6. **Teste de restauração** a cada 3 meses (restaurar o backup num projeto de teste e conferir).
@@ -349,21 +350,22 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 - [x] Tela de Configurações (seção 4.11): denominações, bairros, títulos de ministro e valores da contribuição, com histórico
 - [x] Pastor presidente (perfil automático Presidente de igreja) e jubilado; categoria de contribuição automática
 - [x] Menu e conteúdo em colunas independentes no computador (cada um rola por conta própria)
-- [ ] Código de acesso: primeiro acesso dos associados atuais, sem e-mail (seção 4.1)
-- [ ] Formulário "Quero me associar": título e comprovante, igreja, foto, declaração dos princípios de fé (Art. 7º, §1º) e consentimento LGPD
-- [ ] Análise pela diretoria (aceite de um diretor na ficha) e registro da aprovação em Assembleia Ordinária (Art. 7º)
+- [x] Código de acesso, sem e-mail (seção 4.1): primeiro acesso dos associados atuais **e senha esquecida** (adiantada da 1.3)
+- [x] Formulário "Quero me associar": título e comprovante, igreja, foto, declaração dos princípios de fé (Art. 7º, §1º) e consentimento LGPD
+- [x] Análise pela diretoria (devolver com pendência, aceite de um diretor na ficha, recusa com motivo) e registro da aprovação em Assembleia Ordinária (Art. 7º)
 
 **1.3 — Portal do ministro** (versão 1.0-teste.3)
 
 - [ ] Meu perfil (ver/editar, foto, histórico)
 - [ ] Pedido de troca de igreja pelo próprio ministro, com aprovação da secretaria
-- [ ] Senha esquecida com código gerado pela secretaria
 - [ ] Painel do presidente de igreja: ministros da sua igreja (decisão 12 — previsão: mantido)
 
 **1.4 — Lançamento** (versão 1.0)
 
 - [ ] Revisão completa da Fase 1 e aceite da presidência (trava 4)
 - [ ] Termo da seção 8 assinado
+- [ ] Backup também das fotos e comprovantes (Storage), antes de entrar dado real
+- [ ] Configuração de login da produção (`docs/configuracao-login.md`)
 - [ ] Site oficial ligado ao banco de produção, ambiente de teste em endereço próprio, dados reais liberados
 
 ### Fase 2 — Financeiro (versão 2.0)

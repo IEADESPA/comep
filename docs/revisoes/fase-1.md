@@ -102,7 +102,7 @@ O que entrou (pedidos de 11/11/2026):
 
 | Pull request | Resultado | Data |
 |---|---|---|
-| Fase 1.2 parte 1 — configurações | ver o pull request | 11/11/2026 |
+| #8 — Fase 1.2 parte 1, configurações | verde (lint, testes, build e ponta a ponta no GitHub) | 11/11/2026 |
 
 ### Trava 2
 
@@ -137,9 +137,89 @@ Conferência visual (1280 px e 390 px): Configurações, ficha do ministro com a
 | 5 | Menor | "Pastor presidente" também era sugestão do campo de texto "função", o que confundia com a marcação nova (o ministro aparecia com a função "Pastor presidente" e a categoria "não presidente") | Sugestão retirada; quem decide é a marcação própria. O ministro fictício foi ajustado | ✅ |
 | 6 | Menor | Na auditoria, os valores da contribuição apareciam como "registro c0f868a1" | A auditoria mostra categoria, tipo e valor | ✅ |
 
-## Entrega 1.2 — parte 2: pedido de associação
+## Entrega 1.2 — parte 2: pedido de associação e códigos de acesso
 
-_A preencher._
+**Resultado: aprovada no ambiente de teste em 11/11/2026.**
+
+O que entrou:
+
+- **Login sem e-mail** no `comep-teste` (`docs/configuracao-login.md`):
+  - cadastro aberto, sem confirmação por e-mail;
+  - senha com no mínimo 8 caracteres, com letras e números.
+- **Códigos de acesso**, gerados pela secretaria, pela presidência ou pelo administrador na ficha do ministro ou em "Perfis de acesso", e enviados pelo WhatsApp:
+  - **primeiro acesso:** o associado antigo cria o login com o próprio e-mail e o código, e o login é ligado ao cadastro dele;
+  - **senha esquecida:** a pessoa cria uma senha nova com o e-mail e o código (adiantado da entrega 1.3);
+  - o código vale 7 dias e serve uma vez. No banco fica só o resumo dele, numa tabela interna, fora da API e da auditoria.
+- **Pedido de associação (Art. 7º):**
+  - o candidato cria o acesso pelo site e envia título, igreja (ou "minha igreja não está na lista"), foto e comprovante, mais as três declarações (princípios de fé, estatuto e LGPD);
+  - a foto e as imagens são reduzidas no próprio celular antes do envio.
+- **Inscrições (secretaria/presidência):**
+  - pedidos agrupados por situação;
+  - a ficha do pedido mostra foto, comprovante e declarações;
+  - ações disponíveis: devolver com pendência, escolher a igreja cadastrada, aceitar a ficha (aceite eletrônico do diretor) e encaminhar à assembleia, recusar com motivo, e registrar a aprovação da Assembleia Ordinária (com aviso se a data não cair na 2ª quinzena de abril ou de outubro);
+  - **na aprovação**, numa operação só, o candidato vira associado: nº de registro, título, igreja, foto e perfil Ministro.
+- **Arquivos (Storage):** bucket privado `documentos`, com uma pasta por pessoa. Cada um envia só para a própria pasta e vê só os próprios arquivos; a secretaria e a presidência veem todos. Ninguém sobrescreve nem apaga.
+- **Regras do pedido no banco**, valendo pela tela ou não:
+  - o candidato não se aprova nem escreve a análise;
+  - depois de encaminhado, o candidato não altera mais;
+  - pedido encerrado não muda;
+  - só um pedido aberto por pessoa;
+  - quem já é associado não abre pedido.
+
+### Trava 1
+
+| Pull request | Resultado | Data |
+|---|---|---|
+| Fase 1.2 parte 2 — pedido de associação | ver o pull request | 11/11/2026 |
+
+### Trava 2
+
+- [x] Migração `20261111191948_pedido_associacao.sql` aplicada só no `comep-teste`
+- [x] Verificador do Supabase. Únicos avisos:
+  - "RLS sem regra" na tabela interna dos códigos: é de propósito, ninguém deve ler essa tabela pela API;
+  - a proteção contra senhas vazadas, que é do plano pago.
+- [x] Funções que o visitante usa (conferir código, nova senha) ficam no esquema interno, com uma entrada simples na API, como o Supabase recomenda
+- [x] **101 testes automáticos** passando:
+  - 95 do banco, dos quais 31 são novos: códigos, nova senha (bcrypt), regras do pedido e pastas do Storage;
+  - 6 das validações das telas.
+
+### Trava 3
+
+Testes de ponta a ponta: todos passando, no computador e no celular.
+
+| O que é testado | Resultado |
+|---|---|
+| A presidência cadastra o associado e gera o código, com link do WhatsApp para o telefone dele | ✅ |
+| Primeiro acesso: senha só com letras é recusada; com código e e-mail, entra como Ministro | ✅ |
+| Senha esquecida: a presidência gera o código, a pessoa troca a senha e já entra | ✅ |
+| Pedido: o candidato cria o acesso pelo site e envia título, igreja não cadastrada, foto, comprovante e declarações | ✅ |
+| A presidência vê a foto e o comprovante e devolve com pendência | ✅ |
+| O candidato vê a pendência, troca a foto e reenvia | ✅ |
+| A presidência escolhe a igreja cadastrada, aceita a ficha (aceite do diretor registrado), registra a aprovação e abre a ficha do novo associado | ✅ |
+| O candidato aprovado passa a ter o perfil Ministro | ✅ |
+| O ministro não abre "Inscrições" nem "Configurações" | ✅ |
+| A pessoa sem perfil vê o caminho para o pedido ("Meu pedido") | ✅ |
+| Nenhuma página nova fica mais larga que o celular | ✅ |
+
+Conferência visual (1280 px e 390 px):
+
+- "Quero me associar", "Entrar" (com "Primeiro acesso" e "Esqueci a senha") e "Primeiro acesso";
+- formulário do pedido;
+- lista e ficha de inscrição.
+
+### Problemas encontrados
+
+| # | Gravidade | Descrição | Correção | Testado de novo |
+|---|---|---|---|---|
+| 7 | Importante | "Sair" encerrava a sessão da pessoa em **todos** os aparelhos (sair no notebook derrubava o celular) | "Sair" encerra só a sessão do aparelho em uso | ✅ |
+| 8 | Menor | Os botões que são links (ex.: "Abrir a ficha do associado") apareciam sublinhados | Sublinhado retirado | ✅ |
+| 9 | Menor | A ata aparecia repetida ("ata Ata 12/2026") | Mostra só o que foi digitado | ✅ |
+
+Ajuste no processo de teste:
+
+- **Problema:** a bateria passaria do limite de 30 logins a cada 5 minutos do Supabase.
+- **O que não foi feito:** o aumento do limite no projeto de teste foi barrado pela proteção do Claude Code, e ficou como está.
+- **Solução:** os testes passaram a reaproveitar o login (`autenticacao.setup.ts`): cada usuário fictício entra uma vez por bateria.
 
 ## Entrega 1.3 — Portal do ministro
 

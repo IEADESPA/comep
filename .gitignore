@@ -36,3 +36,5 @@ Estatuto do COMEP.pdf
 # Relatórios dos testes de ponta a ponta
 playwright-report/
 test-results/
+# Sessões dos usuários fictícios dos testes de ponta a ponta
+playwright/.auth/

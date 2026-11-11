@@ -54,7 +54,15 @@ export function Inicio() {
               ))}
             </ul>
           ) : (
-            <p className="detalhe">Nenhum perfil foi atribuído a você ainda. Aguarde a liberação pela diretoria.</p>
+            <div className="aviso-sem-perfil">
+              <p className="detalhe">Nenhum perfil foi atribuído a você ainda.</p>
+              <p>
+                Quer se associar ao COMEP? <Link to="/meu-pedido">Faça ou acompanhe o seu pedido de associação</Link>.
+              </p>
+              <p className="detalhe">
+                Já é associado? Peça à secretaria um código de primeiro acesso para ligar este login ao seu cadastro.
+              </p>
+            </div>
           )}
 
           <div className="atalhos">

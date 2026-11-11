@@ -1,15 +1,14 @@
 // Fase 1.1 — cadastros da secretaria/presidência: igrejas, associados, perfis de acesso e auditoria.
 // Usa dados FICTÍCIOS do banco de teste. O que o teste cria, ele mesmo arquiva no fim (nada se apaga).
 import { expect, test } from '@playwright/test'
-import { USUARIOS, cnpjAleatorio, entrar, sufixoUnico } from './ajuda'
+import { arquivoDaSessao, cnpjAleatorio, sufixoUnico } from './ajuda'
 
 const IGREJA_A = 'Igreja Fictícia A (teste)'
 const IGREJA_B = 'Igreja Fictícia B (teste)'
 const PESSOA_PERFIS = 'Pessoa Fictícia para Perfis (teste)'
 
-test.beforeEach(async ({ page }) => {
-  await entrar(page, USUARIOS.presidencia)
-})
+// Sessão da presidência fictícia, guardada em autenticacao.setup.ts (sem novo login a cada teste)
+test.use({ storageState: arquivoDaSessao('presidencia') })
 
 test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async ({ page }, info) => {
   const nome = `Igreja E2E ${sufixoUnico(info.project.name)}`
@@ -62,7 +61,7 @@ test('cadastra um associado atual, registra a troca de igreja e arquiva o cadast
   await expect(page.getByRole('status').filter({ hasText: 'Associado cadastrado.' })).toBeVisible()
   await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
   await expect(page.getByText(/Nº de registro \d+/)).toBeVisible()
-  await expect(page.getByText('Sem login')).toBeVisible()
+  await expect(page.getByText('Sem login', { exact: true })).toBeVisible()
 
   // Troca de igreja: encerra a A e abre a B
   await page.getByText('Registrar troca de igreja').click()
@@ -120,6 +119,7 @@ test('nenhuma tela da diretoria fica mais larga que a tela', async ({ page }) =>
     'acessos',
     'auditoria',
     'configuracoes',
+    'inscricoes',
   ]) {
     await page.goto(caminho)
     await page.waitForLoadState('networkidle')

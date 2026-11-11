@@ -53,3 +53,41 @@ export function cnpjAleatorio(): string {
   const d2 = digito([...base, d1])
   return [...base, d1, d2].join('')
 }
+
+// ---------- Sessões reaproveitadas (ver autenticacao.setup.ts) ----------
+
+export type NomeUsuario = keyof typeof USUARIOS
+
+/** Arquivo com a sessão guardada de cada usuário fictício. */
+export function arquivoDaSessao(nome: NomeUsuario): string {
+  return `playwright/.auth/${nome}.json`
+}
+
+type ItemArmazenado = { name: string; value: string }
+
+/** Guarda a sessão de quem está logado nesta aba (ex.: um candidato recém-criado). */
+export async function guardarSessao(page: Page): Promise<ItemArmazenado[]> {
+  return page.evaluate(() => Object.entries(localStorage).map(([name, value]) => ({ name, value })))
+}
+
+/**
+ * Troca quem está logado nesta aba, sem fazer login de novo:
+ * um usuário fictício (sessão guardada), uma sessão guardada por guardarSessao, ou ninguém (null).
+ */
+export async function trocarPara(page: Page, quem: NomeUsuario | ItemArmazenado[] | null): Promise<void> {
+  let itens: ItemArmazenado[] = []
+  if (typeof quem === 'string') {
+    const { readFileSync } = await import('node:fs')
+    const estado = JSON.parse(readFileSync(arquivoDaSessao(quem), 'utf8')) as {
+      origins: { origin: string; localStorage: ItemArmazenado[] }[]
+    }
+    itens = estado.origins.flatMap((o) => o.localStorage)
+  } else if (quem) {
+    itens = quem
+  }
+  if (!page.url().startsWith('http')) await page.goto('./')
+  await page.evaluate((lista) => {
+    localStorage.clear()
+    for (const item of lista) localStorage.setItem(item.name, item.value)
+  }, itens)
+}

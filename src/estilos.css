@@ -95,6 +95,10 @@ a {
   }
 }
 
+a.botao {
+  text-decoration: none;
+}
+
 .botao:disabled {
   opacity: 0.6;
   cursor: wait;
@@ -1133,4 +1137,125 @@ a.lista-item:hover {
 
 .painel > .botao {
   margin-top: 0.25rem;
+}
+
+/* ---------- Acesso, pedido e inscrições (Fase 1.2) ---------- */
+
+.texto-acesso {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.links-acesso {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.aviso-sem-perfil {
+  max-width: 640px;
+  margin-bottom: 1.5rem;
+}
+
+.aviso-sem-perfil p {
+  margin: 0 0 0.5rem;
+}
+
+.site-acoes-pedido {
+  margin: 1.5rem 0 0.75rem;
+}
+
+.abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+}
+
+.aba {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.aba.ativa {
+  background: var(--cor-marca-suave);
+  border-color: var(--cor-marca);
+  color: var(--cor-marca);
+  font-weight: 600;
+}
+
+.ficha-com-foto {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .ficha-com-foto {
+    grid-template-columns: 140px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.foto-ficha,
+.previa-foto {
+  width: 140px;
+  height: 175px;
+  object-fit: cover;
+  border-radius: var(--raio);
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-fundo);
+}
+
+.aviso-campo {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--raio);
+  background: var(--cor-aviso-fundo);
+  border: 1px solid var(--cor-aviso-borda);
+  font-size: 0.9rem;
+}
+
+.gerar-codigo {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.codigo-gerado {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: var(--raio);
+  background: var(--cor-marca-suave);
+}
+
+.codigo-gerado p {
+  margin: 0 0 0.5rem;
+}
+
+.codigo {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--cor-texto);
+  overflow-wrap: anywhere;
+}
+
+.codigo-gerado .botao {
+  text-decoration: none;
+}
+
+.caixa-marcar span {
+  font-size: 0.92rem;
+}
+
+fieldset .caixa-marcar + .caixa-marcar {
+  margin-top: 0.6rem;
 }
