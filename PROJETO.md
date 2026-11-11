@@ -100,20 +100,20 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 | Camada | Tecnologia | Observação |
 |---|---|---|
 | Aplicativo | **React + Vite + TypeScript**, como **PWA** | Instala pelo navegador no notebook e no Android; funciona com internet instável |
-| Hospedagem do app | **GitHub Pages** (gratuito) | Exige repositório `app` **público** no plano gratuito — ver regra abaixo |
-| Endereço | `<organizacao>.github.io` (gratuito) | Domínio próprio `.com.br` fica para quando o Conselho regularizar o CNPJ e registrar no nome dele |
+| Hospedagem do app | **GitHub Pages** | Provisoriamente na organização **IEADESPA** (plano Team), que permite publicar a partir de repositório privado — ver regra abaixo |
+| Endereço | `ieadespa.github.io/comep/` (provisório) | Domínio próprio `.com.br` fica para quando o Conselho regularizar o CNPJ e registrar no nome dele |
 | Banco de dados | **Supabase** (PostgreSQL) — plano Free | Banco relacional de verdade |
 | Login | **Supabase Auth** | E-mail/senha e Google |
 | Fotos e arquivos | **Supabase Storage** | Pastas privadas; links temporários |
 | E-mails de login | **SMTP do Gmail institucional** (senha de app) | Obrigatório — ver seção 10. Sem serviço extra |
-| Código-fonte | **GitHub** — organização do Conselho | 2–3 donos |
-| Backups | Repositório `backups` **privado** | Só arquivos criptografados |
-| Automação | **GitHub Actions** | Publicação do app, backup semanal criptografado e aviso anti-pausa |
+| Código-fonte | **GitHub** — repositório `IEADESPA/comep` (privado) | Provisório até a transferência ao Conselho (seção 8); 2–3 donos |
+| Backups | Repositório `IEADESPA/comep-backups` **privado** | Só arquivos criptografados |
+| Automação | **GitHub Actions** | Testes das regras do banco antes de publicar, publicação do app, backup semanal criptografado e aviso anti-pausa |
 | APK (futuro) | Empacotar o PWA (TWA/Capacitor) | Instalação direta, sem Play Store |
 
 **Serviços usados: apenas GitHub + Supabase** (mais o Gmail institucional, que já existe).
 
-**Regra do repositório público:** o código das telas é baixado pelo navegador de qualquer usuário, então deixá-lo público não reduz a segurança. A proteção está nas regras RLS do banco. No repositório `app` **nunca** entram dados, senhas ou a chave `service_role` do Supabase — só a chave pública (`anon/publishable`), feita para ser pública.
+**Regra do repositório:** hoje o repositório `comep` é privado (o plano Team da IEADESPA permite). Se um dia precisar ficar público (ex.: organização do Conselho no plano gratuito), isso não reduz a segurança: o código das telas é baixado pelo navegador de qualquer usuário, e a proteção está nas regras RLS do banco. No repositório **nunca** entram dados, senhas ou a chave secreta (`service_role`/`sb_secret_`) do Supabase — só a chave pública (`publishable`), feita para ser pública.
 
 **Regra de portabilidade:** todo acesso ao banco fica concentrado em `src/dados/`. As telas nunca falam direto com o Supabase. Numa migração futura, só essa pasta muda.
 
@@ -140,7 +140,7 @@ Segurança por **RLS (Row Level Security)**: as regras de "quem vê o quê" fica
 
 ## 7. Governança anti-refém e backup
 
-1. **E-mail dedicado ao projeto** (Gmail), criado pela associação mantenedora, como dono das contas GitHub e Supabase. Nunca o e-mail pessoal de alguém. Esse e-mail é entregue ao Conselho na transferência (seção 8).
+1. **Contas da associação mantenedora (IEADESPA)** como donas do GitHub e do Supabase nesta fase — decisão de 11/11/2026, porque o Conselho ainda não tem e-mail institucional. Quando tiver, tudo passa para as contas dele (seção 8).
 2. **Verificação em duas etapas** ligada; códigos de recuperação impressos e guardados em envelope lacrado, com registro em ata de quem os guarda.
 3. **2 a 3 donos** em cada serviço (presidência, secretaria, tesouraria). Nunca um dono só.
 4. **Backup semanal automático**: o GitHub Actions exporta o banco e os arquivos, **criptografa** e salva num repositório privado separado (`backups`). A chave de descriptografia fica só com a diretoria — nunca dentro do app ou do repositório.
@@ -152,6 +152,8 @@ Segurança por **RLS (Row Level Security)**: as regras de "quem vê o quê" fica
 
 Enquanto o Conselho não tiver CNPJ regularizado e estrutura própria, **todas as contas ficam em nome da associação mantenedora** (a organização da qual a equipe de desenvolvimento faz parte). Nada é criado em nome do Conselho ou de terceiros.
 
+**Situação atual (11/11/2026):** GitHub — repositórios `IEADESPA/comep` e `IEADESPA/comep-backups` (privados) na organização da IEADESPA. Supabase — organização da IEADESPA (plano Free), projetos `comep-producao` e `comep-teste`.
+
 **Antes de cadastrar dados reais**, formalizar por escrito (ofício ou termo simples, assinado pela presidência do Conselho e pela associação):
 - que o Conselho solicitou o sistema;
 - que os dados pertencem ao Conselho (controlador, na LGPD) e que a associação apenas os hospeda provisoriamente (operadora);
@@ -161,7 +163,7 @@ Enquanto o Conselho não tiver CNPJ regularizado e estrutura própria, **todas a
 
 **Transferência (quando o Conselho estiver pronto):**
 1. Conselho cria seu e-mail institucional e sua organização no GitHub e no Supabase.
-2. GitHub: transferir os repositórios `app` e `backups` para a organização do Conselho (o histórico vai junto).
+2. GitHub: transferir os repositórios `comep` e `comep-backups` para a organização do Conselho (o histórico vai junto). O endereço do app muda: deixar em `ieadespa.github.io/comep` uma página que redireciona para o novo endereço, para não quebrar os QR Codes das carteirinhas já impressas.
 3. Supabase: transferir o projeto para a organização do Conselho. Plano B: restaurar o último backup num projeto novo do Conselho.
 4. Entregar a chave de descriptografia dos backups e trocar todas as senhas e segredos.
 5. Conselho registra o domínio no próprio CNPJ, se quiser.
@@ -171,11 +173,12 @@ Enquanto o Conselho não tiver CNPJ regularizado e estrutura própria, **todas a
 
 ### Fase 0 — Fundação
 - [ ] Assinar o termo de solicitação/hospedagem provisória (seção 8)
-- [ ] Criar e-mail dedicado ao projeto (associação mantenedora) e ligar verificação em duas etapas
-- [ ] Na organização GitHub da associação: repositório `app` (público) e `backups` (privado), com 2–3 donos
-- [ ] Criar projeto no Supabase (produção) e configurar o SMTP do Gmail do projeto
-- [ ] Ativar GitHub Pages no repositório `app` (publicação automática via GitHub Actions)
-- [ ] Esqueleto do app (PWA instalável, login, menu por perfil)
+- [x] Usar as contas da IEADESPA (decisão de 11/11/2026, seção 7) — [ ] conferir verificação em duas etapas
+- [x] Repositórios `IEADESPA/comep` e `IEADESPA/comep-backups` (privados) — [ ] incluir 2º dono na organização
+- [x] Projetos `comep-producao` e `comep-teste` no Supabase — [ ] configurar o SMTP do e-mail de envio
+- [ ] Ativar GitHub Pages no repositório `comep` (publicação automática via GitHub Actions)
+- [x] Esqueleto do app (PWA instalável, login, menu por perfil)
+- [x] Estrutura inicial do banco (pessoas, perfis de acesso, auditoria) com testes automáticos das regras
 - [ ] Backup semanal criptografado + aviso anti-pausa funcionando
 
 ### Fase 1 — Portão de entrada, ministros e igrejas
@@ -222,7 +225,7 @@ Enquanto o Conselho não tiver CNPJ regularizado e estrutura própria, **todas a
 | **Pausa por inatividade** | Projeto gratuito pausa após 7 dias sem acesso ao banco (os dados **não** são apagados) | GitHub Actions acessa o banco a cada 3 dias |
 | **Sem backup automático no plano Free** | O Supabase não guarda cópias para nós | Backup semanal próprio, criptografado, no GitHub |
 | **E-mail de login padrão** | Só envia para a equipe do projeto e com limite de poucos e-mails por hora | Configurar o SMTP do Gmail institucional desde a Fase 0 |
-| **Repositório público** | Qualquer pessoa pode ler o código das telas | Nenhum segredo ou dado no repositório; segurança garantida pelo banco (RLS) |
+| **Código das telas é visível** | Mesmo com repositório privado, o navegador baixa o código das telas | Nenhum segredo ou dado no repositório; segurança garantida pelo banco (RLS) |
 | **Limites de espaço** | 500 MB de banco, 1 GB de arquivos, 5 GB de tráfego/mês | Comprimir fotos (~100 KB); PDFs pequenos; acompanhar o painel de uso |
 | **Usuários** | 50.000 usuários **diferentes** por mês | Muito acima do necessário |
 | **Só 2 projetos gratuitos** | Limite de projetos ativos por conta | 1 produção + 1 teste |

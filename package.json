@@ -1,0 +1,39 @@
+{
+  "name": "comep",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "test": "node --test \"testes/**/*.test.ts\"",
+    "preview": "vite preview",
+    "db:novo": "supabase migration new",
+    "db:aplicar": "supabase db push",
+    "db:tipos": "supabase gen types typescript --linked --schema public > src/dados/banco.gerado.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^8.5.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vite-pwa/assets-generator": "^2.0.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "oxlint": "^1.90.0",
+    "supabase": "^3.1.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.6",
+    "vite-plugin-pwa": "^2.0.0"
+  }
+}
