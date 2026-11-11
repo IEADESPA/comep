@@ -21,7 +21,7 @@ export function Entrar() {
     setEnviando(true)
     const resultado = await entrarComEmail(email, senha)
     setEnviando(false)
-    if (resultado.erro) setErro(resultado.erro)
+    if (resultado.erro !== null) setErro(resultado.erro)
   }
 
   return (

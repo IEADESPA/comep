@@ -11,26 +11,28 @@ export type ItemMenu = {
   perfis: readonly Perfil[] | 'todos'
   /** Fase de entrega em que a tela fica pronta (PROJETO.md, seção 9). */
   fase: number
+  /** A tela já funciona (as demais mostram "Em construção"). */
+  pronto?: boolean
 }
 
 const MINISTRO: readonly Perfil[] = ['ministro']
 const DIRETORIA_CADASTRO: readonly Perfil[] = ['secretaria', 'presidencia']
 
 export const ITENS_MENU: readonly ItemMenu[] = [
-  { caminho: '/painel', titulo: 'Início', descricao: 'Resumo e atalhos', perfis: 'todos', fase: 0 },
+  { caminho: '/painel', titulo: 'Início', descricao: 'Resumo e atalhos', perfis: 'todos', fase: 0, pronto: true },
   { caminho: '/meu-perfil', titulo: 'Meu perfil', descricao: 'Seus dados, foto e histórico', perfis: 'todos', fase: 1 },
   { caminho: '/minhas-mensalidades', titulo: 'Minhas mensalidades', descricao: 'Situação e envio de comprovantes', perfis: MINISTRO, fase: 2 },
   { caminho: '/minha-carteirinha', titulo: 'Minha carteirinha', descricao: 'Carteirinha digital com QR Code', perfis: MINISTRO, fase: 3 },
   { caminho: '/minha-igreja', titulo: 'Minha igreja', descricao: 'Ministros vinculados e pedidos pendentes', perfis: ['presidente_igreja'], fase: 1 },
   { caminho: '/inscricoes', titulo: 'Inscrições', descricao: 'Pedidos de inscrição para análise', perfis: DIRETORIA_CADASTRO, fase: 1 },
-  { caminho: '/ministros', titulo: 'Ministros', descricao: 'Cadastro de ministros', perfis: DIRETORIA_CADASTRO, fase: 1 },
-  { caminho: '/igrejas', titulo: 'Igrejas', descricao: 'Cadastro de igrejas', perfis: DIRETORIA_CADASTRO, fase: 1 },
+  { caminho: '/ministros', titulo: 'Ministros', descricao: 'Cadastro de ministros', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
+  { caminho: '/igrejas', titulo: 'Igrejas', descricao: 'Cadastro de igrejas e denominações', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
   { caminho: '/financeiro', titulo: 'Financeiro', descricao: 'Mensalidades, lançamentos e relatórios', perfis: ['tesouraria', 'presidencia'], fase: 2 },
   { caminho: '/assembleias', titulo: 'Assembleias', descricao: 'Convocações, presença e atas', perfis: ['ministro', 'secretaria', 'presidencia'], fase: 4 },
   { caminho: '/projetos', titulo: 'Projetos', descricao: 'Projetos e eventos do Conselho', perfis: ['secretaria', 'tesouraria', 'presidencia'], fase: 5 },
   { caminho: '/avisos', titulo: 'Avisos', descricao: 'Mural de avisos', perfis: 'todos', fase: 5 },
-  { caminho: '/acessos', titulo: 'Perfis de acesso', descricao: 'Quem tem qual perfil no sistema', perfis: ['presidencia'], fase: 1 },
-  { caminho: '/auditoria', titulo: 'Auditoria', descricao: 'Histórico de todas as alterações', perfis: ['presidencia', 'admin_tecnico'], fase: 1 },
+  { caminho: '/acessos', titulo: 'Perfis de acesso', descricao: 'Quem tem qual perfil no sistema', perfis: ['presidencia'], fase: 1, pronto: true },
+  { caminho: '/auditoria', titulo: 'Auditoria', descricao: 'Histórico de todas as alterações', perfis: ['presidencia', 'admin_tecnico'], fase: 1, pronto: true },
 ]
 
 /** O presidente de igreja tem "tudo do ministro +" (PROJETO.md, seção 3). */

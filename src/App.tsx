@@ -1,17 +1,35 @@
-import { BrowserRouter, Route, Routes } from 'react-router'
+import { BrowserRouter, Outlet, Route, Routes } from 'react-router'
 import { FaixaAmbiente } from './componentes/Basicos'
 import { Layout } from './componentes/Layout'
 import { ITENS_MENU } from './componentes/menu'
 import { ExigePerfil, RotaProtegida } from './componentes/Rotas'
 import { bancoConfigurado } from './dados/cliente'
 import { ProvedorSessao } from './estado/ProvedorSessao'
+import { Acessos } from './telas/administracao/Acessos'
+import { Auditoria } from './telas/administracao/Auditoria'
 import { Entrar } from './telas/Entrar'
+import { EditarIgreja, NovaIgreja } from './telas/igrejas/FormIgreja'
+import { ListaIgrejas } from './telas/igrejas/ListaIgrejas'
 import { Inicio } from './telas/Inicio'
+import { DetalheMinistro } from './telas/ministros/DetalheMinistro'
+import { ListaMinistros } from './telas/ministros/ListaMinistros'
+import { NovoMinistro } from './telas/ministros/NovoMinistro'
 import { ConfiguracaoAusente, EmConstrucao } from './telas/Simples'
 import { PaginaInicial, PaginaNaoEncontrada, QueroMeAssociar } from './telas/Site'
 
 // "/comep/" vira "/comep"; com VITE_BASE=/ fica sem prefixo
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
+
+/** Área do menu: só abre para os perfis do item (a proteção real está no banco). */
+function Area({ caminho }: { caminho: string }) {
+  const item = ITENS_MENU.find((i) => i.caminho === caminho)
+  if (!item) throw new Error(`Item de menu inexistente: ${caminho}`)
+  return (
+    <ExigePerfil item={item}>
+      <Outlet />
+    </ExigePerfil>
+  )
+}
 
 export default function App() {
   if (!bancoConfigurado) return <ConfiguracaoAusente />
@@ -30,7 +48,29 @@ export default function App() {
           <Route element={<RotaProtegida />}>
             <Route element={<Layout />}>
               <Route path="painel" element={<Inicio />} />
-              {ITENS_MENU.filter((item) => item.caminho !== '/painel').map((item) => (
+
+              <Route path="igrejas" element={<Area caminho="/igrejas" />}>
+                <Route index element={<ListaIgrejas />} />
+                <Route path="nova" element={<NovaIgreja />} />
+                <Route path=":id" element={<EditarIgreja />} />
+              </Route>
+
+              <Route path="ministros" element={<Area caminho="/ministros" />}>
+                <Route index element={<ListaMinistros />} />
+                <Route path="novo" element={<NovoMinistro />} />
+                <Route path=":pessoaId" element={<DetalheMinistro />} />
+              </Route>
+
+              <Route path="acessos" element={<Area caminho="/acessos" />}>
+                <Route index element={<Acessos />} />
+              </Route>
+
+              <Route path="auditoria" element={<Area caminho="/auditoria" />}>
+                <Route index element={<Auditoria />} />
+              </Route>
+
+              {/* Telas das próximas entregas */}
+              {ITENS_MENU.filter((item) => !item.pronto).map((item) => (
                 <Route
                   key={item.caminho}
                   path={item.caminho.slice(1)}

@@ -120,7 +120,9 @@ label {
   font-size: 0.95rem;
 }
 
-input {
+input,
+select,
+textarea {
   font: inherit;
   font-weight: 400;
   padding: 0.65rem 0.75rem;
@@ -128,13 +130,47 @@ input {
   border-radius: var(--raio);
   background: var(--cor-superficie);
   color: var(--cor-texto);
+  width: 100%;
+  min-width: 0;
+}
+
+input:disabled {
+  background: var(--cor-fundo);
+  color: var(--cor-texto-suave);
+}
+
+textarea {
+  resize: vertical;
 }
 
 input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+button:focus-visible,
 .botao:focus-visible,
 a:focus-visible {
   outline: 3px solid var(--cor-marca);
   outline-offset: 2px;
+}
+
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+legend {
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 0;
+  margin-bottom: 0.6rem;
+}
+
+fieldset + fieldset {
+  border-top: 1px solid var(--cor-borda);
+  padding-top: 1rem;
 }
 
 .erro {
@@ -655,4 +691,373 @@ a:focus-visible {
 
 .site-rodape strong {
   color: var(--cor-texto);
+}
+
+/* ---------- Telas de cadastro (Fase 1) ---------- */
+
+h3 {
+  font-size: 1rem;
+  margin: 1rem 0 0.4rem;
+}
+
+.somente-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.cabecalho-tela {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.cabecalho-tela h1 {
+  margin: 0;
+}
+
+.cabecalho-tela .botao {
+  text-decoration: none;
+}
+
+.trilha {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.busca {
+  max-width: 420px;
+  margin-bottom: 0.5rem;
+}
+
+.vazio {
+  color: var(--cor-texto-suave);
+  font-style: italic;
+}
+
+.sucesso {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--raio);
+  background: #ecfdf3;
+  color: #14532d;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sucesso {
+    background: #10291a;
+    color: #86efac;
+  }
+}
+
+.erro-carga {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  padding: 1rem;
+  border-radius: var(--raio);
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro);
+}
+
+.erro-carga p {
+  margin: 0;
+}
+
+/* Listas em forma de cartões (cabem no celular sem rolagem lateral) */
+.lista {
+  list-style: none;
+  margin: 0.5rem 0 1.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.lista-item {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem 1rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  color: var(--cor-texto);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.lista-item:hover {
+  border-color: var(--cor-marca);
+}
+
+.lista-item > span {
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.lista-item details {
+  font-size: 0.9rem;
+}
+
+.numero {
+  color: var(--cor-marca);
+  font-variant-numeric: tabular-nums;
+}
+
+.lista-simples {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.lista-simples li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--cor-borda);
+  overflow-wrap: anywhere;
+}
+
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.75rem;
+}
+
+.lista-item .etiquetas {
+  margin: 0.2rem 0 0;
+}
+
+.lista-item .etiquetas:empty {
+  display: none;
+}
+
+.etiqueta {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--cor-aviso-fundo);
+  border: 1px solid var(--cor-aviso-borda);
+  color: var(--cor-texto);
+}
+
+.etiquetas .etiqueta {
+  margin-left: 0;
+}
+
+.etiqueta-neutra {
+  background: var(--cor-fundo);
+  border-color: var(--cor-borda);
+  color: var(--cor-texto-suave);
+}
+
+.etiqueta-marca {
+  background: var(--cor-marca-suave);
+  border-color: transparent;
+  color: var(--cor-marca);
+}
+
+/* Painéis (seções em cartão) */
+.painel {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.painel p {
+  margin: 0 0 0.75rem;
+}
+
+.painel-perigo {
+  border-color: var(--cor-erro);
+}
+
+.cabecalho-painel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.grade-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+@media (min-width: 640px) {
+  .grade-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .largura-total {
+    grid-column: 1 / -1;
+  }
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Formulário curto numa linha (quebra no celular) */
+.form-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.form-linha label {
+  flex: 1 1 180px;
+}
+
+.form-compacto {
+  margin: 0.5rem 0 0;
+}
+
+.form-compacto select {
+  padding: 0.4rem 0.6rem;
+}
+
+.botao-texto {
+  border: 0;
+  background: none;
+  padding: 0.2rem 0.3rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cor-marca);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.botao-perigo {
+  background: transparent;
+  color: var(--cor-erro);
+  border: 1px solid var(--cor-erro);
+  padding: 0.45rem 0.9rem;
+}
+
+.botao-perigo-cheio {
+  background: var(--cor-erro);
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .botao-perigo-cheio {
+    color: #1c0a0e;
+  }
+}
+
+/* Confirmação na própria tela */
+.confirmar summary {
+  list-style: none;
+  display: inline-block;
+}
+
+.confirmar summary::-webkit-details-marker {
+  display: none;
+}
+
+.confirmar-caixa {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--raio);
+  background: var(--cor-erro-fundo);
+}
+
+.acao-recolhida {
+  margin-top: 0.75rem;
+}
+
+.acao-recolhida summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--cor-marca);
+}
+
+.definicoes {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+.definicoes dt {
+  color: var(--cor-texto-suave);
+}
+
+.definicoes dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 420px) {
+  .definicoes {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .definicoes dd {
+    margin-bottom: 0.5rem;
+  }
+}
+
+.historico {
+  margin: 0 0 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.historico li {
+  margin-bottom: 0.25rem;
+}
+
+/* Perfis com botão de retirar */
+.perfis-compacto {
+  margin: 0.35rem 0 0;
+}
+
+.perfis-compacto li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.perfis-compacto .sem-perfil {
+  background: var(--cor-fundo);
+  color: var(--cor-texto-suave);
+  font-weight: 400;
+}
+
+.chip-remover {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+  cursor: pointer;
+}
+
+.mudancas {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  overflow-wrap: anywhere;
 }
