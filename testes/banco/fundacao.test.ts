@@ -176,7 +176,9 @@ describe('Fase 0 — fundação do banco', () => {
 
     it('registra a criação de cada cadastro e de cada perfil', async () => {
       const r = await db.query<{ tabela: string; total: number }>(
-        `select tabela, count(*)::int as total from public.auditoria where operacao = 'INSERT' group by tabela order by tabela`,
+        `select tabela, count(*)::int as total from public.auditoria
+         where operacao = 'INSERT' and tabela in ('pessoas', 'perfis_acesso')
+         group by tabela order by tabela`,
       )
       assert.deepEqual(r.rows, [
         { tabela: 'perfis_acesso', total: 3 },

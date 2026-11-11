@@ -35,3 +35,21 @@ export async function abrirMenu(page: Page): Promise<Locator> {
   await expect(menu).toBeVisible()
   return menu
 }
+
+/** Sufixo único por execução e por tamanho de tela (computador/celular), para não misturar dados. */
+export function sufixoUnico(projeto: string): string {
+  return `${Date.now().toString(36)}-${projeto}`
+}
+
+/** CNPJ numérico válido e aleatório (fictício), para não repetir entre execuções. */
+export function cnpjAleatorio(): string {
+  const base = Array.from({ length: 8 }, () => Math.floor(Math.random() * 10)).concat([0, 0, 0, 1])
+  const digito = (numeros: number[]) => {
+    const pesos = numeros.length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    const soma = numeros.reduce((total, n, i) => total + n * pesos[i], 0)
+    return soma % 11 < 2 ? 0 : 11 - (soma % 11)
+  }
+  const d1 = digito(base)
+  const d2 = digito([...base, d1])
+  return [...base, d1, d2].join('')
+}

@@ -34,12 +34,14 @@ npm run dev                  # abre em http://localhost:5173/comep/
 ```
 src/
   dados/        ÚNICA pasta que fala com o Supabase (regra de portabilidade — o lint bloqueia o resto)
-  estado/       Sessão: quem está logado e com quais perfis
+  estado/       Sessão (quem está logado e com quais perfis) e carregamento de dados das telas
   componentes/  Estrutura da tela, menu por perfil, proteção de rotas
-  telas/        Telas do app
+  telas/        Telas do app (site, igrejas/, ministros/, administracao/)
+  utilitarios/  Formatos e validações (CNPJ, datas, busca sem acento)
 supabase/
   migrations/   Estrutura do banco (tabelas, regras de acesso, auditoria), em ordem
 testes/banco/   Testes automáticos das regras do banco
+testes/unidade/ Testes das validações das telas
 testes/e2e/     Testes de ponta a ponta (navegador de verdade + banco de teste)
 docs/revisoes/  Registro das travas de revisão de cada fase (PROJETO.md, seção 14)
 .github/workflows/  Verificação em todo pull request e publicação ao entrar na main

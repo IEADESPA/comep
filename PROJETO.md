@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.3 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), as cores do COMEP, a decisão de não enviar e-mails e a Fase 0 concluída. Rascunho para discussão.
+> Versão 0.4 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -67,17 +67,24 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
   - termo de consentimento LGPD.
 - **Fluxo do estatuto (Art. 7º):** pedido → análise da Diretoria (secretaria) → **aprovação na Assembleia Ordinária** (registrada com a data e a ata) → ficha aceita pelo associado e por um diretor (aceite eletrônico dos dois) → taxa de inscrição → associado ativo.
 - **Associados atuais** ("já cadastrados nesta data", Art. 7º, a): a secretaria cadastra direto, sem passar pela assembleia.
-- Login com conta Google (o mais prático no celular Android) ou com e-mail e senha.
+- **Login com e-mail e senha** (decisão de 11/11/2026):
+  - **sem "Entrar com Google"**: exigiria manter um cadastro em mais um serviço (Google Cloud), o que se preferiu evitar;
+  - **login pelo CPF** fica como ideia para o futuro.
 - **Sem envio de e-mail** (decisão de 11/11/2026, seção 5):
   - não há e-mail de confirmação; o pedido só vira associado depois da aprovação na assembleia, então ninguém ganha acesso só por criar login;
-  - senha esquecida é trocada pela secretaria ou pelo administrador técnico, dentro do sistema.
+  - **primeiro acesso dos associados atuais**: a secretaria cadastra o associado e gera um **código de acesso**, que manda pelo WhatsApp. A pessoa cria o login com o próprio e-mail e o código, e o login fica ligado ao cadastro dela;
+  - **senha esquecida**: a secretaria ou o administrador técnico gera um código; a pessoa cria uma senha nova com o e-mail e o código. Ninguém da diretoria fica sabendo a senha de ninguém.
 
 ### 4.2 Ministros (perfil do associado)
 
 - Dados pessoais, contato, título ministerial (pastor, evangelista, presbítero etc. — lista na decisão 9), data de consagração, igreja e denominação.
 - Foto (comprimida automaticamente no celular antes do envio).
 - Comprovante do título. RG/CPF digitalizados **não** são exigidos pelo estatuto e não serão pedidos (LGPD).
+- **Nº de registro** gerado automaticamente pelo banco (vai na carteirinha).
 - Situação do cadastro: **pendente, aguardando assembleia, ativo, desligado, falecido** (nunca apagado). O estatuto **não prevê suspensão**.
+  - "pendente" e "aguardando assembleia" são etapas do pedido de associação; o cadastro de associado nasce **ativo**;
+  - associado ativo recebe automaticamente o perfil **Ministro**; ao sair, perde o perfil;
+  - cadastro feito **por engano** (duplicado, pessoa errada) é **arquivado** pela secretaria. Isso não é desligamento.
 - Situação financeira, separada: **em dia / em atraso**. Quem está em atraso não vota nem pode ser votado (Art. 11).
 - **Desligamento (Art. 8º)**, sempre com motivo:
   - a pedido por escrito;
@@ -183,7 +190,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 | Hospedagem do app | **GitHub Pages** | Provisoriamente na organização **IEADESPA** (plano Team), que permite publicar a partir de repositório privado — ver regra abaixo |
 | Endereço | `ieadespa.github.io/comep/` (provisório) | Domínio próprio `.com.br` fica para quando o Conselho tiver CNPJ e registrar no nome dele |
 | Banco de dados | **Supabase** (PostgreSQL) — plano Free | Banco relacional de verdade |
-| Login | **Supabase Auth** | E-mail/senha e Google |
+| Login | **Supabase Auth** | E-mail e senha (sem Google — decisão de 11/11/2026) |
 | Fotos e arquivos | **Supabase Storage** | Pastas privadas; links temporários |
 | E-mails | **Nenhum** (decisão de 11/11/2026) | Os serviços gratuitos de envio não servem para isso, e o e-mail da IEADESPA (Azure) não será usado. Ver seção 4.1 e 10 |
 | Código-fonte | **GitHub** — repositório `IEADESPA/comep` (privado) | Provisório até a transferência ao Conselho (seção 8); 2–3 donos |
@@ -202,9 +209,10 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 - `pessoas` — dados pessoais do ministro (ligado ao login) ✅ criada
 - `perfis_acesso` — quais perfis cada pessoa tem ✅ criada
 - `auditoria` — preenchida automaticamente por gatilhos do banco ✅ criada
-- `igrejas` e `denominacoes`
-- `vinculos_igreja` — histórico de ministro ↔ igreja (com data de início/fim)
-- `titulos_ministeriais` e `historico_titulos`
+- `igrejas` e `denominacoes` ✅ criadas
+- `associados` — nº de registro, situação, forma e data de admissão ✅ criada
+- `vinculos_igreja` — histórico de ministro ↔ igreja (com data de início/fim) ✅ criada
+- `titulos_ministeriais` (lista) e `titulos_pessoa` (histórico de títulos de cada um) ✅ criadas
 - `pedidos_associacao` — pedidos do formulário, análise da diretoria, assembleia que aprovou, aceites do associado e do diretor
 - `desligamentos` — motivo (Art. 8º), assembleia e resultado da votação
 - `documentos` — anexos (referência ao arquivo no Storage)
@@ -293,20 +301,39 @@ Cada fase só é considerada entregue depois de passar pelas **4 travas de revis
 
 **Fica para depois, sem travar a Fase 1:**
 
-- incluir o presidente da igreja (IEADESPA) como 2º dono da organização no GitHub;
-- o membro `presidente-ai` da organização está sem verificação em duas etapas (recomendado ligar);
+- o membro `presidente-ai` é o login do **presidente da igreja (IEADESPA)**, o 2º login da entidade: hoje ele é membro comum e precisa virar **dono** da organização no GitHub (e ligar a verificação em duas etapas);
 - o termo da seção 8 passa a ser exigido no lançamento da versão 1.0, antes de entrar dado real.
 
 ### Fase 1 — Associação, ministros e igrejas (versão 1.0 — primeira versão em produção)
 
+A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente de teste; a trava 4 (produção) é uma só, no lançamento da versão 1.0. Revisão: `docs/revisoes/fase-1.md`.
+
+**1.1 — Cadastros** (versão 1.0-teste.1) — concluída em 11/11/2026
+
+- [x] Igrejas e denominações (CNPJ conferido, inclusive o novo CNPJ com letras)
+- [x] Títulos ministeriais (lista provisória até a decisão 9, sem tela própria por enquanto)
+- [x] Cadastro direto dos associados atuais pela secretaria (Art. 7º, a), com nº de registro automático
+- [x] Ficha do ministro para a secretaria: contato, histórico de títulos e de igrejas, troca de igreja registrada pela secretaria
+- [x] Tela de perfis de acesso (presidência) e tela de auditoria
+
+**1.2 — Pedido de associação** (versão 1.0-teste.2)
+
+- [ ] Código de acesso: primeiro acesso dos associados atuais, sem e-mail (seção 4.1)
 - [ ] Formulário "Quero me associar": título e comprovante, igreja, foto, declaração dos princípios de fé (Art. 7º, §1º) e consentimento LGPD
-- [ ] Análise pela diretoria e registro da aprovação em Assembleia Ordinária (Art. 7º)
-- [ ] Cadastro direto dos associados atuais pela secretaria (Art. 7º, a)
-- [ ] Perfil do ministro (ver/editar, foto, histórico); situações conforme o estatuto
-- [ ] Igrejas e denominações; painel do presidente de igreja (se aprovado — decisão 12)
-- [ ] Troca de igreja com aprovação
-- [ ] Telas de perfis de acesso (presidência) e de auditoria
-- [ ] **Lançamento:** termo da seção 8 assinado, site oficial ligado ao banco de produção, ambiente de teste em endereço próprio, dados reais liberados
+- [ ] Análise pela diretoria (aceite de um diretor na ficha) e registro da aprovação em Assembleia Ordinária (Art. 7º)
+
+**1.3 — Portal do ministro** (versão 1.0-teste.3)
+
+- [ ] Meu perfil (ver/editar, foto, histórico)
+- [ ] Pedido de troca de igreja pelo próprio ministro, com aprovação da secretaria
+- [ ] Senha esquecida com código gerado pela secretaria
+- [ ] Painel do presidente de igreja (se aprovado — decisão 12)
+
+**1.4 — Lançamento** (versão 1.0)
+
+- [ ] Revisão completa da Fase 1 e aceite da presidência (trava 4)
+- [ ] Termo da seção 8 assinado
+- [ ] Site oficial ligado ao banco de produção, ambiente de teste em endereço próprio, dados reais liberados
 
 ### Fase 2 — Financeiro (versão 2.0)
 
@@ -355,7 +382,8 @@ Cada fase só é considerada entregue depois de passar pelas **4 travas de revis
 |---|---|---|
 | **Pausa por inatividade** | Projeto gratuito pausa após 7 dias sem acesso ao banco (os dados **não** são apagados) | GitHub Actions acessa o banco a cada 3 dias |
 | **Sem backup automático no plano Free** | O Supabase não guarda cópias para nós | Backup semanal próprio, criptografado, no GitHub |
-| **Sem envio de e-mail** | O Supabase gratuito só manda poucos e-mails por hora, e só para a equipe; não haverá serviço de e-mail | Confirmação por e-mail desligada; acesso só depois da aprovação em assembleia; senha esquecida trocada pela secretaria ou pelo administrador; login com Google |
+| **Sem envio de e-mail** | O Supabase gratuito só manda poucos e-mails por hora, e só para a equipe; não haverá serviço de e-mail | Confirmação por e-mail desligada; acesso só depois da aprovação em assembleia; primeiro acesso e senha esquecida com **código** gerado pela secretaria e enviado pelo WhatsApp |
+| **Proteção contra senhas vazadas** | O Supabase só confere senhas vazadas (HaveIBeenPwned) no plano pago | Senha com no mínimo 8 caracteres, com letras e números |
 | **Código das telas é visível** | Mesmo com repositório privado, o navegador baixa o código das telas | Nenhum segredo ou dado no repositório; segurança garantida pelo banco (RLS) |
 | **Limites de espaço** | 500 MB de banco, 1 GB de arquivos, 5 GB de tráfego/mês | Comprimir fotos (~100 KB); PDFs pequenos; acompanhar o painel de uso |
 | **Usuários** | 50.000 usuários **diferentes** por mês | Muito acima do necessário |
@@ -395,7 +423,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026.
 6. **Quórum:** a "metade mais um" conta todos os associados ativos ou só os em dia?
 7. **Reuniões mensais:** têm dia fixo? O que vale como justificativa de falta, e quem aceita a justificativa?
 8. **Carteirinha:** validade (anual?) e o que aparece nela.
-9. **Títulos ministeriais aceitos** (pastor, evangelista, presbítero, missionário, líder…). O estatuto não fecha a lista: fala em "títulos reconhecidos por sua denominação".
+9. **Títulos ministeriais aceitos** (pastor, evangelista, presbítero, missionário, líder…). O estatuto não fecha a lista: fala em "títulos reconhecidos por sua denominação". *Enquanto isso, o sistema usa esses cinco; a lista muda quando a diretoria responder.*
 10. **Diretoria atual:** quem são hoje o Conselho Diretor e o Conselho Fiscal, e as datas dos mandatos. A diretoria que assinou o estatuto em maio de 2021 tinha mandato de 4 anos, que terminou em 2025.
 11. **Regimento Interno:** existe um aprovado (Art. 10, I e Art. 13)? Se existir, enviar — pode responder várias perguntas acima.
 12. **Perfil "presidente de igreja"** (ver os ministros da sua igreja e se estão em dia): não está no estatuto. A diretoria quer manter?
@@ -404,7 +432,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026.
 
 ### 11.3 Internas (equipe técnica, sem levar à diretoria)
 
-15. Donos das contas e quem guarda os códigos de recuperação — resolver com o tempo (o próximo dono será o presidente da igreja, na IEADESPA).
+15. Donos das contas e quem guarda os códigos de recuperação — o 2º dono é o presidente da igreja (IEADESPA), pelo login `presidente-ai`: falta mudá-lo de membro para dono no GitHub e ligar a verificação em duas etapas.
 16. Arquivo original do logo — pedir depois; as cores já estão aplicadas.
 
 ## 12. Convenções de desenvolvimento

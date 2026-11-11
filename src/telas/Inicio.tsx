@@ -62,7 +62,7 @@ export function Inicio() {
               <Link key={item.caminho} to={item.caminho} className="cartao">
                 <strong>{item.titulo}</strong>
                 <span>{item.descricao}</span>
-                {item.fase > 0 && <span className="selo">Fase {item.fase}</span>}
+                {!item.pronto && <span className="selo">Fase {item.fase}</span>}
               </Link>
             ))}
           </div>

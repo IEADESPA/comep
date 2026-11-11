@@ -22,7 +22,12 @@ test.describe('presidência', () => {
 
     await menu.getByRole('link', { name: 'Ministros', exact: true }).click()
     await expect(page).toHaveURL(/\/comep\/ministros$/)
-    await expect(page.getByText('Em construção — prevista para a Fase 1')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Ministros', level: 1 })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Cadastrar associado' })).toBeVisible()
+
+    // Telas das próximas fases avisam que estão em construção
+    await (await abrirMenu(page)).getByRole('link', { name: 'Financeiro', exact: true }).click()
+    await expect(page.getByText('Em construção — prevista para a Fase 2')).toBeVisible()
 
     await page.getByRole('button', { name: 'Sair' }).click()
     await expect(page).toHaveURL(/\/comep\/entrar$/)
@@ -42,10 +47,12 @@ test.describe('ministro', () => {
     }
   })
 
-  test('não abre a auditoria nem digitando o endereço', async ({ page }) => {
+  test('não abre as áreas da diretoria nem digitando o endereço', async ({ page }) => {
     await entrar(page, USUARIOS.ministro)
-    await page.goto('auditoria')
-    await expect(page.getByRole('heading', { name: 'Sem acesso' })).toBeVisible()
+    for (const area of ['auditoria', 'acessos', 'ministros', 'ministros/novo', 'igrejas', 'igrejas/nova']) {
+      await page.goto(area)
+      await expect(page.getByRole('heading', { name: 'Sem acesso' }), area).toBeVisible()
+    }
   })
 })
 
