@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Carregando, Mensagem } from '../../componentes/Basicos'
 import { listarAuditoria, type PaginaAuditoria, type RegistroAuditoria } from '../../dados/acessos'
+import {
+  formatarReais,
+  NOME_DA_CATEGORIA,
+  NOME_DO_TIPO_VALOR,
+  type CategoriaContribuicao,
+  type TipoValor,
+} from '../../dados/configuracoes'
 import { NOME_DO_PERFIL, type Perfil } from '../../dados/perfis'
 import { formatarDataHora } from '../../utilitarios/formatos'
 
@@ -13,6 +20,8 @@ const NOME_DA_TABELA: Record<string, string> = {
   igrejas: 'Igrejas',
   denominacoes: 'Denominações',
   titulos_ministeriais: 'Lista de títulos',
+  bairros: 'Bairros',
+  valores_contribuicao: 'Valores da contribuição',
 }
 
 const CAMPOS_IGNORADOS = new Set(['atualizado_em', 'criado_em', 'criado_por', 'id'])
@@ -32,6 +41,11 @@ function descreverRegistro(r: RegistroAuditoria, pessoas: PaginaAuditoria['pesso
   if (typeof dados.nome === 'string') partes.push(dados.nome)
   if (typeof dados.perfil === 'string') partes.push(NOME_DO_PERFIL[dados.perfil as Perfil] ?? dados.perfil)
   if (typeof dados.numero_registro === 'number') partes.push(`Nº ${dados.numero_registro}`)
+  if (typeof dados.categoria === 'string' && typeof dados.tipo === 'string') {
+    partes.push(
+      `${NOME_DA_CATEGORIA[dados.categoria as CategoriaContribuicao]} · ${NOME_DO_TIPO_VALOR[dados.tipo as TipoValor]}: ${formatarReais(Number(dados.valor))}`,
+    )
+  }
   if (pessoa) partes.push(r.tabela === 'perfis_acesso' ? `de ${pessoa}` : pessoa)
   if (partes.length === 0 && r.registro_id) partes.push(`registro ${r.registro_id.slice(0, 8)}`)
   return partes.join(' ')

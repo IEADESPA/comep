@@ -7,6 +7,7 @@ import { bancoConfigurado } from './dados/cliente'
 import { ProvedorSessao } from './estado/ProvedorSessao'
 import { Acessos } from './telas/administracao/Acessos'
 import { Auditoria } from './telas/administracao/Auditoria'
+import { Configuracoes } from './telas/administracao/Configuracoes'
 import { Entrar } from './telas/Entrar'
 import { EditarIgreja, NovaIgreja } from './telas/igrejas/FormIgreja'
 import { ListaIgrejas } from './telas/igrejas/ListaIgrejas'
@@ -63,6 +64,10 @@ export default function App() {
 
               <Route path="acessos" element={<Area caminho="/acessos" />}>
                 <Route index element={<Acessos />} />
+              </Route>
+
+              <Route path="configuracoes" element={<Area caminho="/configuracoes" />}>
+                <Route index element={<Configuracoes />} />
               </Route>
 
               <Route path="auditoria" element={<Area caminho="/auditoria" />}>

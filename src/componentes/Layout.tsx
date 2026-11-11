@@ -1,11 +1,19 @@
-import { useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useSessao } from '../estado/contexto'
 import { itensVisiveis } from './menu'
 
 export function Layout() {
   const { estado, sair } = useSessao()
   const [menuAberto, setMenuAberto] = useState(false)
+  const { pathname } = useLocation()
+  const areaConteudo = useRef<HTMLElement>(null)
+
+  // Ao trocar de tela, o conteúdo volta para o topo (no computador ele rola separado do menu)
+  useEffect(() => {
+    areaConteudo.current?.scrollTo(0, 0)
+    window.scrollTo(0, 0)
+  }, [pathname])
 
   const conta = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta : null
   const itens = conta ? itensVisiveis(conta.perfis) : []
@@ -50,8 +58,11 @@ export function Layout() {
         </nav>
       )}
 
-      <main className="conteudo">
-        <Outlet />
+      {/* Coluna da direita: rola sozinha, sem levar o menu junto (no computador) */}
+      <main className="area-conteudo" ref={areaConteudo}>
+        <div className="conteudo">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

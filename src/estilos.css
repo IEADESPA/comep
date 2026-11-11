@@ -323,6 +323,10 @@ fieldset + fieldset {
   font-weight: 600;
 }
 
+.area-conteudo {
+  min-width: 0;
+}
+
 .conteudo {
   padding: 1.25rem 16px 2rem;
   width: 100%;
@@ -330,9 +334,28 @@ fieldset + fieldset {
 }
 
 @media (min-width: 900px) {
+  /* Duas colunas independentes: o menu (esquerda) e o conteúdo (direita) rolam cada um por conta própria */
+  #root:has(> .estrutura) {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #root:has(> .estrutura) > .faixa-teste {
+    position: static;
+  }
+
   .estrutura {
-    grid-template-columns: 240px 1fr;
-    grid-template-rows: auto 1fr;
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .menu,
+  .area-conteudo {
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .topo {
@@ -1060,4 +1083,54 @@ a.lista-item:hover {
   margin: 0.4rem 0 0;
   padding-left: 1.1rem;
   overflow-wrap: anywhere;
+}
+
+/* ---------- Configurações e ficha (Fase 1.2) ---------- */
+
+.atalhos-secao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+}
+
+.acoes-item {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.valor-linha {
+  display: block;
+}
+
+.campo-curto {
+  flex: 0 1 110px;
+}
+
+.form-linha .campo-curto {
+  flex: 0 1 110px;
+}
+
+/* Caixa de marcar com o texto ao lado */
+.caixa-marcar {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-weight: 400;
+}
+
+.caixa-marcar input {
+  width: auto;
+  margin: 0.2rem 0 0;
+  flex-shrink: 0;
+  accent-color: var(--cor-marca);
+}
+
+.form-linha .caixa-marcar {
+  flex: 1 1 100%;
+}
+
+.painel > .botao {
+  margin-top: 0.25rem;
 }

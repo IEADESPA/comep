@@ -12,6 +12,7 @@ import {
   type Igreja,
 } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
+import { listarItens, type ItemLista } from '../../dados/configuracoes'
 import { useCarregar } from '../../estado/useCarregar'
 import { cnpjValido, formatarCnpj, limparCnpj } from '../../utilitarios/formatos'
 
@@ -26,19 +27,24 @@ export function EditarIgreja() {
   return <FormIgreja key={id} id={id} />
 }
 
-type DadosTela = { denominacoes: Denominacao[]; igreja: Igreja | null }
+type DadosTela = { denominacoes: Denominacao[]; bairros: ItemLista[]; igreja: Igreja | null }
 
 function FormIgreja({ id }: { id?: string }) {
   const [carga, recarregar] = useCarregar(async () => {
-    const [denominacoes, igreja] = await Promise.all([listarDenominacoes(), id ? buscarIgreja(id) : ok(null)])
+    const [denominacoes, bairros, igreja] = await Promise.all([
+      listarDenominacoes(),
+      listarItens('bairros'),
+      id ? buscarIgreja(id) : ok(null),
+    ])
     if (denominacoes.erro !== null) return denominacoes
+    if (bairros.erro !== null) return bairros
     if (igreja.erro !== null) return igreja
-    return ok<DadosTela>({ denominacoes: denominacoes.dados, igreja: igreja.dados })
+    return ok<DadosTela>({ denominacoes: denominacoes.dados, bairros: bairros.dados, igreja: igreja.dados })
   })
 
   return (
     <MostrarCarga carga={carga} recarregar={recarregar}>
-      {({ denominacoes, igreja }) =>
+      {({ denominacoes, bairros, igreja }) =>
         id && !igreja ? (
           <Aviso titulo="Igreja não encontrada">
             <p>Ela pode ter sido arquivada.</p>
@@ -47,14 +53,16 @@ function FormIgreja({ id }: { id?: string }) {
             </p>
           </Aviso>
         ) : (
-          <Formulario id={id} igreja={igreja} denominacoes={denominacoes} />
+          <Formulario id={id} igreja={igreja} denominacoes={denominacoes} bairros={bairros} />
         )
       }
     </MostrarCarga>
   )
 }
 
-function Formulario({ id, igreja, denominacoes }: { id?: string; igreja: Igreja | null; denominacoes: Denominacao[] }) {
+type PropsFormulario = { id?: string; igreja: Igreja | null; denominacoes: Denominacao[]; bairros: ItemLista[] }
+
+function Formulario({ id, igreja, denominacoes, bairros }: PropsFormulario) {
   const navigate = useNavigate()
   const location = useLocation()
   const mensagemAnterior = (location.state as { mensagem?: string } | null)?.mensagem
@@ -63,7 +71,7 @@ function Formulario({ id, igreja, denominacoes }: { id?: string; igreja: Igreja 
     denominacao_id: igreja?.denominacao_id ?? '',
     cnpj: formatarCnpj(igreja?.cnpj),
     endereco: igreja?.endereco ?? '',
-    bairro: igreja?.bairro ?? '',
+    bairro_id: igreja?.bairro_id ?? '',
     telefone: igreja?.telefone ?? '',
     presidente_nome: igreja?.presidente_nome ?? '',
   })
@@ -133,6 +141,10 @@ function Formulario({ id, igreja, denominacoes }: { id?: string; igreja: Igreja 
                   {d.sigla ? `${d.nome} (${d.sigla})` : d.nome}
                 </option>
               ))}
+              {/* Item arquivado em Configurações continua aparecendo para a igreja que já o usa */}
+              {igreja?.denominacao_id && !denominacoes.some((d) => d.id === igreja.denominacao_id) && (
+                <option value={igreja.denominacao_id}>{igreja.denominacao?.nome} (arquivada)</option>
+              )}
             </select>
           </label>
           <label>
@@ -145,7 +157,17 @@ function Formulario({ id, igreja, denominacoes }: { id?: string; igreja: Igreja 
           </label>
           <label>
             Bairro
-            <input {...campo('bairro')} />
+            <select {...campo('bairro_id')}>
+              <option value="">— Não informado —</option>
+              {bairros.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.nome}
+                </option>
+              ))}
+              {igreja?.bairro_id && !bairros.some((b) => b.id === igreja.bairro_id) && (
+                <option value={igreja.bairro_id}>{igreja.bairro?.nome} (arquivado)</option>
+              )}
+            </select>
           </label>
           <label>
             Telefone
@@ -157,7 +179,7 @@ function Formulario({ id, igreja, denominacoes }: { id?: string; igreja: Igreja 
           </label>
         </div>
         <p className="detalhe">
-          Não achou a denominação? Cadastre-a no fim da <Link to="/igrejas">lista de igrejas</Link>.
+          Não achou a denominação ou o bairro? Cadastre em <Link to="/configuracoes">Configurações</Link>.
         </p>
         <Mensagem sucesso={resultado.sucesso} erro={resultado.erro} />
         <div className="acoes">
@@ -202,7 +224,9 @@ function MinistrosDaIgreja({ igrejaId }: { igrejaId: string }) {
               {ministros.map((m) => (
                 <li key={m.pessoa_id}>
                   <Link to={`/ministros/${m.pessoa_id}`}>{m.nome}</Link>
-                  <span className="detalhe">{[m.titulo, m.funcao].filter(Boolean).join(' · ')}</span>
+                  <span className="detalhe">
+                    {[m.titulo, m.funcao, m.pastor_presidente && 'pastor presidente'].filter(Boolean).join(' · ')}
+                  </span>
                 </li>
               ))}
             </ul>

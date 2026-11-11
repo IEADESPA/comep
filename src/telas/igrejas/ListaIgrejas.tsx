@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
-import { arquivarDenominacao, criarDenominacao, listarDenominacoes, listarIgrejas } from '../../dados/cadastros'
+import { listarIgrejas } from '../../dados/cadastros'
 import { useCarregar } from '../../estado/useCarregar'
 import { contemTexto } from '../../utilitarios/formatos'
 
@@ -28,7 +28,7 @@ export function ListaIgrejas() {
               contemTexto(i.nome, busca) ||
               contemTexto(i.denominacao?.nome, busca) ||
               contemTexto(i.denominacao?.sigla, busca) ||
-              contemTexto(i.bairro, busca),
+              contemTexto(i.bairro?.nome, busca),
           )
           return (
             <>
@@ -55,7 +55,7 @@ export function ListaIgrejas() {
                       <Link to={`/igrejas/${i.id}`} className="lista-item">
                         <strong>{i.nome}</strong>
                         <span>
-                          {[i.denominacao?.sigla || i.denominacao?.nome, i.bairro].filter(Boolean).join(' · ') ||
+                          {[i.denominacao?.sigla || i.denominacao?.nome, i.bairro?.nome].filter(Boolean).join(' · ') ||
                             'Denominação não informada'}
                         </span>
                       </Link>
@@ -68,89 +68,9 @@ export function ListaIgrejas() {
         }}
       </MostrarCarga>
 
-      <Denominacoes />
+      <p className="detalhe">
+        As listas de denominações e de bairros ficam em <Link to="/configuracoes">Configurações</Link>.
+      </p>
     </>
-  )
-}
-
-function Denominacoes() {
-  const [carga, recarregar] = useCarregar(listarDenominacoes)
-  const [nome, setNome] = useState('')
-  const [sigla, setSigla] = useState('')
-  const [enviando, setEnviando] = useState(false)
-  const [resultado, setResultado] = useState<{ sucesso?: string; erro?: string }>({})
-
-  async function adicionar() {
-    setEnviando(true)
-    const r = await criarDenominacao(nome, sigla)
-    setEnviando(false)
-    if (r.erro !== null) {
-      setResultado({ erro: r.erro })
-      return
-    }
-    setResultado({ sucesso: `Denominação "${r.dados.nome}" cadastrada.` })
-    setNome('')
-    setSigla('')
-    recarregar()
-  }
-
-  async function arquivar(id: string, nomeDenominacao: string) {
-    const r = await arquivarDenominacao(id)
-    setResultado(r.erro ? { erro: r.erro } : { sucesso: `Denominação "${nomeDenominacao}" arquivada.` })
-    recarregar()
-  }
-
-  return (
-    <section className="painel" aria-labelledby="titulo-denominacoes">
-      <h2 id="titulo-denominacoes">Denominações</h2>
-      <MostrarCarga carga={carga} recarregar={recarregar}>
-        {(denominacoes) =>
-          denominacoes.length === 0 ? (
-            <p className="vazio">Nenhuma denominação cadastrada ainda.</p>
-          ) : (
-            <ul className="lista-simples" aria-label="Denominações">
-              {denominacoes.map((d) => (
-                <li key={d.id}>
-                  <span>
-                    {d.nome}
-                    {d.sigla && <span className="detalhe"> ({d.sigla})</span>}
-                  </span>
-                  <button
-                    type="button"
-                    className="botao-texto"
-                    aria-label={`Arquivar a denominação ${d.nome}`}
-                    onClick={() => void arquivar(d.id, d.nome)}
-                  >
-                    Arquivar
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )
-        }
-      </MostrarCarga>
-
-      <form
-        className="form-linha"
-        aria-label="Nova denominação"
-        onSubmit={(e) => {
-          e.preventDefault()
-          void adicionar()
-        }}
-      >
-        <label>
-          Nova denominação
-          <input required value={nome} onChange={(e) => setNome(e.target.value)} />
-        </label>
-        <label>
-          Sigla (opcional)
-          <input value={sigla} onChange={(e) => setSigla(e.target.value)} />
-        </label>
-        <button type="submit" className="botao" disabled={enviando}>
-          Adicionar
-        </button>
-      </form>
-      <Mensagem sucesso={resultado.sucesso} erro={resultado.erro} />
-    </section>
   )
 }

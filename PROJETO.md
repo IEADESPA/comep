@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.5 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.6 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -39,7 +39,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 |---|---|---|
 | **Visitante** | Qualquer pessoa | Ver o site institucional e as convocações públicas; pedir associação; validar uma carteirinha pelo QR Code |
 | **Ministro** | Pastor ou líder evangélico associado (Art. 7º) | Ver/atualizar o próprio perfil e foto; ver a carteirinha; ver suas contribuições e informar pagamento com comprovante; pedir troca de igreja; confirmar presença em reuniões e assembleias; justificar falta |
-| **Presidente de igreja** | Pastor presidente de uma igreja cadastrada. **Não previsto no estatuto** (decisão 12) | Tudo do ministro + ver os ministros vinculados à sua igreja e se estão em dia; atualizar dados da igreja; confirmar vínculos com a sua igreja |
+| **Presidente de igreja** | Pastor presidente de uma igreja cadastrada, marcado na ficha do ministro: o perfil vem **automaticamente** e define a categoria de contribuição de R$ 40 (seção 4.4). **Não previsto no estatuto** (decisão 12 — previsão de 11/11/2026: mantido) | Tudo do ministro + ver os ministros vinculados à sua igreja e se estão em dia; atualizar dados da igreja; confirmar vínculos com a sua igreja |
 | **Secretaria** | 1º e 2º secretários (Art. 12, §4º e §5º) | Receber os pedidos de associação e levá-los à assembleia; cadastros de ministros e igrejas; preparar convocações; registrar presença; aceitar ou recusar justificativas de falta (1º secretário); redigir atas (1º secretário); comunicação e avisos (2º secretário) |
 | **Tesouraria** | 1º e 2º tesoureiros (Art. 12, §6º e §7º) | Conferir/confirmar pagamentos; lançar entradas e saídas; preparar o balanço anual e os relatórios |
 | **Presidência** | Presidente e vice-presidente (Art. 12, §2º e §3º) | Visualizar tudo; convocar assembleias; **autorizar despesas** (Art. 12, §2º, VI); assinar atas com o 1º secretário; gerenciar perfis de acesso |
@@ -99,7 +99,8 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 
 ### 4.3 Igrejas
 
-- Cadastro: nome, CNPJ, denominação, endereço, contatos, presidente.
+- Cadastro: nome, CNPJ, denominação e bairro (das listas de Configurações), endereço, telefone e nome do pastor presidente.
+- O **pastor presidente** associado é marcado na ficha do ministro (uma igreja tem um só por vez) e recebe o perfil Presidente de igreja.
 - Perfil da igreja com a lista de ministros vinculados.
 - Painel do presidente da igreja, se a diretoria mantiver esse perfil (decisão 12).
 
@@ -115,7 +116,10 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 
   - o associado paga **por mês** ou **o ano inteiro em abril**;
   - o **exercício** vai de **1º de abril a 31 de março**;
-  - a categoria (presidente de igreja, não presidente, jubilado) fica no cadastro do associado, mantida pela secretaria;
+  - a **categoria é automática**:
+    - jubilado (marcado na ficha) é isento;
+    - quem tem o perfil **Presidente de igreja** (pastor presidente marcado na ficha) paga R$ 40/R$ 400;
+    - os demais pagam R$ 20/R$ 200;
   - os valores são definidos pela Assembleia Ordinária (Art. 7º, §3º): ficam configuráveis e guardam o histórico, para os próximos reajustes;
   - vencimentos e escolha entre mensal e anual: pergunta 18.
 - **Taxa de inscrição:** valor a definir (pergunta 17).
@@ -192,7 +196,16 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 - **Perfis automáticos:** os perfis de acesso da diretoria vêm do mandato vigente.
 - Histórico de todas as diretorias.
 
-### 4.11 Patrimônio (futuro)
+### 4.11 Configurações (sistema personalizável)
+
+Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim numa tela de **Configurações**:
+
+- **Listas:** denominações (tipos de igreja), bairros e títulos de ministro. A secretaria, a presidência e o administrador técnico incluem, renomeiam e arquivam itens.
+- **Valores da contribuição:** a tesouraria e a presidência lançam o valor novo, com a data em que passa a valer e a assembleia que aprovou. O valor anterior fica no histórico.
+- Arquivar um item tira ele das opções, mas não apaga nada: o que já usava esse item continua guardado.
+- Novas listas entram aqui conforme forem surgindo (ex.: tipos de projeto, motivos de desligamento).
+
+### 4.12 Patrimônio (futuro)
 
 - Registro de bens móveis e imóveis em nome do COMEP (Art. 18).
 
@@ -223,7 +236,8 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 - `pessoas` — dados pessoais do ministro (ligado ao login) ✅ criada
 - `perfis_acesso` — quais perfis cada pessoa tem ✅ criada
 - `auditoria` — preenchida automaticamente por gatilhos do banco ✅ criada
-- `igrejas` e `denominacoes` ✅ criadas
+- `igrejas`, `denominacoes` e `bairros` ✅ criadas
+- `valores_contribuicao` — valor por categoria e tipo (mensal, anual, inscrição), com vigência e assembleia ✅ criada
 - `associados` — nº de registro, situação, forma e data de admissão ✅ criada
 - `vinculos_igreja` — histórico de ministro ↔ igreja (com data de início/fim) ✅ criada
 - `titulos_ministeriais` (lista) e `titulos_pessoa` (histórico de títulos de cada um) ✅ criadas
@@ -330,19 +344,21 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 - [x] Ficha do ministro para a secretaria: contato, histórico de títulos e de igrejas, troca de igreja registrada pela secretaria
 - [x] Tela de perfis de acesso (presidência) e tela de auditoria
 
-**1.2 — Pedido de associação** (versão 1.0-teste.2)
+**1.2 — Configurações e pedido de associação** (versão 1.0-teste.2)
 
+- [x] Tela de Configurações (seção 4.11): denominações, bairros, títulos de ministro e valores da contribuição, com histórico
+- [x] Pastor presidente (perfil automático Presidente de igreja) e jubilado; categoria de contribuição automática
+- [x] Menu e conteúdo em colunas independentes no computador (cada um rola por conta própria)
 - [ ] Código de acesso: primeiro acesso dos associados atuais, sem e-mail (seção 4.1)
 - [ ] Formulário "Quero me associar": título e comprovante, igreja, foto, declaração dos princípios de fé (Art. 7º, §1º) e consentimento LGPD
 - [ ] Análise pela diretoria (aceite de um diretor na ficha) e registro da aprovação em Assembleia Ordinária (Art. 7º)
-- [ ] Categoria do associado para a contribuição (presidente de igreja, não presidente, jubilado), já no cadastro, para a Fase 2 começar com tudo preenchido
 
 **1.3 — Portal do ministro** (versão 1.0-teste.3)
 
 - [ ] Meu perfil (ver/editar, foto, histórico)
 - [ ] Pedido de troca de igreja pelo próprio ministro, com aprovação da secretaria
 - [ ] Senha esquecida com código gerado pela secretaria
-- [ ] Painel do presidente de igreja (se aprovado — decisão 12)
+- [ ] Painel do presidente de igreja: ministros da sua igreja (decisão 12 — previsão: mantido)
 
 **1.4 — Lançamento** (versão 1.0)
 
@@ -451,7 +467,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 9. **Títulos ministeriais aceitos** (pastor, evangelista, presbítero, missionário, líder…). O estatuto não fecha a lista: fala em "títulos reconhecidos por sua denominação". *Enquanto isso, o sistema usa esses cinco; a lista muda quando a diretoria responder.*
 10. **Diretoria atual:** quem são hoje o Conselho Diretor e o Conselho Fiscal, e as datas dos mandatos. A diretoria que assinou o estatuto em maio de 2021 tinha mandato de 4 anos, que terminou em 2025.
 11. **Regimento Interno:** existe um aprovado (Art. 10, I e Art. 13)? Se existir, enviar — pode responder várias perguntas acima.
-12. **Perfil "presidente de igreja"** (ver os ministros da sua igreja e se estão em dia): não está no estatuto. A diretoria quer manter? *(É outra coisa que a categoria "presidente de igreja" da contribuição, que já está definida.)*
+12. **Perfil "presidente de igreja"** (ver os ministros da sua igreja e se estão em dia): não está no estatuto. A diretoria quer manter? *Previsão (11/11/2026): **mantido**, e é o mesmo critério da contribuição: o pastor presidente marcado na ficha recebe o perfil e paga como presidente de igreja. Muda se a diretoria disser o contrário.*
 13. **Cópia completa do estatuto:** na cópia recebida faltam o §2º do Art. 7º e os Artigos 19 e 20 (provavelmente sobre dissolução, citada no título do Capítulo V).
 14. **Dados para o site:** o COMEP tem CNPJ? Qual a sede atual (o estatuto fala em sede provisória)? Quais os contatos oficiais (telefone/WhatsApp, e-mail, redes sociais)?
 
