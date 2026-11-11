@@ -44,7 +44,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
 
-      - name: Links diretos (ex.: validação da carteirinha) abrem o app no GitHub Pages
+      - name: "Links diretos (ex.: validação da carteirinha) abrem o app no GitHub Pages"
         run: cp dist/index.html dist/404.html
 
       - name: Guardar o site para publicação
