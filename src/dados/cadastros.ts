@@ -10,15 +10,17 @@ export type Igreja = {
   denominacao_id: string | null
   cnpj: string | null
   endereco: string | null
-  bairro: string | null
+  bairro_id: string | null
   telefone: string | null
   presidente_nome: string | null
-  denominacao: { nome: string; sigla: string | null } | null
+  denominacao: { nome: string; sigla: string | null; arquivado_em: string | null } | null
+  bairro: { nome: string; arquivado_em: string | null } | null
 }
 
-export type DadosIgreja = Omit<Igreja, 'id' | 'denominacao'>
+export type DadosIgreja = Omit<Igreja, 'id' | 'denominacao' | 'bairro'>
 
-const CAMPOS_IGREJA = 'id, nome, denominacao_id, cnpj, endereco, bairro, telefone, presidente_nome, denominacao:denominacoes(nome, sigla)'
+const CAMPOS_IGREJA =
+  'id, nome, denominacao_id, cnpj, endereco, bairro_id, telefone, presidente_nome, denominacao:denominacoes(nome, sigla, arquivado_em), bairro:bairros(nome, arquivado_em)'
 
 const vazioParaNulo = (valor: string | null) => (valor && valor.trim() ? valor.trim() : null)
 
@@ -31,20 +33,6 @@ export async function listarDenominacoes(): Promise<Resultado<Denominacao[]>> {
     .is('arquivado_em', null)
     .order('nome')
   return error ? falha(error) : ok(data)
-}
-
-export async function criarDenominacao(nome: string, sigla: string): Promise<Resultado<Denominacao>> {
-  const { data, error } = await cliente()
-    .from('denominacoes')
-    .insert({ nome: nome.trim(), sigla: vazioParaNulo(sigla) })
-    .select('id, nome, sigla')
-    .single()
-  return error ? falha(error, 'Já existe uma denominação com esse nome.') : ok(data)
-}
-
-export async function arquivarDenominacao(id: string): Promise<Resultado<null>> {
-  const { error } = await cliente().from('denominacoes').update({ arquivado_em: new Date().toISOString() }).eq('id', id)
-  return error ? falha(error) : ok(null)
 }
 
 // ---------- Títulos ministeriais ----------
@@ -88,7 +76,7 @@ export async function salvarIgreja(dados: DadosIgreja, id?: string): Promise<Res
     denominacao_id: dados.denominacao_id || null,
     cnpj: vazioParaNulo(dados.cnpj),
     endereco: vazioParaNulo(dados.endereco),
-    bairro: vazioParaNulo(dados.bairro),
+    bairro_id: dados.bairro_id || null,
     telefone: vazioParaNulo(dados.telefone),
     presidente_nome: vazioParaNulo(dados.presidente_nome),
   }
@@ -104,13 +92,19 @@ export async function arquivarIgreja(id: string): Promise<Resultado<null>> {
   return error ? falha(error) : ok(null)
 }
 
-export type MinistroDaIgreja = { pessoa_id: string; nome: string; titulo: string | null; funcao: string | null }
+export type MinistroDaIgreja = {
+  pessoa_id: string
+  nome: string
+  titulo: string | null
+  funcao: string | null
+  pastor_presidente: boolean
+}
 
 /** Associados com vínculo atual na igreja (a RLS só devolve o que quem consulta pode ver). */
 export async function ministrosDaIgreja(igrejaId: string): Promise<Resultado<MinistroDaIgreja[]>> {
   const { data, error } = await cliente()
     .from('vw_associados')
-    .select('pessoa_id, nome, titulo, funcao')
+    .select('pessoa_id, nome, titulo, funcao, pastor_presidente')
     .eq('igreja_id', igrejaId)
     .order('nome')
   return error ? falha(error) : ok(data)

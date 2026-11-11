@@ -31,6 +31,14 @@ export const ITENS_MENU: readonly ItemMenu[] = [
   { caminho: '/assembleias', titulo: 'Assembleias', descricao: 'Convocações, presença e atas', perfis: ['ministro', 'secretaria', 'presidencia'], fase: 4 },
   { caminho: '/projetos', titulo: 'Projetos', descricao: 'Projetos e eventos do Conselho', perfis: ['secretaria', 'tesouraria', 'presidencia'], fase: 5 },
   { caminho: '/avisos', titulo: 'Avisos', descricao: 'Mural de avisos', perfis: 'todos', fase: 5 },
+  {
+    caminho: '/configuracoes',
+    titulo: 'Configurações',
+    descricao: 'Denominações, bairros, títulos e valores da contribuição',
+    perfis: ['secretaria', 'tesouraria', 'presidencia', 'admin_tecnico'],
+    fase: 1,
+    pronto: true,
+  },
   { caminho: '/acessos', titulo: 'Perfis de acesso', descricao: 'Quem tem qual perfil no sistema', perfis: ['presidencia'], fase: 1, pronto: true },
   { caminho: '/auditoria', titulo: 'Auditoria', descricao: 'Histórico de todas as alterações', perfis: ['presidencia', 'admin_tecnico'], fase: 1, pronto: true },
 ]

@@ -1,5 +1,6 @@
 // Associados (ministros): lista, ficha, cadastro direto e históricos de título e igreja.
 import { cliente, falha, ok, type Resultado } from './cliente'
+import type { CategoriaContribuicao } from './configuracoes'
 
 export type SituacaoAssociado = 'ativo' | 'desligado' | 'falecido'
 export type FormaAdmissao = 'cadastro_inicial' | 'assembleia'
@@ -15,8 +16,14 @@ export const NOME_DA_FORMA_ADMISSAO: Record<FormaAdmissao, string> = {
   assembleia: 'Aprovado em Assembleia Ordinária',
 }
 
-/** Sugestões para o campo "função na igreja" (texto livre). */
-export const SUGESTOES_FUNCAO = ['Pastor presidente', 'Pastor auxiliar', 'Evangelista dirigente', 'Missionário', 'Líder']
+const MENSAGEM_PRESIDENTE_REPETIDO =
+  'Esta igreja já tem um pastor presidente marcado. Desmarque o anterior na ficha dele primeiro.'
+
+/**
+ * Sugestões para o campo "função na igreja" (texto livre).
+ * "Pastor presidente" NÃO entra aqui: é a marcação própria (dá o perfil e a categoria de contribuição).
+ */
+export const SUGESTOES_FUNCAO = ['Pastor auxiliar', 'Pastor de congregação', 'Evangelista dirigente', 'Missionário', 'Líder']
 
 export type Associado = {
   id: string
@@ -37,6 +44,9 @@ export type Associado = {
   igreja_id: string | null
   igreja: string | null
   funcao: string | null
+  jubilado: boolean
+  pastor_presidente: boolean
+  categoria_contribuicao: CategoriaContribuicao
 }
 
 export type TituloDaPessoa = { id: string; desde: string | null; criado_em: string; titulo: { nome: string } | null }
@@ -47,6 +57,7 @@ export type VinculoDaPessoa = {
   funcao: string | null
   inicio: string | null
   fim: string | null
+  pastor_presidente: boolean
   igreja: { nome: string } | null
 }
 
@@ -73,7 +84,7 @@ export async function buscarFicha(pessoaId: string): Promise<Resultado<FichaAsso
       .returns<TituloDaPessoa[]>(),
     cliente()
       .from('vinculos_igreja')
-      .select('id, igreja_id, funcao, inicio, fim, igreja:igrejas(nome)')
+      .select('id, igreja_id, funcao, inicio, fim, pastor_presidente, igreja:igrejas(nome)')
       .eq('pessoa_id', pessoaId)
       .is('arquivado_em', null)
       .order('criado_em', { ascending: false })
@@ -96,6 +107,8 @@ export type NovoAssociado = {
   vinculoInicio: string
   admitidoEm: string
   observacoes: string
+  pastorPresidente: boolean
+  jubilado: boolean
 }
 
 /** Cadastro direto de associado atual (Art. 7º, a). Tudo ou nada, numa única operação no banco. */
@@ -111,8 +124,10 @@ export async function cadastrarAssociado(novo: NovoAssociado): Promise<Resultado
     p_vinculo_inicio: novo.vinculoInicio || null,
     p_admitido_em: novo.admitidoEm || null,
     p_observacoes: novo.observacoes,
+    p_pastor_presidente: novo.pastorPresidente,
+    p_jubilado: novo.jubilado,
   })
-  return error ? falha(error, 'Esta pessoa já está cadastrada como associada.') : ok(data as string)
+  return error ? falha(error, MENSAGEM_PRESIDENTE_REPETIDO) : ok(data as string)
 }
 
 export async function atualizarContato(
@@ -137,14 +152,31 @@ export async function mudarIgreja(
   igrejaId: string,
   funcao: string,
   data: string,
+  pastorPresidente: boolean,
 ): Promise<Resultado<null>> {
   const { error } = await cliente().rpc('mudar_igreja', {
     p_pessoa_id: pessoaId,
     p_igreja_id: igrejaId,
     p_funcao: funcao,
     p_data: data || null,
+    p_pastor_presidente: pastorPresidente,
   })
   if (error?.code === '23514') return { dados: null, erro: 'A data da troca não pode ser anterior ao início na igreja atual.' }
+  return error ? falha(error, MENSAGEM_PRESIDENTE_REPETIDO) : ok(null)
+}
+
+/** Marca (ou desmarca) o pastor presidente na igreja atual. Dá ou tira o perfil "presidente de igreja". */
+export async function definirPastorPresidente(vinculoId: string, presidente: boolean): Promise<Resultado<null>> {
+  const { error } = await cliente()
+    .from('vinculos_igreja')
+    .update({ pastor_presidente: presidente })
+    .eq('id', vinculoId)
+  return error ? falha(error, MENSAGEM_PRESIDENTE_REPETIDO) : ok(null)
+}
+
+/** Jubilado é isento da contribuição (diretoria, 11/11/2026). */
+export async function definirJubilado(associadoId: string, jubilado: boolean): Promise<Resultado<null>> {
+  const { error } = await cliente().from('associados').update({ jubilado }).eq('id', associadoId)
   return error ? falha(error) : ok(null)
 }
 

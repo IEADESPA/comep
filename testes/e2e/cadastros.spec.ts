@@ -29,7 +29,7 @@ test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async 
   await expect(page.getByRole('status').filter({ hasText: 'Igreja cadastrada.' })).toBeVisible()
   await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
 
-  await page.getByLabel(/^Bairro/).fill('Centro')
+  await page.getByLabel(/^Bairro/).selectOption({ label: 'Bairro Fictício' })
   await page.getByRole('button', { name: 'Salvar alterações' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Alterações salvas.' })).toBeVisible()
 
@@ -56,7 +56,7 @@ test('cadastra um associado atual, registra a troca de igreja e arquiva o cadast
   await page.getByLabel(/^Telefone/).fill('(94) 90000-0000')
   await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor' })
   await page.getByLabel(/^Igreja \*/).selectOption({ label: IGREJA_A })
-  await page.getByLabel(/^Função na igreja/).fill('Pastor presidente')
+  await page.getByLabel(/^Função na igreja/).fill('Pastor de congregação')
   await page.getByRole('button', { name: 'Cadastrar associado' }).click()
 
   await expect(page.getByRole('status').filter({ hasText: 'Associado cadastrado.' })).toBeVisible()
@@ -111,7 +111,16 @@ test('a presidência concede e retira um perfil de acesso', async ({ page }) => 
 })
 
 test('nenhuma tela da diretoria fica mais larga que a tela', async ({ page }) => {
-  for (const caminho of ['painel', 'igrejas', 'igrejas/nova', 'ministros', 'ministros/novo', 'acessos', 'auditoria']) {
+  for (const caminho of [
+    'painel',
+    'igrejas',
+    'igrejas/nova',
+    'ministros',
+    'ministros/novo',
+    'acessos',
+    'auditoria',
+    'configuracoes',
+  ]) {
     await page.goto(caminho)
     await page.waitForLoadState('networkidle')
     const sobra = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)

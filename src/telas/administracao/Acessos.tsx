@@ -5,8 +5,11 @@ import { NOME_DO_PERFIL, PERFIS, type Perfil } from '../../dados/perfis'
 import { useCarregar } from '../../estado/useCarregar'
 import { contemTexto } from '../../utilitarios/formatos'
 
-// O perfil "ministro" acompanha o cadastro de associado (Ministros): não é concedido nem retirado aqui.
-const PERFIS_CONCEDIVEIS = PERFIS.filter((p) => p !== 'ministro')
+// Perfis automáticos, que acompanham o cadastro de associado (tela Ministros): não são concedidos nem retirados aqui.
+//   ministro          = associado ativo
+//   presidente_igreja = associado ativo marcado como pastor presidente da igreja
+const PERFIS_AUTOMATICOS: readonly Perfil[] = ['ministro', 'presidente_igreja']
+const PERFIS_CONCEDIVEIS = PERFIS.filter((p) => !PERFIS_AUTOMATICOS.includes(p))
 
 type Retorno = { sucesso?: string; erro?: string }
 
@@ -24,8 +27,9 @@ export function Acessos() {
     <>
       <h1>Perfis de acesso</h1>
       <p className="detalhe">
-        Só a presidência concede e retira perfis. O perfil <strong>Ministro</strong> vem automaticamente do cadastro de
-        associado. Retirar um perfil não apaga nada: fica registrado na auditoria.
+        Só a presidência concede e retira perfis. Os perfis <strong>Ministro</strong> e <strong>Presidente de igreja</strong>{' '}
+        vêm automaticamente do cadastro de associado (o presidente de igreja é o pastor presidente marcado na ficha). Retirar
+        um perfil não apaga nada: fica registrado na auditoria.
       </p>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
 
@@ -97,7 +101,7 @@ function LinhaPessoa({
         {pessoa.perfis_acesso.map((p) => (
           <li key={p.id}>
             {NOME_DO_PERFIL[p.perfil]}
-            {p.perfil !== 'ministro' && (
+            {!PERFIS_AUTOMATICOS.includes(p.perfil) && (
               <button
                 type="button"
                 className="chip-remover"

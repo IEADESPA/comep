@@ -37,8 +37,8 @@ describe('Fase 1.1 — cadastros', () => {
   async function cadastrarAssociado(quem: string, nome: string, igrejaId: string | null = igrejaA): Promise<string> {
     const r = await como(db, quem, () =>
       db.query<{ id: string }>(
-        `select public.cadastrar_associado($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) as id`,
-        [nome, null, '(94) 90000-0000', tituloPastor, '2010-03-15', igrejaId, 'Pastor presidente', '2015-01-01', null, null],
+        `select public.cadastrar_associado($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) as id`,
+        [nome, null, '(94) 90000-0000', tituloPastor, '2010-03-15', igrejaId, 'Pastor auxiliar', '2015-01-01', null, null, false, false],
       ),
     )
     return r.rows[0].id
@@ -240,7 +240,7 @@ describe('Fase 1.1 — cadastros', () => {
 
     it('troca de igreja encerra o vínculo anterior e abre o novo', async () => {
       await como(db, secretaria, () =>
-        db.query("select public.mudar_igreja($1, $2, 'Pastor auxiliar', '2026-01-10')", [pessoaCadastrada, igrejaB]),
+        db.query("select public.mudar_igreja($1, $2, 'Pastor auxiliar', '2026-01-10', false)", [pessoaCadastrada, igrejaB]),
       )
       const r = await db.query<{ igreja: string; fim: string | null }>(
         `select i.nome as igreja, v.fim::text as fim
@@ -257,7 +257,7 @@ describe('Fase 1.1 — cadastros', () => {
     it('não deixa trocar para a mesma igreja', async () => {
       await assert.rejects(
         como(db, secretaria, () =>
-          db.query("select public.mudar_igreja($1, $2, null, '2026-02-01')", [pessoaCadastrada, igrejaB]),
+          db.query("select public.mudar_igreja($1, $2, null, '2026-02-01', false)", [pessoaCadastrada, igrejaB]),
         ),
         erroComCodigo(BLOQUEADO_PELO_BANCO),
       )
@@ -274,7 +274,7 @@ describe('Fase 1.1 — cadastros', () => {
 
     it('ministro não registra troca de igreja', async () => {
       await assert.rejects(
-        como(db, ministro, () => db.query('select public.mudar_igreja($1, $2, null, null)', [pessoaCadastrada, igrejaA])),
+        como(db, ministro, () => db.query('select public.mudar_igreja($1, $2, null, null, false)', [pessoaCadastrada, igrejaA])),
         erroComCodigo(SEM_PERMISSAO),
       )
     })

@@ -5,6 +5,8 @@ import {
   arquivarAssociado,
   atualizarContato,
   buscarFicha,
+  definirJubilado,
+  definirPastorPresidente,
   mudarIgreja,
   NOME_DA_FORMA_ADMISSAO,
   NOME_DA_SITUACAO,
@@ -14,6 +16,12 @@ import {
 } from '../../dados/associados'
 import { listarIgrejas, listarTitulos, type Igreja, type Titulo } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
+import {
+  formatarReais,
+  listarValores,
+  NOME_DA_CATEGORIA,
+  type ValorContribuicao,
+} from '../../dados/configuracoes'
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
 
@@ -23,7 +31,7 @@ export function DetalheMinistro() {
   return <Ficha key={pessoaId} pessoaId={pessoaId ?? ''} />
 }
 
-type DadosTela = { ficha: FichaAssociado | null; titulos: Titulo[]; igrejas: Igreja[] }
+type DadosTela = { ficha: FichaAssociado | null; titulos: Titulo[]; igrejas: Igreja[]; valores: ValorContribuicao[] }
 
 type Retorno = { sucesso?: string; erro?: string }
 
@@ -33,11 +41,22 @@ function Ficha({ pessoaId }: { pessoaId: string }) {
     sucesso: (location.state as { mensagem?: string } | null)?.mensagem,
   })
   const [carga, recarregar] = useCarregar(async () => {
-    const [ficha, titulos, igrejas] = await Promise.all([buscarFicha(pessoaId), listarTitulos(), listarIgrejas()])
+    const [ficha, titulos, igrejas, valores] = await Promise.all([
+      buscarFicha(pessoaId),
+      listarTitulos(),
+      listarIgrejas(),
+      listarValores(),
+    ])
     if (ficha.erro !== null) return ficha
     if (titulos.erro !== null) return titulos
     if (igrejas.erro !== null) return igrejas
-    return ok<DadosTela>({ ficha: ficha.dados, titulos: titulos.dados, igrejas: igrejas.dados })
+    if (valores.erro !== null) return valores
+    return ok<DadosTela>({
+      ficha: ficha.dados,
+      titulos: titulos.dados,
+      igrejas: igrejas.dados,
+      valores: valores.dados.vigentes,
+    })
   })
 
   /** Depois de cada ação: mostra o resultado e, se deu certo, recarrega a ficha. */
@@ -53,13 +72,20 @@ function Ficha({ pessoaId }: { pessoaId: string }) {
         <Link to="/ministros">← Ministros</Link>
       </p>
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ ficha, titulos, igrejas }) =>
+        {({ ficha, titulos, igrejas, valores }) =>
           !ficha ? (
             <Aviso titulo="Associado não encontrado">
               <p>O cadastro pode ter sido arquivado.</p>
             </Aviso>
           ) : (
-            <Conteudo ficha={ficha} titulos={titulos} igrejas={igrejas} retorno={retorno} concluir={concluir} />
+            <Conteudo
+              ficha={ficha}
+              titulos={titulos}
+              igrejas={igrejas}
+              valores={valores}
+              retorno={retorno}
+              concluir={concluir}
+            />
           )
         }
       </MostrarCarga>
@@ -71,11 +97,12 @@ type PropsConteudo = {
   ficha: FichaAssociado
   titulos: Titulo[]
   igrejas: Igreja[]
+  valores: ValorContribuicao[]
   retorno: Retorno
   concluir: (r: { erro: string | null }, sucesso: string) => boolean
 }
 
-function Conteudo({ ficha, titulos, igrejas, retorno, concluir }: PropsConteudo) {
+function Conteudo({ ficha, titulos, igrejas, valores, retorno, concluir }: PropsConteudo) {
   const navigate = useNavigate()
   const { associado } = ficha
 
@@ -94,6 +121,8 @@ function Conteudo({ ficha, titulos, igrejas, retorno, concluir }: PropsConteudo)
       <p className="etiquetas">
         <span className="etiqueta etiqueta-marca">Nº de registro {associado.numero_registro}</span>
         <span className="etiqueta">{NOME_DA_SITUACAO[associado.situacao]}</span>
+        {associado.pastor_presidente && <span className="etiqueta">Pastor presidente</span>}
+        {associado.jubilado && <span className="etiqueta">Jubilado</span>}
         {!associado.tem_login && <span className="etiqueta etiqueta-neutra">Sem login</span>}
       </p>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
@@ -101,6 +130,7 @@ function Conteudo({ ficha, titulos, igrejas, retorno, concluir }: PropsConteudo)
       <Contato ficha={ficha} concluir={concluir} />
       <Titulos ficha={ficha} titulos={titulos} concluir={concluir} />
       <Igrejas ficha={ficha} igrejas={igrejas} concluir={concluir} />
+      <Contribuicao ficha={ficha} valores={valores} concluir={concluir} />
 
       <section className="painel" aria-labelledby="titulo-admissao">
         <h2 id="titulo-admissao">Admissão no COMEP</h2>
@@ -295,15 +325,25 @@ function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'ig
   const [igrejaId, setIgrejaId] = useState('')
   const [funcao, setFuncao] = useState('')
   const [data, setData] = useState(hojeIso())
+  const [presidente, setPresidente] = useState(false)
   const [enviando, setEnviando] = useState(false)
+
+  async function marcarPresidente(valor: boolean) {
+    if (!atual) return
+    setEnviando(true)
+    const r = await definirPastorPresidente(atual.id, valor)
+    setEnviando(false)
+    concluir(r, valor ? 'Marcado como pastor presidente desta igreja.' : 'Desmarcado como pastor presidente.')
+  }
 
   async function trocar() {
     setEnviando(true)
-    const r = await mudarIgreja(ficha.associado.pessoa_id, igrejaId, funcao, data)
+    const r = await mudarIgreja(ficha.associado.pessoa_id, igrejaId, funcao, data, presidente)
     setEnviando(false)
     if (concluir(r, 'Troca de igreja registrada.')) {
       setIgrejaId('')
       setFuncao('')
+      setPresidente(false)
     }
   }
 
@@ -318,11 +358,24 @@ function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'ig
               <strong>{atual.igreja?.nome}</strong>
             </Link>
             {atual.funcao && ` — ${atual.funcao}`}
+            {atual.pastor_presidente && <span className="etiqueta etiqueta-marca">Pastor presidente</span>}
           </>
         ) : (
           <strong>Sem igreja</strong>
         )}
       </p>
+      {atual && (
+        <p>
+          <button
+            type="button"
+            className="botao botao-secundario"
+            disabled={enviando}
+            onClick={() => void marcarPresidente(!atual.pastor_presidente)}
+          >
+            {atual.pastor_presidente ? 'Desmarcar pastor presidente' : 'Marcar como pastor presidente desta igreja'}
+          </button>
+        </p>
+      )}
       {ficha.vinculos.length > 1 && (
         <>
           <h3>Histórico</h3>
@@ -331,6 +384,7 @@ function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'ig
               <li key={v.id}>
                 {v.igreja?.nome}
                 {v.funcao && ` (${v.funcao})`}
+                {v.pastor_presidente && ' · pastor presidente'}
                 <span className="detalhe">
                   {' '}
                   {v.inicio ? formatarData(v.inicio) : '?'} a {v.fim ? formatarData(v.fim) : 'hoje'}
@@ -376,11 +430,55 @@ function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'ig
             A partir de
             <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
           </label>
+          <label className="caixa-marcar">
+            <input type="checkbox" checked={presidente} onChange={(e) => setPresidente(e.target.checked)} />
+            Pastor presidente da nova igreja
+          </label>
           <button type="submit" className="botao" disabled={enviando}>
             Registrar troca
           </button>
         </form>
       </details>
+    </section>
+  )
+}
+
+function Contribuicao({ ficha, valores, concluir }: Pick<PropsConteudo, 'ficha' | 'valores' | 'concluir'>) {
+  const { associado } = ficha
+  const [enviando, setEnviando] = useState(false)
+  const categoria = associado.categoria_contribuicao
+  const valor = (tipo: ValorContribuicao['tipo']) =>
+    valores.find((v) => v.categoria === categoria && v.tipo === tipo)
+
+  async function alternarJubilado() {
+    setEnviando(true)
+    const r = await definirJubilado(associado.id, !associado.jubilado)
+    setEnviando(false)
+    concluir(r, associado.jubilado ? 'Desmarcado como jubilado.' : 'Marcado como jubilado (isento da contribuição).')
+  }
+
+  const mensal = valor('mensal')
+  const anual = valor('anual')
+
+  return (
+    <section className="painel" aria-labelledby="titulo-contribuicao">
+      <h2 id="titulo-contribuicao">Contribuição</h2>
+      <p>
+        Categoria: <strong>{NOME_DA_CATEGORIA[categoria]}</strong>
+        {mensal && anual && (
+          <>
+            {' '}
+            — {formatarReais(mensal.valor)} por mês ou {formatarReais(anual.valor)} por ano
+          </>
+        )}
+      </p>
+      <p className="detalhe">
+        A categoria é automática: jubilado é isento; quem está marcado como pastor presidente da igreja atual paga como
+        presidente de igreja; os demais, como não presidente. Os valores ficam em Configurações.
+      </p>
+      <button type="button" className="botao botao-secundario" disabled={enviando} onClick={() => void alternarJubilado()}>
+        {associado.jubilado ? 'Desmarcar jubilado' : 'Marcar como jubilado'}
+      </button>
     </section>
   )
 }

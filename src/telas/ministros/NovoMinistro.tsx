@@ -57,12 +57,14 @@ function Formulario({ titulos, igrejas }: { titulos: Titulo[]; igrejas: Igreja[]
     vinculoInicio: '',
     admitidoEm: '',
     observacoes: '',
+    pastorPresidente: false,
+    jubilado: false,
   })
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const hoje = hojeIso()
 
-  const campo = (nome: keyof NovoAssociado) => ({
+  const campo = (nome: Exclude<keyof NovoAssociado, 'pastorPresidente' | 'jubilado'>) => ({
     value: dados[nome],
     onChange: (e: { target: { value: string } }) => setDados((d) => ({ ...d, [nome]: e.target.value })),
   })
@@ -146,6 +148,14 @@ function Formulario({ titulos, igrejas }: { titulos: Titulo[]; igrejas: Igreja[]
             Nesta igreja desde
             <input type="date" max={hoje} {...campo('vinculoInicio')} />
           </label>
+          <label className="caixa-marcar largura-total">
+            <input
+              type="checkbox"
+              checked={dados.pastorPresidente}
+              onChange={(e) => setDados((d) => ({ ...d, pastorPresidente: e.target.checked }))}
+            />
+            É o pastor presidente desta igreja (perfil e contribuição de presidente de igreja)
+          </label>
         </div>
       </fieldset>
 
@@ -155,6 +165,14 @@ function Formulario({ titulos, igrejas }: { titulos: Titulo[]; igrejas: Igreja[]
           <label>
             Associado desde
             <input type="date" max={hoje} {...campo('admitidoEm')} />
+          </label>
+          <label className="caixa-marcar">
+            <input
+              type="checkbox"
+              checked={dados.jubilado}
+              onChange={(e) => setDados((d) => ({ ...d, jubilado: e.target.checked }))}
+            />
+            Jubilado (isento da contribuição)
           </label>
           <label className="largura-total">
             Observações

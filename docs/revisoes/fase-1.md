@@ -82,7 +82,62 @@ O que as fotos revelaram está nos problemas 1 e 2.
 - **Tela da lista de títulos:** hoje só a equipe técnica muda a lista. A tela entra se a diretoria quiser mexer nela com frequência.
 - **Desligamento e falecimento:** ficam para a Fase 4, decididos em assembleia (Art. 8º). Até lá, a ficha só permite arquivar cadastro feito por engano.
 
-## Entrega 1.2 — Pedido de associação
+## Entrega 1.2 — parte 1: configurações e categorias
+
+**Resultado: aprovada no ambiente de teste em 11/11/2026.**
+
+O que entrou (pedidos de 11/11/2026):
+
+- **Tela de Configurações:**
+  - listas de denominações (tipos de igreja), bairros e títulos de ministro: incluir, renomear e arquivar;
+  - valores da contribuição com data de vigência, assembleia e histórico, já com os valores informados pela diretoria.
+- **Presidente de igreja = categoria de R$ 40** (previsão da decisão 12):
+  - o pastor presidente marcado na ficha recebe o perfil automaticamente;
+  - uma igreja só tem um pastor presidente por vez.
+- **Jubilado:** marcado na ficha, fica isento.
+- **Categoria de contribuição automática** na ficha do ministro, já com os valores.
+- **Duas colunas independentes no computador:** o menu e o conteúdo rolam cada um por conta própria. Ao trocar de tela, o conteúdo volta ao topo.
+
+### Trava 1
+
+| Pull request | Resultado | Data |
+|---|---|---|
+| Fase 1.2 parte 1 — configurações | ver o pull request | 11/11/2026 |
+
+### Trava 2
+
+- [x] Migração `20261111185320_configuracoes.sql` aplicada só no `comep-teste`. Os bairros digitados antes viraram itens da lista.
+- [x] Verificador do Supabase sem alertas novos. Só sobram:
+  - a proteção contra senhas vazadas, que é do plano pago;
+  - índices ainda sem uso.
+- [x] **70 testes automáticos** passando:
+  - 64 do banco, dos quais 19 são novos: perfis e categorias automáticos, um presidente por igreja, valores e permissões;
+  - 6 das validações das telas.
+
+### Trava 3
+
+Testes de ponta a ponta: **37 passando**, com 1 pulado de propósito (a rolagem das colunas só existe no computador).
+
+| O que é testado | Resultado |
+|---|---|
+| Presidência adiciona, renomeia e arquiva um bairro; nome repetido é recusado | ✅ |
+| Valores em vigor aparecem (R$ 40/400, R$ 20/200, jubilado isento); lançar valor futuro não muda o vigente; arquivar | ✅ |
+| Cadastro de pastor presidente → categoria presidente de igreja; desmarcar → não presidente; jubilado → isento | ✅ |
+| No computador, rolar o conteúdo não move o menu nem o botão "Sair" | ✅ |
+| Igreja agora com bairro escolhido da lista | ✅ |
+| Todos os testes anteriores | ✅ |
+
+Conferência visual (1280 px e 390 px): Configurações, ficha do ministro com a contribuição e auditoria rolada no computador, com o menu parado.
+
+### Problemas encontrados
+
+| # | Gravidade | Descrição | Correção | Testado de novo |
+|---|---|---|---|---|
+| 4 | Importante | Cadastro arquivado continuava ocupando a vaga de pastor presidente da igreja, e ninguém mais podia ser marcado | Ao arquivar (ou quando o associado deixar de estar ativo), a marcação de pastor presidente é retirada. Corrigido antes de a migração chegar ao banco de teste | ✅ teste do banco |
+| 5 | Menor | "Pastor presidente" também era sugestão do campo de texto "função", o que confundia com a marcação nova (o ministro aparecia com a função "Pastor presidente" e a categoria "não presidente") | Sugestão retirada; quem decide é a marcação própria. O ministro fictício foi ajustado | ✅ |
+| 6 | Menor | Na auditoria, os valores da contribuição apareciam como "registro c0f868a1" | A auditoria mostra categoria, tipo e valor | ✅ |
+
+## Entrega 1.2 — parte 2: pedido de associação
 
 _A preencher._
 
