@@ -26,3 +26,6 @@ npm-debug.log*
 .DS_Store
 *.suo
 *.sw?
+
+# Permissões locais do Claude Code (só deste computador)
+.claude/settings.local.json
