@@ -1,0 +1,6 @@
+# Mantém finais de linha LF no repositório (scripts e workflows rodam em Linux no GitHub Actions)
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.jpg binary
+*.pdf binary
