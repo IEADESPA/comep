@@ -170,7 +170,7 @@ O que entrou:
 
 | Pull request | Resultado | Data |
 |---|---|---|
-| Fase 1.2 parte 2 — pedido de associação | ver o pull request | 11/11/2026 |
+| #9 — Fase 1.2 parte 2, pedido de associação | verde (lint, testes, build e ponta a ponta no GitHub e no site publicado) | 11/11/2026 |
 
 ### Trava 2
 
@@ -223,7 +223,61 @@ Ajuste no processo de teste:
 
 ## Entrega 1.3 — Portal do ministro
 
-_A preencher._
+**Resultado: aprovada no ambiente de teste em 12/11/2026.**
+
+O que entrou:
+
+- **Meu perfil**, para quem tem login:
+  - ver e corrigir nome e telefone (LGPD);
+  - trocar a foto, que é reduzida no celular e fica na própria pasta;
+  - trocar a senha, sem e-mail.
+
+  Quem é associado também vê o nº de registro, a situação, a admissão, a categoria e o valor da contribuição, o título e a igreja, com histórico.
+- **Pedido de troca de igreja** feito pelo próprio ministro:
+  - a igreja pode ser da lista ou não cadastrada;
+  - o ministro informa a função e se será o pastor presidente;
+  - a secretaria ou a presidência aprova ou recusa, com motivo, na tela de Ministros. Se a igreja não for cadastrada, escolhe a igreja certa ao aprovar;
+  - ao aprovar, o vínculo atual é encerrado e o novo é aberto, numa operação só;
+  - o ministro pode cancelar enquanto o pedido estiver pendente.
+- **Minha igreja**, o painel do pastor presidente (decisão 12, previsão):
+  - os ministros da igreja, com nome, telefone, nº, título e função. Ele **não** vê o cadastro completo dessas pessoas;
+  - ele atualiza endereço, bairro e telefone da igreja. O banco recusa mudança de nome, CNPJ, denominação ou arquivamento.
+
+### Trava 1
+
+| Pull request | Resultado | Data |
+|---|---|---|
+| Fase 1.3 — portal do ministro | ver o pull request | 12/11/2026 |
+
+### Trava 2
+
+- [x] Migrações `20261112121343_portal_ministro.sql` e `20261112121722_portal_ministro_ajustes.sql` aplicadas só no `comep-teste`
+- [x] Verificador do Supabase: depois do ajuste, só os dois avisos esperados (tabela interna dos códigos e senhas vazadas do plano pago)
+- [x] **120 testes automáticos** passando:
+  - 114 do banco, dos quais 19 são novos: foto só da própria pasta, presidente de igreja (vê só os seus, muda só o contato) e troca de igreja;
+  - 6 das validações das telas.
+
+### Trava 3
+
+Testes de ponta a ponta: **50 passando**, mais 1 pulado de propósito.
+
+| O que é testado | Resultado |
+|---|---|
+| O ministro vê nº de registro, categoria (R$ 20/R$ 200) e igreja; corrige o telefone; troca a foto | ✅ |
+| O ministro pede troca para a Igreja B e troca a própria senha | ✅ |
+| A presidência vê o pedido na tela de Ministros e aprova | ✅ |
+| O ministro entra com a senha nova e vê a igreja nova, com a antiga no histórico | ✅ |
+| O pastor presidente ganha o perfil, vê "Minha igreja" com os ministros dela (inclusive o telefone) e atualiza o contato da igreja | ✅ |
+| O ministro comum não vê nem abre "Minha igreja" | ✅ |
+
+Conferência visual (1280 px e 390 px): "Meu perfil" com o pedido de troca aberto, sem sobra lateral.
+
+### Problemas encontrados
+
+| # | Gravidade | Descrição | Correção | Testado de novo |
+|---|---|---|---|---|
+| 10 | Importante | Ao salvar os dados em "Meu perfil", a tela inteira voltava a "Carregando…" e a mensagem de "salvo" sumia, porque recarregar o cadastro da sessão apagava o cadastro antes da resposta | O cadastro é recarregado mantendo a tela aberta | ✅ |
+| 11 | Menor | O verificador do Supabase apontou duas regras de alteração separadas na tabela de igrejas (secretaria e pastor presidente) | Unidas numa regra só, numa migração de ajuste | ✅ |
 
 ## Trava 4 — Aceite e lançamento da versão 1.0
 

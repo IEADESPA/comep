@@ -33,8 +33,9 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
     }
   }, [usuarioId, versao])
 
+  // Busca o cadastro de novo SEM apagar o atual: a tela continua aberta até chegar a resposta
+  // (senão a tela inteira voltaria a "Carregando…" e perderia, por exemplo, a mensagem de "salvo").
   const recarregarConta = useCallback(() => {
-    setConta(null)
     setVersao((v) => v + 1)
   }, [])
 

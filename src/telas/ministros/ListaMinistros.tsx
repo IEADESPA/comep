@@ -4,6 +4,7 @@ import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { listarAssociados, NOME_DA_SITUACAO } from '../../dados/associados'
 import { useCarregar } from '../../estado/useCarregar'
 import { contemTexto } from '../../utilitarios/formatos'
+import { TrocasPendentes } from './TrocasPendentes'
 
 export function ListaMinistros() {
   const location = useLocation()
@@ -20,6 +21,7 @@ export function ListaMinistros() {
         </Link>
       </div>
       <Mensagem sucesso={mensagem} />
+      <TrocasPendentes />
 
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(associados) => {
