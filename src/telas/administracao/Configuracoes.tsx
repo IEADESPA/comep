@@ -22,6 +22,7 @@ import {
 } from '../../dados/configuracoes'
 import type { Perfil } from '../../dados/perfis'
 import { buscarDadosComep, CAMPOS_DADOS_COMEP, salvarDadosComep, type DadosComep } from '../../dados/site'
+import { buscarConfigFinanceiro, salvarConfigFinanceiro } from '../../dados/financeiro'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { cnpjValido, formatarCnpj, formatarData, hojeIso, limparCnpj } from '../../utilitarios/formatos'
@@ -52,6 +53,7 @@ export function Configuracoes() {
         <a href="#bairros">Bairros</a>
         <a href="#titulos">Títulos de ministro</a>
         <a href="#valores">Valores da contribuição</a>
+        <a href="#vencimentos">Vencimentos</a>
       </nav>
 
       <DadosDoSite podeEditar={editaListas} />
@@ -79,6 +81,7 @@ export function Configuracoes() {
         podeEditar={editaListas}
       />
       <Valores podeEditar={editaValores} />
+      <Vencimentos podeEditar={editaValores} />
     </>
   )
 }
@@ -530,5 +533,54 @@ function FormDadosDoSite({ inicial, podeEditar }: { inicial: DadosComep; podeEdi
         </div>
       )}
     </form>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Vencimentos das contribuições (decisão 18 — padrões provisórios)
+// ---------------------------------------------------------------------
+
+function Vencimentos({ podeEditar }: { podeEditar: boolean }) {
+  const [carga, recarregar] = useCarregar(buscarConfigFinanceiro)
+  const [retorno, setRetorno] = useState<Retorno>({})
+  return (
+    <section className="painel" id="vencimentos" aria-labelledby="titulo-vencimentos">
+      <h2 id="titulo-vencimentos">Vencimentos</h2>
+      <p className="detalhe">
+        Valem para as cobranças geradas daqui em diante. Padrão provisório até a diretoria decidir (pergunta 18): mensalidade
+        no dia 10 e anuidade em 30 de abril.
+      </p>
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {(config) => (
+          <form
+            className="form-linha"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              const dados = new FormData(e.currentTarget)
+              const r = await salvarConfigFinanceiro({
+                dia_vencimento_mensal: Number(dados.get('mensal')),
+                dia_vencimento_anual: Number(dados.get('anual')),
+              })
+              setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Vencimentos salvos.' })
+            }}
+          >
+            <label className="campo-curto">
+              Dia do mês (mensalidade)
+              <input name="mensal" type="number" min={1} max={28} required defaultValue={config.dia_vencimento_mensal} disabled={!podeEditar} />
+            </label>
+            <label className="campo-curto">
+              Dia de abril (anuidade)
+              <input name="anual" type="number" min={1} max={30} required defaultValue={config.dia_vencimento_anual} disabled={!podeEditar} />
+            </label>
+            {podeEditar && (
+              <button type="submit" className="botao">
+                Salvar vencimentos
+              </button>
+            )}
+          </form>
+        )}
+      </MostrarCarga>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+    </section>
   )
 }

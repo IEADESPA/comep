@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.11 — 12 de novembro de 2026 — atualizado com o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.12 — 12 de novembro de 2026 — atualizado com a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -248,9 +248,10 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - `codigos_acesso` — códigos de primeiro acesso e de nova senha (o código em si fica só como resumo, numa tabela interna) ✅ criada
 - `desligamentos` — motivo (Art. 8º), assembleia e resultado da votação
 - Arquivos (fotos e comprovantes): Storage, bucket privado `documentos`, uma pasta por pessoa; ninguém sobrescreve nem apaga ✅ criado
-- `configuracoes_contribuicao` — valores e periodicidade, com data de vigência e assembleia que aprovou
-- `contribuicoes` — cobranças de cada associado (inscrição e periódicas: valor, vencimento, situação)
-- `pagamentos_informados` — comprovantes enviados e conferência da tesouraria
+- `valores_contribuicao` (seção acima) e `config_financeiro` — valores com vigência e dias de vencimento ✅ criadas
+- `planos_contribuicao` — mensal ou anual, por associado e exercício ✅ criada
+- `cobrancas` — mensalidades e anuidades de cada associado (valor, vencimento, situação, pagamento) ✅ criada
+- `informes_pagamento` — pagamentos informados com comprovante e conferência da tesouraria ✅ criada
 - `contas` — caixa, banco
 - `lancamentos` — entradas e saídas (categoria do Art. 17, conta, projeto, comprovante, autorização do presidente)
 - `balancos` — balanço anual: situação, análise da diretoria, parecer do Conselho Fiscal, assembleia que aprovou
@@ -385,12 +386,26 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
   - cadastrar o presidente do COMEP e dar a ele o perfil Presidência (a composição completa da diretoria entra depois — decisão 10);
   - site oficial ligado ao banco de produção e dados reais liberados.
 
-### Fase 2 — Financeiro (versão 2.0)
+### Fase 2 — Financeiro (versão 2.0-teste)
 
-- [ ] Contribuição mensal ou anual por categoria (presidente de igreja, não presidente, jubilado isento), no exercício de abril a março, com valores aprovados em assembleia; taxa de inscrição (pergunta 17)
-- [ ] Informar pagamento com comprovante; conferência pela tesouraria
-- [ ] Em dia / em atraso (define o direito a voto — Art. 11); lista de inadimplentes
-- [ ] Contas e lançamentos com as categorias do Art. 17; despesas autorizadas pelo presidente
+Revisão: `docs/revisoes/fase-2.md`.
+
+**2.1 — Contribuições** (versão 2.0-teste.1) — concluída em 12/11/2026
+
+- [x] Cobranças do exercício (abril a março) por categoria: mensal ou anual (escolha do associado), jubilado isento, admissão no meio do exercício
+- [x] Informar pagamento com comprovante; conferência pela tesouraria (confirmar ou recusar com motivo); pagamento recebido em mãos
+- [x] Em dia / em atraso (define o direito a voto — Art. 11); lista de inadimplentes; situação na ficha e no painel do presidente de igreja
+- [x] Vencimentos configuráveis — padrões provisórios: dia 10 e 30 de abril (pergunta 18)
+- [ ] Taxa de inscrição — quando a diretoria informar o valor (pergunta 17)
+
+**2.2 — Caixa** (versão 2.0-teste.2)
+
+- [ ] Contas (caixa, banco) e lançamentos com as categorias do Art. 17
+- [ ] Despesas autorizadas pelo presidente (Art. 12, §2º, VI)
+- [ ] Pagamento confirmado vira entrada no caixa automaticamente
+
+**2.3 — Prestação de contas** (versão 2.0-teste.3)
+
 - [ ] Balanço anual com análise da diretoria e parecer do Conselho Fiscal; orçamento e plano anual
 - [ ] Relatórios e prestação de contas (PDF/CSV)
 

@@ -26,8 +26,8 @@ test.describe('presidência', () => {
     await expect(page.getByRole('link', { name: 'Cadastrar associado' })).toBeVisible()
 
     // Telas das próximas fases avisam que estão em construção
-    await (await abrirMenu(page)).getByRole('link', { name: 'Financeiro', exact: true }).click()
-    await expect(page.getByText('Em construção — prevista para a Fase 2')).toBeVisible()
+    await (await abrirMenu(page)).getByRole('link', { name: 'Assembleias', exact: true }).click()
+    await expect(page.getByText('Em construção — prevista para a Fase 4')).toBeVisible()
 
     await page.getByRole('button', { name: 'Sair' }).click()
     await expect(page).toHaveURL(/\/entrar$/)
@@ -61,6 +61,7 @@ test.describe('ministro', () => {
       'inscricoes',
       'configuracoes',
       'minha-igreja',
+      'financeiro',
     ]) {
       await page.goto(area)
       await expect(page.getByRole('heading', { name: 'Sem acesso' }), area).toBeVisible()
