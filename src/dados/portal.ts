@@ -30,11 +30,16 @@ export async function trocarMinhaFoto(pessoaId: string, foto: Blob, extensao: st
   return error ? falha(error) : ok(envio.dados)
 }
 
-/** Troca a senha de quem está logado (não precisa de e-mail). */
-export async function trocarMinhaSenha(novaSenha: string): Promise<Resultado<null>> {
+/**
+ * Troca a senha de quem está logado. Pede a senha atual (confere entrando de novo), para que
+ * alguém com o aparelho destravado na mão não troque a senha da pessoa.
+ */
+export async function trocarMinhaSenha(email: string, senhaAtual: string, novaSenha: string): Promise<Resultado<null>> {
   if (!senhaForte(novaSenha)) {
     return { dados: null, erro: 'A senha precisa ter pelo menos 8 caracteres, com letras e números.' }
   }
+  const conferencia = await cliente().auth.signInWithPassword({ email, password: senhaAtual })
+  if (conferencia.error) return { dados: null, erro: 'A senha atual não confere.' }
   const { error } = await cliente().auth.updateUser({ password: novaSenha })
   if (!error) return ok(null)
   if (error.code === 'same_password') return { dados: null, erro: 'A senha nova precisa ser diferente da atual.' }

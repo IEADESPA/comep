@@ -40,13 +40,23 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Informações PÚBLICAS do projeto Supabase (variáveis do repositório, não segredos).
-          # Até a liberação oficial apontam para o comep-teste, com AMBIENTE=teste (faixa amarela no site).
+          # Site OFICIAL (/comep/): informações PÚBLICAS do projeto Supabase (variáveis do repositório, não segredos).
+          # Até o lançamento da versão 1.0 apontam para o comep-teste, com AMBIENTE=teste (faixa amarela no site);
+          # no lançamento passam para o comep-producao, com AMBIENTE vazio (docs/lancamento.md).
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
           VITE_AMBIENTE: ${{ vars.AMBIENTE }}
 
+      - name: Build do ambiente de teste (/comep/teste/, sempre no banco de teste)
+        run: npx vite build --outDir dist/teste
+        env:
+          VITE_BASE: /comep/teste/
+          VITE_SUPABASE_URL: ${{ vars.TESTE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.TESTE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_AMBIENTE: teste
+
       - name: "Links diretos (ex.: validação da carteirinha) abrem o app no GitHub Pages"
+        # O 404.html é o app oficial; links do ambiente de teste são redirecionados por ele (index.html)
         run: cp dist/index.html dist/404.html
 
       - name: Guardar o site para publicação

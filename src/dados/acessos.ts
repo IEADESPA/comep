@@ -9,15 +9,19 @@ export type PessoaComPerfis = {
   nome: string
   email: string | null
   usuario_id: string | null
+  criado_em: string
   perfis_acesso: PerfilConcedido[]
+  /** Cadastro de associado ativo (conferido). Sem ele, é só um login criado pelo site. */
+  associados: { numero_registro: number; situacao: string }[]
 }
 
 export async function listarPessoasComPerfis(): Promise<Resultado<PessoaComPerfis[]>> {
   const { data, error } = await cliente()
     .from('pessoas')
-    .select('id, nome, email, usuario_id, perfis_acesso(id, perfil)')
+    .select('id, nome, email, usuario_id, criado_em, perfis_acesso(id, perfil), associados(numero_registro, situacao)')
     .is('arquivado_em', null)
     .is('perfis_acesso.arquivado_em', null)
+    .is('associados.arquivado_em', null)
     .order('nome')
     .returns<PessoaComPerfis[]>()
   return error ? falha(error) : ok(data)

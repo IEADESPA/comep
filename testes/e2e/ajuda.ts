@@ -24,7 +24,7 @@ export async function preencherLogin(page: Page, email: string, senha: string) {
 
 export async function entrar(page: Page, usuario: Usuario) {
   await preencherLogin(page, usuario.email, senhaDe(usuario))
-  await expect(page).toHaveURL(/\/comep\/painel$/)
+  await expect(page).toHaveURL(/\/painel$/)
 }
 
 /** No celular o menu fica atrás do botão "Menu"; no computador ele já aparece. */
@@ -125,7 +125,7 @@ export async function criarAssociadoComLogin(
   await page.getByLabel('Crie uma senha').fill(dados.senha)
   await page.getByLabel('Repita a senha').fill(dados.senha)
   await page.getByRole('button', { name: 'Criar meu acesso' }).click()
-  await expect(page).toHaveURL(/\/comep\/painel$/)
+  await expect(page).toHaveURL(/\/painel$/)
   return guardarSessao(page)
 }
 
@@ -138,5 +138,5 @@ export async function arquivarAssociadoDeTeste(page: Page, nome: string): Promis
   await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
   await page.getByText('Arquivar cadastro', { exact: true }).last().click()
   await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/comep\/ministros$/)
+  await expect(page).toHaveURL(/\/ministros$/)
 }

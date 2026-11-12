@@ -378,6 +378,10 @@ describe('Fase 1.1 — cadastros', () => {
 
     it('com outra pessoa na Presidência, a retirada é permitida', async () => {
       const pessoaSecretaria = await pessoaDe(secretaria)
+      // Perfis da diretoria só para associados ativos
+      await db.query("insert into public.associados (pessoa_id, forma_admissao) values ($1, 'cadastro_inicial')", [
+        pessoaSecretaria,
+      ])
       await como(db, presidente, () =>
         db.query("insert into public.perfis_acesso (pessoa_id, perfil) values ($1, 'presidencia')", [
           pessoaSecretaria,

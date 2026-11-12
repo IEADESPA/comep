@@ -12,7 +12,8 @@ if (existsSync('.env.e2e.local')) {
   }
 }
 
-// E2E_URL permite testar o site publicado (ex.: https://ieadespa.github.io/comep/).
+// E2E_URL permite testar o site publicado: o oficial (https://ieadespa.github.io/comep/, antes do lançamento)
+// ou o ambiente de teste (https://ieadespa.github.io/comep/teste/). Os testes valem nos dois endereços.
 // Sem ela, os testes sobem o build local em http://localhost:4173/comep/.
 const urlExterna = process.env.E2E_URL
 // Navegador: Edge no Windows, Chrome no GitHub; "chromium" usa o navegador do próprio Playwright.

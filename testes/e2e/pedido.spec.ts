@@ -30,7 +30,7 @@ async function abrirFichaDoMinistro(page: Page, nome: string) {
 async function arquivarCadastroAberto(page: Page) {
   await page.getByText('Arquivar cadastro', { exact: true }).last().click()
   await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/comep\/ministros$/)
+  await expect(page).toHaveURL(/\/ministros$/)
 }
 
 test('associado antigo: primeiro acesso com código e, depois, senha esquecida com outro código', async ({ page }, info) => {
@@ -66,7 +66,7 @@ test('associado antigo: primeiro acesso com código e, depois, senha esquecida c
   await page.getByLabel('Crie uma senha').fill('SenhaE2e123')
   await page.getByLabel('Repita a senha').fill('SenhaE2e123')
   await page.getByRole('button', { name: 'Criar meu acesso' }).click()
-  await expect(page).toHaveURL(/\/comep\/painel$/)
+  await expect(page).toHaveURL(/\/painel$/)
   await expect(page.getByRole('heading', { name: 'Olá, Acesso!' })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Seus perfis' })).toContainText('Ministro')
 
@@ -86,7 +86,7 @@ test('associado antigo: primeiro acesso com código e, depois, senha esquecida c
   await page.getByLabel(/^Nova senha/).fill('OutraSenha456')
   await page.getByLabel('Repita a senha').fill('OutraSenha456')
   await page.getByRole('button', { name: 'Trocar a senha e entrar' }).click()
-  await expect(page).toHaveURL(/\/comep\/painel$/)
+  await expect(page).toHaveURL(/\/painel$/)
   await expect(page.getByRole('heading', { name: 'Olá, Acesso!' })).toBeVisible()
 
   // Limpeza: arquiva o cadastro de teste
@@ -112,7 +112,7 @@ test('pedido de associação: envia, recebe pendência, corrige, a diretoria enc
   await page.getByLabel('Crie uma senha').fill('SenhaE2e123')
   await page.getByLabel('Repita a senha').fill('SenhaE2e123')
   await page.getByRole('button', { name: 'Criar acesso e continuar' }).click()
-  await expect(page).toHaveURL(/\/comep\/meu-pedido$/)
+  await expect(page).toHaveURL(/\/meu-pedido$/)
 
   // 2. Preenche e envia o pedido, com foto e comprovante
   await page.getByLabel(/^Telefone/).fill('(94) 91111-1111')

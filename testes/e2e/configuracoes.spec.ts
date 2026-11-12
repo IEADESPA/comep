@@ -103,11 +103,11 @@ test('pastor presidente paga como presidente de igreja; jubilado é isento', asy
   // Limpeza: arquiva o associado e a igreja de teste
   await page.getByText('Arquivar cadastro', { exact: true }).last().click()
   await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/comep\/ministros$/)
+  await expect(page).toHaveURL(/\/ministros$/)
   await page.goto(enderecoIgreja)
   await page.getByText('Arquivar igreja', { exact: true }).last().click()
   await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/comep\/igrejas$/)
+  await expect(page).toHaveURL(/\/igrejas$/)
 })
 
 test('no computador, o menu não rola junto com o conteúdo', async ({ page }, info) => {

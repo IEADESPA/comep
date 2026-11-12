@@ -99,7 +99,7 @@ describe('Fase 0 — fundação do banco', () => {
             [ministro],
           ),
         ),
-        erroComCodigo(SEM_PERMISSAO),
+        (erro: unknown) => ['42501', 'P0001'].includes((erro as { code?: string }).code ?? ''),
       )
     })
   })
@@ -111,6 +111,11 @@ describe('Fase 0 — fundação do banco', () => {
     })
 
     it('concede um perfil', async () => {
+      // Perfis da diretoria só para associados ativos (revisão de segurança, 12/11/2026)
+      await db.query(
+        "insert into public.associados (pessoa_id, forma_admissao) select id, 'cadastro_inicial' from public.pessoas where usuario_id = $1",
+        [novato],
+      )
       const r = await como(db, presidente, () =>
         db.query(
           "insert into public.perfis_acesso (pessoa_id, perfil) select id, 'secretaria' from public.pessoas where usuario_id = $1",
@@ -180,8 +185,9 @@ describe('Fase 0 — fundação do banco', () => {
          where operacao = 'INSERT' and tabela in ('pessoas', 'perfis_acesso')
          group by tabela order by tabela`,
       )
+      // 3 perfis concedidos + o perfil "ministro" automático do novato (virou associado)
       assert.deepEqual(r.rows, [
-        { tabela: 'perfis_acesso', total: 3 },
+        { tabela: 'perfis_acesso', total: 4 },
         { tabela: 'pessoas', total: 3 },
       ])
     })

@@ -5,6 +5,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 // Caminho onde o app é publicado. No GitHub Pages da IEADESPA: https://ieadespa.github.io/comep/
 // Numa migração futura (domínio próprio do Conselho), basta definir VITE_BASE=/ no build.
 const base = process.env.VITE_BASE ?? '/comep/'
+// O ambiente de teste é publicado junto, em /comep/teste/, ligado ao banco de teste (PROJETO.md, seção 14.3)
+const ehTeste = process.env.VITE_AMBIENTE === 'teste'
 
 export default defineConfig({
   base,
@@ -14,8 +16,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       pwaAssets: { config: true, overrideManifestIcons: true },
       manifest: {
-        name: 'COMEP — Sistema de Gestão',
-        short_name: 'COMEP',
+        name: ehTeste ? 'COMEP — Sistema de Gestão (teste)' : 'COMEP — Sistema de Gestão',
+        short_name: ehTeste ? 'COMEP teste' : 'COMEP',
         description: 'Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas',
         lang: 'pt-BR',
         theme_color: '#b91c1c',
@@ -29,6 +31,8 @@ export default defineConfig({
         // Guarda só os arquivos do app (telas, estilos, ícones) para abrir com internet ruim.
         // Respostas do banco (dados pessoais) NÃO são guardadas no aparelho.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        // O app instalado do site oficial não responde pelos endereços do ambiente de teste
+        navigateFallbackDenylist: [new RegExp(`^${base}teste/`)],
       },
     }),
   ],

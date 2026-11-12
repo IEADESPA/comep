@@ -21,7 +21,7 @@ test('o ambiente de teste mostra a faixa de aviso', async ({ page }) => {
 test('"Quero me associar" explica requisitos e o passo a passo', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('link', { name: 'Quero me associar' }).click()
-  await expect(page).toHaveURL(/\/comep\/associar$/)
+  await expect(page).toHaveURL(/\/associar$/)
   await expect(page.getByRole('heading', { name: 'Requisitos' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Como funciona' })).toBeVisible()
   await expect(page.getByText('Assembleia Ordinária (abril ou outubro)')).toBeVisible()
@@ -29,7 +29,7 @@ test('"Quero me associar" explica requisitos e o passo a passo', async ({ page }
 
 test('portal do membro sem login leva para a tela de entrar', async ({ page }) => {
   await page.goto('painel')
-  await expect(page).toHaveURL(/\/comep\/entrar$/)
+  await expect(page).toHaveURL(/\/entrar$/)
   await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible()
 })
 

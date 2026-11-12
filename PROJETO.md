@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.9 — 12 de novembro de 2026 — atualizado com as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.10 — 12 de novembro de 2026 — atualizado com a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -276,7 +276,7 @@ Segurança por **RLS (Row Level Security)**: as regras de "quem vê o quê" fica
    - todo domingo, às 3h, o GitHub Actions exporta os dois bancos, **criptografa** e salva no repositório privado `comep-backups`;
    - o primeiro backup foi conferido: abre com a chave e não abre sem ela, e os dados batem com o banco;
    - a chave que abre os backups fica **fora do repositório**, num arquivo guardado pela IEADESPA, e também como segredo do GitHub, só para testes de restauração;
-   - os arquivos de fotos e comprovantes (Storage) existem desde a entrega 1.2 e entram no backup antes do lançamento da versão 1.0 (entrega 1.4);
+   - os arquivos de fotos e comprovantes (Storage) entram no mesmo arquivo criptografado desde 12/11/2026 (testado: 100 arquivos do teste, com a impressão digital de cada um);
    - o passo a passo de restauração está no README do `comep-backups`.
 5. **Aviso anti-pausa** — funcionando desde 11/11/2026: a cada 3 dias uma consulta simples mantém os dois bancos ativos.
 6. **Teste de restauração** a cada 3 meses (restaurar o backup num projeto de teste e conferir).
@@ -363,13 +363,16 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 - [x] Pedido de troca de igreja pelo próprio ministro, aprovado ou recusado pela secretaria/presidência na tela de Ministros
 - [x] Painel do presidente de igreja ("Minha igreja"): os ministros da sua igreja (só nome, telefone, nº, título e função) e o contato da igreja (endereço, bairro, telefone) — decisão 12, previsão: mantido
 
-**1.4 — Lançamento** (versão 1.0)
+**1.4 — Lançamento** (versão 1.0) — roteiro em `docs/lancamento.md`
 
-- [ ] Revisão completa da Fase 1 e aceite da presidência (trava 4)
+- [x] Revisão geral da Fase 1 (trava): revisão de segurança independente, conferência do banco e da API, dependências e testes; 10 correções aplicadas (12/11/2026)
+- [x] Ambiente de teste no endereço próprio: `ieadespa.github.io/comep/teste/` (12/11/2026)
+- [ ] Aceite da presidência às regras do estatuto (trava 4)
 - [ ] Cadastrar o presidente do COMEP e dar a ele o perfil Presidência (a composição completa da diretoria entra depois — decisão 10)
 - [ ] Termo da seção 8 assinado
-- [ ] Backup também das fotos e comprovantes (Storage), antes de entrar dado real
-- [ ] Configuração de login da produção (`docs/configuracao-login.md`)
+- [x] Backup também das fotos e comprovantes (Storage), testado em 12/11/2026
+- [x] Produção preparada sem dados: estrutura do banco e configuração de login (`docs/configuracao-login.md`)
+- [ ] Verificação em duas etapas nas duas contas donas do GitHub
 - [ ] Site oficial ligado ao banco de produção, ambiente de teste em endereço próprio, dados reais liberados
 
 ### Fase 2 — Financeiro (versão 2.0)
@@ -420,6 +423,7 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 | **Pausa por inatividade** | Projeto gratuito pausa após 7 dias sem acesso ao banco (os dados **não** são apagados) | GitHub Actions acessa o banco a cada 3 dias |
 | **Sem backup automático no plano Free** | O Supabase não guarda cópias para nós | Backup semanal próprio, criptografado, no GitHub |
 | **Sem envio de e-mail** | O Supabase gratuito só manda poucos e-mails por hora, e só para a equipe; não haverá serviço de e-mail | Confirmação por e-mail desligada; acesso só depois da aprovação em assembleia; primeiro acesso e senha esquecida com **código** gerado pela secretaria e enviado pelo WhatsApp |
+| **Cadastro aberto sem confirmação de e-mail** | Qualquer pessoa cria login com o nome e o e-mail que quiser | Login sozinho não dá acesso a nada; perfis da diretoria só para associados ativos (conferidos); a tela de perfis mostra quem não é associado; limite de 30 cadastros a cada 5 minutos por endereço |
 | **Proteção contra senhas vazadas** | O Supabase só confere senhas vazadas (HaveIBeenPwned) no plano pago | Senha com no mínimo 8 caracteres, com letras e números |
 | **Código das telas é visível** | Mesmo com repositório privado, o navegador baixa o código das telas | Nenhum segredo ou dado no repositório; segurança garantida pelo banco (RLS) |
 | **Limites de espaço** | 500 MB de banco, 1 GB de arquivos, 5 GB de tráfego/mês | Comprimir fotos (~100 KB); PDFs pequenos; acompanhar o painel de uso |
@@ -634,5 +638,6 @@ Criar não basta: cada fase precisa ser **testada, corrigida e aprovada no ambie
   - correções depois disso: `N.1`, `N.2`…
 - **Ambientes:**
   - **hoje** só existe o de teste: o site `ieadespa.github.io/comep/` está ligado ao `comep-teste` e mostra a faixa amarela;
-  - **no lançamento da versão 1.0**, o site oficial passa a usar o `comep-producao`, e o ambiente de teste ganha um endereço próprio, com a faixa.
+  - **desde 12/11/2026** o ambiente de teste tem endereço próprio, `ieadespa.github.io/comep/teste/`, sempre no `comep-teste` e com a faixa; os dois saem da mesma publicação;
+  - **no lançamento da versão 1.0**, o site oficial (`/comep/`) passa a usar o `comep-producao` (`docs/lancamento.md`).
 - Cada pull request traz a lista das travas para marcar (`.github/pull_request_template.md`), e cada fase tem seu arquivo de revisão em `docs/revisoes/`.
