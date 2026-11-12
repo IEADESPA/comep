@@ -22,6 +22,7 @@ import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { contemTexto, formatarData, hojeIso } from '../../utilitarios/formatos'
 import { CaixaAba, DespesasAutorizar } from './Caixa'
+import { PrestacaoContasAba } from './PrestacaoContas'
 
 type Retorno = { sucesso?: string; erro?: string }
 const ABAS = [
@@ -30,12 +31,16 @@ const ABAS = [
   'Cobranças do exercício',
   'Caixa',
   'Despesas a autorizar',
+  'Prestação de contas',
 ] as const
+type Aba = (typeof ABAS)[number]
 
-/** /financeiro — tesouraria e presidência (Fase 2: contribuições e caixa). */
+/** /financeiro — tesouraria e presidência operam; o Conselho Fiscal só vê (Fase 2: contribuições, caixa e contas). */
 export function Financeiro() {
   const { estado } = useSessao()
-  const [aba, setAba] = useState<(typeof ABAS)[number]>('Pagamentos informados')
+  const perfisDaConta = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
+  const opera = perfisDaConta.includes('tesouraria') || perfisDaConta.includes('presidencia')
+  const [aba, setAba] = useState<Aba>(opera ? 'Pagamentos informados' : 'Prestação de contas')
   const [retorno, setRetorno] = useState<Retorno>({})
   const [versao, setVersao] = useState(0)
 
@@ -47,13 +52,19 @@ export function Financeiro() {
 
   if (estado.situacao !== 'logado' || estado.conta?.tipo !== 'ok') return <Carregando />
   const { pessoaId, perfis } = estado.conta.conta
+  // O Conselho Fiscal (Art. 14) vê tudo, sem os pagamentos a conferir e sem botões de ação
+  const abas = opera ? ABAS : ABAS.filter((a) => a !== 'Pagamentos informados')
+  const somenteLeitura = !opera
 
   return (
     <>
       <h1>Financeiro</h1>
-      <p className="detalhe">Exercício de abril a março. O balanço anual chega na próxima entrega da Fase 2.</p>
-      <div className="abas" role="tablist" aria-label="Partes do financeiro">
-        {ABAS.map((a) => (
+      <p className="detalhe nao-imprimir">
+        Exercício de abril a março.
+        {somenteLeitura && ' Você vê o financeiro como Conselho Fiscal: só leitura, e o parecer sobre o balanço anual.'}
+      </p>
+      <div className="abas nao-imprimir" role="tablist" aria-label="Partes do financeiro">
+        {abas.map((a) => (
           <button
             key={a}
             type="button"
@@ -71,12 +82,17 @@ export function Financeiro() {
       </div>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       {aba === 'Pagamentos informados' && <PagamentosInformados key={versao} concluir={concluir} />}
-      {aba === 'Situação dos associados' && <SituacaoAssociados key={versao} concluir={concluir} />}
-      {aba === 'Cobranças do exercício' && <CobrancasExercicio key={versao} concluir={concluir} />}
-      {aba === 'Caixa' && <CaixaAba pessoaId={pessoaId} concluir={concluir} />}
+      {aba === 'Situação dos associados' && (
+        <SituacaoAssociados key={versao} concluir={concluir} somenteLeitura={somenteLeitura} />
+      )}
+      {aba === 'Cobranças do exercício' && (
+        <CobrancasExercicio key={versao} concluir={concluir} somenteLeitura={somenteLeitura} />
+      )}
+      {aba === 'Caixa' && <CaixaAba pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />}
       {aba === 'Despesas a autorizar' && (
         <DespesasAutorizar podeAutorizar={perfis.includes('presidencia')} concluir={concluir} />
       )}
+      {aba === 'Prestação de contas' && <PrestacaoContasAba perfis={perfis} pessoaId={pessoaId} />}
     </>
   )
 }
@@ -179,7 +195,7 @@ function Informe({ informe: i, concluir }: { informe: InformePendente; concluir:
 
 // ---------------------------------------------------------------------
 
-function SituacaoAssociados({ concluir }: { concluir: Concluir }) {
+function SituacaoAssociados({ concluir, somenteLeitura }: { concluir: Concluir; somenteLeitura: boolean }) {
   const [carga, recarregar] = useCarregar(situacaoDeTodos)
   const [busca, setBusca] = useState('')
   const [soAtraso, setSoAtraso] = useState(false)
@@ -216,6 +232,7 @@ function SituacaoAssociados({ concluir }: { concluir: Concluir }) {
                   aberta={aberta === s.pessoa_id}
                   aoAbrir={() => setAberta(aberta === s.pessoa_id ? null : s.pessoa_id)}
                   concluir={concluir}
+                  somenteLeitura={somenteLeitura}
                 />
               ))}
             </ul>
@@ -231,11 +248,13 @@ function LinhaSituacao({
   aberta,
   aoAbrir,
   concluir,
+  somenteLeitura,
 }: {
   situacao: SituacaoContribuicao
   aberta: boolean
   aoAbrir: () => void
   concluir: Concluir
+  somenteLeitura: boolean
 }) {
   return (
     <li className="lista-item lista-item-estatico" aria-label={s.nome}>
@@ -254,7 +273,7 @@ function LinhaSituacao({
         )}{' '}
         {s.igreja}
       </span>
-      {!s.jubilado && (
+      {!s.jubilado && !somenteLeitura && (
         <button type="button" className="botao-texto alinhar-esquerda" onClick={aoAbrir}>
           {aberta ? 'Fechar' : 'Registrar pagamento recebido'}
         </button>
@@ -334,7 +353,7 @@ function RegistrarPagamento({ pessoaId, nome, concluir }: { pessoaId: string; no
 
 // ---------------------------------------------------------------------
 
-function CobrancasExercicio({ concluir }: { concluir: Concluir }) {
+function CobrancasExercicio({ concluir, somenteLeitura }: { concluir: Concluir; somenteLeitura: boolean }) {
   const hoje = hojeIso()
   const atual = exercicioDe(hoje)
   const [exercicio, setExercicio] = useState(atual)
@@ -361,26 +380,28 @@ function CobrancasExercicio({ concluir }: { concluir: Concluir }) {
             ))}
           </select>
         </label>
-        <button
-          type="button"
-          className="botao"
-          disabled={enviando}
-          onClick={async () => {
-            setEnviando(true)
-            const r = await gerarCobrancas(exercicio)
-            setEnviando(false)
-            concluir(
-              r,
-              r.erro === null
-                ? r.dados === 0
-                  ? `Nenhuma cobrança nova: o exercício ${nomeDoExercicio(exercicio)} já estava gerado para todos.`
-                  : `${r.dados} cobrança(s) gerada(s) para o exercício ${nomeDoExercicio(exercicio)}.`
-                : '',
-            )
-          }}
-        >
-          Gerar cobranças do exercício
-        </button>
+        {!somenteLeitura && (
+          <button
+            type="button"
+            className="botao"
+            disabled={enviando}
+            onClick={async () => {
+              setEnviando(true)
+              const r = await gerarCobrancas(exercicio)
+              setEnviando(false)
+              concluir(
+                r,
+                r.erro === null
+                  ? r.dados === 0
+                    ? `Nenhuma cobrança nova: o exercício ${nomeDoExercicio(exercicio)} já estava gerado para todos.`
+                    : `${r.dados} cobrança(s) gerada(s) para o exercício ${nomeDoExercicio(exercicio)}.`
+                  : '',
+              )
+            }}
+          >
+            Gerar cobranças do exercício
+          </button>
+        )}
       </div>
       <p className="detalhe">
         Gera, para cada associado ativo, as mensalidades (ou a anuidade, para quem escolheu) pelo valor da categoria. Jubilado

@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.14 — 12 de novembro de 2026 — atualizado com a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.15 — 12 de novembro de 2026 — atualizado com a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -44,7 +44,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 | **Tesouraria** | 1º e 2º tesoureiros (Art. 12, §6º e §7º) | Conferir/confirmar pagamentos; lançar entradas e saídas; preparar o balanço anual e os relatórios |
 | **Presidência** | Presidente e vice-presidente (Art. 12, §2º e §3º) | Visualizar tudo; convocar assembleias; **autorizar despesas** (Art. 12, §2º, VI); assinar atas com o 1º secretário; gerenciar perfis de acesso |
 | **Secretário Executivo** | Art. 12, §8º | Apoiar a presidência, a diretoria e o Conselho Fiscal: ver cadastros, financeiro e assembleias, sem aprovar nada |
-| **Conselho Fiscal** | Membros eleitos (Art. 12 e 14) | Ver todo o financeiro (só leitura) e registrar o **parecer anual sobre as contas** (Art. 14) |
+| **Conselho Fiscal** | Membros eleitos (Art. 12 e 14) | Ver todo o financeiro (só leitura) e registrar o **parecer anual sobre as contas** (Art. 14). ✅ Fase 2.3 |
 | **Administrador técnico** | 1–2 pessoas de confiança (da IEADESPA nesta fase) | Configurações, backups e manutenção (sem poder apagar histórico) |
 
 > Uma pessoa pode ter mais de um perfil (ex.: um presidente de igreja que também é tesoureiro do Conselho).
@@ -386,7 +386,7 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
   - cadastrar o presidente do COMEP e dar a ele o perfil Presidência (a composição completa da diretoria entra depois — decisão 10);
   - site oficial ligado ao banco de produção e dados reais liberados.
 
-### Fase 2 — Financeiro (versão 2.0-teste)
+### Fase 2 — Financeiro (versão 2.0-teste) — concluída em 12/11/2026
 
 Revisão: `docs/revisoes/fase-2.md`.
 
@@ -406,10 +406,12 @@ Revisão: `docs/revisoes/fase-2.md`.
 - [x] Transferência entre contas (ex.: depósito das ofertas); cancelamento com motivo, nada se apaga
 - [x] Contas e categorias editáveis em Configurações
 
-**2.3 — Prestação de contas** (versão 2.0-teste.3)
+**2.3 — Prestação de contas** (versão 2.0-teste.3) — concluída em 12/11/2026
 
-- [ ] Balanço anual com análise da diretoria e parecer do Conselho Fiscal; orçamento e plano anual
-- [ ] Relatórios e prestação de contas (PDF/CSV)
+- [x] Perfil **Conselho Fiscal**: vê todo o financeiro (só leitura) e os comprovantes de pagamento; dá o parecer (Art. 14). Até a Fase 4, o perfil é dado em Administração → Acessos
+- [x] Balanço anual em quatro passos: a tesouraria fecha (números congelados e exercício travado), a diretoria analisa, o Conselho Fiscal dá o parecer e a assembleia aprecia — com devolução para correção e histórico
+- [x] Orçamento e plano anual de trabalho, com previsto × realizado e o registro da aprovação em assembleia (Art. 15, I)
+- [x] Relatórios: resumo do exercício (saldos, receitas e despesas por categoria, contribuições), mês a mês e contribuições por igreja; impressão/PDF e planilha (CSV)
 
 ### Fase 3 — Carteirinha digital (versão 3.0)
 

@@ -1383,3 +1383,177 @@ fieldset .caixa-marcar + .caixa-marcar {
 .acao-recolhida-painel[open] > summary {
   margin-bottom: 0.75rem;
 }
+
+/* ---------- Prestação de contas (Fase 2.3) ---------- */
+
+.tabela-rolagem {
+  overflow-x: auto;
+  margin: 0.5rem 0 1rem;
+}
+
+.tabela-relatorio {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.tabela-relatorio th,
+.tabela-relatorio td {
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--cor-borda);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tabela-relatorio thead th {
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+  font-weight: 600;
+}
+
+.tabela-relatorio tbody th {
+  font-weight: 400;
+}
+
+.tabela-relatorio tfoot th,
+.tabela-relatorio tfoot td {
+  font-weight: 700;
+  border-bottom: 0;
+  border-top: 2px solid var(--cor-borda);
+}
+
+.tabela-relatorio .col-valor {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.vazio-tabela {
+  color: var(--cor-texto-suave);
+}
+
+.grade-relatorio {
+  display: grid;
+  gap: 0 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.resultado-exercicio {
+  font-size: 1.05rem;
+}
+
+.numeros-contribuicao {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin: 0.5rem 0 0;
+}
+
+.numeros-contribuicao div {
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+}
+
+.numeros-contribuicao dt {
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+}
+
+.numeros-contribuicao dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.situacao-balanco {
+  margin-top: 0;
+}
+
+.passos-balanco dt {
+  font-weight: 700;
+  margin-top: 0.75rem;
+}
+
+.passos-balanco dd {
+  margin: 0.15rem 0 0;
+}
+
+.texto-livre {
+  display: block;
+  white-space: pre-wrap;
+  margin-top: 0.25rem;
+}
+
+.aviso-texto {
+  border-left: 4px solid var(--cor-aviso-borda);
+  padding: 0.4rem 0.75rem;
+  background: var(--cor-aviso-fundo);
+  color: var(--cor-texto);
+}
+
+.acoes-relatorio {
+  margin: 0.75rem 0 1.25rem;
+}
+
+.somente-impressao {
+  display: none;
+}
+
+/* Impressão (e "Salvar como PDF"): só o relatório, sem menu, abas, botões e formulários */
+@media print {
+  .faixa-teste,
+  .topo,
+  .menu,
+  .nao-imprimir,
+  .abas,
+  form,
+  details {
+    display: none !important;
+  }
+
+  .somente-impressao {
+    display: block;
+  }
+
+  .titulo-impressao {
+    font-weight: 700;
+    margin: 0 0 1rem;
+  }
+
+  #root:has(> .estrutura),
+  .estrutura,
+  .area-conteudo {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .conteudo {
+    max-width: none;
+    padding: 0;
+  }
+
+  .painel {
+    box-shadow: none !important;
+    border: 1px solid #999 !important;
+    break-inside: avoid;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .tabela-relatorio th,
+  .tabela-relatorio td {
+    border-color: #999;
+    color: #000;
+  }
+
+  h1 {
+    display: none;
+  }
+}

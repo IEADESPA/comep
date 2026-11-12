@@ -8,6 +8,7 @@ export const PERFIS = [
   'tesouraria',
   'presidencia',
   'admin_tecnico',
+  'conselho_fiscal',
 ] as const
 
 export type Perfil = (typeof PERFIS)[number]
@@ -19,6 +20,7 @@ export const NOME_DO_PERFIL: Record<Perfil, string> = {
   tesouraria: 'Tesouraria',
   presidencia: 'Presidência',
   admin_tecnico: 'Administrador técnico',
+  conselho_fiscal: 'Conselho Fiscal',
 }
 
 export type MinhaConta = {
