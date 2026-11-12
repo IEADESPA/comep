@@ -30,6 +30,9 @@ const NOME_DA_TABELA: Record<string, string> = {
   informes_pagamento: 'Pagamentos informados',
   planos_contribuicao: 'Planos de contribuição',
   config_financeiro: 'Vencimentos',
+  lancamentos: 'Lançamentos do caixa',
+  contas_financeiras: 'Contas do caixa',
+  categorias_financeiras: 'Categorias do caixa',
 }
 
 const CAMPOS_IGNORADOS = new Set(['atualizado_em', 'criado_em', 'criado_por', 'id'])

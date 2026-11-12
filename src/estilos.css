@@ -1346,3 +1346,40 @@ fieldset .caixa-marcar + .caixa-marcar {
   justify-self: start;
   padding-left: 0;
 }
+
+/* ---------- Caixa (Fase 2.2) ---------- */
+
+.lista-contas {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.saldo {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.valor-entrada {
+  color: #15803d;
+  font-variant-numeric: tabular-nums;
+}
+
+.valor-saida {
+  color: var(--cor-erro);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-color-scheme: dark) {
+  .valor-entrada {
+    color: #86efac;
+  }
+}
+
+.acao-recolhida-painel > summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--cor-marca);
+}
+
+.acao-recolhida-painel[open] > summary {
+  margin-bottom: 0.75rem;
+}

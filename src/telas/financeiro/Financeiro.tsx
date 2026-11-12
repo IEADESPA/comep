@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { formatarReais } from '../../dados/configuracoes'
 import {
   analisarInforme,
@@ -18,14 +18,23 @@ import {
   type SituacaoContribuicao,
 } from '../../dados/financeiro'
 import { linkDoArquivo } from '../../dados/pedidos'
+import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { contemTexto, formatarData, hojeIso } from '../../utilitarios/formatos'
+import { CaixaAba, DespesasAutorizar } from './Caixa'
 
 type Retorno = { sucesso?: string; erro?: string }
-const ABAS = ['Pagamentos informados', 'Situação dos associados', 'Cobranças do exercício'] as const
+const ABAS = [
+  'Pagamentos informados',
+  'Situação dos associados',
+  'Cobranças do exercício',
+  'Caixa',
+  'Despesas a autorizar',
+] as const
 
-/** /financeiro — tesouraria e presidência (Fase 2.1: contribuições). */
+/** /financeiro — tesouraria e presidência (Fase 2: contribuições e caixa). */
 export function Financeiro() {
+  const { estado } = useSessao()
   const [aba, setAba] = useState<(typeof ABAS)[number]>('Pagamentos informados')
   const [retorno, setRetorno] = useState<Retorno>({})
   const [versao, setVersao] = useState(0)
@@ -36,13 +45,13 @@ export function Financeiro() {
     return r.erro === null
   }
 
+  if (estado.situacao !== 'logado' || estado.conta?.tipo !== 'ok') return <Carregando />
+  const { pessoaId, perfis } = estado.conta.conta
+
   return (
     <>
       <h1>Financeiro</h1>
-      <p className="detalhe">
-        Contribuições dos associados. Exercício de abril a março. Caixa, despesas e balanço chegam nas próximas entregas da
-        Fase 2.
-      </p>
+      <p className="detalhe">Exercício de abril a março. O balanço anual chega na próxima entrega da Fase 2.</p>
       <div className="abas" role="tablist" aria-label="Partes do financeiro">
         {ABAS.map((a) => (
           <button
@@ -64,6 +73,10 @@ export function Financeiro() {
       {aba === 'Pagamentos informados' && <PagamentosInformados key={versao} concluir={concluir} />}
       {aba === 'Situação dos associados' && <SituacaoAssociados key={versao} concluir={concluir} />}
       {aba === 'Cobranças do exercício' && <CobrancasExercicio key={versao} concluir={concluir} />}
+      {aba === 'Caixa' && <CaixaAba pessoaId={pessoaId} concluir={concluir} />}
+      {aba === 'Despesas a autorizar' && (
+        <DespesasAutorizar podeAutorizar={perfis.includes('presidencia')} concluir={concluir} />
+      )}
     </>
   )
 }
