@@ -69,6 +69,12 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
   await page.getByLabel('Buscar associado').fill(nome)
   await expect(page.getByRole('listitem', { name: nome })).toContainText('Em dia')
 
+  // O pagamento confirmado entrou sozinho no caixa (PIX → conta bancária)
+  await page.getByRole('tab', { name: 'Caixa', exact: true }).click()
+  await expect(page.getByRole('listitem', { name: `Contribuição de ${nome} — ${anuidade.toLowerCase()}` })).toContainText(
+    'R$ 200,00',
+  )
+
   // 4. O associado está em dia (pode votar e ser votado)
   await trocarPara(page, associado)
   await page.goto('minhas-mensalidades')

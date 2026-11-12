@@ -5,6 +5,7 @@ export const USUARIOS = {
   presidencia: { email: 'e2e.presidencia@example.com', senhaVar: 'E2E_SENHA_PRESIDENCIA' },
   ministro: { email: 'e2e.ministro@example.com', senhaVar: 'E2E_SENHA_MINISTRO' },
   semPerfil: { email: 'e2e.semperfil@example.com', senhaVar: 'E2E_SENHA_SEM_PERFIL' },
+  tesouraria: { email: 'e2e.tesouraria@example.com', senhaVar: 'E2E_SENHA_TESOURARIA' },
 } as const
 
 export type Usuario = (typeof USUARIOS)[keyof typeof USUARIOS]

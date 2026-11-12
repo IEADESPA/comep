@@ -23,6 +23,15 @@ import {
 import type { Perfil } from '../../dados/perfis'
 import { buscarDadosComep, CAMPOS_DADOS_COMEP, salvarDadosComep, type DadosComep } from '../../dados/site'
 import { buscarConfigFinanceiro, salvarConfigFinanceiro } from '../../dados/financeiro'
+import {
+  alterarConta,
+  arquivarCategoriaFinanceira,
+  criarCategoriaFinanceira,
+  criarConta,
+  listarCategoriasFinanceiras,
+  saldos,
+  type TipoLancamento,
+} from '../../dados/caixa'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { cnpjValido, formatarCnpj, formatarData, hojeIso, limparCnpj } from '../../utilitarios/formatos'
@@ -54,6 +63,7 @@ export function Configuracoes() {
         <a href="#titulos">Títulos de ministro</a>
         <a href="#valores">Valores da contribuição</a>
         <a href="#vencimentos">Vencimentos</a>
+        {editaValores && <a href="#caixa">Contas e categorias do caixa</a>}
       </nav>
 
       <DadosDoSite podeEditar={editaListas} />
@@ -82,6 +92,7 @@ export function Configuracoes() {
       />
       <Valores podeEditar={editaValores} />
       <Vencimentos podeEditar={editaValores} />
+      {editaValores && <ContasECategorias />}
     </>
   )
 }
@@ -578,6 +589,159 @@ function Vencimentos({ podeEditar }: { podeEditar: boolean }) {
               </button>
             )}
           </form>
+        )}
+      </MostrarCarga>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Contas e categorias do caixa (tesouraria e presidência)
+// ---------------------------------------------------------------------
+
+function ContasECategorias() {
+  const [carga, recarregar] = useCarregar(async () => {
+    const [contas, categorias] = await Promise.all([saldos(), listarCategoriasFinanceiras()])
+    if (contas.erro !== null) return contas
+    if (categorias.erro !== null) return categorias
+    return { dados: { contas: contas.dados, categorias: categorias.dados }, erro: null }
+  })
+  const [retorno, setRetorno] = useState<Retorno>({})
+  const [nomeConta, setNomeConta] = useState('')
+  const [tipoConta, setTipoConta] = useState<'caixa' | 'banco'>('banco')
+  const [saldoInicial, setSaldoInicial] = useState('0')
+  const [desde, setDesde] = useState(hojeIso())
+  const [nomeCategoria, setNomeCategoria] = useState('')
+  const [tipoCategoria, setTipoCategoria] = useState<TipoLancamento>('saida')
+
+  function concluir(r: { erro: string | null }, sucesso: string) {
+    setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+    if (r.erro === null) recarregar()
+    return r.erro === null
+  }
+
+  return (
+    <section className="painel" id="caixa" aria-labelledby="titulo-caixa-config">
+      <h2 id="titulo-caixa-config">Contas e categorias do caixa</h2>
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {({ contas, categorias }) => (
+          <>
+            <h3>Contas</h3>
+            <ul className="lista-simples" aria-label="Contas do caixa">
+              {contas.map((c) => (
+                <li key={c.id}>
+                  <span>
+                    {c.nome} <span className="detalhe">({c.tipo === 'caixa' ? 'dinheiro' : 'banco'})</span>
+                  </span>
+                  <span className="detalhe">
+                    saldo inicial {formatarReais(c.saldo_inicial)} em {formatarData(c.saldo_inicial_em)}
+                  </span>
+                  <button
+                    type="button"
+                    className="botao-texto"
+                    aria-label={`Ajustar o saldo inicial de ${c.nome}`}
+                    onClick={async () => {
+                      const valor = window.prompt(`Saldo inicial de "${c.nome}" (R$):`, String(c.saldo_inicial))
+                      if (valor === null) return
+                      concluir(
+                        await alterarConta(c.id, { nome: c.nome, saldo_inicial: Number(valor.replace(',', '.')) || 0, saldo_inicial_em: c.saldo_inicial_em }),
+                        'Saldo inicial ajustado.',
+                      )
+                    }}
+                  >
+                    Ajustar saldo inicial
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <form
+              className="form-linha"
+              aria-label="Nova conta"
+              onSubmit={async (e) => {
+                e.preventDefault()
+                if (concluir(await criarConta(nomeConta, tipoConta, Number(saldoInicial.replace(',', '.')) || 0, desde), `Conta "${nomeConta.trim()}" criada.`)) {
+                  setNomeConta('')
+                }
+              }}
+            >
+              <label>
+                Nova conta
+                <input required value={nomeConta} onChange={(e) => setNomeConta(e.target.value)} placeholder="Ex.: Banco do Brasil — c/c" />
+              </label>
+              <label className="campo-curto">
+                Tipo
+                <select value={tipoConta} onChange={(e) => setTipoConta(e.target.value as 'caixa' | 'banco')}>
+                  <option value="banco">Banco</option>
+                  <option value="caixa">Dinheiro</option>
+                </select>
+              </label>
+              <label className="campo-curto">
+                Saldo inicial
+                <input inputMode="decimal" value={saldoInicial} onChange={(e) => setSaldoInicial(e.target.value)} />
+              </label>
+              <label className="campo-curto">
+                Em
+                <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+              </label>
+              <button type="submit" className="botao">
+                Criar conta
+              </button>
+            </form>
+
+            {(['entrada', 'saida'] as const).map((tipo) => (
+              <div key={tipo}>
+                <h3>{tipo === 'entrada' ? 'Categorias de entrada (Art. 17)' : 'Categorias de saída'}</h3>
+                <ul className="lista-simples" aria-label={tipo === 'entrada' ? 'Categorias de entrada' : 'Categorias de saída'}>
+                  {categorias
+                    .filter((c) => c.tipo === tipo)
+                    .map((c) => (
+                      <li key={c.id}>
+                        <span>
+                          {c.nome}
+                          {c.sistema && <span className="detalhe"> (automática)</span>}
+                        </span>
+                        {!c.sistema && (
+                          <button
+                            type="button"
+                            className="botao-texto"
+                            aria-label={`Arquivar a categoria ${c.nome}`}
+                            onClick={async () => concluir(await arquivarCategoriaFinanceira(c.id), `Categoria "${c.nome}" arquivada.`)}
+                          >
+                            Arquivar
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+            <form
+              className="form-linha"
+              aria-label="Nova categoria"
+              onSubmit={async (e) => {
+                e.preventDefault()
+                if (concluir(await criarCategoriaFinanceira(nomeCategoria, tipoCategoria), `Categoria "${nomeCategoria.trim()}" criada.`)) {
+                  setNomeCategoria('')
+                }
+              }}
+            >
+              <label>
+                Nova categoria
+                <input required value={nomeCategoria} onChange={(e) => setNomeCategoria(e.target.value)} />
+              </label>
+              <label className="campo-curto">
+                Tipo
+                <select value={tipoCategoria} onChange={(e) => setTipoCategoria(e.target.value as TipoLancamento)}>
+                  <option value="saida">Saída</option>
+                  <option value="entrada">Entrada</option>
+                </select>
+              </label>
+              <button type="submit" className="botao">
+                Adicionar
+              </button>
+            </form>
+          </>
         )}
       </MostrarCarga>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />

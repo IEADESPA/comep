@@ -45,7 +45,7 @@ O que entrou:
 
 | Pull request | Resultado | Data |
 |---|---|---|
-| Fase 2.1 — contribuições | ver o pull request | 12/11/2026 |
+| #15 — Fase 2.1: contribuições | Aprovado (verificar + ponta a ponta) e publicado | 12/11/2026 |
 
 ### Trava 2
 
@@ -81,3 +81,65 @@ O que entrou:
 `testes/dados/semente-financeiro-teste.sql` tem pagamentos fictícios dos associados da semente: anuidades pagas e não pagas, quem paga tudo, quem deixa os 2 últimos meses e quem não paga nada.
 
 No `comep-teste`, em 12/11/2026: **32 associados em dia e 40 em atraso**, com R$ 6.240 vencidos. Os criados pelos testes automáticos nunca pagam.
+
+## Entrega 2.2 — Caixa (versão 2.0-teste.2)
+
+**Resultado: aprovada no ambiente de teste em 12/11/2026.**
+
+O que entrou:
+
+- **Contas:** "Caixa (dinheiro)" e "Conta bancária", com saldo inicial desde o início do exercício. Outras contas (ex.: uma segunda conta no banco) se criam em Configurações.
+- **Lançamentos** (aba **Caixa** do Financeiro):
+  - entrada ou saída, conta, categoria, data, valor, descrição e comprovante (nota ou recibo);
+  - **entrada** entra no saldo na hora;
+  - **despesa** fica "aguardando autorização do presidente" e só sai do saldo depois de autorizada (Art. 12, §2º, VI);
+  - lista do mês, com escolha do mês; cancelados e recusados ficam escondidos, mas aparecem se pedir.
+- **Despesas a autorizar** (aba nova): o presidente autoriza ou recusa com motivo. A tesouraria acompanha a fila, mas não autoriza. **Ninguém autoriza a despesa que ele mesmo lançou.**
+- **Contribuição paga entra no caixa sozinha:** em dinheiro vai para o caixa; por PIX, depósito ou transferência, para o banco. A descrição diz de quem é e de qual mês ou anuidade. Os pagamentos de antes desta entrega também entraram.
+- **Transferência entre contas** (ex.: depósito das ofertas no banco). Cancelar uma transferência desfaz os dois lados.
+- **Cancelar lançamento** com motivo. A entrada automática de contribuição não se cancela pelo caixa: cancela-se o pagamento no Financeiro.
+- **Configurações → Contas e categorias do caixa** (tesouraria e presidência): criar conta, ajustar saldo inicial, criar e arquivar categorias. As categorias automáticas (contribuições e transferências) não mudam.
+- **Regras no banco:**
+  - só se grava pelas funções, que conferem o perfil;
+  - categoria tem que ser do mesmo tipo do lançamento, sem data futura nem valor zero;
+  - nada se apaga;
+  - tudo vai para a auditoria (com nomes novos na tela de Auditoria).
+
+Categorias iniciais (editáveis): Ofertas, Doações, Outras receitas (entradas); Eventos e encontros, Ação social, Material e expediente, Tarifas bancárias, Outras despesas (saídas).
+
+### Trava 1
+
+| Pull request | Resultado | Data |
+|---|---|---|
+| Fase 2.2 — caixa | ver o pull request | 12/11/2026 |
+
+### Trava 2
+
+- [x] Migração `20261112173735_financeiro_caixa.sql` aplicada no `comep-teste`
+- [x] **14 testes novos do banco** (172 no total):
+  - entrada no saldo na hora; despesa aguardando;
+  - só a presidência autoriza, e não a própria despesa; recusa exige motivo;
+  - categoria do tipo errado, categoria automática, data futura e valor zero recusados;
+  - cancelamento com motivo; contribuição em dinheiro → caixa, PIX → banco; entrada automática não se cancela;
+  - transferência e cancelamento dos dois lados; categoria automática protegida;
+  - o ministro não vê nada do caixa; ninguém grava direto nem apaga.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| A tesouraria lança uma oferta e o saldo do caixa sobe | ✅ |
+| A tesouraria lança uma despesa: fica "aguardando", o saldo não muda e ela não consegue autorizar | ✅ |
+| O presidente autoriza; a despesa sai do saldo e mostra "autorizada por" | ✅ |
+| Transferência do caixa para o banco muda os dois saldos; cancelar desfaz os dois lados | ✅ |
+| Cancelar com motivo devolve o saldo; o cancelado aparece quando pedido | ✅ |
+| O pagamento confirmado da anuidade aparece sozinho no caixa | ✅ |
+| O ministro não abre o Financeiro | ✅ |
+
+Usuário fictício novo para os testes: **e2e.tesouraria** (perfil Tesouraria). O teste cancela o que lança, então o saldo volta ao que era.
+
+### Dados fictícios
+
+`testes/dados/semente-caixa-teste.sql`: de abril até hoje, ofertas da reunião mensal, doações, tarifas, material, encontros e ação social, todas autorizadas pelo presidente fictício. Uma despesa foi recusada ("não está no orçamento"), as do mês atual ficam aguardando, e as ofertas são depositadas no banco. Toda descrição termina com "(fictício)".
+
+No `comep-teste`, em 12/11/2026: **caixa R$ 2.126,57 e banco R$ 11.817,92**, com 2 despesas aguardando a autorização.
