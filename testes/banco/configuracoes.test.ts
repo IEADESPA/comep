@@ -118,17 +118,20 @@ describe('Fase 1.2 — configurações e categorias', () => {
   })
 
   describe('valores da contribuição', () => {
-    it('vêm com os valores informados pela diretoria', async () => {
+    it('vêm com os valores informados pela diretoria (taxa de inscrição isenta)', async () => {
       const r = await db.query<{ categoria: string; tipo: string; valor: string }>(
         'select categoria, tipo, valor::text from public.vw_valores_vigentes order by categoria, tipo',
       )
       assert.deepEqual(r.rows, [
         { categoria: 'presidente_igreja', tipo: 'mensal', valor: '40.00' },
         { categoria: 'presidente_igreja', tipo: 'anual', valor: '400.00' },
+        { categoria: 'presidente_igreja', tipo: 'inscricao', valor: '0.00' },
         { categoria: 'nao_presidente', tipo: 'mensal', valor: '20.00' },
         { categoria: 'nao_presidente', tipo: 'anual', valor: '200.00' },
+        { categoria: 'nao_presidente', tipo: 'inscricao', valor: '0.00' },
         { categoria: 'jubilado', tipo: 'mensal', valor: '0.00' },
         { categoria: 'jubilado', tipo: 'anual', valor: '0.00' },
+        { categoria: 'jubilado', tipo: 'inscricao', valor: '0.00' },
       ])
     })
 

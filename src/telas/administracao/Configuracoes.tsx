@@ -4,14 +4,17 @@ import {
   alterarItem,
   arquivarItem,
   arquivarValor,
+  buscarPrazoTaxaInscricao,
   CATEGORIAS,
   criarItem,
+  definirTaxaInscricao,
   formatarReais,
   lancarValor,
   listarItens,
   listarValores,
   NOME_DA_CATEGORIA,
   NOME_DO_TIPO_VALOR,
+  textoDoValor,
   TIPOS_VALOR,
   type CategoriaContribuicao,
   type ItemLista,
@@ -47,6 +50,9 @@ export function Configuracoes() {
   const perfis = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
   const editaListas = perfis.some((p) => EDITAM_LISTAS.includes(p))
   const editaValores = perfis.some((p) => EDITAM_VALORES.includes(p))
+  // A taxa de inscrição grava em "valores": a seção de valores recarrega junto
+  const [versaoValores, setVersaoValores] = useState(0)
+  const [versaoTaxa, setVersaoTaxa] = useState(0)
 
   return (
     <>
@@ -62,6 +68,7 @@ export function Configuracoes() {
         <a href="#bairros">Bairros</a>
         <a href="#titulos">Títulos de ministro</a>
         <a href="#valores">Valores da contribuição</a>
+        <a href="#inscricao">Taxa de inscrição</a>
         <a href="#vencimentos">Vencimentos</a>
         {editaValores && <a href="#caixa">Contas e categorias do caixa</a>}
       </nav>
@@ -90,7 +97,8 @@ export function Configuracoes() {
         comOrdem
         podeEditar={editaListas}
       />
-      <Valores podeEditar={editaValores} />
+      <Valores key={`valores-${versaoValores}`} podeEditar={editaValores} aoMudar={() => setVersaoTaxa((v) => v + 1)} />
+      <TaxaInscricao key={`taxa-${versaoTaxa}`} podeEditar={editaValores} aoMudar={() => setVersaoValores((v) => v + 1)} />
       <Vencimentos podeEditar={editaValores} />
       {editaValores && <ContasECategorias />}
     </>
@@ -293,13 +301,16 @@ function EditarItem({
 // Valores da contribuição
 // ---------------------------------------------------------------------
 
-function Valores({ podeEditar }: { podeEditar: boolean }) {
+function Valores({ podeEditar, aoMudar }: { podeEditar: boolean; aoMudar: () => void }) {
   const [carga, recarregar] = useCarregar(listarValores)
   const [retorno, setRetorno] = useState<Retorno>({})
 
   function concluir(r: { erro: string | null }, sucesso: string) {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
-    if (r.erro === null) recarregar()
+    if (r.erro === null) {
+      recarregar()
+      aoMudar()
+    }
     return r.erro === null
   }
 
@@ -326,7 +337,7 @@ function Valores({ podeEditar }: { podeEditar: boolean }) {
                       const v = valorVigente(vigentes, categoria, tipo)
                       return (
                         <span key={tipo} className="valor-linha">
-                          {NOME_DO_TIPO_VALOR[tipo]}: <strong>{v ? formatarReais(v.valor) : 'não definido'}</strong>
+                          {NOME_DO_TIPO_VALOR[tipo]}: <strong>{v ? textoDoValor(tipo, v.valor) : 'não definido'}</strong>
                         </span>
                       )
                     })}
@@ -344,7 +355,7 @@ function Valores({ podeEditar }: { podeEditar: boolean }) {
                   <li key={v.id}>
                     <span>
                       {NOME_DA_CATEGORIA[v.categoria]} · {NOME_DO_TIPO_VALOR[v.tipo]}:{' '}
-                      <strong>{formatarReais(v.valor)}</strong> desde {formatarData(v.vigente_desde)}
+                      <strong>{textoDoValor(v.tipo, v.valor)}</strong> desde {formatarData(v.vigente_desde)}
                       {v.aprovado_em_assembleia && ` · assembleia de ${formatarData(v.aprovado_em_assembleia)}`}
                       {v.ata && ` · ata ${v.ata}`}
                       {v.observacao && <span className="detalhe"> — {v.observacao}</span>}
@@ -595,6 +606,157 @@ function Vencimentos({ podeEditar }: { podeEditar: boolean }) {
     </section>
   )
 }
+
+// ---------------------------------------------------------------------
+// Taxa de inscrição (isenta hoje; a assembleia pode definir um valor)
+// ---------------------------------------------------------------------
+
+function TaxaInscricao({ podeEditar, aoMudar }: { podeEditar: boolean; aoMudar: () => void }) {
+  const [carga, recarregar] = useCarregar(async () => {
+    const [valores, prazo] = await Promise.all([listarValores(), buscarPrazoTaxaInscricao()])
+    if (valores.erro !== null) return valores
+    if (prazo.erro !== null) return prazo
+    return { dados: { ...valores.dados, prazo: prazo.dados }, erro: null }
+  })
+  const [retorno, setRetorno] = useState<Retorno>({})
+  const [valor, setValor] = useState('')
+  const [desde, setDesde] = useState(hojeIso())
+  const [assembleia, setAssembleia] = useState('')
+  const [ata, setAta] = useState('')
+  const [prazo, setPrazo] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const hoje = hojeIso()
+
+  return (
+    <section className="painel" id="inscricao" aria-labelledby="titulo-inscricao">
+      <h2 id="titulo-inscricao">Taxa de inscrição</h2>
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {({ vigentes, historico, prazo: prazoAtual }) => {
+          const deHoje = (categoria: CategoriaContribuicao) =>
+            vigentes.find((v) => v.categoria === categoria && v.tipo === 'inscricao')
+          const presidente = deHoje('presidente_igreja')
+          const outros = deHoje('nao_presidente')
+          const iguais = Number(presidente?.valor ?? 0) === Number(outros?.valor ?? 0)
+          const futuras = historico
+            .filter((v) => v.tipo === 'inscricao' && v.categoria !== 'jubilado' && v.vigente_desde > hoje)
+            .sort((a, b) => a.vigente_desde.localeCompare(b.vigente_desde))
+          return (
+            <>
+              <p className="taxa-hoje">
+                Hoje:{' '}
+                {iguais ? (
+                  <strong>{textoDoValor('inscricao', presidente?.valor ?? 0)}</strong>
+                ) : (
+                  <>
+                    <strong>{textoDoValor('inscricao', presidente?.valor ?? 0)}</strong> (presidente de igreja) e{' '}
+                    <strong>{textoDoValor('inscricao', outros?.valor ?? 0)}</strong> (não presidente)
+                  </>
+                )}
+                {presidente?.aprovado_em_assembleia && ` · assembleia de ${formatarData(presidente.aprovado_em_assembleia)}`}
+              </p>
+              {futuras.length > 0 && (
+                <ul className="lista-simples" aria-label="Taxa de inscrição programada">
+                  {futuras.map((v) => (
+                    <li key={v.id}>
+                      <span>
+                        A partir de {formatarData(v.vigente_desde)}: <strong>{textoDoValor('inscricao', v.valor)}</strong> (
+                        {NOME_DA_CATEGORIA[v.categoria].toLowerCase()})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="detalhe">
+                O valor é decidido pela assembleia (Art. 7º, §3º). Quando houver valor, ele é cobrado uma vez de quem for
+                admitido pela assembleia (pedido de associação aprovado), com prazo de {prazoAtual} dias para pagar. Quem
+                entrou no cadastro inicial não paga, e o jubilado é isento.
+              </p>
+
+              {podeEditar && (
+                <details className="acao-recolhida">
+                  <summary>Personalizar a taxa de inscrição</summary>
+                  <form
+                    aria-label="Personalizar a taxa de inscrição"
+                    onSubmit={async (e) => {
+                      e.preventDefault()
+                      const numero = Number(valor.replace(',', '.'))
+                      setEnviando(true)
+                      const r = await definirTaxaInscricao({
+                        valor: numero,
+                        vigenteDesde: desde,
+                        assembleia,
+                        ata,
+                        prazoDias: Number(prazo || prazoAtual),
+                      })
+                      setEnviando(false)
+                      if (r.erro !== null) return setRetorno({ erro: r.erro })
+                      setRetorno({
+                        sucesso: `Taxa de inscrição: ${textoDoValor('inscricao', numero)} a partir de ${formatarData(desde)}.`,
+                      })
+                      setValor('')
+                      setAta('')
+                      setAssembleia('')
+                      recarregar()
+                      aoMudar()
+                    }}
+                  >
+                    <div className="grade-form">
+                      <label>
+                        Valor da taxa (R$)
+                        <input
+                          required
+                          inputMode="decimal"
+                          pattern="[0-9]+([,.][0-9]{1,2})?"
+                          placeholder="0 = isenta"
+                          value={valor}
+                          onChange={(e) => setValor(e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        Vale para quem for admitido a partir de
+                        <input type="date" required value={desde} onChange={(e) => setDesde(e.target.value)} />
+                      </label>
+                      <label>
+                        Aprovada na assembleia de
+                        <input type="date" max={hoje} value={assembleia} onChange={(e) => setAssembleia(e.target.value)} />
+                      </label>
+                      <label>
+                        Ata da assembleia
+                        <input value={ata} onChange={(e) => setAta(e.target.value)} placeholder="Ex.: Ata 3/2027" />
+                      </label>
+                      <label>
+                        Prazo para pagar (dias depois da admissão)
+                        <input
+                          type="number"
+                          min={1}
+                          max={365}
+                          placeholder={String(prazoAtual)}
+                          value={prazo}
+                          onChange={(e) => setPrazo(e.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <p className="detalhe">
+                      Vale para presidente e não presidente de igreja. O valor anterior não se apaga: fica no histórico dos
+                      valores da contribuição.
+                    </p>
+                    <div className="acoes">
+                      <button type="submit" className="botao" disabled={enviando}>
+                        Salvar taxa de inscrição
+                      </button>
+                    </div>
+                  </form>
+                </details>
+              )}
+            </>
+          )
+        }}
+      </MostrarCarga>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+    </section>
+  )
+}
+
 
 // ---------------------------------------------------------------------
 // Contas e categorias do caixa (tesouraria e presidência)

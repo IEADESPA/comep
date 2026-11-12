@@ -61,12 +61,47 @@ test('mostra os valores da contribuição; a presidência lança e arquiva um va
   await secao.getByRole('button', { name: 'Lançar valor' }).click()
   await expect(mensagem(page, `a partir de ${dataBr}`)).toBeVisible()
 
-  // Ainda não vale (data futura): a inscrição do jubilado continua "não definido"
-  await expect(vigentes.getByRole('listitem', { name: 'Jubilado', exact: true })).toContainText('Taxa de inscrição: não definido')
+  // Ainda não vale (data futura): a inscrição do jubilado continua isenta
+  await expect(vigentes.getByRole('listitem', { name: 'Jubilado', exact: true })).toContainText('Taxa de inscrição: Isenta')
 
   await secao.getByText(/^Histórico de valores/).click()
   await secao.getByRole('button', { name: `Arquivar o valor Jubilado Taxa de inscrição de ${dataBr}` }).click()
   await expect(mensagem(page, 'Valor arquivado.')).toBeVisible()
+})
+
+test('a taxa de inscrição hoje é isenta; a presidência programa um valor futuro (e arquiva no fim)', async ({ page }) => {
+  await page.goto('configuracoes')
+  const taxa = page.locator('#inscricao')
+  await expect(taxa.getByText(/^Hoje:/)).toHaveText(/^Hoje: Isenta/)
+  const vigentes = page.getByRole('list', { name: 'Valores em vigor' })
+  await expect(vigentes.getByRole('listitem', { name: 'Não presidente de igreja' })).toContainText('Taxa de inscrição: Isenta')
+
+  // Valor futuro, de teste (como se a assembleia tivesse decidido): não vale hoje
+  const ano = 2090 + Math.floor(Math.random() * 9)
+  const dia = String(1 + Math.floor(Math.random() * 28)).padStart(2, '0')
+  const dataBr = `${dia}/02/${ano}`
+  await taxa.getByText('Personalizar a taxa de inscrição').click()
+  await taxa.getByLabel('Valor da taxa (R$)').fill('50')
+  await taxa.getByLabel('Vale para quem for admitido a partir de').fill(`${ano}-02-${dia}`)
+  await taxa.getByLabel('Ata da assembleia').fill('Teste automático')
+  await taxa.getByLabel('Prazo para pagar (dias depois da admissão)').fill('30')
+  await taxa.getByRole('button', { name: 'Salvar taxa de inscrição' }).click()
+  await expect(mensagem(page, `Taxa de inscrição: R$ 50,00 a partir de ${dataBr}.`)).toBeVisible()
+
+  const programada = taxa.getByRole('list', { name: 'Taxa de inscrição programada' })
+  await expect(programada).toContainText(`A partir de ${dataBr}: R$ 50,00 (presidente de igreja)`)
+  await expect(programada).toContainText(`A partir de ${dataBr}: R$ 50,00 (não presidente de igreja)`)
+  await expect(taxa.getByText(/^Hoje:/)).toHaveText(/^Hoje: Isenta/)
+
+  // Limpa: arquiva os dois valores de teste (o histórico guarda tudo)
+  const valores = page.locator('#valores')
+  await valores.getByText(/^Histórico de valores/).click()
+  for (const categoria of ['Presidente de igreja', 'Não presidente de igreja']) {
+    await valores.getByRole('button', { name: `Arquivar o valor ${categoria} Taxa de inscrição de ${dataBr}` }).click()
+    await expect(mensagem(page, 'Valor arquivado.')).toBeVisible()
+  }
+  await expect(valores.getByRole('button', { name: new RegExp(`Taxa de inscrição de ${dataBr}$`) })).toHaveCount(0)
+  await expect(taxa.getByRole('list', { name: 'Taxa de inscrição programada' })).toHaveCount(0)
 })
 
 test('pastor presidente paga como presidente de igreja; jubilado é isento', async ({ page }, info) => {
