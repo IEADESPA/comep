@@ -56,16 +56,16 @@ describe('Fase 1.1 — cadastros', () => {
     await darPerfil(db, tesoureiro, 'tesouraria')
 
     const titulos = await db.query<{ id: string; nome: string }>('select id, nome from public.titulos_ministeriais')
-    tituloPastor = titulos.rows.find((t) => t.nome === 'Pastor')!.id
+    tituloPastor = titulos.rows.find((t) => t.nome === 'Pastor(a)')!.id
     tituloEvangelista = titulos.rows.find((t) => t.nome === 'Evangelista')!.id
   })
 
   describe('listas (denominações, títulos, igrejas)', () => {
-    it('vem com a lista inicial de títulos', async () => {
-      const r = await db.query<{ nome: string }>('select nome from public.titulos_ministeriais order by ordem')
+    it('vem com a lista de títulos aprovada pela diretoria (decisão 9)', async () => {
+      const r = await db.query<{ nome: string }>('select nome from public.titulos_ministeriais where arquivado_em is null order by ordem')
       assert.deepEqual(
         r.rows.map((t) => t.nome),
-        ['Pastor', 'Evangelista', 'Presbítero', 'Missionário', 'Líder'],
+        ['Pastor(a)', 'Evangelista', 'Presbítero', 'Apóstolo(a)', 'Bispo(a)'],
       )
     })
 
@@ -164,7 +164,7 @@ describe('Fase 1.1 — cadastros', () => {
         ),
       )
       assert.deepEqual(r.rows, [
-        { nome: 'Pr. Associado Antigo', titulo: 'Pastor', igreja: 'Igreja A', numero_registro: 1, tem_login: false },
+        { nome: 'Pr. Associado Antigo', titulo: 'Pastor(a)', igreja: 'Igreja A', numero_registro: 1, tem_login: false },
       ])
     })
 

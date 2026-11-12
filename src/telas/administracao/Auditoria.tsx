@@ -22,6 +22,10 @@ const NOME_DA_TABELA: Record<string, string> = {
   titulos_ministeriais: 'Lista de títulos',
   bairros: 'Bairros',
   valores_contribuicao: 'Valores da contribuição',
+  dados_comep: 'Dados do COMEP no site',
+  pedidos_associacao: 'Pedidos de associação',
+  pedidos_troca_igreja: 'Pedidos de troca de igreja',
+  codigos_acesso: 'Códigos de acesso',
 }
 
 const CAMPOS_IGNORADOS = new Set(['atualizado_em', 'criado_em', 'criado_por', 'id'])

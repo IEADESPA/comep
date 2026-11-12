@@ -70,7 +70,7 @@ describe('Fase 1.3 — portal do ministro e presidente de igreja', () => {
       "insert into public.igrejas (nome, telefone) values ('Igreja A', '1111'), ('Igreja B', '2222'), ('Igreja C', '3333') returning id",
     )
     ;[igrejaA, igrejaB, igrejaC] = i.rows.map((r) => r.id)
-    const t = await db.query<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor'")
+    const t = await db.query<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor(a)'")
     tituloPastor = t.rows[0].id
     await associar(presidente, igrejaA, true)
     await associar(ministro, igrejaA, false)

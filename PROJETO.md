@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.8 — 12 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.9 — 12 de novembro de 2026 — atualizado com as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -54,7 +54,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 
 ### 4.1 Site institucional e portão de entrada (associação)
 
-- **Página inicial pública:** quem é o COMEP, finalidades (Art. 3º), quem pode se associar (Art. 7º), assembleias e convocações, sede e contatos. Botões **"Portal do membro"** e **"Quero me associar"**.
+- **Página inicial pública:** quem é o COMEP, finalidades (Art. 3º), quem pode se associar (Art. 7º), assembleias e convocações, **Fale com o COMEP** (sede, reuniões mensais, telefone, WhatsApp, e-mail, redes sociais) e CNPJ no rodapé — editáveis em Configurações; o que estiver vazio aparece como "—". Botões **"Portal do membro"** e **"Quero me associar"**.
 - **Convocações publicadas no site:** o estatuto cita o site do COMEP como meio oficial de convocação (Art. 16, §2º).
 - **Formulário "Quero me associar":**
   - dados pessoais;
@@ -77,7 +77,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 
 ### 4.2 Ministros (perfil do associado)
 
-- Dados pessoais, contato, título ministerial (pastor, evangelista, presbítero etc. — lista na decisão 9), data de consagração, igreja e denominação.
+- Dados pessoais, contato, título ministerial (Pastor(a), Evangelista, Presbítero, Apóstolo(a), Bispo(a) — decisão 9; a lista fica em Configurações), data de consagração, igreja e denominação.
 - Foto (comprimida automaticamente no celular antes do envio).
 - Comprovante do título. RG/CPF digitalizados **não** são exigidos pelo estatuto e não serão pedidos (LGPD).
 - **Nº de registro** gerado automaticamente pelo banco (vai na carteirinha).
@@ -200,6 +200,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 
 Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim numa tela de **Configurações**:
 
+- **Dados do COMEP no site:** sede, reuniões mensais, telefone, WhatsApp, e-mail, redes sociais e CNPJ (decisão 14). Vazio aparece como "—" no site.
 - **Listas:** denominações (tipos de igreja), bairros e títulos de ministro. A secretaria, a presidência e o administrador técnico incluem, renomeiam e arquivam itens.
 - **Valores da contribuição:** a tesouraria e a presidência lançam o valor novo, com a data em que passa a valer e a assembleia que aprovou. O valor anterior fica no histórico.
 - Arquivar um item tira ele das opções, mas não apaga nada: o que já usava esse item continua guardado.
@@ -242,6 +243,7 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - `vinculos_igreja` — histórico de ministro ↔ igreja (com data de início/fim) ✅ criada
 - `pedidos_troca_igreja` — troca de igreja pedida pelo ministro e decidida pela secretaria ✅ criada
 - `titulos_ministeriais` (lista) e `titulos_pessoa` (histórico de títulos de cada um) ✅ criadas
+- `dados_comep` — dados públicos do COMEP mostrados no site (uma linha só) ✅ criada
 - `pedidos_associacao` — pedidos do formulário, análise da diretoria, assembleia que aprovou, aceites do associado e do diretor ✅ criada
 - `codigos_acesso` — códigos de primeiro acesso e de nova senha (o código em si fica só como resumo, numa tabela interna) ✅ criada
 - `desligamentos` — motivo (Art. 8º), assembleia e resultado da votação
@@ -331,7 +333,7 @@ Cada fase só é considerada entregue depois de passar pelas **4 travas de revis
 
 **Fica para depois, sem travar a Fase 1:**
 
-- o membro `presidente-ai` é o login do **presidente da igreja (IEADESPA)**, o 2º login da entidade: hoje ele é membro comum e precisa virar **dono** da organização no GitHub (e ligar a verificação em duas etapas);
+- o membro `presidente-ai` é o login do **presidente da igreja (IEADESPA)**, o 2º login da entidade: **já é dono** da organização no GitHub (conferido em 12/11/2026); falta ligar a verificação em duas etapas;
 - o termo da seção 8 passa a ser exigido no lançamento da versão 1.0, antes de entrar dado real.
 
 ### Fase 1 — Associação, ministros e igrejas (versão 1.0 — primeira versão em produção)
@@ -364,6 +366,7 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 **1.4 — Lançamento** (versão 1.0)
 
 - [ ] Revisão completa da Fase 1 e aceite da presidência (trava 4)
+- [ ] Cadastrar o presidente do COMEP e dar a ele o perfil Presidência (a composição completa da diretoria entra depois — decisão 10)
 - [ ] Termo da seção 8 assinado
 - [ ] Backup também das fotos e comprovantes (Storage), antes de entrar dado real
 - [ ] Configuração de login da produção (`docs/configuracao-login.md`)
@@ -458,6 +461,9 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 | 6. Quórum | 1ª chamada: 50% + 1 dos associados aptos. 2ª chamada: com os presentes | Quórum calculado sobre os associados em dia na data da assembleia |
 | 7. Reuniões mensais | Não têm efeito de AGO nem de AGE. A justificativa de falta vai ao 1º secretário | Reunião mensal registra presença e faltas, sem votações de assembleia; o 1º secretário aceita ou recusa a justificativa. Continua pendente: têm dia fixo? |
 | 8. Carteirinha | Validade de 4 anos, correspondente ao pleito | Vence junto com o mandato da diretoria (pergunta 21). Continua pendente: o que aparece nela |
+| 9. Títulos aceitos *(12/11/2026)* | Pastor(a), Evangelista, Presbítero, Apóstolo(a), Bispo(a) | Lista aplicada; "Missionário" e "Líder" (provisórios) arquivados. A lista continua editável em Configurações |
+| 10. Diretoria atual *(12/11/2026)* | A composição completa não está disponível; só se tem o presidente | No lançamento, o presidente é cadastrado e recebe o perfil Presidência. Os demais cargos recebem os perfis em "Perfis de acesso" quando forem informados (e, na Fase 4, pelos mandatos) |
+| 14. Dados para o site *(12/11/2026)* | Ainda não há (CNPJ, sede, contatos) | O site mostra "—"; a diretoria preenche em Configurações → Dados do COMEP no site, e o site atualiza na hora |
 
 ### 11.3 Ainda pendentes
 
@@ -465,14 +471,14 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 
 5. **Desligamento:** todos os casos do Art. 8º passam por votação de 3/5 em assembleia, ou só conduta (II) e faltas (IV)? Pedido próprio, transferência e falecimento podem ser registrados direto pela secretaria e só comunicados à assembleia?
 6. **Quórum:** a "metade mais um" conta todos os associados ativos ou só os em dia?
-7. **Reuniões mensais:** têm dia fixo? *(quem aceita a justificativa já foi respondido: o 1º secretário)*
+7. **Reuniões mensais:** têm dia fixo? *(quem aceita a justificativa já foi respondido: o 1º secretário. Quando houver dia fixo, ele é preenchido em Configurações → Dados do COMEP no site)*
 8. **Carteirinha:** o que aparece nela? *(validade já respondida: 4 anos, pelo pleito)*
-9. **Títulos ministeriais aceitos** (pastor, evangelista, presbítero, missionário, líder…). O estatuto não fecha a lista: fala em "títulos reconhecidos por sua denominação". *Enquanto isso, o sistema usa esses cinco; a lista muda quando a diretoria responder.*
-10. **Diretoria atual:** quem são hoje o Conselho Diretor e o Conselho Fiscal, e as datas dos mandatos. A diretoria que assinou o estatuto em maio de 2021 tinha mandato de 4 anos, que terminou em 2025.
+9. ~~Títulos ministeriais aceitos~~ — *respondida em 12/11/2026 (seção 11.2).*
+10. **Diretoria atual:** quem são hoje o Conselho Diretor e o Conselho Fiscal, e as datas dos mandatos. *Em 12/11/2026: só o presidente é conhecido (seção 11.2); os demais continuam pendentes.*
 11. **Regimento Interno:** existe um aprovado (Art. 10, I e Art. 13)? Se existir, enviar — pode responder várias perguntas acima.
 12. **Perfil "presidente de igreja"** (ver os ministros da sua igreja e se estão em dia): não está no estatuto. A diretoria quer manter? *Previsão (11/11/2026): **mantido**, e é o mesmo critério da contribuição: o pastor presidente marcado na ficha recebe o perfil e paga como presidente de igreja. Muda se a diretoria disser o contrário.*
 13. **Cópia completa do estatuto:** na cópia recebida faltam o §2º do Art. 7º e os Artigos 19 e 20 (provavelmente sobre dissolução, citada no título do Capítulo V).
-14. **Dados para o site:** o COMEP tem CNPJ? Qual a sede atual (o estatuto fala em sede provisória)? Quais os contatos oficiais (telefone/WhatsApp, e-mail, redes sociais)?
+14. **Dados para o site:** CNPJ, sede atual e contatos oficiais. *Em 12/11/2026: ainda não existem; o site mostra "—" e a diretoria preenche depois em Configurações (seção 11.2).*
 
 **Dúvidas sobre as respostas de 11/11/2026:**
 
@@ -485,7 +491,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 
 ### 11.4 Internas (equipe técnica, sem levar à diretoria)
 
-15. Donos das contas e quem guarda os códigos de recuperação — o 2º dono é o presidente da igreja (IEADESPA), pelo login `presidente-ai`: falta mudá-lo de membro para dono no GitHub e ligar a verificação em duas etapas.
+15. Donos das contas e quem guarda os códigos de recuperação — o 2º dono é o presidente da igreja (IEADESPA), pelo login `presidente-ai`: **já é dono** no GitHub (12/11/2026); falta ligar a verificação em duas etapas e guardar os códigos de recuperação.
 16. Arquivo original do logo — pedir depois; as cores já estão aplicadas.
 
 ## 12. Convenções de desenvolvimento

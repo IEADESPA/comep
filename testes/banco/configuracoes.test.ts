@@ -65,7 +65,7 @@ describe('Fase 1.2 — configurações e categorias', () => {
     )
     igrejaA = igrejas.rows[0].id
     igrejaB = igrejas.rows[1].id
-    const titulo = await db.query<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor'")
+    const titulo = await db.query<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor(a)'")
     tituloPastor = titulo.rows[0].id
   })
 

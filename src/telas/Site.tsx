@@ -1,7 +1,30 @@
 import { Link } from 'react-router'
+import { buscarDadosComep, type DadosComep } from '../dados/site'
+import { useCarregar } from '../estado/useCarregar'
+import { formatarCnpj } from '../utilitarios/formatos'
 
 // Site institucional público. Todo o texto vem do Estatuto do COMEP (PROJETO.md, seção 13).
-// Endereço e contatos entram quando a diretoria confirmar (PROJETO.md, decisão 14).
+// Sede, contatos e CNPJ vêm de "Configurações → Dados do COMEP no site" (decisão 14); vazio aparece "—".
+
+const SEM_DADO = '—'
+
+/** Dados públicos do COMEP (null enquanto carrega ou se não carregou). */
+function useDadosComep(): DadosComep | null {
+  const [carga] = useCarregar(buscarDadosComep)
+  return carga.situacao === 'ok' ? carga.dados : null
+}
+
+/** Link de rede social a partir do que a diretoria digitou (@usuario, endereço com ou sem https). */
+function linkDaRede(valor: string, base: string): string {
+  if (/^https?:\/\//i.test(valor)) return valor
+  if (valor.startsWith('@')) return `${base}${valor.slice(1)}`
+  if (valor.includes('.')) return `https://${valor}`
+  return `${base}${valor}`
+}
+
+function soNumeros(valor: string): string {
+  return valor.replace(/\D/g, '')
+}
 
 const FINALIDADES = [
   {
@@ -57,11 +80,76 @@ function CabecalhoSite() {
 }
 
 function RodapeSite() {
+  const dados = useDadosComep()
   return (
     <footer className="site-rodape">
       <strong>COMEP — Conselho de Ministros Evangélicos de Parauapebas</strong>
       <span>Associação civil de natureza religiosa, sem fins lucrativos · Parauapebas, Pará</span>
+      <span>CNPJ: {dados?.cnpj ? formatarCnpj(dados.cnpj) : SEM_DADO}</span>
     </footer>
+  )
+}
+
+function ContatoComep() {
+  const d = useDadosComep()
+  const whatsapp = d?.whatsapp ? soNumeros(d.whatsapp) : ''
+  const redes = [
+    d?.instagram && { nome: 'Instagram', href: linkDaRede(d.instagram, 'https://instagram.com/'), texto: d.instagram },
+    d?.facebook && { nome: 'Facebook', href: linkDaRede(d.facebook, 'https://facebook.com/'), texto: d.facebook },
+    d?.youtube && { nome: 'YouTube', href: linkDaRede(d.youtube, 'https://youtube.com/@'), texto: d.youtube },
+  ].filter((r): r is { nome: string; href: string; texto: string } => Boolean(r))
+
+  return (
+    <section className="site-secao site-secao-alt" aria-labelledby="titulo-contato">
+      <div className="site-largura">
+        <h2 id="titulo-contato">Fale com o COMEP</h2>
+        <dl className="site-contatos">
+          <div>
+            <dt>Sede</dt>
+            <dd>{d?.endereco_sede || SEM_DADO}</dd>
+          </div>
+          <div>
+            <dt>Reuniões mensais</dt>
+            <dd>{d?.reunioes_mensais || SEM_DADO}</dd>
+          </div>
+          <div>
+            <dt>Telefone</dt>
+            <dd>{d?.telefone ? <a href={`tel:${soNumeros(d.telefone)}`}>{d.telefone}</a> : SEM_DADO}</dd>
+          </div>
+          <div>
+            <dt>WhatsApp</dt>
+            <dd>
+              {d?.whatsapp ? (
+                <a href={`https://wa.me/${whatsapp.length <= 11 ? `55${whatsapp}` : whatsapp}`} target="_blank" rel="noreferrer">
+                  {d.whatsapp}
+                </a>
+              ) : (
+                SEM_DADO
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>E-mail</dt>
+            <dd>{d?.email ? <a href={`mailto:${d.email}`}>{d.email}</a> : SEM_DADO}</dd>
+          </div>
+          <div>
+            <dt>Redes sociais</dt>
+            <dd>
+              {redes.length === 0
+                ? SEM_DADO
+                : redes.map((r, i) => (
+                    <span key={r.nome}>
+                      {i > 0 && ' · '}
+                      <a href={r.href} target="_blank" rel="noreferrer" aria-label={`${r.nome}: ${r.texto}`}>
+                        {r.nome}
+                      </a>
+                    </span>
+                  ))}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
   )
 }
 
@@ -135,6 +223,8 @@ export function PaginaInicial() {
             </div>
           </div>
         </section>
+
+        <ContatoComep />
       </main>
       <RodapeSite />
     </div>

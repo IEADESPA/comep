@@ -21,9 +21,10 @@ import {
   type ValorContribuicao,
 } from '../../dados/configuracoes'
 import type { Perfil } from '../../dados/perfis'
+import { buscarDadosComep, CAMPOS_DADOS_COMEP, salvarDadosComep, type DadosComep } from '../../dados/site'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
-import { formatarData, hojeIso } from '../../utilitarios/formatos'
+import { cnpjValido, formatarCnpj, formatarData, hojeIso, limparCnpj } from '../../utilitarios/formatos'
 
 type Retorno = { sucesso?: string; erro?: string }
 
@@ -46,12 +47,14 @@ export function Configuracoes() {
       </p>
 
       <nav className="atalhos-secao" aria-label="Partes das configurações">
+        <a href="#site">Dados do COMEP no site</a>
         <a href="#denominacoes">Denominações</a>
         <a href="#bairros">Bairros</a>
         <a href="#titulos">Títulos de ministro</a>
         <a href="#valores">Valores da contribuição</a>
       </nav>
 
+      <DadosDoSite podeEditar={editaListas} />
       <ListaConfiguravel
         tabela="denominacoes"
         ancora="denominacoes"
@@ -458,5 +461,74 @@ function LancarValor({ aoLancar }: { aoLancar: (r: { erro: string | null }, text
         </div>
       </form>
     </details>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Dados do COMEP no site (decisão 14): o que estiver vazio aparece como "—"
+// ---------------------------------------------------------------------
+
+function DadosDoSite({ podeEditar }: { podeEditar: boolean }) {
+  const [carga, recarregar] = useCarregar(buscarDadosComep)
+  return (
+    <section className="painel" id="site" aria-labelledby="titulo-site">
+      <h2 id="titulo-site">Dados do COMEP no site</h2>
+      <p className="detalhe">
+        Aparecem na página inicial (Fale com o COMEP) e no rodapé. O que ficar em branco aparece como "—".
+      </p>
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {(dados) => <FormDadosDoSite inicial={dados} podeEditar={podeEditar} />}
+      </MostrarCarga>
+    </section>
+  )
+}
+
+function FormDadosDoSite({ inicial, podeEditar }: { inicial: DadosComep; podeEditar: boolean }) {
+  const [dados, setDados] = useState<DadosComep>({ ...inicial, cnpj: formatarCnpj(inicial.cnpj) || null })
+  const [retorno, setRetorno] = useState<Retorno>({})
+  const [enviando, setEnviando] = useState(false)
+
+  async function salvar() {
+    const cnpj = dados.cnpj ? limparCnpj(dados.cnpj) : ''
+    if (cnpj && !cnpjValido(cnpj)) {
+      setRetorno({ erro: 'CNPJ inválido. Confira os números ou deixe em branco.' })
+      return
+    }
+    setEnviando(true)
+    const r = await salvarDadosComep({ ...dados, cnpj: cnpj || null })
+    setEnviando(false)
+    setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Dados do site salvos. Já aparecem na página inicial.' })
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        void salvar()
+      }}
+    >
+      <div className="grade-form">
+        {CAMPOS_DADOS_COMEP.map(({ campo, rotulo, dica }) => (
+          <label key={campo} className={campo === 'endereco_sede' || campo === 'reunioes_mensais' ? 'largura-total' : ''}>
+            {rotulo}
+            <input
+              value={dados[campo] ?? ''}
+              placeholder={dica}
+              disabled={!podeEditar}
+              type={campo === 'email' ? 'email' : 'text'}
+              onChange={(e) => setDados((d) => ({ ...d, [campo]: e.target.value }))}
+            />
+          </label>
+        ))}
+      </div>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+      {podeEditar && (
+        <div className="acoes">
+          <button type="submit" className="botao" disabled={enviando}>
+            Salvar dados do site
+          </button>
+        </div>
+      )}
+    </form>
   )
 }

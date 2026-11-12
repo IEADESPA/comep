@@ -83,7 +83,7 @@ test('pastor presidente paga como presidente de igreja; jubilado é isento', asy
 
   await page.goto('ministros/novo')
   await page.getByLabel(/^Nome completo/).fill(nome)
-  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor' })
+  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor(a)' })
   await page.getByLabel(/^Igreja \*/).selectOption({ label: igreja })
   await page.getByLabel(/É o pastor presidente desta igreja/).check()
   await page.getByRole('button', { name: 'Cadastrar associado' }).click()
@@ -127,4 +127,43 @@ test('no computador, o menu não rola junto com o conteúdo', async ({ page }, i
   const menu = page.getByRole('navigation', { name: 'Menu principal' })
   await expect(menu.getByRole('link', { name: 'Início', exact: true })).toBeInViewport()
   await expect(page.getByRole('button', { name: 'Sair' })).toBeInViewport()
+})
+
+test('a diretoria preenche os dados do COMEP e o site mostra; vazio aparece "—"', async ({ page }, info) => {
+  const sufixo = sufixoUnico(info.project.name)
+  const secao = page.locator('#site')
+  const reunioes = secao.getByLabel('Reuniões mensais')
+  const instagram = secao.getByLabel('Instagram')
+
+  await page.goto('configuracoes')
+  // Guarda o que já estava preenchido, para devolver no fim
+  const antes = { reunioes: await reunioes.inputValue(), instagram: await instagram.inputValue() }
+
+  await reunioes.fill(`Teste E2E ${sufixo}`)
+  await instagram.fill(`@comep_e2e_${sufixo}`)
+  await secao.getByRole('button', { name: 'Salvar dados do site' }).click()
+  await expect(mensagem(page, 'Dados do site salvos.')).toBeVisible()
+
+  await page.goto('./')
+  const contatos = page.getByRole('region', { name: 'Fale com o COMEP' })
+  await expect(contatos).toContainText(`Teste E2E ${sufixo}`)
+  await expect(contatos.getByRole('link', { name: `Instagram: @comep_e2e_${sufixo}` })).toHaveAttribute(
+    'href',
+    `https://instagram.com/comep_e2e_${sufixo}`,
+  )
+
+  // Vazio aparece como "—"
+  await page.goto('configuracoes')
+  await reunioes.fill('')
+  await secao.getByRole('button', { name: 'Salvar dados do site' }).click()
+  await expect(mensagem(page, 'Dados do site salvos.')).toBeVisible()
+  await page.goto('./')
+  await expect(contatos.getByRole('definition').nth(1)).toHaveText('—')
+
+  // Devolve os valores de antes
+  await page.goto('configuracoes')
+  await reunioes.fill(antes.reunioes)
+  await instagram.fill(antes.instagram)
+  await secao.getByRole('button', { name: 'Salvar dados do site' }).click()
+  await expect(mensagem(page, 'Dados do site salvos.')).toBeVisible()
 })

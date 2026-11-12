@@ -53,7 +53,7 @@ test('cadastra um associado atual, registra a troca de igreja e arquiva o cadast
   await page.getByRole('link', { name: 'Cadastrar associado' }).click()
   await page.getByLabel(/^Nome completo/).fill(nome)
   await page.getByLabel(/^Telefone/).fill('(94) 90000-0000')
-  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor' })
+  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor(a)' })
   await page.getByLabel(/^Igreja \*/).selectOption({ label: IGREJA_A })
   await page.getByLabel(/^Função na igreja/).fill('Pastor de congregação')
   await page.getByRole('button', { name: 'Cadastrar associado' }).click()
