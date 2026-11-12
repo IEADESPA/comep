@@ -23,6 +23,7 @@ import {
   NOME_DA_CATEGORIA,
   type ValorContribuicao,
 } from '../../dados/configuracoes'
+import { situacaoDe, type SituacaoContribuicao } from '../../dados/financeiro'
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
 
@@ -32,7 +33,13 @@ export function DetalheMinistro() {
   return <Ficha key={pessoaId} pessoaId={pessoaId ?? ''} />
 }
 
-type DadosTela = { ficha: FichaAssociado | null; titulos: Titulo[]; igrejas: Igreja[]; valores: ValorContribuicao[] }
+type DadosTela = {
+  ficha: FichaAssociado | null
+  titulos: Titulo[]
+  igrejas: Igreja[]
+  valores: ValorContribuicao[]
+  situacao: SituacaoContribuicao | null
+}
 
 type Retorno = { sucesso?: string; erro?: string }
 
@@ -42,11 +49,12 @@ function Ficha({ pessoaId }: { pessoaId: string }) {
     sucesso: (location.state as { mensagem?: string } | null)?.mensagem,
   })
   const [carga, recarregar] = useCarregar(async () => {
-    const [ficha, titulos, igrejas, valores] = await Promise.all([
+    const [ficha, titulos, igrejas, valores, situacao] = await Promise.all([
       buscarFicha(pessoaId),
       listarTitulos(),
       listarIgrejas(),
       listarValores(),
+      situacaoDe(pessoaId),
     ])
     if (ficha.erro !== null) return ficha
     if (titulos.erro !== null) return titulos
@@ -57,6 +65,7 @@ function Ficha({ pessoaId }: { pessoaId: string }) {
       titulos: titulos.dados,
       igrejas: igrejas.dados,
       valores: valores.dados.vigentes,
+      situacao: situacao.erro === null ? situacao.dados : null,
     })
   })
 
@@ -73,7 +82,7 @@ function Ficha({ pessoaId }: { pessoaId: string }) {
         <Link to="/ministros">← Ministros</Link>
       </p>
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ ficha, titulos, igrejas, valores }) =>
+        {({ ficha, titulos, igrejas, valores, situacao }) =>
           !ficha ? (
             <Aviso titulo="Associado não encontrado">
               <p>O cadastro pode ter sido arquivado.</p>
@@ -84,6 +93,7 @@ function Ficha({ pessoaId }: { pessoaId: string }) {
               titulos={titulos}
               igrejas={igrejas}
               valores={valores}
+              situacao={situacao}
               retorno={retorno}
               concluir={concluir}
             />
@@ -99,11 +109,12 @@ type PropsConteudo = {
   titulos: Titulo[]
   igrejas: Igreja[]
   valores: ValorContribuicao[]
+  situacao: SituacaoContribuicao | null
   retorno: Retorno
   concluir: (r: { erro: string | null }, sucesso: string) => boolean
 }
 
-function Conteudo({ ficha, titulos, igrejas, valores, retorno, concluir }: PropsConteudo) {
+function Conteudo({ ficha, titulos, igrejas, valores, situacao, retorno, concluir }: PropsConteudo) {
   const navigate = useNavigate()
   const { associado } = ficha
 
@@ -131,7 +142,7 @@ function Conteudo({ ficha, titulos, igrejas, valores, retorno, concluir }: Props
       <Contato ficha={ficha} concluir={concluir} />
       <Titulos ficha={ficha} titulos={titulos} concluir={concluir} />
       <Igrejas ficha={ficha} igrejas={igrejas} concluir={concluir} />
-      <Contribuicao ficha={ficha} valores={valores} concluir={concluir} />
+      <Contribuicao ficha={ficha} valores={valores} situacao={situacao} concluir={concluir} />
 
       <section className="painel" aria-labelledby="titulo-admissao">
         <h2 id="titulo-admissao">Admissão no COMEP</h2>
@@ -454,7 +465,7 @@ function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'ig
   )
 }
 
-function Contribuicao({ ficha, valores, concluir }: Pick<PropsConteudo, 'ficha' | 'valores' | 'concluir'>) {
+function Contribuicao({ ficha, valores, situacao, concluir }: Pick<PropsConteudo, 'ficha' | 'valores' | 'situacao' | 'concluir'>) {
   const { associado } = ficha
   const [enviando, setEnviando] = useState(false)
   const categoria = associado.categoria_contribuicao
@@ -483,6 +494,18 @@ function Contribuicao({ ficha, valores, concluir }: Pick<PropsConteudo, 'ficha' 
           </>
         )}
       </p>
+      {situacao && !associado.jubilado && (
+        <p>
+          Situação:{' '}
+          {situacao.em_dia ? (
+            <span className="etiqueta etiqueta-ok">Em dia</span>
+          ) : (
+            <span className="etiqueta etiqueta-atraso">
+              Em atraso: {situacao.cobrancas_vencidas} vencida(s), {formatarReais(situacao.valor_vencido)}
+            </span>
+          )}
+        </p>
+      )}
       <p className="detalhe">
         A categoria é automática: jubilado é isento; quem está marcado como pastor presidente da igreja atual paga como
         presidente de igreja; os demais, como não presidente. Os valores ficam em Configurações.

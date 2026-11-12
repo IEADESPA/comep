@@ -1304,3 +1304,45 @@ fieldset .caixa-marcar + .caixa-marcar {
   margin: 0.2rem 0 0;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Financeiro (Fase 2) ---------- */
+
+.etiqueta-ok,
+.etiqueta-paga {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #14532d;
+}
+
+.etiqueta-atraso,
+.etiqueta-vencida {
+  background: var(--cor-erro-fundo);
+  border-color: var(--cor-erro);
+  color: var(--cor-erro);
+}
+
+.etiqueta-conferencia {
+  background: var(--cor-aviso-fundo);
+  border-color: var(--cor-aviso-borda);
+}
+
+.etiqueta-a_vencer,
+.etiqueta-cancelada {
+  background: var(--cor-fundo);
+  border-color: var(--cor-borda);
+  color: var(--cor-texto-suave);
+}
+
+@media (prefers-color-scheme: dark) {
+  .etiqueta-ok,
+  .etiqueta-paga {
+    background: #10291a;
+    border-color: #166534;
+    color: #86efac;
+  }
+}
+
+.alinhar-esquerda {
+  justify-self: start;
+  padding-left: 0;
+}

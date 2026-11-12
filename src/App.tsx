@@ -10,6 +10,8 @@ import { Auditoria } from './telas/administracao/Auditoria'
 import { Configuracoes } from './telas/administracao/Configuracoes'
 import { NovaSenha, PrimeiroAcesso } from './telas/acesso/PrimeiroAcesso'
 import { Entrar } from './telas/Entrar'
+import { Financeiro } from './telas/financeiro/Financeiro'
+import { MinhasMensalidades } from './telas/financeiro/MinhasMensalidades'
 import { EditarIgreja, NovaIgreja } from './telas/igrejas/FormIgreja'
 import { ListaIgrejas } from './telas/igrejas/ListaIgrejas'
 import { Inicio } from './telas/Inicio'
@@ -59,6 +61,14 @@ export default function App() {
               <Route path="painel" element={<Inicio />} />
               <Route path="meu-pedido" element={<MeuPedido />} />
               <Route path="meu-perfil" element={<MeuPerfil />} />
+
+              <Route path="minhas-mensalidades" element={<Area caminho="/minhas-mensalidades" />}>
+                <Route index element={<MinhasMensalidades />} />
+              </Route>
+
+              <Route path="financeiro" element={<Area caminho="/financeiro" />}>
+                <Route index element={<Financeiro />} />
+              </Route>
 
               <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>
                 <Route index element={<MinhaIgreja />} />

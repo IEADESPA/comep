@@ -50,7 +50,12 @@ export function MinhaIgreja() {
                   {ministros.map((m) => (
                     <li key={m.pessoa_id} className="lista-item lista-item-estatico">
                       <strong>
-                        <span className="numero">Nº {m.numero_registro}</span> {m.nome}
+                        <span className="numero">Nº {m.numero_registro}</span> {m.nome}{' '}
+                        {m.em_dia ? (
+                          <span className="etiqueta etiqueta-ok">Em dia</span>
+                        ) : (
+                          <span className="etiqueta etiqueta-atraso">Em atraso</span>
+                        )}
                       </strong>
                       <span>
                         {[m.titulo, m.funcao, m.pastor_presidente && 'pastor presidente'].filter(Boolean).join(' · ')}
@@ -64,8 +69,7 @@ export function MinhaIgreja() {
                   ))}
                 </ul>
                 <p className="detalhe">
-                  A situação das contribuições (em dia ou em atraso) de cada ministro aparece aqui quando o financeiro
-                  entrar (Fase 2).
+                  Em atraso = alguma contribuição vencida e não paga. Quem está em atraso não vota nem é votado (Art. 11).
                 </p>
               </section>
             </>

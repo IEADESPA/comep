@@ -170,6 +170,7 @@ export type MinistroDaMinhaIgreja = {
   funcao: string | null
   pastor_presidente: boolean
   igreja_id: string
+  em_dia: boolean
 }
 
 export async function ministrosDaMinhaIgreja(): Promise<Resultado<MinistroDaMinhaIgreja[]>> {

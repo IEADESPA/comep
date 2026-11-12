@@ -191,7 +191,7 @@ const BUCKET = 'documentos'
 /** Envia um arquivo para a pasta da pessoa: pessoas/<id>/<tipo>-<data>.<ext>. Nunca sobrescreve. */
 export async function enviarArquivo(
   pessoaId: string,
-  tipo: 'foto' | 'comprovante',
+  tipo: 'foto' | 'comprovante' | 'pagamento',
   arquivo: Blob,
   extensao: string,
 ): Promise<Resultado<string>> {
