@@ -352,6 +352,18 @@ O fluxo semanal do `comep-backups` passou a baixar os arquivos do Storage com a 
 
 Teste de 12/11/2026: o backup do `comep-teste` trouxe **100 arquivos** e o da produção, 0, porque ainda não há nenhum.
 
+Na repetição, depois de a produção ser preparada: teste com 148 arquivos; produção com a pasta criada e 0 arquivos.
+
+**Restauração conferida:**
+
+- o backup da produção passou na impressão digital;
+- abriu com a cópia da chave privada;
+- trouxe a estrutura de todas as tabelas da Fase 1 e a pasta de arquivos.
+
+| # | Gravidade | Achado na conferência | Correção |
+|---|---|---|---|
+| 13 | **Importante** | A cópia da chave privada guardada no OneDrive começava com um caractere invisível do Windows (BOM). Com ele, o programa que abre os backups recusava a chave, e uma restauração de verdade falharia | Caractere removido (o resto do arquivo não mudou); o segredo do GitHub foi regravado a partir do arquivo corrigido; o README do `comep-backups` ganhou o aviso |
+
 ### 5. Ambiente de teste no endereço próprio
 
 - `ieadespa.github.io/comep/teste/`: sempre no banco de teste, com a faixa amarela.
@@ -364,10 +376,26 @@ Os dois saem da mesma publicação:
 
 Os testes de ponta a ponta valem nos dois endereços.
 
-### 6. Testes
+### 6. Produção preparada (sem dados)
+
+Aplicado depois do pull request #12 passar nas verificações do GitHub:
+
+- **Migrações:** as 9 migrações aplicadas no `comep-producao`, que estava vazio, sem nenhum erro. Isso confirma que o banco monta do zero, na ordem certa.
+- **Login:** a configuração de `docs/configuracao-login.md`. O Supabase conferiu antes, mostrando só os 5 itens que mudariam.
+- **Conferências da produção:**
+  - as mesmas do item 1 deram o mesmo resultado do teste;
+  - o verificador aponta só o aviso esperado da tabela interna dos códigos;
+  - o visitante, pela internet, recebe "sem permissão" em tudo, exceto os dados do site.
+- **Situação:** 0 logins, 0 cadastros; títulos e valores da contribuição carregados; pasta de arquivos privada.
+
+O site oficial continua no banco de teste até o passo 1 do roteiro de lançamento.
+
+### 7. Testes
 
 - [x] **139 testes automáticos**: 133 do banco e 6 das validações das telas.
 - [x] **54 testes de ponta a ponta** passando no computador e no celular (mais 1 pulado de propósito), localmente e no GitHub.
+- [x] Pull request #12 verde no GitHub: lint, testes, build e ponta a ponta.
+- [x] Depois de publicado, **54 de 54** também contra os dois endereços: `ieadespa.github.io/comep/` e `ieadespa.github.io/comep/teste/`.
 
 ## Trava 4 — Aceite e lançamento da versão 1.0
 
