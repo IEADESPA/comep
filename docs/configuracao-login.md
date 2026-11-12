@@ -43,7 +43,7 @@ O `diff` mostra só o que muda; as propriedades que o arquivo não declara ficam
 | Projeto | Aplicado em | Observação |
 |---|---|---|
 | `comep-teste` | 11/11/2026 | Conferido pelos testes de ponta a ponta: criar acesso, primeiro acesso com código e nova senha com código |
-| `comep-producao` | **Ainda não** | Aplicar no lançamento da versão 1.0 (trava 4), junto com as migrações |
+| `comep-producao` | 12/11/2026 | Preparado para o lançamento; o site oficial passa a usar a produção no passo 1 de `docs/lancamento.md` |
 
 ## Limite de logins
 

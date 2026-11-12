@@ -79,6 +79,8 @@ O Claude Code faz: cria a marca `v1.0` no GitHub e registra o aceite e a data em
 
 | Item | Situação |
 |---|---|
-| Estrutura do banco de produção | Ver `docs/revisoes/fase-1.md`, "Revisão geral antes do lançamento" |
-| Login da produção (`docs/configuracao-login.md`) | Idem |
+| Estrutura do banco de produção | ✅ 12/11/2026: as 9 migrações aplicadas numa produção vazia, sem erro |
+| Login da produção (`docs/configuracao-login.md`) | ✅ 12/11/2026: sem confirmação por e-mail, senha de 8 caracteres com letras e números, endereço do site |
+| Conferência da produção | ✅ 12/11/2026: mesmas regras do teste. O visitante recebe "sem permissão" em tudo, exceto os dados do site. 0 logins, 0 cadastros. Títulos e valores carregados. Pasta de arquivos privada |
+| Backup da produção | ✅ Entra no backup semanal (banco + arquivos) |
 | Site oficial | No banco de **teste** até o passo 1 |
