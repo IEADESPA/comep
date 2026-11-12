@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.10 — 12 de novembro de 2026 — atualizado com a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.11 — 12 de novembro de 2026 — atualizado com o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -314,7 +314,15 @@ O termo é assinado pelo presidente, que representa o COMEP (Art. 12, §2º, III
 
 ## 9. Fases de entrega
 
-Cada fase só é considerada entregue depois de passar pelas **4 travas de revisão da seção 14**. A versão em produção recebe o número da fase: Fase 1 → versão 1.0, Fase 2 → versão 2.0, e assim por diante.
+Cada fase só é considerada entregue depois de passar pelas **4 travas de revisão da seção 14**. A versão recebe o número da fase: Fase 1 → versão 1.0, Fase 2 → versão 2.0, e assim por diante.
+
+> **Calendário (decisão de 12/11/2026):**
+>
+> - o presidente do COMEP concordou com tudo o que foi feito e quer as 6 fases prontas;
+> - o sistema fica **no ambiente de teste, com dados fictícios, até a Fase 5**;
+> - o **lançamento com dados reais** (produção) acontece **depois da versão 5.0**, pelo roteiro `docs/lancamento.md`;
+> - até lá, cada fase fecha com as travas 1 a 3 e o aceite da presidência, e a versão fica `N.0-teste`;
+> - a produção já está preparada e vazia.
 
 ### Fase 0 — Fundação (versão 0.1, só em teste)
 
@@ -336,7 +344,7 @@ Cada fase só é considerada entregue depois de passar pelas **4 travas de revis
 - o membro `presidente-ai` é o login do **presidente da igreja (IEADESPA)**, o 2º login da entidade: **já é dono** da organização no GitHub (conferido em 12/11/2026); falta ligar a verificação em duas etapas;
 - o termo da seção 8 passa a ser exigido no lançamento da versão 1.0, antes de entrar dado real.
 
-### Fase 1 — Associação, ministros e igrejas (versão 1.0 — primeira versão em produção)
+### Fase 1 — Associação, ministros e igrejas (versão 1.0-teste) — concluída em 12/11/2026
 
 A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente de teste; a trava 4 (produção) é uma só, no lançamento da versão 1.0. Revisão: `docs/revisoes/fase-1.md`.
 
@@ -367,13 +375,15 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 
 - [x] Revisão geral da Fase 1 (trava): revisão de segurança independente, conferência do banco e da API, dependências e testes; 10 correções aplicadas (12/11/2026)
 - [x] Ambiente de teste no endereço próprio: `ieadespa.github.io/comep/teste/` (12/11/2026)
-- [ ] Aceite da presidência às regras do estatuto (trava 4)
-- [ ] Cadastrar o presidente do COMEP e dar a ele o perfil Presidência (a composição completa da diretoria entra depois — decisão 10)
-- [ ] Termo da seção 8 assinado
+- [x] Aceite da presidência às regras do estatuto (12/11/2026: o presidente do COMEP concordou com tudo o que foi feito)
+- [x] Banco de teste cheio de dados fictícios (`testes/dados/semente-teste.sql`): 20 igrejas, 50 associados, pedidos em todas as situações, trocas pendentes, fotos e comprovantes de mentira
 - [x] Backup também das fotos e comprovantes (Storage), testado em 12/11/2026
 - [x] Produção preparada sem dados: estrutura do banco e configuração de login (`docs/configuracao-login.md`)
-- [ ] Verificação em duas etapas nas duas contas donas do GitHub
-- [ ] Site oficial ligado ao banco de produção, ambiente de teste em endereço próprio, dados reais liberados
+- **Ficam para o lançamento, depois da Fase 5:**
+  - verificação em duas etapas nas duas contas donas do GitHub;
+  - termo da seção 8 assinado (modelo em `docs/termo-hospedagem.md`);
+  - cadastrar o presidente do COMEP e dar a ele o perfil Presidência (a composição completa da diretoria entra depois — decisão 10);
+  - site oficial ligado ao banco de produção e dados reais liberados.
 
 ### Fase 2 — Financeiro (versão 2.0)
 
@@ -405,6 +415,7 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 - [ ] Projetos e eventos com orçamento e lançamentos vinculados
 - [ ] Mural de avisos e envio por WhatsApp
 - [ ] Painel geral da presidência (indicadores)
+- [ ] **Lançamento em produção, com dados reais** (`docs/lancamento.md`): verificação em duas etapas dos donos, termo assinado, dados do presidente, site oficial no banco de produção
 
 ### Fase 6 — Melhorias futuras
 

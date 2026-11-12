@@ -98,7 +98,8 @@ function Troca({
         )}
         <label>
           A partir de
-          <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
+          {/* Pode ser data futura: o ministro pede a troca "a partir de" quando ela vai acontecer */}
+          <input type="date" required value={data} onChange={(e) => setData(e.target.value)} />
         </label>
         <button type="submit" className="botao" disabled={enviando}>
           Aprovar troca

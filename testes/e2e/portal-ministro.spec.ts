@@ -59,6 +59,9 @@ test('o ministro pede troca de igreja, a secretaria aprova; o ministro troca a p
   await page.getByText('Pedir troca de igreja').click()
   await page.getByLabel(/^Igreja nova/).selectOption({ label: 'Igreja Fictícia B (teste)' })
   await page.getByLabel('Função na igreja nova').fill('Pastor auxiliar')
+  // Troca marcada para daqui a 10 dias: a secretaria precisa conseguir aprovar mesmo assim
+  const daqui10Dias = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
+  await page.getByLabel('A partir de').fill(daqui10Dias)
   await page.getByRole('button', { name: 'Enviar pedido de troca' }).click()
   await expect(mensagemNaTela(page, 'Pedido de troca de igreja enviado à secretaria.')).toBeVisible()
   await expect(page.getByText(/Pedido de troca para Igreja Fictícia B \(teste\)/)).toBeVisible()

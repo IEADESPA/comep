@@ -276,5 +276,19 @@ describe('Revisão de segurança antes do lançamento', () => {
         erroComCodigo(SEM_PERMISSAO),
       )
     })
+
+    it('associado ativo não tem limite (pode trocar a foto quantas vezes precisar)', async () => {
+      const pessoa = await pessoaDe(ministro)
+      for (let i = 0; i < 31; i++) {
+        await como(db, ministro, () =>
+          db.query("insert into storage.objects (bucket_id, name) values ('documentos', $1)", [`pessoas/${pessoa}/foto${i}.jpg`]),
+        )
+      }
+      const r = await db.query<{ total: number }>(
+        "select count(*)::int as total from storage.objects where name like 'pessoas/' || $1 || '/%'",
+        [pessoa],
+      )
+      assert.equal(r.rows[0].total, 31)
+    })
   })
 })
