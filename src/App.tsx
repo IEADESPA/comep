@@ -18,6 +18,8 @@ import { DetalheMinistro } from './telas/ministros/DetalheMinistro'
 import { ListaMinistros } from './telas/ministros/ListaMinistros'
 import { NovoMinistro } from './telas/ministros/NovoMinistro'
 import { CriarAcessoPedido, MeuPedido } from './telas/pedido/MeuPedido'
+import { MeuPerfil } from './telas/portal/MeuPerfil'
+import { MinhaIgreja } from './telas/portal/MinhaIgreja'
 import { ConfiguracaoAusente, EmConstrucao } from './telas/Simples'
 import { PaginaInicial, PaginaNaoEncontrada, QueroMeAssociar } from './telas/Site'
 
@@ -56,6 +58,11 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="painel" element={<Inicio />} />
               <Route path="meu-pedido" element={<MeuPedido />} />
+              <Route path="meu-perfil" element={<MeuPerfil />} />
+
+              <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>
+                <Route index element={<MinhaIgreja />} />
+              </Route>
 
               <Route path="inscricoes" element={<Area caminho="/inscricoes" />}>
                 <Route index element={<ListaInscricoes />} />

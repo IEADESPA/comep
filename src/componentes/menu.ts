@@ -22,10 +22,10 @@ const DIRETORIA_CADASTRO: readonly Perfil[] = ['secretaria', 'presidencia']
 export const ITENS_MENU: readonly ItemMenu[] = [
   { caminho: '/painel', titulo: 'Início', descricao: 'Resumo e atalhos', perfis: 'todos', fase: 0, pronto: true },
   { caminho: '/meu-pedido', titulo: 'Meu pedido', descricao: 'Pedido de associação ao COMEP', perfis: 'sem_perfil', fase: 1, pronto: true },
-  { caminho: '/meu-perfil', titulo: 'Meu perfil', descricao: 'Seus dados, foto e histórico', perfis: 'todos', fase: 1 },
+  { caminho: '/meu-perfil', titulo: 'Meu perfil', descricao: 'Seus dados, foto, igreja e senha', perfis: 'todos', fase: 1, pronto: true },
   { caminho: '/minhas-mensalidades', titulo: 'Minhas mensalidades', descricao: 'Situação e envio de comprovantes', perfis: MINISTRO, fase: 2 },
   { caminho: '/minha-carteirinha', titulo: 'Minha carteirinha', descricao: 'Carteirinha digital com QR Code', perfis: MINISTRO, fase: 3 },
-  { caminho: '/minha-igreja', titulo: 'Minha igreja', descricao: 'Ministros vinculados e pedidos pendentes', perfis: ['presidente_igreja'], fase: 1 },
+  { caminho: '/minha-igreja', titulo: 'Minha igreja', descricao: 'Ministros da sua igreja e contato da igreja', perfis: ['presidente_igreja'], fase: 1, pronto: true },
   { caminho: '/inscricoes', titulo: 'Inscrições', descricao: 'Pedidos de associação para análise', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
   { caminho: '/ministros', titulo: 'Ministros', descricao: 'Cadastro de ministros', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
   { caminho: '/igrejas', titulo: 'Igrejas', descricao: 'Cadastro de igrejas e denominações', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },

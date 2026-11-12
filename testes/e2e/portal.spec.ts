@@ -44,7 +44,8 @@ test.describe('ministro', () => {
     const menu = await abrirMenu(page)
     await expect(menu.getByRole('link', { name: 'Minhas mensalidades', exact: true })).toBeVisible()
     await expect(menu.getByRole('link', { name: 'Minha carteirinha', exact: true })).toBeVisible()
-    for (const item of ['Inscrições', 'Ministros', 'Financeiro', 'Perfis de acesso', 'Auditoria']) {
+    await expect(menu.getByRole('link', { name: 'Meu perfil', exact: true })).toBeVisible()
+    for (const item of ['Inscrições', 'Ministros', 'Financeiro', 'Perfis de acesso', 'Auditoria', 'Minha igreja']) {
       await expect(menu.getByRole('link', { name: item, exact: true })).toHaveCount(0)
     }
   })
@@ -59,6 +60,7 @@ test.describe('ministro', () => {
       'igrejas/nova',
       'inscricoes',
       'configuracoes',
+      'minha-igreja',
     ]) {
       await page.goto(area)
       await expect(page.getByRole('heading', { name: 'Sem acesso' }), area).toBeVisible()

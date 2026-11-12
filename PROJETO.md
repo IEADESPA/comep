@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.7 — 11 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.8 — 12 de novembro de 2026 — atualizado com o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -240,6 +240,7 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - `valores_contribuicao` — valor por categoria e tipo (mensal, anual, inscrição), com vigência e assembleia ✅ criada
 - `associados` — nº de registro, situação, forma e data de admissão ✅ criada
 - `vinculos_igreja` — histórico de ministro ↔ igreja (com data de início/fim) ✅ criada
+- `pedidos_troca_igreja` — troca de igreja pedida pelo ministro e decidida pela secretaria ✅ criada
 - `titulos_ministeriais` (lista) e `titulos_pessoa` (histórico de títulos de cada um) ✅ criadas
 - `pedidos_associacao` — pedidos do formulário, análise da diretoria, assembleia que aprovou, aceites do associado e do diretor ✅ criada
 - `codigos_acesso` — códigos de primeiro acesso e de nova senha (o código em si fica só como resumo, numa tabela interna) ✅ criada
@@ -354,11 +355,11 @@ A Fase 1 é entregue em partes. Cada parte passa pelas travas 1 a 3 no ambiente 
 - [x] Formulário "Quero me associar": título e comprovante, igreja, foto, declaração dos princípios de fé (Art. 7º, §1º) e consentimento LGPD
 - [x] Análise pela diretoria (devolver com pendência, aceite de um diretor na ficha, recusa com motivo) e registro da aprovação em Assembleia Ordinária (Art. 7º)
 
-**1.3 — Portal do ministro** (versão 1.0-teste.3)
+**1.3 — Portal do ministro** (versão 1.0-teste.4) — concluída em 12/11/2026
 
-- [ ] Meu perfil (ver/editar, foto, histórico)
-- [ ] Pedido de troca de igreja pelo próprio ministro, com aprovação da secretaria
-- [ ] Painel do presidente de igreja: ministros da sua igreja (decisão 12 — previsão: mantido)
+- [x] Meu perfil: ver e corrigir os próprios dados (LGPD), trocar a foto e a senha; nº de registro, categoria e valor da contribuição, título e igreja com histórico
+- [x] Pedido de troca de igreja pelo próprio ministro, aprovado ou recusado pela secretaria/presidência na tela de Ministros
+- [x] Painel do presidente de igreja ("Minha igreja"): os ministros da sua igreja (só nome, telefone, nº, título e função) e o contato da igreja (endereço, bairro, telefone) — decisão 12, previsão: mantido
 
 **1.4 — Lançamento** (versão 1.0)
 

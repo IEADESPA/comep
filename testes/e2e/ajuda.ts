@@ -91,3 +91,52 @@ export async function trocarPara(page: Page, quem: NomeUsuario | ItemArmazenado[
     for (const item of lista) localStorage.setItem(item.name, item.value)
   }, itens)
 }
+
+// ---------- Associados de teste criados pela própria bateria ----------
+
+/** Mensagem de sucesso (role=status) com o texto pedido. */
+export function mensagemNaTela(page: Page, texto: string | RegExp): Locator {
+  return page.getByRole('status').filter({ hasText: texto })
+}
+
+/**
+ * A presidência cadastra um associado fictício e gera o código; o associado cria o login (primeiro acesso).
+ * Devolve a sessão do associado (para usar com trocarPara).
+ */
+export async function criarAssociadoComLogin(
+  page: Page,
+  dados: { nome: string; email: string; senha: string; igreja: string; pastorPresidente?: boolean },
+): Promise<ItemArmazenado[]> {
+  await trocarPara(page, 'presidencia')
+  await page.goto('ministros/novo')
+  await page.getByLabel(/^Nome completo/).fill(dados.nome)
+  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor' })
+  await page.getByLabel(/^Igreja \*/).selectOption({ label: dados.igreja })
+  if (dados.pastorPresidente) await page.getByLabel(/É o pastor presidente desta igreja/).check()
+  await page.getByRole('button', { name: 'Cadastrar associado' }).click()
+  await expect(mensagemNaTela(page, 'Associado cadastrado.')).toBeVisible()
+  await page.getByRole('button', { name: 'Gerar código de primeiro acesso' }).click()
+  const codigo = (await page.locator('.codigo').textContent())?.trim() ?? ''
+
+  await trocarPara(page, null)
+  await page.goto('primeiro-acesso')
+  await page.getByLabel('Código de acesso').fill(codigo)
+  await page.getByLabel('Seu e-mail').fill(dados.email)
+  await page.getByLabel('Crie uma senha').fill(dados.senha)
+  await page.getByLabel('Repita a senha').fill(dados.senha)
+  await page.getByRole('button', { name: 'Criar meu acesso' }).click()
+  await expect(page).toHaveURL(/\/comep\/painel$/)
+  return guardarSessao(page)
+}
+
+/** Limpeza: a presidência arquiva o cadastro de um associado de teste (nada se apaga). */
+export async function arquivarAssociadoDeTeste(page: Page, nome: string): Promise<void> {
+  await trocarPara(page, 'presidencia')
+  await page.goto('ministros')
+  await page.getByLabel('Buscar associado').fill(nome)
+  await page.getByRole('list', { name: 'Associados' }).getByRole('link').first().click()
+  await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
+  await page.getByText('Arquivar cadastro', { exact: true }).last().click()
+  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
+  await expect(page).toHaveURL(/\/comep\/ministros$/)
+}
