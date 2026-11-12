@@ -9,6 +9,8 @@ test('página inicial mostra o COMEP e os botões de entrada', async ({ page }) 
   await expect(page.getByRole('link', { name: 'Portal do membro' }).first()).toBeVisible()
   await expect(page.getByRole('link', { name: 'Quero me associar' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'O que fazemos' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Fale com o COMEP' })).toBeVisible()
+  await expect(page.getByRole('contentinfo')).toContainText('CNPJ:')
 })
 
 test('o ambiente de teste mostra a faixa de aviso', async ({ page }) => {

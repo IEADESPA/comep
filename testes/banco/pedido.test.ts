@@ -44,7 +44,7 @@ describe('Fase 1.2 — códigos de acesso, pedido de associação e arquivos', (
     await darPerfil(db, ministro, 'ministro')
     const i = await db.query<{ id: string }>("insert into public.igrejas (nome) values ('Igreja A') returning id")
     igrejaA = i.rows[0].id
-    const t = await db.query<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor'")
+    const t = await db.query<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor(a)'")
     tituloPastor = t.rows[0].id
   })
 
@@ -357,7 +357,7 @@ describe('Fase 1.2 — códigos de acesso, pedido de associação e arquivos', (
       assert.deepEqual(a.rows[0], {
         forma: 'assembleia',
         ata: 'Ata 12/2026',
-        titulo: 'Pastor',
+        titulo: 'Pastor(a)',
         igreja: 'Igreja A',
         foto: `pessoas/${pessoaCandidato}/foto-1.jpg`,
       })

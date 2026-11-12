@@ -247,7 +247,7 @@ O que entrou:
 
 | Pull request | Resultado | Data |
 |---|---|---|
-| Fase 1.3 — portal do ministro | ver o pull request | 12/11/2026 |
+| #10 — Fase 1.3, portal do ministro | verde (lint, testes, build e ponta a ponta no GitHub e no site publicado) | 12/11/2026 |
 
 ### Trava 2
 
@@ -278,6 +278,26 @@ Conferência visual (1280 px e 390 px): "Meu perfil" com o pedido de troca abert
 |---|---|---|---|---|
 | 10 | Importante | Ao salvar os dados em "Meu perfil", a tela inteira voltava a "Carregando…" e a mensagem de "salvo" sumia, porque recarregar o cadastro da sessão apagava o cadastro antes da resposta | O cadastro é recarregado mantendo a tela aberta | ✅ |
 | 11 | Menor | O verificador do Supabase apontou duas regras de alteração separadas na tabela de igrejas (secretaria e pastor presidente) | Unidas numa regra só, numa migração de ajuste | ✅ |
+
+## Ajustes de 12/11/2026 — respostas da diretoria
+
+**Resultado: aprovado no ambiente de teste em 12/11/2026.**
+
+- **Títulos (decisão 9):**
+  - a lista oficial é Pastor(a), Evangelista, Presbítero, Apóstolo(a) e Bispo(a), aplicada por migração (`20261112130554_titulos_e_dados_site.sql`), para valer igual no teste e na produção;
+  - "Missionário" e "Líder" foram arquivados, sem apagar o histórico de quem os tinha.
+- **Dados do site (decisão 14):**
+  - nova área "Dados do COMEP no site" em Configurações: sede, reuniões mensais, telefone, WhatsApp, e-mail, redes sociais e CNPJ;
+  - o site ganhou a seção "Fale com o COMEP" e o CNPJ no rodapé. O que estiver vazio aparece como "—";
+  - qualquer visitante lê esses dados; só a secretaria, a presidência e o administrador técnico alteram, e a auditoria registra.
+- **Diretoria (decisão 10):** só o presidente é conhecido. No lançamento ele recebe o perfil Presidência, e os demais perfis entram em "Perfis de acesso" quando a composição for informada.
+- **GitHub:** o `presidente-ai` já é dono da organização (conferido em 12/11/2026). Falta ele ligar a verificação em duas etapas.
+
+| Trava | Resultado |
+|---|---|
+| 1 | Lint, build e **125 testes automáticos**: 119 do banco, dos quais 5 são novos (dados do site), e 6 das validações das telas |
+| 2 | Migração aplicada só no `comep-teste`. A lista de títulos foi conferida lá; o verificador só aponta os 2 avisos esperados |
+| 3 | Ponta a ponta: o site mostra "Fale com o COMEP" e o CNPJ; a diretoria preenche Instagram e reuniões mensais e o site mostra; campo vazio aparece "—". O teste devolve no fim os valores que já estavam preenchidos |
 
 ## Trava 4 — Aceite e lançamento da versão 1.0
 

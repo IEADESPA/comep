@@ -1282,3 +1282,25 @@ fieldset .caixa-marcar + .caixa-marcar {
 .aviso-campo p {
   margin: 0 0 0.5rem;
 }
+
+/* ---------- Site: Fale com o COMEP ---------- */
+
+.site-contatos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 1rem 0 0;
+}
+
+.site-contatos dt {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.site-contatos dd {
+  margin: 0.2rem 0 0;
+  overflow-wrap: anywhere;
+}

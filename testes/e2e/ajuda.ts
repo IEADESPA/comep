@@ -110,7 +110,7 @@ export async function criarAssociadoComLogin(
   await trocarPara(page, 'presidencia')
   await page.goto('ministros/novo')
   await page.getByLabel(/^Nome completo/).fill(dados.nome)
-  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor' })
+  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor(a)' })
   await page.getByLabel(/^Igreja \*/).selectOption({ label: dados.igreja })
   if (dados.pastorPresidente) await page.getByLabel(/É o pastor presidente desta igreja/).check()
   await page.getByRole('button', { name: 'Cadastrar associado' }).click()
