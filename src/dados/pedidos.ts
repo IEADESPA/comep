@@ -200,7 +200,15 @@ export async function enviarArquivo(
     upsert: false,
     contentType: arquivo.type,
   })
-  if (error) return { dados: null, erro: 'Não foi possível enviar o arquivo. Verifique a internet e tente de novo.' }
+  if (error) {
+    const recusado = /row-level security|unauthorized|403/i.test(`${error.message} ${(error as { statusCode?: string }).statusCode ?? ''}`)
+    return {
+      dados: null,
+      erro: recusado
+        ? 'O envio foi recusado: limite de arquivos atingido para quem ainda não é associado. Procure a secretaria.'
+        : 'Não foi possível enviar o arquivo. Verifique a internet e tente de novo.',
+    }
+  }
   return ok(caminho)
 }
 

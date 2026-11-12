@@ -401,10 +401,34 @@ O site oficial continua no banco de teste até o passo 1 do roteiro de lançamen
 
 - [x] Nenhum problema bloqueante ou importante em aberto (revisão geral de 12/11/2026, acima)
 - [ ] Aceite técnico — nome e data:
-- [ ] Aceite da diretoria (regras do estatuto) — nome e data:
+- [x] Aceite da diretoria (regras do estatuto): **12/11/2026, o presidente do COMEP concordou com tudo o que foi feito** (informado pelo administrador técnico). Ele quer as 6 fases prontas
 - [ ] Termo da seção 8 assinado
 - [ ] Migrações aplicadas no `comep-producao`
 - [ ] Publicado e conferido em produção (entrar, menu, uma tela de cada perfil)
 - [ ] Versão marcada no GitHub: `v1.0`
 
 Decisões registradas:
+
+- **12/11/2026 — calendário:** o lançamento com dados reais fica para **depois da versão 5.0**. A Fase 1 fecha como **1.0-teste**. Os demais itens desta trava (termo, produção, versão marcada) acontecem no lançamento (`docs/lancamento.md`).
+
+## Dados fictícios no ambiente de teste (12/11/2026)
+
+Pedido da presidência: encher o sistema de dados ilusórios. Semente em `testes/dados/semente-teste.sql`:
+
+- **Trava:** só roda onde existe a "Igreja Fictícia A (teste)", ou seja, no banco de teste. Rodando de novo, não faz nada.
+- **Regras do sistema:** tudo passa pelas regras de verdade (cadastro direto, troca de igreja, pedido, aprovação em assembleia), executadas como a presidência fictícia. A auditoria registra.
+- **Ensaio antes:** a semente rodou primeiro no banco local de testes.
+- **O que foi criado:**
+  - 20 igrejas com nomes inventados, 11 denominações e 20 bairros de Parauapebas;
+  - 50 associados do cadastro direto: 20 pastores presidentes, 3 jubilados, histórico de títulos e de igrejas;
+  - 19 pedidos de associação: 4 para analisar (2 com igreja não cadastrada), 2 com pendência, 3 aguardando assembleia, 2 recusados e 8 aprovados em AGOs de 2025 e 2026;
+  - 3 trocas de igreja pendentes.
+- **Arquivos:** fotos (silhueta colorida) e comprovantes ("credencial fictícia" em PDF), enviados por `testes/dados/arquivos-semente.mjs` com a chave secreta, que não aparece.
+- **Dados pessoais:** nomes, telefones `(94) 90000-xxxx` e e-mails `@example.com` são inventados. Os dados do site (Fale com o COMEP) ficaram vazios, de propósito: o endereço público não pode mostrar contato falso.
+
+Resultado no `comep-teste`: 70 associados ativos (com os que os testes automáticos já tinham criado), 22 igrejas, 88 arquivos.
+
+| # | Gravidade | Achado com o sistema cheio | Correção | Testado de novo |
+|---|---|---|---|---|
+| 14 | Importante | O ministro pode pedir a troca de igreja "a partir de" uma data futura, mas o campo de data da aprovação só aceitava até hoje: a secretaria não conseguia aprovar sem mudar a data | O campo aceita data futura | ✅ O teste de ponta a ponta pede a troca para daqui a 10 dias e aprova |
+| 15 | Importante | O limite de 30 arquivos por pessoa (revisão de segurança) valia também para associados: o ministro fictício, que troca de foto a cada bateria de testes, chegou a 30 e não conseguia mais trocar. Um associado de verdade chegaria lá com o tempo. A tela ainda dizia "verifique a internet" | O limite vale só para quem ainda não é associado (migração `20261112153856_limite_arquivos.sql`). A mensagem agora explica a recusa | ✅ Teste do banco (associado envia 31 arquivos) e o de ponta a ponta da foto |

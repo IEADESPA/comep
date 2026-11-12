@@ -1,6 +1,6 @@
 # Roteiro do lançamento da versão 1.0
 
-> Entrega 1.4 (PROJETO.md, seção 9). É a primeira versão com **dados reais**.
+> **Adiado para depois da versão 5.0** (decisão de 12/11/2026, PROJETO.md, seção 9). Até lá o sistema fica no ambiente de teste, com dados fictícios. A produção está preparada e vazia.
 > Este roteiro é a trava 4 (seção 14): só se começa com todos os pré-requisitos marcados.
 
 ## Pré-requisitos (ninguém lança sem eles)
@@ -9,7 +9,7 @@
 - [x] Backup semanal incluindo fotos e comprovantes, testado em 12/11/2026
 - [x] Ambiente de teste no endereço próprio: `https://ieadespa.github.io/comep/teste/`
 - [x] Produção preparada, sem nenhum dado: estrutura do banco e configuração de login (ver "Situação" no fim)
-- [ ] **Aceite da presidência:** a presidência do COMEP confere as regras do estatuto no ambiente de teste e dá o aceite, com nome e data registrados em `docs/revisoes/fase-1.md`
+- [x] **Aceite da presidência:** em 12/11/2026, o presidente do COMEP concordou com tudo o que foi feito (registrado em `docs/revisoes/fase-1.md`). Repetir a conferência das fases 2 a 5 antes do lançamento
 - [ ] **Termo de hospedagem** (`docs/termo-hospedagem.md`) assinado pela presidência do COMEP e pela IEADESPA
 - [ ] **Verificação em duas etapas** ligada nas duas contas donas do GitHub (`seta-max` e `presidente-ai`), com os códigos de recuperação guardados
 - [ ] **Dados do presidente do COMEP:**
@@ -40,6 +40,8 @@ Depois, rodar de novo o fluxo **Verificar e publicar** (Actions → Run workflow
 ### 2. Primeiros acessos
 
 O sistema começa sem ninguém com perfil. É o "ovo e a galinha": quem dá os perfis é a presidência. Por isso os dois primeiros acessos são dados direto no banco, pelo Claude Code, sem dado nenhum além desses.
+
+> As migrações das fases 2 a 5 precisam estar aplicadas na produção antes deste passo (`npx supabase db push --remote=xwdnhdbpdpluotxjiawf`), depois de passarem pelas travas no teste.
 
 1. **Administrador técnico (IEADESPA):** cria o próprio login no site oficial, em "Quero me associar → criar acesso", e **não** envia pedido.
 2. **Presidente do COMEP:** faz o mesmo, com o e-mail dele.
