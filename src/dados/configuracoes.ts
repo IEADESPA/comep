@@ -126,3 +126,36 @@ export async function arquivarValor(id: string): Promise<Resultado<null>> {
 export function formatarReais(valor: number | string): string {
   return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
+
+// ---------- Taxa de inscrição (isenta hoje; a assembleia pode definir um valor) ----------
+
+/** "Isenta" quando a taxa de inscrição é zero; senão, o valor em reais. */
+export function textoDoValor(tipo: TipoValor, valor: number): string {
+  return tipo === 'inscricao' && Number(valor) === 0 ? 'Isenta' : formatarReais(valor)
+}
+
+export async function buscarPrazoTaxaInscricao(): Promise<Resultado<number>> {
+  const { data, error } = await cliente()
+    .from('config_financeiro')
+    .select('prazo_taxa_inscricao')
+    .single<{ prazo_taxa_inscricao: number }>()
+  return error ? falha(error) : ok(data.prazo_taxa_inscricao)
+}
+
+/** Vale para presidente e não presidente de igreja (o jubilado continua isento). */
+export async function definirTaxaInscricao(d: {
+  valor: number
+  vigenteDesde: string
+  assembleia: string
+  ata: string
+  prazoDias: number
+}): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('definir_taxa_inscricao', {
+    p_valor: d.valor,
+    p_vigente_desde: d.vigenteDesde,
+    p_assembleia: d.assembleia || null,
+    p_ata: d.ata,
+    p_prazo_dias: d.prazoDias,
+  })
+  return error ? falha(error, 'Já existe uma taxa de inscrição com essa data de início.') : ok(null)
+}

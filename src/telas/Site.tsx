@@ -282,8 +282,8 @@ export function QueroMeAssociar() {
               <strong>Assembleia:</strong> o pedido é apresentado e votado na Assembleia Ordinária (abril ou outubro).
             </li>
             <li>
-              <strong>Bem-vindo:</strong> aprovado, você passa a ter acesso ao Portal do membro e paga a taxa de
-              inscrição.
+              <strong>Bem-vindo:</strong> aprovado, você passa a ter acesso ao Portal do membro. A taxa de inscrição,
+              quando houver, é definida pela assembleia (hoje é isenta).
             </li>
           </ol>
 

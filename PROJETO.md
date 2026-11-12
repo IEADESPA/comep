@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.13 — 12 de novembro de 2026 — atualizado com a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.14 — 12 de novembro de 2026 — atualizado com a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -122,7 +122,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
     - os demais pagam R$ 20/R$ 200;
   - os valores são definidos pela Assembleia Ordinária (Art. 7º, §3º): ficam configuráveis e guardam o histórico, para os próximos reajustes;
   - vencimentos e escolha entre mensal e anual: pergunta 18.
-- **Taxa de inscrição:** valor a definir (pergunta 17).
+- **Taxa de inscrição:** **isenta** (decisão de 12/11/2026). A assembleia pode definir um valor depois, em Configurações → Taxa de inscrição. Quando houver valor, é cobrada uma vez de quem for admitido pela assembleia, com prazo configurável (padrão: 30 dias); quem entrou no cadastro inicial não paga e o jubilado é isento.
 - **Informar pagamento**: o ministro anexa o comprovante (PIX/depósito); a tesouraria confere e confirma.
 - Situação automática **em dia / em atraso**, com lista de inadimplentes. Só vota e é votado quem está com a mensalidade em dia (Art. 11; diretoria, 11/11/2026).
 - **Categorias de receita do estatuto** (Art. 17): contribuições dos associados, ofertas, doações e outras receitas.
@@ -396,7 +396,7 @@ Revisão: `docs/revisoes/fase-2.md`.
 - [x] Informar pagamento com comprovante; conferência pela tesouraria (confirmar ou recusar com motivo); pagamento recebido em mãos
 - [x] Em dia / em atraso (define o direito a voto — Art. 11); lista de inadimplentes; situação na ficha e no painel do presidente de igreja
 - [x] Vencimentos configuráveis — padrões provisórios: dia 10 e 30 de abril (pergunta 18)
-- [ ] Taxa de inscrição — quando a diretoria informar o valor (pergunta 17)
+- [x] Taxa de inscrição — **isenta** (decisão de 12/11/2026); valor e prazo configuráveis em Configurações, para quando a assembleia decidir
 
 **2.2 — Caixa** (versão 2.0-teste.2) — concluída em 12/11/2026
 
@@ -486,7 +486,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 
 | Pergunta | Resposta da diretoria | Como fica no sistema |
 |---|---|---|
-| 1. Valores | **Presidente de igreja:** R$ 40,00 por mês ou R$ 400,00 por ano. **Não presidente:** R$ 20,00 por mês ou R$ 200,00 por ano. **Jubilado:** isento. O anual é pago em abril | Valores configuráveis, com histórico; categoria no cadastro do associado (seção 4.4). Falta o valor da taxa de inscrição (pergunta 17) |
+| 1. Valores | **Presidente de igreja:** R$ 40,00 por mês ou R$ 400,00 por ano. **Não presidente:** R$ 20,00 por mês ou R$ 200,00 por ano. **Jubilado:** isento. O anual é pago em abril | Valores configuráveis, com histórico; categoria no cadastro do associado (seção 4.4). Taxa de inscrição: isenta, configurável (pergunta 17, respondida em 12/11/2026) |
 | 2. Anual ou mensal? | Os dois: o associado paga por mês ou o ano inteiro em abril | Escolha do associado; detalhes na pergunta 18 |
 | 3. Quando fica "em atraso"? | O exercício termina no último dia de março. Só vota e é votado quem está com a mensalidade em dia | Exercício de 1º de abril a 31 de março; "em dia" calculado pelos vencimentos (perguntas 18 e 19) |
 | 4. Conselho Fiscal | 3 membros, mandato de 4 anos, com as mesmas datas do Conselho Diretor | Regra fixa no sistema |
@@ -514,7 +514,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 
 **Dúvidas sobre as respostas de 11/11/2026:**
 
-17. **Taxa de inscrição:** qual é o valor? O jubilado também é isento dela?
+17. ~~Taxa de inscrição~~ — *respondida em 12/11/2026: hoje é **isenta**; a assembleia pode definir um valor no futuro (botão "Personalizar" em Configurações). O jubilado continua isento.*
 18. **Vencimentos:** a mensalidade vence em que dia do mês? O anual pode ser pago até que dia de abril? A escolha entre mensal e anual vale para o exercício inteiro? Quem entra no meio do exercício paga só os meses que faltam?
 19. **Voto na assembleia de abril:** ela acontece na 2ª quinzena de abril, logo no começo do exercício novo. Para votar, basta estar em dia até março, ou também com abril (ou o anual) pago?
 20. **Jubilado:** sendo isento, ele vota e pode ser votado normalmente? Quem define que o associado é jubilado?

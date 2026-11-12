@@ -39,7 +39,7 @@ O que entrou:
 | Vencimentos | Mensalidade no dia 10; anuidade em 30 de abril |
 | Admissão no meio do exercício | Paga a partir do mês da admissão; depois de abril, só mensal |
 | Em atraso | Alguma contribuição vencida e não paga |
-| Taxa de inscrição | Sem valor definido: ainda não é cobrada |
+| Taxa de inscrição | **Isenta** (decisão de 12/11/2026) — ver o complemento abaixo |
 
 ### Trava 1
 
@@ -111,7 +111,7 @@ Categorias iniciais (editáveis): Ofertas, Doações, Outras receitas (entradas)
 
 | Pull request | Resultado | Data |
 |---|---|---|
-| Fase 2.2 — caixa | ver o pull request | 12/11/2026 |
+| #16 — Fase 2.2: caixa | Aprovado (verificar + ponta a ponta) e publicado | 12/11/2026 |
 
 ### Trava 2
 
@@ -143,3 +143,49 @@ Usuário fictício novo para os testes: **e2e.tesouraria** (perfil Tesouraria). 
 `testes/dados/semente-caixa-teste.sql`: de abril até hoje, ofertas da reunião mensal, doações, tarifas, material, encontros e ação social, todas autorizadas pelo presidente fictício. Uma despesa foi recusada ("não está no orçamento"), as do mês atual ficam aguardando, e as ofertas são depositadas no banco. Toda descrição termina com "(fictício)".
 
 No `comep-teste`, em 12/11/2026: **caixa R$ 2.126,57 e banco R$ 11.817,92**, com 2 despesas aguardando a autorização.
+
+## Complemento da 2.1 — Taxa de inscrição isenta e configurável
+
+**Resultado: aprovado no ambiente de teste em 12/11/2026.**
+
+Decisão de 12/11/2026: hoje a taxa de inscrição é **isenta**. No futuro, a assembleia pode definir um valor.
+
+- **Configurações → Taxa de inscrição:** mostra "Hoje: Isenta" e tem o botão **Personalizar a taxa de inscrição** (tesouraria e presidência). Nele se informam:
+  - o valor (0 = isenta);
+  - a partir de quando vale;
+  - a assembleia e a ata;
+  - o prazo para pagar.
+- Um valor programado para o futuro aparece na tela, e o histórico guarda tudo.
+- **Quando houver valor:**
+  - quem for admitido pela assembleia (pedido aprovado) recebe **uma** cobrança "Taxa de inscrição", com vencimento N dias depois da admissão (padrão: 30);
+  - quem entrou no cadastro inicial não paga, e o jubilado é isento;
+  - o associado paga como as outras contribuições (informar pagamento ou pagamento recebido), e o valor entra no caixa como "taxa de inscrição".
+- **Escolher o plano** (mensal ou anual) não cancela a taxa, e pagar a taxa não trava a escolha do plano.
+- Site: "a taxa de inscrição, quando houver, é definida pela assembleia (hoje é isenta)".
+
+Migração `20261112193000_taxa_inscricao.sql`, aplicada no `comep-teste`.
+
+**Trava 2:** 7 testes novos do banco (179 no total):
+
+- isenta hoje e sem cobrança;
+- o ministro não define a taxa;
+- com valor, a admissão pela assembleia gera uma cobrança, com o prazo, sem repetir;
+- cadastro inicial e jubilado não pagam;
+- plano e taxa não se atrapalham;
+- caixa com "taxa de inscrição";
+- voltar a ser isenta.
+
+**Trava 3** (ponta a ponta):
+
+| O que é testado | Resultado |
+|---|---|
+| "Hoje: Isenta" na tela e nos valores em vigor | ✅ |
+| A presidência programa um valor futuro: aparece como programado, e hoje continua isenta | ✅ |
+| O teste arquiva os valores de teste no fim | ✅ |
+
+### Problemas encontrados
+
+| # | Gravidade | Descrição | Correção | Testado de novo |
+|---|---|---|---|---|
+| 1 | Importante | Ao salvar a taxa, a seção "Valores da contribuição" aparecia **duas vezes**. As duas seções recarregáveis usavam a mesma chave interna, e o React se confundia | Chaves diferentes para cada seção | ✅ Ponta a ponta |
+| 2 | Baixa | As duas execuções que falharam deixaram valores futuros de teste no `comep-teste` | Arquivados (nada se apaga) | ✅ |
