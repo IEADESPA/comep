@@ -24,7 +24,15 @@ import { prepararComprovante } from '../../utilitarios/imagens'
 type Concluir = (r: { erro: string | null }, sucesso: string) => boolean
 
 /** Aba "Caixa": saldos, novo lançamento, transferência e lançamentos do mês. */
-export function CaixaAba({ pessoaId, concluir }: { pessoaId: string; concluir: Concluir }) {
+export function CaixaAba({
+  pessoaId,
+  concluir,
+  somenteLeitura = false,
+}: {
+  pessoaId: string
+  concluir: Concluir
+  somenteLeitura?: boolean
+}) {
   const [mes, setMes] = useState(hojeIso().slice(0, 7))
   const [verDesfeitos, setVerDesfeitos] = useState(false)
   const [carga, recarregar] = useCarregar(async () => {
@@ -56,8 +64,12 @@ export function CaixaAba({ pessoaId, concluir }: { pessoaId: string; concluir: C
             ))}
           </ul>
 
-          <NovoLancamento pessoaId={pessoaId} contas={contas} categorias={categorias} concluir={concluirERecarregar} />
-          <Transferencia contas={contas} concluir={concluirERecarregar} />
+          {!somenteLeitura && (
+            <>
+              <NovoLancamento pessoaId={pessoaId} contas={contas} categorias={categorias} concluir={concluirERecarregar} />
+              <Transferencia contas={contas} concluir={concluirERecarregar} />
+            </>
+          )}
 
           <section className="painel" aria-labelledby="titulo-lancamentos">
             <div className="cabecalho-painel">
@@ -85,7 +97,7 @@ export function CaixaAba({ pessoaId, concluir }: { pessoaId: string; concluir: C
             ) : (
               <ul className="lista" aria-label="Lançamentos do mês">
                 {visiveis(lancamentos, verDesfeitos).map((l) => (
-                  <LinhaLancamento key={l.id} lancamento={l} concluir={concluirERecarregar} />
+                  <LinhaLancamento key={l.id} lancamento={l} concluir={concluirERecarregar} somenteLeitura={somenteLeitura} />
                 ))}
               </ul>
             )}
@@ -100,7 +112,15 @@ function visiveis(lancamentos: Lancamento[], verDesfeitos: boolean) {
   return verDesfeitos ? lancamentos : lancamentos.filter((l) => l.situacao !== 'cancelado' && l.situacao !== 'recusado')
 }
 
-function LinhaLancamento({ lancamento: l, concluir }: { lancamento: Lancamento; concluir: Concluir }) {
+function LinhaLancamento({
+  lancamento: l,
+  concluir,
+  somenteLeitura,
+}: {
+  lancamento: Lancamento
+  concluir: Concluir
+  somenteLeitura: boolean
+}) {
   const [motivo, setMotivo] = useState('')
   const sinal = l.tipo === 'entrada' ? '+' : '−'
   const valeNoSaldo = l.situacao === 'efetivado'
@@ -125,7 +145,7 @@ function LinhaLancamento({ lancamento: l, concluir }: { lancamento: Lancamento; 
         {l.situacao === 'efetivado' && l.autorizado && ` · autorizada por ${l.autorizado.nome}`}
       </span>
       {l.motivo && <span>Motivo: {l.motivo}</span>}
-      {!l.cobranca_id && !['cancelado', 'recusado'].includes(l.situacao) && (
+      {!somenteLeitura && !l.cobranca_id && !['cancelado', 'recusado'].includes(l.situacao) && (
         <details className="acao-recolhida">
           <summary>Cancelar lançamento</summary>
           <form

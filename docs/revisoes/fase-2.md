@@ -1,5 +1,7 @@
 # Revisão da Fase 2 — Financeiro (versão 2.0-teste)
 
+**Fase concluída no ambiente de teste em 12/11/2026** — entregas 2.1, 2.2 e 2.3 (ver o fim deste arquivo).
+
 > Calendário (PROJETO.md, seção 9): tudo no ambiente de teste, com dados fictícios, até a Fase 5.
 > Cada entrega passa pelas travas 1 a 3. Regras: PROJETO.md, seção 14.
 
@@ -163,7 +165,7 @@ Decisão de 12/11/2026: hoje a taxa de inscrição é **isenta**. No futuro, a a
 - **Escolher o plano** (mensal ou anual) não cancela a taxa, e pagar a taxa não trava a escolha do plano.
 - Site: "a taxa de inscrição, quando houver, é definida pela assembleia (hoje é isenta)".
 
-Migração `20261112193000_taxa_inscricao.sql`, aplicada no `comep-teste`.
+Migração `20261112193000_taxa_inscricao.sql`, aplicada no `comep-teste`. Pull request **#17**: verificar e ponta a ponta verdes, publicado em 12/11/2026.
 
 **Trava 2:** 7 testes novos do banco (179 no total):
 
@@ -189,3 +191,120 @@ Migração `20261112193000_taxa_inscricao.sql`, aplicada no `comep-teste`.
 |---|---|---|---|---|
 | 1 | Importante | Ao salvar a taxa, a seção "Valores da contribuição" aparecia **duas vezes**. As duas seções recarregáveis usavam a mesma chave interna, e o React se confundia | Chaves diferentes para cada seção | ✅ Ponta a ponta |
 | 2 | Baixa | As duas execuções que falharam deixaram valores futuros de teste no `comep-teste` | Arquivados (nada se apaga) | ✅ |
+
+## Entrega 2.3 — Prestação de contas (versão 2.0-teste.3)
+
+**Resultado: aprovada no ambiente de teste em 12/11/2026.**
+
+O que entrou (aba **Prestação de contas** do Financeiro):
+
+- **Perfil Conselho Fiscal** (Art. 14):
+  - vê todo o financeiro, só para leitura: situação dos associados, cobranças, caixa, despesas e prestação de contas;
+  - não vê a aba de pagamentos a conferir e não tem botões de lançar, gerar, cancelar ou registrar;
+  - vê os comprovantes de pagamento, mas não as fotos e documentos dos pedidos de associação;
+  - até a Fase 4 (mandatos), o perfil é dado à mão em Administração → Acessos.
+- **Resumo do exercício** (abril a março), de qualquer exercício desde 2021/2022:
+  - saldo de cada conta em 01/04, entradas, saídas e saldo em 31/03;
+  - receitas e despesas por categoria e o resultado do exercício. As transferências entre contas aparecem à parte, porque não são receita nem despesa;
+  - contribuições previstas, recebidas, em aberto e vencidas;
+  - no exercício atual, é uma prévia; despesas ainda não autorizadas aparecem como aviso e não entram nos números.
+- **Mês a mês** (receitas, despesas e resultado) e **contribuições por igreja**.
+- **Balanço anual em quatro passos** (Art. 12, §6º, III; Art. 14; Art. 15, I):
+  1. a **tesouraria fecha** o exercício, depois de 31/03 e sem despesa aguardando, com uma nota. Os números ficam congelados e **nenhum lançamento daquele exercício muda mais**;
+  2. a **diretoria** (presidência) registra a análise ou devolve para correção;
+  3. o **Conselho Fiscal** dá o parecer (favorável, favorável com ressalvas ou desfavorável) ou devolve para correção;
+  4. a **presidência registra a decisão da assembleia**, com data e ata. Aprovado é final; reprovado volta para a tesouraria.
+  - Devolvido, o exercício reabre para a tesouraria corrigir e fechar de novo.
+  - Quem fechou não registra a análise nem dá o parecer.
+  - Todo passo fica no **histórico do balanço**, com quem, quando e o texto.
+- **Orçamento e plano anual de trabalho** (Art. 15, I):
+  - a tesouraria ou a presidência prepara o plano e o valor previsto por categoria, e a tela mostra previsto × realizado;
+  - a presidência registra a aprovação da assembleia, e depois disso o orçamento não muda mais.
+- **Imprimir ou salvar em PDF:** a impressão mostra só o relatório (sem menu, abas e botões), com o título do COMEP e a data de emissão.
+- **Planilhas (CSV em português, abrem no Excel):** "Baixar lançamentos" traz todos os lançamentos do exercício, com situação, quem autorizou e motivo; "Baixar resumo" traz contas, categorias, contribuições e igrejas.
+- **Regras no banco:**
+  - só se grava pelas funções, que conferem o perfil;
+  - nada se apaga;
+  - tudo vai para a auditoria, com nomes novos na tela de Auditoria.
+
+### Trava 1
+
+| Pull request | Resultado | Data |
+|---|---|---|
+| Fase 2.3 — prestação de contas | ver o pull request | 12/11/2026 |
+
+### Trava 2
+
+- [x] Migrações `20261112200000_perfil_conselho_fiscal.sql` e `20261112200100_prestacao_contas.sql`, aplicadas no `comep-teste`. O perfil novo fica numa migração separada, porque o banco só usa um valor novo de lista depois de gravado.
+- [x] Verificador do Supabase: só os avisos já conhecidos:
+  - proteção contra senhas vazadas, que é do plano pago;
+  - a tabela de códigos, que só se acessa por funções;
+  - índices ainda sem uso, porque há pouco dado.
+
+  Também há duas chaves da configuração financeira (tabela de uma linha só) sem índice. Isso não afeta nada.
+- [x] **Teste de fora, como visitante sem login:** "sem permissão" em balanços, histórico, orçamentos, itens e lançamentos, e nas funções de resumo e de contribuições por igreja.
+- [x] **14 testes novos do banco** (193 no total):
+  - o Conselho Fiscal vê, mas não lança, não cancela e não grava direto; o ministro não vê o resumo;
+  - os números do resumo: saldos por conta, transferência fora das receitas e despesas, e o saldo final que vira o inicial do exercício seguinte;
+  - fechar só depois de encerrado e sem despesa aguardando; o exercício fechado trava os lançamentos;
+  - cada passo só por quem pode; devolver reabre, e fechar de novo atualiza os números;
+  - assembleia: aprovado é final e reprovado devolve; histórico com 7 passos;
+  - quem fechou não analisa;
+  - orçamento: preparar, corrigir, aprovar e travar; transferência não entra;
+  - contribuições por igreja;
+  - comprovantes, sim, e fotos, não, para o Conselho Fiscal.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| A tesouraria vê a prévia do exercício atual, os saldos, o mês a mês (12 meses) e as contribuições por igreja | ✅ |
+| O exercício 2025/2026 (semente) aparece aprovado, com o parecer, os números congelados e sem botão de fechar | ✅ |
+| "Baixar lançamentos" gera `lancamentos-2025-2026.csv`, com os acentos certos e as colunas em português | ✅ |
+| A tesouraria prepara o orçamento e vê previsto × realizado; o orçamento aprovado não se edita | ✅ |
+| Ciclo completo do balanço com quatro usuários fictícios: a tesouraria fecha, a presidência analisa, o Conselho Fiscal dá o parecer e a presidência registra a assembleia (reprovado → devolvido, com o histórico) | ✅ |
+| O Conselho Fiscal entra direto na prestação de contas, sem "Pagamentos informados" e sem botões de lançar, gerar ou registrar | ✅ |
+
+- Usuário fictício novo: **e2e.conselho**, com o perfil Conselho Fiscal. A senha fica só no arquivo local e no Secret `E2E_SENHA_CONSELHO`.
+- O exercício **2021/2022 do banco de teste é reservado ao teste automático**. O ciclo sempre termina "reprovado pela assembleia", para poder rodar de novo. Se uma execução parar no meio, a próxima termina o ciclo antes.
+- **72 testes de ponta a ponta** passando no computador e no celular.
+- **Conferência visual:**
+  - fotos no computador e no celular;
+  - a impressão mostra só o relatório;
+  - as contas fecham: caixa R$ 420,00 + R$ 6.518,31 − R$ 6.310,36 = R$ 627,95, e o total mês a mês é igual ao resumo.
+
+### Problemas encontrados
+
+| # | Gravidade | Descrição | Correção | Testado de novo |
+|---|---|---|---|---|
+| 1 | Importante | A conta aberta no primeiro dia do exercício aparecia como "abertura no meio do exercício", com saldo inicial zero | O saldo da conta aberta em 01/04 conta como saldo inicial | ✅ Teste do banco |
+| 2 | Menor | Os botões de imprimir e baixar ficavam colados no painel, e a frase "Exercício de abril a março" saía na impressão | Espaço entre os botões e o painel; a frase não sai na impressão | ✅ Foto |
+
+### Dados fictícios
+
+`testes/dados/semente-prestacao-teste.sql` roda depois das outras sementes. Ela traz:
+
+- as contas começando em 01/04/2025, com saldo de abertura;
+- o exercício **2025/2026** inteiro: contribuições, ofertas, doações, despesas autorizadas e depósitos;
+- o **balanço 2025/2026 aprovado** na AGO de 25/04/2026, com análise, parecer favorável e histórico;
+- o **orçamento e o plano de trabalho 2026/2027**, aprovados na mesma AGO.
+
+Toda descrição termina com "(fictício)".
+
+No `comep-teste`, em 12/11/2026:
+
+- 2025/2026: receitas de R$ 24.963,28 e despesas de R$ 4.149,62;
+- saldos de hoje: caixa R$ 2.754,52 e banco R$ 39.073,63.
+
+## Conclusão da Fase 2 (12/11/2026)
+
+| Entrega | Pull request | Situação |
+|---|---|---|
+| 2.1 — Contribuições | #15 | ✅ Aprovada no teste |
+| 2.2 — Caixa | #16 | ✅ Aprovada no teste |
+| Complemento — taxa de inscrição isenta e configurável | #17 | ✅ Aprovado no teste |
+| 2.3 — Prestação de contas | ver acima | ✅ Aprovada no teste |
+
+- Nenhum problema bloqueante ou importante em aberto.
+- **Trava 4 (aceite e produção):** pelo calendário de 12/11/2026, fica para o lançamento, depois da versão 5.0. As migrações da Fase 2 vão para o `comep-producao` nessa hora (`docs/lancamento.md`).
+- Pendências para a diretoria, que não impedem a fase: perguntas 18 a 20 (vencimentos, voto na assembleia de abril e jubilado).
