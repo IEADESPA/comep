@@ -4,7 +4,7 @@ import { GerarCodigo } from '../../componentes/GerarCodigo'
 import { concederPerfil, listarPessoasComPerfis, retirarPerfil, type PessoaComPerfis } from '../../dados/acessos'
 import { NOME_DO_PERFIL, PERFIS, type Perfil } from '../../dados/perfis'
 import { useCarregar } from '../../estado/useCarregar'
-import { contemTexto } from '../../utilitarios/formatos'
+import { contemTexto, formatarData } from '../../utilitarios/formatos'
 
 // Perfis automáticos, que acompanham o cadastro de associado (tela Ministros): não são concedidos nem retirados aqui.
 //   ministro          = associado ativo
@@ -28,7 +28,9 @@ export function Acessos() {
     <>
       <h1>Perfis de acesso</h1>
       <p className="detalhe">
-        Só a presidência concede e retira perfis. Os perfis <strong>Ministro</strong> e <strong>Presidente de igreja</strong>{' '}
+        Só a presidência concede e retira perfis. Secretaria, tesouraria e presidência só podem ser dados a{' '}
+        <strong>associados ativos</strong>: como qualquer pessoa pode criar login pelo site, um login sem cadastro de
+        associado ainda não foi conferido. Os perfis <strong>Ministro</strong> e <strong>Presidente de igreja</strong>{' '}
         vêm automaticamente do cadastro de associado (o presidente de igreja é o pastor presidente marcado na ficha). Retirar
         um perfil não apaga nada: fica registrado na auditoria.
       </p>
@@ -72,6 +74,7 @@ function LinhaPessoa({
   const [novo, setNovo] = useState<Perfil | ''>('')
   const [enviando, setEnviando] = useState(false)
   const tem = new Set(pessoa.perfis_acesso.map((p) => p.perfil))
+  const associado = pessoa.associados.find((a) => a.situacao === 'ativo')
   const opcoes = PERFIS_CONCEDIVEIS.filter((p) => !tem.has(p))
 
   async function conceder() {
@@ -96,6 +99,13 @@ function LinhaPessoa({
       <span>
         {pessoa.email ?? 'Sem e-mail'}
         {!pessoa.usuario_id && <span className="etiqueta etiqueta-neutra">Sem login</span>}
+      </span>
+      <span>
+        {associado ? (
+          <span className="etiqueta etiqueta-marca">Associado nº {associado.numero_registro}</span>
+        ) : (
+          <span className="etiqueta">Não é associado: login criado pelo site em {formatarData(pessoa.criado_em)}</span>
+        )}
       </span>
       <ul className="perfis perfis-compacto" aria-label={`Perfis de ${pessoa.nome}`}>
         {pessoa.perfis_acesso.length === 0 && <li className="sem-perfil">Nenhum perfil</li>}

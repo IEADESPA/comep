@@ -34,7 +34,7 @@ test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async 
 
   await page.getByText('Arquivar igreja', { exact: true }).last().click()
   await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/comep\/igrejas$/)
+  await expect(page).toHaveURL(/\/igrejas$/)
   await expect(page.getByRole('status').filter({ hasText: `Igreja "${nome}" arquivada.` })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Igrejas' }).getByText(nome)).toHaveCount(0)
 
@@ -82,7 +82,7 @@ test('cadastra um associado atual, registra a troca de igreja e arquiva o cadast
   await page.getByRole('list', { name: 'Associados' }).getByRole('link').first().click()
   await page.getByText('Arquivar cadastro', { exact: true }).last().click()
   await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/comep\/ministros$/)
+  await expect(page).toHaveURL(/\/ministros$/)
   await expect(page.getByRole('status').filter({ hasText: `Cadastro de ${nome} arquivado.` })).toBeVisible()
 })
 
@@ -107,6 +107,18 @@ test('a presidência concede e retira um perfil de acesso', async ({ page }) => 
   await retirar.click()
   await expect(page.getByRole('status').filter({ hasText: `Perfil Tesouraria retirado de ${PESSOA_PERFIS}.` })).toBeVisible()
   await expect(perfis).not.toContainText('Tesouraria')
+})
+
+test('perfil da diretoria não vai para quem não é associado (login criado pelo site)', async ({ page }) => {
+  const NAO_ASSOCIADO = 'Pessoa Sem Perfil'
+  await page.goto('acessos')
+  await page.getByLabel('Buscar pessoa').fill(NAO_ASSOCIADO)
+  const pessoa = page.getByRole('listitem', { name: NAO_ASSOCIADO })
+  await expect(pessoa).toContainText('Não é associado: login criado pelo site')
+  await pessoa.getByLabel(`Perfil para conceder a ${NAO_ASSOCIADO}`).selectOption({ label: 'Tesouraria' })
+  await pessoa.getByRole('button', { name: 'Conceder' }).click()
+  await expect(page.getByRole('alert')).toContainText('só podem ser dados a associados ativos')
+  await expect(pessoa.getByRole('list', { name: `Perfis de ${NAO_ASSOCIADO}` })).not.toContainText('Tesouraria')
 })
 
 test('nenhuma tela da diretoria fica mais larga que a tela', async ({ page }) => {

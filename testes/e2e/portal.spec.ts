@@ -6,7 +6,7 @@ import { USUARIOS, abrirMenu, arquivoDaSessao, entrar, preencherLogin } from './
 test('senha errada mostra uma mensagem clara', async ({ page }) => {
   await preencherLogin(page, USUARIOS.presidencia.email, 'senha-errada-de-proposito')
   await expect(page.getByRole('alert')).toHaveText('E-mail ou senha incorretos.')
-  await expect(page).toHaveURL(/\/comep\/entrar$/)
+  await expect(page).toHaveURL(/\/entrar$/)
 })
 
 test.describe('presidência', () => {
@@ -21,7 +21,7 @@ test.describe('presidência', () => {
     }
 
     await menu.getByRole('link', { name: 'Ministros', exact: true }).click()
-    await expect(page).toHaveURL(/\/comep\/ministros$/)
+    await expect(page).toHaveURL(/\/ministros$/)
     await expect(page.getByRole('heading', { name: 'Ministros', level: 1 })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Cadastrar associado' })).toBeVisible()
 
@@ -30,7 +30,7 @@ test.describe('presidência', () => {
     await expect(page.getByText('Em construção — prevista para a Fase 2')).toBeVisible()
 
     await page.getByRole('button', { name: 'Sair' }).click()
-    await expect(page).toHaveURL(/\/comep\/entrar$/)
+    await expect(page).toHaveURL(/\/entrar$/)
   })
 })
 

@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas" />
     <title>COMEP — Sistema de Gestão</title>
+    <script>
+      // GitHub Pages: um link direto do ambiente de teste (ex.: /comep/teste/painel) cai no 404.html do site
+      // oficial (esta página). Manda para o app de teste, que restaura o endereço (src/main.tsx).
+      ;(function () {
+        var teste = '%BASE_URL%teste/'
+        var caminho = window.location.pathname
+        if (caminho.indexOf(teste) === 0 && caminho !== teste) {
+          window.location.replace(
+            teste + '?rota=' + encodeURIComponent(caminho.slice(teste.length) + window.location.search + window.location.hash),
+          )
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

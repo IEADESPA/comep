@@ -64,6 +64,7 @@ test('o ministro pede troca de igreja, a secretaria aprova; o ministro troca a p
   await expect(page.getByText(/Pedido de troca para Igreja Fictícia B \(teste\)/)).toBeVisible()
 
   // ...e troca a própria senha
+  await page.getByLabel('Senha atual').fill('SenhaE2e123')
   await page.getByLabel('Senha nova', { exact: true }).fill('NovaSenha789')
   await page.getByLabel('Repita a senha nova').fill('NovaSenha789')
   await page.getByRole('button', { name: 'Trocar senha' }).click()
@@ -80,7 +81,7 @@ test('o ministro pede troca de igreja, a secretaria aprova; o ministro troca a p
   // O ministro entra com a senha nova e vê a igreja nova, com o histórico
   await trocarPara(page, null)
   await preencherLogin(page, email, 'NovaSenha789')
-  await expect(page).toHaveURL(/\/comep\/painel$/)
+  await expect(page).toHaveURL(/\/painel$/)
   await page.goto('meu-perfil')
   await expect(page.getByText('Atual: Igreja Fictícia B (teste)')).toBeVisible()
   await expect(page.getByRole('list', { name: 'Histórico de igrejas' })).toContainText('Igreja Fictícia A (teste)')
@@ -141,5 +142,5 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   await expect(page.getByLabel('Telefone')).toHaveValue('(94) 93333-3333')
   await page.getByText('Arquivar igreja', { exact: true }).last().click()
   await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/comep\/igrejas$/)
+  await expect(page).toHaveURL(/\/igrejas$/)
 })

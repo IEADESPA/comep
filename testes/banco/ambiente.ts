@@ -30,6 +30,9 @@ const IMITACAO_SUPABASE = `
     select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
   $$;
   grant execute on function auth.uid() to anon, authenticated, service_role;
+  -- Sessões abertas (a troca de senha por código encerra as sessões do login)
+  create table auth.sessions (id uuid primary key default gen_random_uuid(), user_id uuid not null);
+  create table auth.refresh_tokens (id bigserial primary key, user_id varchar(255), token varchar(255));
 
   -- Extensões no esquema "extensions", como no Supabase
   create schema extensions;

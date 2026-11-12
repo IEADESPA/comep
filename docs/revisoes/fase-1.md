@@ -299,9 +299,79 @@ Conferência visual (1280 px e 390 px): "Meu perfil" com o pedido de troca abert
 | 2 | Migração aplicada só no `comep-teste`. A lista de títulos foi conferida lá; o verificador só aponta os 2 avisos esperados |
 | 3 | Ponta a ponta: o site mostra "Fale com o COMEP" e o CNPJ; a diretoria preenche Instagram e reuniões mensais e o site mostra; campo vazio aparece "—". O teste devolve no fim os valores que já estavam preenchidos |
 
+## Revisão geral antes do lançamento (entrega 1.4) — a trava
+
+**Resultado (12/11/2026): aprovada, sem problema bloqueante ou importante em aberto.**
+
+Liberada para o lançamento quando os pré-requisitos de `docs/lancamento.md` estiverem marcados: aceite, termo, verificação em duas etapas e dados do presidente.
+
+### 1. Conferência do banco de teste (estado real, não só o código)
+
+| Conferido | Resultado |
+|---|---|
+| Toda tabela com regra de acesso (RLS) | ✅ |
+| Nenhuma permissão de apagar (DELETE/TRUNCATE) para visitante ou usuário | ✅ |
+| Toda tabela com bloqueio de exclusão e com auditoria | ✅ |
+| Toda função com poderes especiais (SECURITY DEFINER) com `search_path` fixo | ✅ |
+| Toda visão respeita a regra de quem consulta (`security_invoker`) | ✅ |
+| Nenhuma pasta de arquivos pública | ✅ |
+| Esquema interno fora da API; login anônimo desligado | ✅ |
+| Visitante sem login, pela internet, em todas as 17 tabelas e visões | ✅ "sem permissão" (HTTP 401). Exceção: os dados públicos do site |
+| Visitante sem login gerando código de acesso ou abrindo arquivo | ✅ Recusado |
+
+### 2. Dependências
+
+- O que vai para o navegador das pessoas tem **0 vulnerabilidades conhecidas**.
+- Ferramentas usadas só na montagem do app (gerador do PWA e suas dependências): 6 avisos, 2 baixos e 4 moderados, que não chegam ao usuário.
+- A única correção oferecida troca o gerador do PWA por uma versão incompatível. **Risco aceito**, a rever quando sair versão corrigida.
+
+### 3. Revisão de segurança independente
+
+Feita por um segundo agente, que leu todas as migrações e a camada de dados sem conhecer as conclusões anteriores. Ele achou **2 problemas altos**, 3 médios, 6 baixos e 1 informativo, e nenhum crítico.
+
+| # | Gravidade | Achado | O que foi feito |
+|---|---|---|---|
+| 1 | **Alto** | A secretaria ou o administrador técnico podiam gerar um código de "nova senha" para a presidência, trocar a senha e entrar como presidente | **Corrigido.** O código de quem tem perfil da diretoria só a presidência gera |
+| 2 | **Alto** | Com o cadastro aberto e sem e-mail, um estranho pode criar login com o nome e o e-mail de outra pessoa e receber, por engano, um perfil da diretoria | **Corrigido.** Secretaria, tesouraria e presidência só para **associados ativos**. "Perfis de acesso" mostra "Associado nº X" ou "Não é associado: login criado pelo site em …". **Restante aceito:** um estranho pode "ocupar" o e-mail de alguém. Nesse caso a pessoa usa outro e-mail no primeiro acesso |
+| 3 | Médio | O administrador técnico lê a auditoria, que traz dados pessoais | **Aceito e registrado.** É o papel de operador da IEADESPA, que já tem acesso ao banco para manter o sistema, coberto pelo sigilo do termo (`docs/termo-hospedagem.md`). Ficam para decisão futura a retenção e a anonimização da auditoria |
+| 4 | Médio | Logins criados só para isso podiam encher o espaço gratuito de arquivos | **Corrigido.** No máximo 30 arquivos por pessoa |
+| 5 | Médio/baixo | Troca de senha por código: as sessões abertas continuavam valendo; pessoa arquivada continuava com código válido; uso duplo simultâneo; troca em "Meu perfil" sem pedir a senha atual | **Corrigido.** A troca encerra as sessões abertas, ignora pessoa arquivada e trava o código; "Meu perfil" pede a senha atual |
+| 6 | Baixo | O candidato podia mudar dados (ex.: marcar-se pastor presidente) enquanto o pedido estava em análise | **Corrigido.** Em análise, o pedido não muda: só se desiste. O pedido de troca pendente só se cancela |
+| 7 | Baixo | Caminho de arquivo com ".." passava pela checagem | **Corrigido** no banco e na regra do Storage |
+| 8 | Baixo | O código de primeiro acesso ficava guardado no cadastro do login depois de usado | **Corrigido.** É apagado na hora |
+| 9 | Baixo | Alguém da secretaria podia decidir o próprio pedido; dava para marcar "aprovado" apontando para outro associado | **Corrigido.** Ninguém decide o próprio pedido; a aprovação tem que apontar para o associado da mesma pessoa |
+| 10 | Baixo | Duas retiradas simultâneas de "Presidência" podiam deixar o sistema sem presidência | **Corrigido** com trava de concorrência |
+| 11 | Baixo | Qualquer login lê os dados das igrejas (nome, telefone, endereço, CNPJ, pastor presidente) | **Aceito.** São dados institucionais das igrejas, necessários para o candidato escolher a sua |
+| 12 | Informativo | A secretaria dá os perfis "ministro" e "presidente de igreja" pelo cadastro; o e-mail do login pode divergir do cadastro | **Aceito.** É o desenho previsto |
+
+Correções: migração `20261112140648_seguranca_revisao.sql`, aplicada **primeiro no teste**. Ganharam 14 testes novos do banco, um por correção, e 1 teste de ponta a ponta: "perfil da diretoria não vai para quem não é associado".
+
+### 4. Backup das fotos e comprovantes
+
+O fluxo semanal do `comep-backups` passou a baixar os arquivos do Storage com a chave secreta de cada projeto, guardada só nos *Secrets*. Os arquivos entram no mesmo arquivo criptografado, com a impressão digital de cada um.
+
+Teste de 12/11/2026: o backup do `comep-teste` trouxe **100 arquivos** e o da produção, 0, porque ainda não há nenhum.
+
+### 5. Ambiente de teste no endereço próprio
+
+- `ieadespa.github.io/comep/teste/`: sempre no banco de teste, com a faixa amarela.
+- `ieadespa.github.io/comep/`: o site oficial, que vai para a produção no lançamento.
+
+Os dois saem da mesma publicação:
+
+- o app instalado do site oficial ignora os endereços do teste;
+- links diretos do teste (ex.: `/comep/teste/painel`) abrem certo.
+
+Os testes de ponta a ponta valem nos dois endereços.
+
+### 6. Testes
+
+- [x] **139 testes automáticos**: 133 do banco e 6 das validações das telas.
+- [x] **54 testes de ponta a ponta** passando no computador e no celular (mais 1 pulado de propósito), localmente e no GitHub.
+
 ## Trava 4 — Aceite e lançamento da versão 1.0
 
-- [ ] Nenhum problema bloqueante ou importante em aberto (ou decisão registrada abaixo)
+- [x] Nenhum problema bloqueante ou importante em aberto (revisão geral de 12/11/2026, acima)
 - [ ] Aceite técnico — nome e data:
 - [ ] Aceite da diretoria (regras do estatuto) — nome e data:
 - [ ] Termo da seção 8 assinado

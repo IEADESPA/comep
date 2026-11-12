@@ -121,7 +121,7 @@ function Conteudo({ pessoaId, perfis, email }: { pessoaId: string; perfis: Perfi
                 </ul>
               )}
             </section>
-            <TrocarSenha concluir={concluir} />
+            <TrocarSenha email={email} concluir={concluir} />
           </>
         )}
       </MostrarCarga>
@@ -419,7 +419,8 @@ function MinhaIgrejaEHistorico({
   )
 }
 
-function TrocarSenha({ concluir }: { concluir: Concluir }) {
+function TrocarSenha({ email, concluir }: { email: string | null; concluir: Concluir }) {
+  const [atual, setAtual] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
   const [erro, setErro] = useState<string | null>(null)
@@ -429,9 +430,10 @@ function TrocarSenha({ concluir }: { concluir: Concluir }) {
     setErro(null)
     if (senha !== confirmacao) return setErro('As duas senhas não são iguais.')
     setEnviando(true)
-    const r = await trocarMinhaSenha(senha)
+    const r = await trocarMinhaSenha(email ?? '', atual, senha)
     setEnviando(false)
     if (r.erro !== null) return setErro(r.erro)
+    setAtual('')
     setSenha('')
     setConfirmacao('')
     concluir(r, 'Senha trocada. Use a senha nova no próximo acesso.')
@@ -447,6 +449,16 @@ function TrocarSenha({ concluir }: { concluir: Concluir }) {
           void trocar()
         }}
       >
+        <label>
+          Senha atual
+          <input
+            type="password"
+            autoComplete="current-password"
+            required
+            value={atual}
+            onChange={(e) => setAtual(e.target.value)}
+          />
+        </label>
         <label>
           Senha nova
           <input
