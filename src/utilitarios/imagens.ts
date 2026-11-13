@@ -47,3 +47,36 @@ export async function prepararComprovante(arquivo: File): Promise<ArquivoPronto>
     return { erro: 'Não foi possível ler esta imagem. Tente outra foto do documento.' }
   }
 }
+
+/**
+ * Imagem do modelo da credencial (ex.: logo oficial): reduzida para 1600 px.
+ * PNG e WebP continuam PNG (mantém o fundo transparente); JPEG continua JPEG.
+ */
+export async function prepararImagemModelo(arquivo: File): Promise<{ blob: Blob; extensao: 'png' | 'jpg' } | { erro: string }> {
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(arquivo.type)) {
+    return { erro: 'Envie uma imagem PNG, JPG ou WebP.' }
+  }
+  try {
+    const bitmap = await createImageBitmap(arquivo, { imageOrientation: 'from-image' })
+    const escala = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
+    const tela = document.createElement('canvas')
+    tela.width = Math.max(1, Math.round(bitmap.width * escala))
+    tela.height = Math.max(1, Math.round(bitmap.height * escala))
+    const contexto = tela.getContext('2d')
+    if (!contexto) throw new Error('sem canvas')
+    const jpeg = arquivo.type === 'image/jpeg'
+    if (jpeg) {
+      contexto.fillStyle = '#ffffff'
+      contexto.fillRect(0, 0, tela.width, tela.height)
+    }
+    contexto.drawImage(bitmap, 0, 0, tela.width, tela.height)
+    bitmap.close()
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      tela.toBlob((b) => (b ? resolve(b) : reject(new Error('falha'))), jpeg ? 'image/jpeg' : 'image/png', 0.9),
+    )
+    if (blob.size > 1024 * 1024) return { erro: 'A imagem ficou maior que 1 MB. Use uma imagem menor.' }
+    return { blob, extensao: jpeg ? 'jpg' : 'png' }
+  } catch {
+    return { erro: 'Não foi possível ler esta imagem. Tente outra.' }
+  }
+}

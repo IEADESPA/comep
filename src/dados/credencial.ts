@@ -160,3 +160,64 @@ export async function salvarConfigCredencial(config: ConfigCredencial): Promise<
     .eq('id', true)
   return error ? falha(error) : ok(null)
 }
+
+// ---------- Modelo (desenho) da credencial — Fase 3.4 ----------
+
+/** Uma versão salva do modelo. Nenhuma muda nem se apaga. */
+export type VersaoModelo = {
+  id: string
+  descricao: string
+  modelo: unknown
+  criado_em: string
+  criado_por_nome: string | null
+  em_uso: boolean
+}
+
+/** Versões salvas, da mais nova para a mais antiga (secretaria e presidência). */
+export async function listarVersoesModelo(): Promise<Resultado<VersaoModelo[]>> {
+  const { data, error } = await cliente()
+    .from('vw_modelos_credencial')
+    .select('*')
+    .order('criado_em', { ascending: false })
+    .returns<VersaoModelo[]>()
+  return error ? falha(error) : ok(data)
+}
+
+/** Salva como versão nova; com `usar`, passa a valer para todas as credenciais. */
+export async function salvarModelo(modelo: unknown, descricao: string, usar: boolean): Promise<Resultado<string>> {
+  const { data, error } = await cliente().rpc('salvar_modelo_credencial', {
+    p_modelo: modelo,
+    p_descricao: descricao.trim(),
+    p_usar: usar,
+  })
+  return error ? falha(error) : ok(data as string)
+}
+
+/** Escolhe a versão em uso (null = o modelo padrão do sistema). */
+export async function usarModelo(id: string | null): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('usar_modelo_credencial', { p_id: id })
+  return error ? falha(error) : ok(null)
+}
+
+/** Tira a versão da lista (continua guardada). A versão em uso não pode ser arquivada. */
+export async function arquivarModelo(id: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('arquivar_modelo_credencial', { p_id: id })
+  return error ? falha(error) : ok(null)
+}
+
+/** Envia uma imagem para o modelo (ex.: o logo oficial). Devolve o nome do arquivo, que vai no modelo. */
+export async function enviarImagemModelo(arquivo: Blob, extensao: 'png' | 'jpg' | 'webp'): Promise<Resultado<string>> {
+  const nome = `${crypto.randomUUID()}.${extensao}`
+  const { error } = await cliente().storage.from('credencial-modelo').upload(nome, arquivo, {
+    upsert: false,
+    contentType: arquivo.type,
+  })
+  if (error) {
+    const recusado = /row-level security|unauthorized|403/i.test(error.message)
+    return {
+      dados: null,
+      erro: recusado ? 'Só a secretaria ou a presidência enviam imagens do modelo.' : 'Não foi possível enviar a imagem. Tente de novo.',
+    }
+  }
+  return ok(nome)
+}

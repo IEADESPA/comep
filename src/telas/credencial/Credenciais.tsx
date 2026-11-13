@@ -211,6 +211,9 @@ export function ListaCredenciais() {
                 >
                   Imprimir as marcadas ({escolhidas.length})
                 </button>
+                <Link className="botao botao-secundario" to="/credenciais/modelo">
+                  Editar o modelo (desenho) da credencial
+                </Link>
               </div>
               {visiveis.length === 0 ? (
                 <p className="vazio">Nenhum associado encontrado.</p>

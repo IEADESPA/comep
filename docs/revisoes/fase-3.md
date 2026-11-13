@@ -216,3 +216,86 @@ O que mudou:
 ### Dados fictícios
 
 No `comep-teste`, o fim do mandato foi posto em **31/12/2029, data fictícia**, para a validade aparecer. A data verdadeira depende da pergunta 10.
+
+### Trava 1 do ajuste
+
+| Pull request | Resultado | Data |
+|---|---|---|
+| #22 — Fase 3.3 (ajuste): impressão para dobrar e plastificar, nada cortado, foto 3×4 e validade por mandato | Aprovado (verificar + ponta a ponta) e publicado | 13/11/2026 |
+
+## Entrega 3.4 — Editor do modelo da credencial (versão 3.0-teste.3)
+
+**Resultado: aprovada no ambiente de teste em 13/11/2026.**
+
+O que entrou:
+
+- **Onde fica:** Credenciais → **Editar o modelo (desenho) da credencial**, e um link em Configurações → Credencial. É só para a secretaria e a presidência.
+- **Editar:**
+  - **escolher:** clique no item, no cartão ou na lista "Itens deste lado";
+  - **mover:** arrastar com o mouse ou o dedo (com Shift, de 1 em 1 mm), ou pelas setas do teclado (0,5 mm; com Shift, 2 mm);
+  - **mudar o tamanho:** pelo quadradinho do canto;
+  - **medidas exatas:** pelos campos, em milímetros;
+  - **ordem:** trazer para cima ou levar para baixo; duplicar; tirar da credencial.
+- **O que se acrescenta**, na frente ou no verso:
+  - **texto**, fixo ou com **dados do associado** (nome, CPF, nº, validade, igreja, CNPJ, filiação, texto do verso e outros);
+  - **foto** (com o botão "deixar 3×4"), **QR Code** e **imagem**: o logo do sistema ou uma imagem enviada, por exemplo o logo oficial quando chegar;
+  - **retângulo**, **círculo** e **linha**, com cor, degradê, cantos arredondados, borda e opacidade;
+  - a **cor do fundo** de cada lado.
+- **Texto:** tamanho em pontos (pt), espessura, cor, alinhamento, letra moderna ou clássica, espaço entre as letras, maiúsculas, itálico e "várias linhas". Em uma linha só, a letra diminui para caber.
+- **Prévias:**
+  - **dados de exemplo**, fictícios e com um nome bem comprido, para ver se tudo cabe; ou os dados de um associado;
+  - **como sai na impressão**: frente e verso juntos, em tamanho real;
+  - o cartão do editor também pode ser visto em tamanho real.
+- **Desfazer e refazer** (também com Ctrl+Z e Ctrl+Y). Antes de sair com mudanças não salvas, o navegador pergunta.
+- **Conferência antes de salvar.** Avisa, sem impedir:
+  - item fora do cartão;
+  - dado desconhecido no texto;
+  - QR Code com menos de 15 mm;
+  - nenhum QR Code;
+  - falta a foto, o nome ou a validade.
+- **Versões:**
+  - cada vez que se salva nasce uma versão nova, com a descrição do que mudou, a data e quem salvou;
+  - **"Salvar e usar"** muda na hora todas as credenciais: as digitais e as próximas impressões. **"Salvar sem usar"** guarda para depois;
+  - **"Usar esta versão"** volta a qualquer versão, e **"Usar o padrão"** volta ao desenho que vem com o sistema;
+  - **arquivar** tira da lista uma versão que não está em uso. Ela continua guardada; o desenho e a descrição de uma versão salva nunca mudam.
+- **Segurança:**
+  - o modelo é conferido na tela antes de desenhar (`normalizarModelo`): cores só no formato #rrggbb, números com limites, no máximo 60 itens por lado;
+  - imagens só do logo do sistema ou da pasta própria do modelo, com nome aleatório;
+  - o banco confere o formato e o tamanho (até 100 KB);
+  - só a secretaria e a presidência salvam, usam, arquivam e enviam imagens.
+
+### Trava 2
+
+- [x] Migrações `20261113170000_credencial_modelo.sql` e `20261113170100_credencial_modelo_arquivar.sql`, aplicadas no `comep-teste`, com a pasta pública `credencial-modelo`, só para as imagens do modelo.
+- [x] **8 testes novos do banco** (`credencial_modelo.test.ts`):
+  - sem modelo salvo, vale o padrão;
+  - o ministro não salva nem escolhe;
+  - salvar pede descrição e formato certo: falta o verso, versão errada ou mais de 60 itens;
+  - salvar sem usar e salvar e usar;
+  - voltar a uma versão ou ao padrão;
+  - versão salva não muda nem se apaga, e o ministro não lê as versões;
+  - arquivar: a versão em uso não pode, e a arquivada não volta a ser usada;
+  - imagens só pela secretaria ou pela presidência, com nome aleatório.
+- [x] **Achado pelos testes e corrigido:** a regra de formato aceitava um modelo sem o verso, porque no SQL uma condição vazia passa na verificação. Ficou com `coalesce(…, false)`.
+- [x] **4 testes de unidade novos do editor:**
+  - itens novos válidos e dentro do cartão;
+  - o padrão sem avisos;
+  - cada aviso da conferência;
+  - nomes dos itens na lista.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| A presidência abre o editor pela lista de credenciais, acrescenta um texto e muda a posição pelo campo | ✅ |
+| Envia uma imagem (o lugar do logo oficial), e desfazer e refazer funcionam | ✅ |
+| Salvar sem usar: a versão aparece na lista, sem "Em uso" | ✅ |
+| Usar a versão: a credencial de um associado passa a mostrar o texto | ✅ |
+| O teste devolve a versão que estava em uso e arquiva a sua; a credencial volta a ser como era | ✅ |
+| O ministro não abre o editor | ✅ |
+
+- **Conferência visual** com fotos:
+  - o editor no computador e no celular;
+  - arrastar o nome (2 mm para a direita e 5 mm para baixo) e desfazer;
+  - o verso;
+  - a prévia da impressão.

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { BotaoArquivar, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import {
   alterarItem,
@@ -1017,6 +1018,11 @@ function ConfigCredencialSecao({ podeEditar }: { podeEditar: boolean }) {
                 </div>
               )}
             </form>
+            {podeEditar && (
+              <p>
+                <Link to="/credenciais/modelo">Editar o modelo (desenho) da credencial</Link>
+              </p>
+            )}
             {podeEditar && config.fim_mandato && (
               <NovoMandato
                 fimAtual={config.fim_mandato}
