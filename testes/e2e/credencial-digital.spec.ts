@@ -1,5 +1,6 @@
-// Fase 3.2/3.3: credencial digital, impressão no tamanho real (85,6 mm) e validação pública pelo QR Code;
-// a nova credencial (perda) invalida a antiga. Associado FICTÍCIO criado pelo próprio teste (e arquivado no fim).
+// Fase 3.2/3.3: credencial digital, impressão no tamanho real (85,6 mm, frente e verso juntos para dobrar) e
+// validação pública pelo QR Code; a nova credencial (perda) invalida a antiga. Nome bem comprido: tudo precisa caber
+// (nada cortado nem empurrado). Associado FICTÍCIO criado pelo próprio teste (e arquivado no fim).
 import { expect, test } from '@playwright/test'
 import {
   arquivarAssociadoDeTeste,
@@ -22,13 +23,22 @@ const FOTO = {
 /** 85,6 mm em pixels de CSS (96 por polegada) */
 const LARGURA_CR80 = (85.6 / 25.4) * 96
 
+/** Quantos textos passam da própria caixa (deve ser zero: a letra diminui para caber) */
+function textosQueTransbordam(cartao: Element) {
+  return [...cartao.querySelectorAll('[data-ajustar]')].filter((caixa) => {
+    const texto = caixa.firstElementChild!.getBoundingClientRect()
+    const limite = caixa.getBoundingClientRect()
+    return texto.width > limite.width + 1 || texto.height > limite.height + 1
+  }).length
+}
+
 test('credencial digital, impressão no tamanho real e validação pelo QR Code; a nova invalida a antiga', async ({
   page,
   browser,
 }, info) => {
   test.setTimeout(180_000)
   const sufixo = sufixoUnico(info.project.name)
-  const nome = `Credencial Digital E2E ${sufixo}`
+  const nome = `Maria Aparecida Credencial Digital E2E Nome Comprido ${sufixo}`
   const associado = await criarAssociadoComLogin(page, {
     nome,
     email: `e2e.credencialdigital.${sufixo}@example.com`,
@@ -52,17 +62,29 @@ test('credencial digital, impressão no tamanho real e validação pelo QR Code;
   const frente = page.getByRole('article', { name: `Credencial de ${nome} — frente` })
   await expect(frente).toContainText(nome)
   await expect(frente).toContainText('Associado desde')
+  await expect(frente).toContainText('Válida até')
+  expect(await frente.evaluate(textosQueTransbordam)).toBe(0)
+  expect(await page.getByRole('article', { name: `Credencial de ${nome} — verso` }).evaluate(textosQueTransbordam)).toBe(0)
   await expect(page.getByRole('img', { name: `QR Code de validação da credencial de ${nome}` })).toBeVisible()
   await expect(page.getByRole('img', { name: `Foto de ${nome}` }).first()).toBeVisible()
   const link = await page.getByRole('link', { name: /Abrir a página de validação/ }).getAttribute('href')
   expect(link).toMatch(/\/validar\/[0-9a-f]{32}$/)
 
-  // 3. Impressão: cada lado tem 85,6 mm de largura na folha A4
+  // 3. Impressão: cada lado tem 85,6 mm; frente e verso JUNTOS (sem espaço), para dobrar ao meio
   await page.getByRole('link', { name: 'Ver a impressão (tamanho real)' }).click()
   await expect(page.getByRole('region', { name: 'Folha 1' })).toBeVisible()
   await page.emulateMedia({ media: 'print' })
-  const largura = await page.locator('.folha-a4 .credencial').first().evaluate((el) => el.getBoundingClientRect().width)
-  expect(Math.abs(largura - LARGURA_CR80)).toBeLessThan(1)
+  const par = page.getByRole('group', { name: `Credencial de ${nome} para dobrar` })
+  const medidas = await par.evaluate((el) => {
+    const [f, v] = [...el.querySelectorAll('.credencial')].map((c) => c.getBoundingClientRect())
+    return { largura: f.width, alturas: Math.abs(f.height - v.height), espaco: v.left - f.right, topo: v.top - f.top }
+  })
+  expect(Math.abs(medidas.largura - LARGURA_CR80)).toBeLessThan(1)
+  expect(Math.abs(medidas.espaco)).toBeLessThan(0.5)
+  expect(medidas.alturas).toBeLessThan(0.5)
+  expect(Math.abs(medidas.topo)).toBeLessThan(0.5)
+  expect(await par.locator('.credencial').nth(0).evaluate(textosQueTransbordam)).toBe(0)
+  expect(await par.locator('.credencial').nth(1).evaluate(textosQueTransbordam)).toBe(0)
   await page.emulateMedia({ media: 'screen' })
 
   // 4. Validação pública, sem login: válida, com a foto publicada e sem CPF

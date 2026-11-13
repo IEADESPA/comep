@@ -1,101 +1,205 @@
-// Credencial do associado — frente e verso no tamanho de cartão (CR80: 85,6 × 54 mm).
-// O mesmo desenho serve para a tela (digital) e para a impressão (tamanho real).
-// Validade NÃO vai impressa: o QR Code do verso mostra a situação de agora (PROJETO.md, seção 4.5).
-import type { DadosCredencial } from '../dados/credencial'
-import { formatarCnpj, formatarCpf, formatarData } from '../utilitarios/formatos'
+// Credencial do associado — um lado (frente ou verso) no tamanho de cartão (CR80: 85,6 × 54 mm),
+// desenhado a partir do MODELO (utilitarios/modeloCredencial.ts). O mesmo desenho serve para a tela
+// (digital) e para a impressão (tamanho real): tudo é proporcional à largura do cartão.
+import { useEffect, useLayoutEffect, useRef, type CSSProperties } from 'react'
+import { urlImagemModelo } from '../dados/credencial'
+import {
+  cqi,
+  cqiDaLetra,
+  preencher,
+  type Elemento,
+  type ElementoTexto,
+  type Lado,
+  type ModeloCredencial,
+  type ValoresCredencial,
+} from '../utilitarios/modeloCredencial'
 import { QrCode } from './QrCode'
 
-const NOME_COMPLETO = 'Conselho de Ministros Evangélicos de Parauapebas'
+/** A letra pode diminuir até 45% do tamanho escolhido; menor que isso, o texto é cortado com "…". */
+const ESCALA_MINIMA = 0.45
 
-const ou = (valor: string | null | undefined) => valor || '—'
+const FONTES = {
+  sans: 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+  serif: 'Georgia, "Times New Roman", serif',
+} as const
 
-function Topo() {
+const JUSTIFICAR = { esquerda: 'flex-start', centro: 'center', direita: 'flex-end' } as const
+const ALINHAR = { esquerda: 'left', centro: 'center', direita: 'right' } as const
+
+function definirEscala(caixa: HTMLElement, escala: number) {
+  caixa.style.setProperty('--escala', String(Math.round(escala * 1000) / 1000))
+}
+
+/**
+ * Faz cada texto caber na sua caixa: uma linha → diminui a letra até caber na largura (e na altura);
+ * várias linhas → diminui até caber na altura. Nada empurra nem corta o item vizinho.
+ */
+function ajustarTextos(raiz: HTMLElement) {
+  for (const caixa of raiz.querySelectorAll<HTMLElement>('[data-ajustar]')) {
+    const texto = caixa.firstElementChild as HTMLElement | null
+    if (!texto) continue
+    caixa.classList.remove('cr-cortar')
+    definirEscala(caixa, 1)
+    const limite = caixa.getBoundingClientRect()
+    if (limite.width < 1 || limite.height < 1) continue
+    const cabe = () => {
+      const r = texto.getBoundingClientRect()
+      return r.width <= limite.width + 0.3 && r.height <= limite.height + 0.3
+    }
+    if (cabe()) continue
+    if (caixa.dataset.ajustar === 'linha') {
+      const r = texto.getBoundingClientRect()
+      let escala = Math.max(ESCALA_MINIMA, Math.min(limite.width / r.width, limite.height / r.height) * 0.985)
+      definirEscala(caixa, escala)
+      for (let i = 0; i < 4 && !cabe() && escala > ESCALA_MINIMA; i++) {
+        escala = Math.max(ESCALA_MINIMA, escala * 0.95)
+        definirEscala(caixa, escala)
+      }
+    } else {
+      // várias linhas: busca a maior letra que cabe na altura
+      let menor = ESCALA_MINIMA
+      let maior = 1
+      for (let i = 0; i < 8; i++) {
+        const meio = (menor + maior) / 2
+        definirEscala(caixa, meio)
+        if (cabe()) menor = meio
+        else maior = meio
+      }
+      definirEscala(caixa, menor)
+    }
+    if (!cabe()) caixa.classList.add('cr-cortar')
+  }
+}
+
+const caixaDo = (e: Elemento): CSSProperties => ({ left: cqi(e.x), top: cqi(e.y), width: cqi(e.w), height: cqi(e.h) })
+
+const bordaDe = (espessura: number, corBorda: string) => (espessura > 0 ? `${cqi(espessura)} solid ${corBorda}` : undefined)
+
+function Texto({ e, valores }: { e: ElementoTexto; valores: ValoresCredencial }) {
+  const conteudo = preencher(e.texto, valores)
   return (
-    <header className="cred-topo">
-      <img className="cred-logo" src={`${import.meta.env.BASE_URL}logo.svg`} alt="" />
-      <div className="cred-org">
-        <span className="cred-org-nome">{NOME_COMPLETO}</span>
-        <strong className="cred-sigla">COMEP</strong>
-      </div>
-      <span className="cred-tipo">
-        Credencial
-        <br />
-        de associado
-      </span>
-    </header>
+    <div
+      className={`cr-el cr-texto${e.quebrar ? ' cr-linhas' : ''}`}
+      data-ajustar={e.quebrar ? 'linhas' : 'linha'}
+      data-item={e.id}
+      style={{
+        ...caixaDo(e),
+        color: e.cor,
+        fontFamily: FONTES[e.fonte],
+        fontSize: `calc(${cqiDaLetra(e.tamanho)} * var(--escala, 1))`,
+        fontStyle: e.italico ? 'italic' : undefined,
+        fontWeight: e.peso,
+        justifyContent: JUSTIFICAR[e.alinhamento],
+        letterSpacing: e.espacamento ? `${e.espacamento}em` : undefined,
+        textAlign: ALINHAR[e.alinhamento],
+        textTransform: e.maiusculas ? 'uppercase' : undefined,
+      }}
+    >
+      <span>{conteudo}</span>
+    </div>
   )
 }
 
-export function CredencialFrente({ c, foto }: { c: DadosCredencial; foto: string | null }) {
-  const igreja = c.igreja_sigla || c.igreja
-  return (
-    <article className="credencial credencial-frente" aria-label={`Credencial de ${c.nome} — frente`}>
-      <Topo />
-      <div className="cred-corpo">
-        <div className="cred-foto">{foto ? <img src={foto} alt={`Foto de ${c.nome}`} /> : <span>sem foto</span>}</div>
-        <div className="cred-dados">
-          <p className="cred-nome">{c.nome}</p>
-          <p className="cred-titulo">{[c.titulo, c.funcao].filter(Boolean).join(' · ') || '—'}</p>
-          <dl>
-            <div className="cred-par">
-              <div>
-                <dt>CPF</dt>
-                <dd>{c.cpf ? formatarCpf(c.cpf) : '—'}</dd>
-              </div>
-              <div>
-                <dt>Nº de registro</dt>
-                <dd>{String(c.numero_registro).padStart(4, '0')}</dd>
-              </div>
-            </div>
-            <div className="cred-par">
-              <div>
-                <dt>Associado desde</dt>
-                <dd>{c.admitido_em ? formatarData(c.admitido_em) : '—'}</dd>
-              </div>
-              <div>
-                <dt>Igreja</dt>
-                <dd>{ou(igreja)}</dd>
-              </div>
-            </div>
-            <div>
-              <dt>CNPJ da igreja</dt>
-              <dd>{c.igreja_cnpj ? formatarCnpj(c.igreja_cnpj) : '—'}</dd>
-            </div>
-          </dl>
+function Item({ e, valores, nome, foto, urlQr }: { e: Elemento; valores: ValoresCredencial; nome: string; foto: string | null; urlQr: string }) {
+  switch (e.tipo) {
+    case 'texto':
+      return <Texto e={e} valores={valores} />
+    case 'forma':
+      return (
+        <div
+          className="cr-el"
+          data-item={e.id}
+          aria-hidden="true"
+          style={{
+            ...caixaDo(e),
+            background: e.cor2 ? `linear-gradient(${e.angulo}deg, ${e.cor}, ${e.cor2})` : e.cor,
+            border: bordaDe(e.borda, e.corBorda),
+            borderRadius: e.forma === 'elipse' ? '50%' : cqi(e.raio),
+            opacity: e.opacidade,
+          }}
+        />
+      )
+    case 'foto':
+      return (
+        <div
+          className="cr-el cr-foto"
+          data-item={e.id}
+          style={{ ...caixaDo(e), border: bordaDe(e.borda, e.corBorda), borderRadius: cqi(e.raio), fontSize: cqiDaLetra(5) }}
+        >
+          {foto ? <img src={foto} alt={`Foto de ${nome}`} /> : <span>sem foto</span>}
         </div>
-      </div>
-      <footer className="cred-rodape">Situação e validade: confira pelo QR Code no verso</footer>
-    </article>
-  )
+      )
+    case 'qr':
+      return (
+        <div className="cr-el cr-qr" data-item={e.id} style={caixaDo(e)}>
+          <QrCode texto={urlQr} rotulo={`QR Code de validação da credencial de ${nome}`} cor={e.cor} />
+        </div>
+      )
+    case 'imagem':
+      return (
+        <img
+          className="cr-el cr-imagem"
+          data-item={e.id}
+          src={urlImagemModelo(e.arquivo)}
+          alt=""
+          style={{
+            ...caixaDo(e),
+            border: bordaDe(e.borda, e.corBorda),
+            borderRadius: cqi(e.raio),
+            objectFit: e.ajuste === 'cobrir' ? 'cover' : 'contain',
+            opacity: e.opacidade,
+          }}
+        />
+      )
+  }
 }
 
-export function CredencialVerso({ c, textoVerso, url }: { c: DadosCredencial; textoVerso: string; url: string }) {
+type PropsFace = {
+  lado: Lado
+  modelo: ModeloCredencial
+  valores: ValoresCredencial
+  /** nome do associado (para os textos de acessibilidade) */
+  nome: string
+  foto: string | null
+  /** endereço que vai no QR Code */
+  urlQr: string
+  className?: string
+}
+
+/** Um lado da credencial, desenhado pelo modelo. */
+export function FaceCredencial({ lado, modelo, valores, nome, foto, urlQr, className }: PropsFace) {
+  const raiz = useRef<HTMLElement>(null)
+  const face = modelo[lado]
+
+  // Ajusta os textos a cada mudança (dados ou modelo)…
+  useLayoutEffect(() => {
+    if (raiz.current) ajustarTextos(raiz.current)
+  }, [face, valores])
+
+  // …e quando o cartão muda de tamanho ou as letras terminam de carregar
+  useEffect(() => {
+    const no = raiz.current
+    if (!no) return
+    let ativo = true
+    const observador = new ResizeObserver(() => ativo && ajustarTextos(no))
+    observador.observe(no)
+    void document.fonts?.ready.then(() => ativo && ajustarTextos(no))
+    return () => {
+      ativo = false
+      observador.disconnect()
+    }
+  }, [])
+
   return (
-    <article className="credencial credencial-verso" aria-label={`Credencial de ${c.nome} — verso`}>
-      <div className="cred-faixa" />
-      <div className="cred-verso-corpo">
-        <div className="cred-qr">
-          <QrCode texto={url} rotulo={`QR Code de validação da credencial de ${c.nome}`} />
-          <span>Aponte a câmera e confira a situação atual</span>
-        </div>
-        <div className="cred-verso-texto">
-          <dl>
-            <div>
-              <dt>Filiação</dt>
-              <dd>{ou(c.nome_mae)}</dd>
-              {c.nome_pai && <dd>{c.nome_pai}</dd>}
-            </div>
-          </dl>
-          <p className="cred-texto-verso">{textoVerso}</p>
-          <div className="cred-assinatura">
-            <span className="cred-linha-assinatura" />
-            Presidente do COMEP
-          </div>
-        </div>
-      </div>
-      <footer className="cred-rodape">
-        {NOME_COMPLETO} · Parauapebas/PA · Nº {String(c.numero_registro).padStart(4, '0')}
-      </footer>
+    <article
+      ref={raiz}
+      className={`credencial credencial-${lado}${className ? ` ${className}` : ''}`}
+      aria-label={`Credencial de ${nome} — ${lado}`}
+      style={{ background: face.fundo }}
+    >
+      {face.elementos.map((e) => (
+        <Item key={e.id} e={e} valores={valores} nome={nome} foto={foto} urlQr={urlQr} />
+      ))}
     </article>
   )
 }

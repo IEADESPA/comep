@@ -54,12 +54,21 @@ export type DadosCredencial = {
   igreja_cnpj: string | null
   foto_caminho: string | null
   foto_publica: string | null
+  /** fim do mandato quando a credencial foi emitida (vai impresso; a impressa vale até essa data) */
+  valida_ate: string | null
+  emitida_em: string | null
   em_dia: boolean
   jubilado: boolean
   pendencias: string[]
 }
 
-export type PacoteCredenciais = { fim_mandato: string | null; texto_verso: string; credenciais: DadosCredencial[] }
+export type PacoteCredenciais = {
+  fim_mandato: string | null
+  texto_verso: string
+  /** modelo (desenho) em uso; vazio = o padrão do sistema */
+  modelo?: unknown
+  credenciais: DadosCredencial[]
+}
 
 /** Dados para mostrar/imprimir (cria a credencial na primeira vez). A própria, ou de vários (secretaria/presidência). */
 export async function dadosCredenciais(pessoas: string[]): Promise<Resultado<PacoteCredenciais>> {
@@ -85,6 +94,8 @@ export type Validacao = {
   foto_publica?: string | null
   em_dia?: boolean
   valida_ate?: string | null
+  /** é de um mandato anterior (a credencial já foi renovada) */
+  renovada?: boolean
   substituida_em?: string
 }
 
@@ -97,6 +108,12 @@ export async function validarCredencial(codigo: string): Promise<Resultado<Valid
 /** Endereço que vai no QR Code (o mesmo site onde a credencial foi gerada). */
 export function urlValidacao(codigo: string): string {
   return `${window.location.origin}${import.meta.env.BASE_URL}validar/${codigo}`
+}
+
+/** Imagem usada no modelo da credencial: o logo do sistema ou uma imagem enviada no editor. */
+export function urlImagemModelo(arquivo: string): string {
+  if (arquivo === 'logo') return `${import.meta.env.BASE_URL}logo.svg`
+  return cliente().storage.from('credencial-modelo').getPublicUrl(arquivo).data.publicUrl
 }
 
 /** A cópia pública da foto (pasta "credenciais", só quem tem o código acha). */
@@ -128,6 +145,12 @@ export type ConfigCredencial = { fim_mandato: string | null; texto_verso: string
 export async function buscarConfigCredencial(): Promise<Resultado<ConfigCredencial>> {
   const { data, error } = await cliente().from('config_credencial').select('fim_mandato, texto_verso').single<ConfigCredencial>()
   return error ? falha(error) : ok(data)
+}
+
+/** Posse da nova diretoria: renova as credenciais (as impressas antigas valem até o fim do mandato atual). */
+export async function registrarNovoMandato(fim: string): Promise<Resultado<number>> {
+  const { data, error } = await cliente().rpc('registrar_novo_mandato', { p_fim: fim })
+  return error ? falha(error) : ok(data as number)
 }
 
 export async function salvarConfigCredencial(config: ConfigCredencial): Promise<Resultado<null>> {

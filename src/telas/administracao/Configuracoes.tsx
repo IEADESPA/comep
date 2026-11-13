@@ -38,7 +38,7 @@ import {
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { buscarConfigCredencial, salvarConfigCredencial } from '../../dados/credencial'
+import { buscarConfigCredencial, registrarNovoMandato, salvarConfigCredencial } from '../../dados/credencial'
 import { DICA_VALOR, lerValor, PADRAO_VALOR, valorParaCampo } from '../../utilitarios/valores'
 import { cnpjValido, formatarCnpj, formatarData, hojeIso, limparCnpj } from '../../utilitarios/formatos'
 
@@ -963,7 +963,7 @@ function AjustarSaldo({
 }
 
 // ---------------------------------------------------------------------
-// Credencial: fim do mandato (validade mostrada pelo QR Code) e texto do verso
+// Credencial: fim do mandato (validade), texto do verso e a posse de uma nova diretoria
 // ---------------------------------------------------------------------
 
 function ConfigCredencialSecao({ podeEditar }: { podeEditar: boolean }) {
@@ -974,47 +974,138 @@ function ConfigCredencialSecao({ podeEditar }: { podeEditar: boolean }) {
     <section className="painel" id="credencial" aria-labelledby="titulo-config-credencial">
       <h2 id="titulo-config-credencial">Credencial</h2>
       <p className="detalhe">
-        A validade não vai impressa na credencial: o QR Code mostra a situação de agora. Quando a nova diretoria tomar posse,
-        mude o fim do mandato aqui e todas as credenciais acompanham, sem reimprimir.
+        A credencial traz a validade: o fim do mandato da diretoria em curso. A digital passa sozinha para o mandato
+        seguinte. A impressa vale até a data que está nela: depois da posse da nova diretoria, é impressa de novo.
       </p>
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(config) => (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              const dados = new FormData(e.currentTarget)
-              void umaVez(async () => {
-                const r = await salvarConfigCredencial({
-                  fim_mandato: String(dados.get('fim_mandato') ?? ''),
-                  texto_verso: String(dados.get('texto_verso') ?? ''),
+          <>
+            <form
+              aria-label="Credencial"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const dados = new FormData(e.currentTarget)
+                void umaVez(async () => {
+                  const r = await salvarConfigCredencial({
+                    fim_mandato: String(dados.get('fim_mandato') ?? ''),
+                    texto_verso: String(dados.get('texto_verso') ?? ''),
+                  })
+                  setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Configuração da credencial salva.' })
+                  if (r.erro === null) recarregar()
                 })
-                setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Configuração da credencial salva.' })
-                if (r.erro === null) recarregar()
-              })
-            }}
-          >
-            <div className="grade-form">
-              <label>
-                Fim do mandato da diretoria em curso
-                <input name="fim_mandato" type="date" defaultValue={config.fim_mandato ?? ''} disabled={!podeEditar} />
-              </label>
-              <label className="largura-total">
-                Texto do verso
-                <textarea name="texto_verso" rows={3} maxLength={600} required defaultValue={config.texto_verso} disabled={!podeEditar} />
-              </label>
-            </div>
-            <p className="detalhe">Fim do mandato em branco: a credencial vale enquanto o associado estiver ativo.</p>
-            {podeEditar && (
-              <div className="acoes">
-                <button type="submit" className="botao" disabled={enviando}>
-                  Salvar credencial
-                </button>
+              }}
+            >
+              <div className="grade-form">
+                <label>
+                  Fim do mandato da diretoria em curso
+                  <input name="fim_mandato" type="date" defaultValue={config.fim_mandato ?? ''} disabled={!podeEditar} />
+                </label>
+                <label className="largura-total">
+                  Texto do verso
+                  <textarea name="texto_verso" rows={3} maxLength={600} required defaultValue={config.texto_verso} disabled={!podeEditar} />
+                </label>
               </div>
+              <p className="detalhe">
+                Mudar a data aqui só <strong>corrige</strong> o mandato em curso: todas as credenciais dele acompanham. Em
+                branco, a credencial vale enquanto o associado estiver ativo.
+              </p>
+              {podeEditar && (
+                <div className="acoes">
+                  <button type="submit" className="botao" disabled={enviando}>
+                    Salvar credencial
+                  </button>
+                </div>
+              )}
+            </form>
+            {podeEditar && config.fim_mandato && (
+              <NovoMandato
+                fimAtual={config.fim_mandato}
+                aoRegistrar={(quantas) => {
+                  setRetorno({
+                    sucesso: `Novo mandato registrado. ${quantas} credencia${quantas === 1 ? 'l renovada' : 'is renovadas'}: as impressas antigas valem até ${formatarData(config.fim_mandato)}.`,
+                  })
+                  recarregar()
+                }}
+                aoFalhar={(erro) => setRetorno({ erro })}
+              />
             )}
-          </form>
+          </>
         )}
       </MostrarCarga>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
     </section>
+  )
+}
+
+/** Posse da nova diretoria: as credenciais passam para o novo mandato (as impressas antigas valem até o fim do atual). */
+function NovoMandato({
+  fimAtual,
+  aoRegistrar,
+  aoFalhar,
+}: {
+  fimAtual: string
+  aoRegistrar: (quantas: number) => void
+  aoFalhar: (erro: string) => void
+}) {
+  const [fim, setFim] = useState('')
+  const [perguntando, setPerguntando] = useState(false)
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <details className="acao-recolhida">
+      <summary>Nova diretoria tomou posse: registrar o novo mandato</summary>
+      <p className="detalhe">
+        Cada associado recebe a credencial do novo mandato (novo QR Code); a digital muda sozinha. As impressas antigas
+        continuam valendo até <strong>{formatarData(fimAtual)}</strong> (o fim do mandato atual) e, depois disso, o QR Code
+        delas mostra "vencida": é preciso imprimir de novo. Para só corrigir a data, use o campo acima.
+      </p>
+      <form
+        className="form-linha"
+        aria-label="Novo mandato"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!perguntando) {
+            setPerguntando(true)
+            return
+          }
+          setPerguntando(false)
+          void umaVez(async () => {
+            const r = await registrarNovoMandato(fim)
+            if (r.erro !== null) aoFalhar(r.erro)
+            else {
+              setFim('')
+              aoRegistrar(r.dados)
+            }
+          })
+        }}
+      >
+        <label className="campo-curto">
+          Fim do novo mandato *
+          <input
+            type="date"
+            required
+            min={fimAtual > hojeIso() ? fimAtual : hojeIso()}
+            value={fim}
+            onChange={(e) => {
+              setFim(e.target.value)
+              setPerguntando(false)
+            }}
+          />
+        </label>
+        {perguntando ? (
+          <span className="confirmar-linha">
+            <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
+              Confirmar — renovar todas as credenciais
+            </button>
+            <button type="button" className="botao-texto" onClick={() => setPerguntando(false)}>
+              Não
+            </button>
+          </span>
+        ) : (
+          <button type="submit" className="botao" disabled={enviando}>
+            Registrar o novo mandato
+          </button>
+        )}
+      </form>
+    </details>
   )
 }
