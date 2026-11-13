@@ -1,5 +1,16 @@
+import { Link } from 'react-router'
+
 /** O que falta para a credencial (Fase 3.1). Lista vazia = credencial completa. */
-export function PendenciasCredencial({ pendencias, propria = false }: { pendencias: string[]; propria?: boolean }) {
+export function PendenciasCredencial({
+  pendencias,
+  propria = false,
+  verEm,
+}: {
+  pendencias: string[]
+  propria?: boolean
+  /** Endereço da tela da credencial (ex.: /credenciais/<pessoa>) */
+  verEm?: string
+}) {
   return (
     <section className="painel" aria-labelledby="titulo-pendencias-credencial">
       <h2 id="titulo-pendencias-credencial">{propria ? 'Minha credencial' : 'Credencial'}</h2>
@@ -21,6 +32,11 @@ export function PendenciasCredencial({ pendencias, propria = false }: { pendenci
               : 'Foto, CPF e filiação: o próprio associado preenche no perfil, ou a secretaria aqui. Sigla e CNPJ: no cadastro da igreja.'}
           </p>
         </>
+      )}
+      {verEm && (
+        <p>
+          <Link to={verEm}>Ver a credencial (digital e impressão)</Link>
+        </p>
       )}
     </section>
   )

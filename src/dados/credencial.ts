@@ -35,3 +35,105 @@ export async function pendenciasDe(pessoaId: string): Promise<Resultado<string[]
     .maybeSingle<{ pendencias: string[] }>()
   return error ? falha(error) : ok(data ? data.pendencias : null)
 }
+
+// ---------- Credencial digital, validação pública e impressão (Fase 3.2/3.3) ----------
+
+export type DadosCredencial = {
+  pessoa_id: string
+  codigo: string
+  nome: string
+  cpf: string | null
+  nome_pai: string | null
+  nome_mae: string | null
+  numero_registro: number
+  admitido_em: string | null
+  titulo: string | null
+  funcao: string | null
+  igreja: string | null
+  igreja_sigla: string | null
+  igreja_cnpj: string | null
+  foto_caminho: string | null
+  foto_publica: string | null
+  em_dia: boolean
+  jubilado: boolean
+  pendencias: string[]
+}
+
+export type PacoteCredenciais = { fim_mandato: string | null; texto_verso: string; credenciais: DadosCredencial[] }
+
+/** Dados para mostrar/imprimir (cria a credencial na primeira vez). A própria, ou de vários (secretaria/presidência). */
+export async function dadosCredenciais(pessoas: string[]): Promise<Resultado<PacoteCredenciais>> {
+  const { data, error } = await cliente().rpc('dados_credenciais', { p_pessoas: pessoas })
+  return error ? falha(error) : ok(data as PacoteCredenciais)
+}
+
+/** Perda, roubo ou dados que mudaram: emite outra; o QR Code antigo passa a dizer "substituída". */
+export async function substituirCredencial(pessoaId: string, motivo: string): Promise<Resultado<string>> {
+  const { data, error } = await cliente().rpc('substituir_credencial', { p_pessoa_id: pessoaId, p_motivo: motivo })
+  return error ? falha(error) : ok(data as string)
+}
+
+export type SituacaoValidacao = 'valida' | 'vencida' | 'substituida' | 'inativa' | 'inexistente'
+
+export type Validacao = {
+  situacao: SituacaoValidacao
+  consultado_em: string
+  nome?: string | null
+  titulo?: string | null
+  numero_registro?: number
+  igreja?: string | null
+  foto_publica?: string | null
+  em_dia?: boolean
+  valida_ate?: string | null
+  substituida_em?: string
+}
+
+/** Página pública do QR Code: funciona sem login. */
+export async function validarCredencial(codigo: string): Promise<Resultado<Validacao>> {
+  const { data, error } = await cliente().rpc('validar_credencial', { p_codigo: codigo })
+  return error ? falha(error) : ok(data as Validacao)
+}
+
+/** Endereço que vai no QR Code (o mesmo site onde a credencial foi gerada). */
+export function urlValidacao(codigo: string): string {
+  return `${window.location.origin}${import.meta.env.BASE_URL}validar/${codigo}`
+}
+
+/** A cópia pública da foto (pasta "credenciais", só quem tem o código acha). */
+export function urlFotoPublica(caminho: string): string {
+  return cliente().storage.from('credenciais').getPublicUrl(caminho).data.publicUrl
+}
+
+/**
+ * Publica a cópia da foto para a página de validação, se ainda não estiver publicada
+ * (ou se a foto mudou). Nada se sobrescreve: cada foto nova vira um arquivo novo na pasta do código.
+ */
+export async function publicarFoto(c: DadosCredencial, linkPrivado: (caminho: string) => Promise<string | null>) {
+  if (!c.foto_caminho) return null
+  const destino = `${c.codigo}/${c.foto_caminho.split('/').pop()}`
+  if (c.foto_publica === destino) return destino
+  const link = await linkPrivado(c.foto_caminho)
+  if (!link) return null
+  const resposta = await fetch(link)
+  if (!resposta.ok) return null
+  const arquivo = await resposta.blob()
+  const envio = await cliente().storage.from('credenciais').upload(destino, arquivo, { upsert: false, contentType: arquivo.type })
+  if (envio.error && !/exists|duplicate/i.test(envio.error.message)) return null
+  const { error } = await cliente().rpc('registrar_foto_publica', { p_codigo: c.codigo, p_caminho: destino })
+  return error ? null : destino
+}
+
+export type ConfigCredencial = { fim_mandato: string | null; texto_verso: string }
+
+export async function buscarConfigCredencial(): Promise<Resultado<ConfigCredencial>> {
+  const { data, error } = await cliente().from('config_credencial').select('fim_mandato, texto_verso').single<ConfigCredencial>()
+  return error ? falha(error) : ok(data)
+}
+
+export async function salvarConfigCredencial(config: ConfigCredencial): Promise<Resultado<null>> {
+  const { error } = await cliente()
+    .from('config_credencial')
+    .update({ fim_mandato: config.fim_mandato || null, texto_verso: config.texto_verso.trim() })
+    .eq('id', true)
+  return error ? falha(error) : ok(null)
+}

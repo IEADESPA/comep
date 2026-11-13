@@ -43,9 +43,9 @@ test.describe('ministro', () => {
 
     const menu = await abrirMenu(page)
     await expect(menu.getByRole('link', { name: 'Minhas mensalidades', exact: true })).toBeVisible()
-    await expect(menu.getByRole('link', { name: 'Minha carteirinha', exact: true })).toBeVisible()
+    await expect(menu.getByRole('link', { name: 'Minha credencial', exact: true })).toBeVisible()
     await expect(menu.getByRole('link', { name: 'Meu perfil', exact: true })).toBeVisible()
-    for (const item of ['Inscrições', 'Ministros', 'Financeiro', 'Perfis de acesso', 'Auditoria', 'Minha igreja']) {
+    for (const item of ['Inscrições', 'Ministros', 'Credenciais', 'Financeiro', 'Perfis de acesso', 'Auditoria', 'Minha igreja']) {
       await expect(menu.getByRole('link', { name: item, exact: true })).toHaveCount(0)
     }
   })
