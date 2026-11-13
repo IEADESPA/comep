@@ -116,7 +116,7 @@ O que entrou:
 
 | Pull request | Resultado | Data |
 |---|---|---|
-| Fase 3.2/3.3 — credencial digital e impressão | ver o pull request | 13/11/2026 |
+| #21 — Fase 3.2/3.3: credencial digital e impressão | Aprovado (verificar + ponta a ponta), publicado e conferido no site de teste (80 de 80) | 13/11/2026 |
 
 ### Trava 2
 
@@ -154,3 +154,65 @@ O que entrou:
 ### Dados fictícios
 
 As credenciais aparecem para todos os associados fictícios do teste. Com a semente da 3.1, **24 estão completas**: com foto, CPF, filiação, título, igreja com sigla e CNPJ fictício "ZZ". As outras mostram o que falta. O fim do mandato está em branco no teste (pergunta 10 do PROJETO.md).
+
+## Ajuste de 13/11/2026 — impressão para dobrar, validade por mandato e desenho sem cortes
+
+O administrador técnico viu a primeira versão no site de teste e pediu (13/11/2026):
+
+- **Frente e verso juntos.** A credencial é dobrada ao meio, posta na capa plástica e plastificada. Não é recortada em duas partes. O espaço em branco entre frente e verso saiu.
+- **Nada cortado.** O nome numa linha só; se o nome quebrava em duas linhas, o CNPJ e outros dados eram cortados.
+- **Foto 3×4.** A foto estava estreita e comprida.
+- **Validade na credencial.** A impressa vale até o fim do mandato da diretoria e precisa ser impressa de novo a cada mandato. Senão, fica inválida.
+- O tamanho (85,6 × 54 mm), a página do QR Code e o CNPJ no formato novo ficaram aprovados.
+
+O que mudou:
+
+- **Desenho por modelo** (`src/utilitarios/modeloCredencial.ts`):
+  - cada item da credencial tem uma caixa fixa, em milímetros;
+  - um texto comprido **diminui a letra até caber** na sua caixa (até 45% do tamanho). Só então é cortado com "…";
+  - nenhum item empurra ou corta o vizinho;
+  - o mesmo modelo desenha a digital e a impressa, e é a base do editor (3.4).
+- **Foto 3×4** (19,5 × 26 mm).
+- **"Válida até"** na frente da credencial, e **"Emitida em"** no rodapé do verso.
+- **Impressão:** frente e verso **colados**, com uma linha fina em volta para recortar e marcas da dobra em cima e embaixo, fora do cartão. Continuam 5 por folha A4.
+- **Validade por mandato** (migração `20261113150000_credencial_validade_mandato.sql`):
+  - a credencial atual acompanha o fim do mandato em curso;
+  - **Corrigir a data** (Configurações → Credencial): todas as credenciais do mandato acompanham, e o QR não muda;
+  - **Registrar o novo mandato** (posse da nova diretoria), com confirmação:
+    - a credencial atual de cada associado fica registrada, valendo até o fim do mandato que terminou;
+    - nasce outra, com novo QR Code; a digital muda sozinha;
+    - a impressa antiga mostra "vencida" depois da sua data;
+  - **perda:** todas as credenciais da pessoa, inclusive as de mandatos anteriores ainda válidas, passam a dizer "substituída".
+- **Texto padrão do verso** (migração `20261113150100_credencial_texto_verso.sql`): deixou de dizer "sem necessidade de reimpressão". Só troca se ninguém mudou o texto.
+
+### Trava 2
+
+- [x] Migrações aplicadas no `comep-teste`.
+- [x] **8 testes novos do banco** (`credencial_mandato.test.ts`):
+  - posse sem o fim do mandato informado;
+  - mandato acabado e posse atrasada: "vencida";
+  - só a secretaria ou a presidência registram a posse, com data válida;
+  - na posse, a digital ganha novo QR e a antiga continua com a sua data;
+  - corrigir a data não troca o QR nem mexe no mandato anterior;
+  - a impressa do mandato anterior vale até a data dela;
+  - foto pública só para a credencial atual;
+  - na perda, todas viram "substituída".
+- [x] **12 testes de unidade do modelo**:
+  - o padrão passa pela própria conferência;
+  - tudo dentro do cartão;
+  - foto 3×4 e nome numa linha;
+  - o que vem do banco ou do editor é conferido: cores, números, imagens só do sistema, no máximo 60 itens;
+  - o preenchimento dos dados.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| Associado com **nome bem comprido**: nenhum texto passa da sua caixa, na tela e na impressão | ✅ |
+| A frente mostra "Válida até" | ✅ |
+| Na impressão, cada lado tem 85,6 mm, frente e verso **sem espaço entre eles**, mesma altura e alinhados | ✅ |
+| Configurações → Credencial: corrigir a data, e a posse pede confirmação antes de renovar | ✅ |
+
+### Dados fictícios
+
+No `comep-teste`, o fim do mandato foi posto em **31/12/2029, data fictícia**, para a validade aparecer. A data verdadeira depende da pergunta 10.

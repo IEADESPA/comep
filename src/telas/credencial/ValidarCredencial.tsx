@@ -23,8 +23,8 @@ export function ValidarCredencial() {
         {(v) => <Resultado v={v} />}
       </MostrarCarga>
       <p className="detalhe validacao-nota">
-        Esta página mostra a situação no momento da consulta. A credencial não traz validade impressa: vale o que aparece
-        aqui.
+        Esta página mostra a situação no momento da consulta. A credencial vale até o fim do mandato da diretoria; a
+        impressa precisa ser impressa de novo a cada novo mandato.
       </p>
     </main>
   )
@@ -61,7 +61,9 @@ function Resultado({ v }: { v: Validacao }) {
     <section className={`validacao-cartao ${classe}`} aria-label="Resultado da validação">
       <p className="validacao-situacao">
         {vencida
-          ? 'Credencial vencida (fim do mandato) — aguardando a renovação'
+          ? v.renovada
+            ? 'Credencial vencida — é de um mandato anterior'
+            : 'Credencial vencida (fim do mandato) — aguardando a renovação'
           : v.em_dia
             ? 'Credencial válida'
             : 'Credencial válida — contribuição em atraso'}
@@ -88,9 +90,12 @@ function Resultado({ v }: { v: Validacao }) {
         <li>{v.em_dia ? 'Em dia com a contribuição: apto a votar e ser votado (Art. 11)' : 'Contribuição em atraso: inapto para votar até regularizar (Art. 11)'}</li>
         <li>
           {v.valida_ate
-            ? `${vencida ? 'Venceu' : 'Válida até'} ${formatarData(v.valida_ate)} (fim do mandato da diretoria)`
+            ? `${vencida ? 'Venceu em' : 'Válida até'} ${formatarData(v.valida_ate)} (fim do mandato da diretoria)`
             : 'Válida enquanto o associado estiver ativo'}
         </li>
+        {vencida && v.renovada && (
+          <li>Esta credencial já foi renovada para o mandato atual: peça a credencial nova (a digital, no sistema, ou impressa de novo).</li>
+        )}
       </ul>
       <p className="detalhe">Consultado em {formatarDataHora(v.consultado_em)}.</p>
     </section>

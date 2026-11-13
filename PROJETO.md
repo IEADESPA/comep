@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.18 — 13 de novembro de 2026 — atualizado com as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.19 — 13 de novembro de 2026 — atualizado com o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -142,31 +142,37 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 
 ### 4.5 Credencial do associado (digital e física)
 
-Decisões de 12/11/2026 (administrador técnico, com base na credencial que já usa):
+Decisões de 12/11/2026 (administrador técnico, com base na credencial que já usa), **revistas em 13/11/2026** depois de ver a primeira versão no sistema de teste:
 
 - **Duas formas da mesma credencial:**
   - **digital:** aparece no sistema ("Minha credencial") e no app instalado no celular;
-  - **física:** impressa em papel. A de PVC fica para depois.
-- **Validade sem data impressa — o QR Code é a validade:**
+  - **física:** impressa em papel e **plastificada**. A de PVC fica para depois (é cara e desnecessária agora).
+- **Validade: o fim do mandato da diretoria em curso** *(revisto em 13/11/2026)*:
+  - a credencial traz **"Válida até"** com essa data;
+  - a **digital** passa sozinha para o mandato seguinte: na posse da nova diretoria, o sistema emite outra, com novo QR Code;
+  - a **impressa** vale até a data que está nela. **Depois da posse da nova diretoria, é preciso imprimir de novo**; passada a data, o QR Code da antiga mostra "vencida";
   - o QR Code abre a página pública de validação, que mostra a situação **de agora**:
     - se o associado está ativo;
     - se está em dia ou em atraso — em atraso fica **inapto para votar** (Art. 11);
-    - até quando a credencial vale: o fim do mandato da diretoria em curso (4 anos, pelo pleito).
-  - Ao renovar, pagando em dia o ano da eleição, a validade passa **sozinha** para o mandato seguinte. **Ninguém precisa reimprimir.**
-  - Vale também para quem entra no meio do mandato (pergunta 21).
+    - até quando a credencial vale;
+  - vale também para quem entra no meio do mandato (pergunta 21);
+  - em Configurações → Credencial há **duas ações separadas**, para um erro de digitação não estragar nada:
+    - **corrigir** a data do mandato em curso: todas as credenciais dele acompanham;
+    - **registrar o novo mandato** (posse), com confirmação: as credenciais são renovadas.
 - **O que vai na credencial:**
   - **cabeçalho do COMEP**, bonito: logo e nome do Conselho;
-  - foto, nome, **CPF**, **filiação** (pai e mãe — é credencial de um conselho municipal, não de igreja);
-  - **nº de registro** (o número do associado) e **data de ingresso** no Conselho;
+  - **foto 3×4**, nome, **CPF**, **filiação** (pai e mãe — é credencial de um conselho municipal, não de igreja);
+  - **nº de registro** (o número do associado), **data de ingresso** no Conselho e a **validade**;
   - título;
   - **função/cargo na igreja**, a que a igreja informa ao Conselho;
   - **igreja pela sigla** (nome curto, porque há nomes enormes) **e o CNPJ**. Igreja sem CNPJ ou sem sigla aparece como **pendência** para o associado resolver;
   - no **verso**: QR Code, texto de rodapé configurável e espaço para outros dados que se quiser.
+- **Desenho:** cada item tem o seu lugar fixo. **O nome fica numa linha só** (a letra diminui para caber), e nenhum texto comprido corta ou empurra o item vizinho (o CNPJ, por exemplo).
 - **Página pública de validação:** mostra só nome, foto, título, nº de registro, igreja (sigla) e a situação. Não mostra CPF nem filiação.
 - **Física:**
-  - tamanho padrão de cartão (**CR80: 85,6 × 54 mm**, o mesmo do PVC, das capinhas plásticas e dos porta-crachás);
-  - frente e verso;
-  - várias credenciais por folha A4, com marcas de corte.
+  - tamanho padrão de cartão (**CR80: 85,6 × 54 mm**). A capa plástica usada é uns 10 mm maior, o que deixa uma borda boa;
+  - **frente e verso juntos, lado a lado, sem espaço entre eles:** recorta-se em volta, **dobra-se ao meio**, põe-se na capa e plastifica-se. Não se recorta frente e verso separados (isso só seria para o PVC);
+  - 5 credenciais por folha A4, com linha de recorte em volta e marcas da dobra.
 - **Editor de credencial:** o desenho fica num **modelo editável** — onde fica cada coisa, fotos, cores e formas. Assim dá para mudar o conceito da credencial no futuro sem programar.
 
 ### 4.6 Assembleias e reuniões
@@ -450,7 +456,8 @@ Decisões na seção 4.5. Revisão: `docs/revisoes/fase-3.md`.
 - [x] "Minha credencial" (frente e verso na tela, também no app instalado) e, para a secretaria e a presidência, o menu **Credenciais** (todas: ver, imprimir, conferir)
 - [x] QR Code que se atualiza sozinho: página pública com a situação de agora (ativo, em dia ou inapto a votar, válida até o fim do mandato — Configurações → Credencial)
 - [x] Perda ou roubo: a secretaria emite outra credencial e o QR antigo passa a dizer "substituída"
-- [x] Impressão no tamanho de cartão (CR80, 85,6 × 54 mm): 5 por folha A4, frente e verso lado a lado, com linha de corte; uma ou várias de uma vez
+- [x] Impressão no tamanho de cartão (CR80, 85,6 × 54 mm): 5 por folha A4; uma ou várias de uma vez
+- [x] Ajuste de 13/11/2026: frente e verso **juntos** para dobrar e plastificar; o nome numa linha só e nada cortado; foto 3×4; **validade na credencial** (a impressa é impressa de novo a cada mandato; a digital muda sozinha)
 
 **3.4 — Editor do modelo da credencial** (versão 3.0-teste.3)
 
@@ -557,7 +564,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 18. **Vencimentos:** a mensalidade vence em que dia do mês? O anual pode ser pago até que dia de abril? A escolha entre mensal e anual vale para o exercício inteiro? Quem entra no meio do exercício paga só os meses que faltam?
 19. **Voto na assembleia de abril:** ela acontece na 2ª quinzena de abril, logo no começo do exercício novo. Para votar, basta estar em dia até março, ou também com abril (ou o anual) pago?
 20. **Jubilado:** sendo isento, ele vota e pode ser votado normalmente? Quem define que o associado é jubilado?
-21. ~~Validade da carteirinha~~ — *respondida em 12/11/2026: sim, vale até o fim do mandato em curso; renovando (em dia no ano da eleição), o QR Code passa sozinho para o mandato seguinte, sem reimprimir.*
+21. ~~Validade da carteirinha~~ — *respondida em 12/11/2026: sim, vale até o fim do mandato em curso; renovando (em dia no ano da eleição), o QR Code passa sozinho para o mandato seguinte, sem reimprimir. Revisto em 13/11/2026: isso vale para a digital; a impressa traz a validade e é impressa de novo a cada mandato (seção 4.5).*
 22. **Faltas:** a regra de desligamento por 3 faltas seguidas sem justificativa (Art. 8º, IV) vale para as reuniões mensais?
 23. **Pagamento informado e ainda não conferido:** o associado pagou antes do vencimento e informou o pagamento, mas a tesouraria ainda não conferiu. Até a conferência, ele conta como **em dia** para votar? *(Hoje o sistema só conta como em dia depois que a tesouraria confirma. Revisão geral da Fase 2, 13/11/2026.)*
 

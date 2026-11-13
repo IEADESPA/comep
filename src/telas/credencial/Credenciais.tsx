@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
-import { CredencialFrente, CredencialVerso } from '../../componentes/CartaoCredencial'
+import { FaceCredencial } from '../../componentes/CartaoCredencial'
 import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
 import {
   dadosCredenciais,
@@ -18,8 +18,9 @@ import { linkDoArquivo } from '../../dados/pedidos'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { contemTexto, formatarData } from '../../utilitarios/formatos'
+import { contemTexto, formatarData, hojeIso } from '../../utilitarios/formatos'
 import { imprimir } from '../../utilitarios/exportar'
+import { normalizarModelo, valoresDaCredencial, type ModeloCredencial } from '../../utilitarios/modeloCredencial'
 
 /** Foto para mostrar (link temporário da pasta privada) e, de quebra, publica a cópia para o QR Code. */
 function useFoto(c: DadosCredencial | undefined, publicar: boolean): string | null {
@@ -37,23 +38,40 @@ function useFoto(c: DadosCredencial | undefined, publicar: boolean): string | nu
   return foto
 }
 
+/** Frente e verso desenhados pelo modelo em uso. */
+function FrenteEVerso({ modelo, textoVerso, c, foto }: { modelo: ModeloCredencial; textoVerso: string; c: DadosCredencial; foto: string | null }) {
+  const valores = useMemo(() => valoresDaCredencial(c, textoVerso), [c, textoVerso])
+  const url = urlValidacao(c.codigo)
+  return (
+    <>
+      <FaceCredencial lado="frente" modelo={modelo} valores={valores} nome={c.nome} foto={foto} urlQr={url} />
+      <FaceCredencial lado="verso" modelo={modelo} valores={valores} nome={c.nome} foto={foto} urlQr={url} />
+    </>
+  )
+}
+
 /** Frente e verso, lado a lado (computador) ou um embaixo do outro (celular). */
 export function CredencialNaTela({ pacote, c }: { pacote: PacoteCredenciais; c: DadosCredencial }) {
   const foto = useFoto(c, true)
+  const modelo = useMemo(() => normalizarModelo(pacote.modelo), [pacote.modelo])
   return (
     <div className="credencial-dupla" aria-label={`Credencial de ${c.nome}`}>
-      <CredencialFrente c={c} foto={foto} />
-      <CredencialVerso c={c} textoVerso={pacote.texto_verso} url={urlValidacao(c.codigo)} />
+      <FrenteEVerso modelo={modelo} textoVerso={pacote.texto_verso} c={c} foto={foto} />
     </div>
   )
 }
 
-function SituacaoAgora({ pacote, c }: { pacote: PacoteCredenciais; c: DadosCredencial }) {
+function SituacaoAgora({ c }: { c: DadosCredencial }) {
+  const vencida = c.valida_ate !== null && c.valida_ate < hojeIso()
   return (
     <section className="painel" aria-labelledby="titulo-situacao-credencial">
       <h2 id="titulo-situacao-credencial">Situação de agora (o que o QR Code mostra)</h2>
       <p>
-        <span className="etiqueta etiqueta-ok">Credencial ativa</span>{' '}
+        {vencida ? (
+          <span className="etiqueta etiqueta-atraso">Vencida (fim do mandato): aguardando a renovação</span>
+        ) : (
+          <span className="etiqueta etiqueta-ok">Credencial ativa</span>
+        )}{' '}
         {c.em_dia ? (
           <span className="etiqueta etiqueta-ok">{c.jubilado ? 'Isento (jubilado)' : 'Em dia: apto a votar e ser votado'}</span>
         ) : (
@@ -61,8 +79,8 @@ function SituacaoAgora({ pacote, c }: { pacote: PacoteCredenciais; c: DadosCrede
         )}
       </p>
       <p className="detalhe">
-        {pacote.fim_mandato
-          ? `Válida até ${formatarData(pacote.fim_mandato)}, o fim do mandato da diretoria. Na posse da nova diretoria, a validade passa sozinha para o mandato seguinte: não precisa reimprimir.`
+        {c.valida_ate
+          ? `Válida até ${formatarData(c.valida_ate)}, o fim do mandato da diretoria. A digital passa sozinha para o mandato seguinte. A impressa vale até a data que está nela: depois da posse da nova diretoria, imprima de novo (a antiga perde a validade).`
           : 'Válida enquanto o associado estiver ativo. (O fim do mandato da diretoria ainda não foi informado em Configurações → Credencial.)'}
       </p>
       <p>
@@ -110,7 +128,7 @@ function ConteudoMinha({ pessoaId }: { pessoaId: string }) {
                   Ver a impressão (tamanho real)
                 </Link>
               </div>
-              <SituacaoAgora pacote={pacote} c={c} />
+              <SituacaoAgora c={c} />
               {c.pendencias.length > 0 && <PendenciasCredencial pendencias={c.pendencias} propria />}
             </>
           )
@@ -142,7 +160,8 @@ export function ListaCredenciais() {
       <h1>Credenciais</h1>
       <p className="detalhe">
         Credencial de cada associado ativo: veja a digital, imprima no tamanho de cartão (85,6 × 54 mm) e confira a página
-        do QR Code. A validade não vai impressa: o QR Code mostra a situação de agora.
+        do QR Code. A impressa traz a validade (o fim do mandato da diretoria) e é impressa de novo a cada mandato; a
+        digital se atualiza sozinha.
       </p>
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(todos) => {
@@ -276,12 +295,12 @@ function ConteudoDe({ pessoaId }: { pessoaId: string }) {
                   Abrir a ficha do ministro
                 </Link>
               </div>
-              <SituacaoAgora pacote={pacote} c={c} />
+              <SituacaoAgora c={c} />
               <PendenciasCredencial pendencias={c.pendencias} />
               <section className="painel nao-imprimir" aria-labelledby="titulo-nova-credencial">
                 <h2 id="titulo-nova-credencial">Perda, roubo ou dados que mudaram</h2>
                 <p className="detalhe">
-                  Emitir uma nova credencial troca o QR Code: a credencial antiga (impressa ou não) passa a mostrar
+                  Emitir uma nova credencial troca o QR Code: as credenciais antigas (impressas ou não) passam a mostrar
                   "substituída" na validação. Nada se apaga.
                 </p>
                 <form
@@ -317,7 +336,8 @@ function ConteudoDe({ pessoaId }: { pessoaId: string }) {
 }
 
 // ---------------------------------------------------------------------
-// Impressão no tamanho real: folhas A4 com 5 credenciais (frente e verso lado a lado)
+// Impressão no tamanho real: folhas A4 com 5 credenciais. Frente e verso JUNTOS, lado a lado:
+// recorta-se em volta, dobra-se ao meio, põe-se na capa plástica e plastifica-se.
 // ---------------------------------------------------------------------
 
 const POR_FOLHA = 5
@@ -330,6 +350,7 @@ export function ImprimirCredenciais() {
 
 function TelaImpressao({ pessoas, voltar }: { pessoas: string[]; voltar: string }) {
   const [carga, recarregar] = useCarregar(() => dadosCredenciais(pessoas))
+  const modelo = useMemo(() => normalizarModelo(carga.situacao === 'ok' ? carga.dados.modelo : null), [carga])
   return (
     <>
       <div className="nao-imprimir">
@@ -339,13 +360,17 @@ function TelaImpressao({ pessoas, voltar }: { pessoas: string[]; voltar: string 
         <h1>Impressão das credenciais</h1>
         <div className="aviso-texto">
           <p>
-            <strong>Tamanho real:</strong> cada lado tem <strong>85,6 × 54 mm</strong> (o tamanho de cartão de crédito,
-            o mesmo do PVC e das capinhas plásticas). Cabem {POR_FOLHA} credenciais por folha A4, frente e verso lado a
-            lado.
+            <strong>Tamanho real:</strong> cada lado tem <strong>85,6 × 54 mm</strong> (o tamanho de cartão de crédito, o
+            mesmo das capas plásticas). Frente e verso saem <strong>juntos</strong>, para dobrar. Cabem {POR_FOLHA}{' '}
+            credenciais por folha A4.
           </p>
           <p>
             Na janela de impressão: papel <strong>A4</strong>, escala <strong>100%</strong> (não "ajustar à página") e com
-            gráficos de fundo. Recorte nas linhas tracejadas, dobre ou cole frente com verso e ponha na capinha.
+            gráficos de fundo.
+          </p>
+          <p>
+            Recorte na linha em volta (frente e verso continuam juntos), <strong>dobre ao meio</strong> nas marcas de cima e
+            de baixo, com o desenho para fora, ponha na capa plástica e plastifique.
           </p>
         </div>
         <div className="acoes acoes-relatorio">
@@ -363,7 +388,7 @@ function TelaImpressao({ pessoas, voltar }: { pessoas: string[]; voltar: string 
               {Array.from({ length: Math.ceil(pacote.credenciais.length / POR_FOLHA) }, (_, f) => (
                 <section key={f} className="folha-a4" aria-label={`Folha ${f + 1}`}>
                   {pacote.credenciais.slice(f * POR_FOLHA, (f + 1) * POR_FOLHA).map((c) => (
-                    <ParParaImprimir key={c.pessoa_id} pacote={pacote} c={c} />
+                    <ParParaImprimir key={c.pessoa_id} modelo={modelo} textoVerso={pacote.texto_verso} c={c} />
                   ))}
                 </section>
               ))}
@@ -375,15 +400,14 @@ function TelaImpressao({ pessoas, voltar }: { pessoas: string[]; voltar: string 
   )
 }
 
-function ParParaImprimir({ pacote, c }: { pacote: PacoteCredenciais; c: DadosCredencial }) {
-  const foto = useFoto(c, false)
+/** Frente e verso colados (sem espaço entre eles): a linha do meio é a dobra, marcada em cima e embaixo. */
+function ParParaImprimir({ modelo, textoVerso, c }: { modelo: ModeloCredencial; textoVerso: string; c: DadosCredencial }) {
+  // publica a foto também aqui: o QR Code da impressa mostra a foto na validação
+  const foto = useFoto(c, true)
   return (
     <div className="par-impressao">
-      <div className="corte">
-        <CredencialFrente c={c} foto={foto} />
-      </div>
-      <div className="corte">
-        <CredencialVerso c={c} textoVerso={pacote.texto_verso} url={urlValidacao(c.codigo)} />
+      <div className="par-cartoes" role="group" aria-label={`Credencial de ${c.nome} para dobrar`}>
+        <FrenteEVerso modelo={modelo} textoVerso={textoVerso} c={c} foto={foto} />
       </div>
     </div>
   )

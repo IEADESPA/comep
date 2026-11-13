@@ -204,3 +204,18 @@ test('a diretoria preenche os dados do COMEP e o site mostra; vazio aparece "—
   await secao.getByRole('button', { name: 'Salvar dados do site' }).click()
   await expect(mensagem(page, 'Dados do site salvos.')).toBeVisible()
 })
+
+test('credencial: corrigir a data do mandato e, à parte, registrar a posse da nova diretoria (com confirmação)', async ({ page }) => {
+  await page.goto('configuracoes#credencial')
+  const secao = page.getByRole('region', { name: 'Credencial', exact: true })
+  await expect(secao.getByLabel('Fim do mandato da diretoria em curso')).toBeVisible()
+  await expect(secao).toContainText('só corrige o mandato em curso')
+  await secao.getByText('Nova diretoria tomou posse: registrar o novo mandato').click()
+  const novo = secao.getByRole('form', { name: 'Novo mandato' })
+  await novo.getByLabel('Fim do novo mandato *').fill('2099-12-31')
+  await novo.getByRole('button', { name: 'Registrar o novo mandato' }).click()
+  // pede confirmação antes de renovar todas as credenciais; aqui o teste desiste
+  await expect(novo.getByRole('button', { name: 'Confirmar — renovar todas as credenciais' })).toBeVisible()
+  await novo.getByRole('button', { name: 'Não' }).click()
+  await expect(novo.getByRole('button', { name: 'Registrar o novo mandato' })).toBeVisible()
+})
