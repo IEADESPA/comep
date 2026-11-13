@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.23 — 13 de novembro de 2026 — atualizado com a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.24 — 13 de novembro de 2026 — atualizado com a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -48,7 +48,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 | **Administrador técnico** | 1–2 pessoas de confiança (da IEADESPA nesta fase) | Configurações, backups e manutenção (sem poder apagar histórico) |
 
 > Uma pessoa pode ter mais de um perfil (ex.: um presidente de igreja que também é tesoureiro do Conselho).
-> A partir da Fase 4, os perfis da diretoria e do Conselho Fiscal passam a vir do **cargo e do mandato** registrados no sistema. Quando o mandato termina, o acesso termina sozinho.
+> Desde a Fase 4.4, os perfis da diretoria e do Conselho Fiscal vêm também do **cargo e do mandato** registrados no sistema (menu Diretoria): presidente e vice → Presidência; 1º e 2º secretários → Secretaria; 1º e 2º tesoureiros → Tesouraria; conselheiros → Conselho Fiscal. Na posse o acesso começa sozinho; quando o mandato termina, termina sozinho. Os perfis dados à mão em "Perfis de acesso" continuam valendo. O secretário executivo fica registrado; o perfil próprio dele fica para depois.
 
 ## 4. Módulos
 
@@ -295,7 +295,7 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - `justificativas_falta` — justificativa de falta e a decisão do 1º secretário ✅ criada
 - `deliberacoes` — pauta votada, maioria exigida (simples, 3/5, 2/3), votantes, votos e resultado ✅ criada
 - `atas` — texto, arquivo da ata assinada e as assinaturas do 1º secretário e do presidente ✅ criada
-- `mandatos` — pessoa, cargo, órgão (Conselho Diretor ou Conselho Fiscal), início, fim, assembleia que elegeu
+- `mandatos` — pessoa, cargo, órgão (Conselho Diretor ou Conselho Fiscal), início, fim, assembleia que elegeu, encerramento antecipado ✅ criada
 - `comissoes` e `comissao_membros`
 - `projetos`
 - `avisos`
@@ -513,9 +513,13 @@ Decisões na seção 4.6. Revisão: `docs/revisoes/fase-4.md`. **O estatuto pode
   - casos I a IV: item da pauta da AGO com maioria de 3/5; aprovado, o associado fica "desligado" e perde o perfil de ministro;
   - falecimento (V): registrado na ficha do ministro, sem votação (pergunta 5)
 
-**4.4 — Diretoria e Conselho Fiscal** (versão 4.0-teste.4)
+**4.4 — Diretoria e Conselho Fiscal** (versão 4.0-teste.4) — concluída em 13/11/2026
 
-- [ ] Diretoria e Conselho Fiscal: eleições, mandatos e perfis automáticos pelo cargo
+- [x] Diretoria e Conselho Fiscal: eleições, mandatos e perfis automáticos pelo cargo:
+  - menu **Diretoria**: quem está em exercício e o histórico, para todos com login;
+  - a presidência registra a diretoria eleita (posse, fim — 4 anos — e a assembleia que elegeu). Só associados em dia podem ser votados (Art. 11); um por cargo (3 no Conselho Fiscal); ninguém acumula cargos, nem diretoria e Conselho Fiscal;
+  - **o cargo dá o perfil** enquanto o mandato vale; encerrar antes (renúncia, desligamento) tira o perfil; desligado do COMEP perde o perfil do cargo;
+  - se o fim do mandato nas credenciais não é o da diretoria em exercício, a tela avisa para registrar o novo mandato
 
 ### Fase 5 — Projetos, comissões e comunicação (versão 5.0)
 

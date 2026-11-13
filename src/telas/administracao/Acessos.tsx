@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { GerarCodigo } from '../../componentes/GerarCodigo'
 import { concederPerfil, listarPessoasComPerfis, retirarPerfil, type PessoaComPerfis } from '../../dados/acessos'
@@ -33,6 +34,10 @@ export function Acessos() {
         associado ainda não foi conferido. Os perfis <strong>Ministro</strong> e <strong>Presidente de igreja</strong>{' '}
         vêm automaticamente do cadastro de associado (o presidente de igreja é o pastor presidente marcado na ficha). Retirar
         um perfil não apaga nada: fica registrado na auditoria.
+      </p>
+      <p className="detalhe">
+        Os cargos da <Link to="/diretoria">Diretoria e Conselho Fiscal</Link> também dão o perfil, enquanto o mandato vale
+        (eles não aparecem nesta lista: o acesso começa na posse e termina sozinho no fim do mandato).
       </p>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
 
