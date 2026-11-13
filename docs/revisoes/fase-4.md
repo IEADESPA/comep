@@ -231,7 +231,81 @@ O que entrou:
 - O desligamento, que não tem volta, é testado só no banco.
 - A assinatura do 1º secretário também: não há usuário fictício só com o perfil Secretaria nos testes de ponta a ponta.
 
+### Trava 1
+
+| Pull request | Resultado | Data |
+|---|---|---|
+| #27 — Fase 4.3: quórum, votações, desligamentos e ata | Aprovado (verificar + ponta a ponta) e publicado | 13/11/2026 |
+
 ### Decisões em aberto
 
 - **Pergunta 24 (nova):** nas maiorias de 3/5 e 2/3, a base é os presentes aptos (como está) ou os votos válidos?
 - **Pergunta 5:** previsão de que os casos I a IV vão à votação e o falecimento é registrado direto.
+
+## Entrega 4.4 — Diretoria e Conselho Fiscal: mandatos e perfis pelo cargo (versão 4.0-teste.4)
+
+**Resultado: aprovada no ambiente de teste em 13/11/2026.**
+
+O que entrou:
+
+- **Menu Diretoria**, para todos com login. Mostra:
+  - quem está **em exercício**, na ordem do Art. 12: presidente, vice, 1º e 2º secretários, 1º e 2º tesoureiros, secretário executivo e os 3 conselheiros fiscais;
+  - o **histórico** e os **próximos mandatos**.
+- **A presidência registra a diretoria eleita:**
+  - a posse;
+  - o fim, sugerido para 4 anos depois (Art. 12);
+  - a assembleia que elegeu;
+  - quem ficou em cada cargo.
+- **Regras na hora de registrar:**
+  - **só associados em dia podem ser votados** (Art. 11);
+  - um por cargo no período, e 3 no Conselho Fiscal;
+  - ninguém acumula dois cargos, nem diretoria e Conselho Fiscal, inclusive contra os perfis dados à mão. O Conselho Fiscal fiscaliza a diretoria.
+- **Perfis pelo cargo:**
+  - o mapa:
+    - presidente e vice → Presidência;
+    - 1º e 2º secretários → Secretaria;
+    - 1º e 2º tesoureiros → Tesouraria;
+    - conselheiros → Conselho Fiscal;
+  - **o acesso começa na posse e termina sozinho no fim do mandato**, sem ninguém mexer;
+  - **encerrar antes** (renúncia, desligamento), com motivo, tira o perfil a partir da data;
+  - quem é **desligado do COMEP** perde o perfil do cargo;
+  - o secretário executivo fica registrado; o perfil próprio dele fica para depois;
+  - os perfis dados à mão em "Perfis de acesso" continuam valendo, e a tela explica isso.
+- **Credencial:** se o fim do mandato nas credenciais não é o da diretoria em exercício, a tela avisa para registrar o novo mandato em Configurações → Credencial.
+
+### Trava 2
+
+- [x] Migrações `20261114120000_mandatos.sql` e `20261114120100_mandatos_nomes.sql`, aplicadas no `comep-teste`.
+- [x] **11 testes novos do banco** (`mandatos.test.ts`):
+  - só a presidência registra;
+  - quem está em atraso não pode ser votado;
+  - registra os cargos;
+  - um por cargo, 3 no Conselho Fiscal, e ninguém acumula;
+  - o cargo dá o perfil e aparece no menu;
+  - com o perfil, a pessoa faz o que ele permite;
+  - mandato futuro ainda não dá perfil, e mandato vencido não dá mais;
+  - encerrar tira o perfil;
+  - desligado perde o perfil;
+  - Conselho Fiscal e diretoria não se cruzam, nem com o perfil dado à mão;
+  - todos veem a diretoria, até o associado sem cargo.
+- [x] **Achado pelo teste de ponta a ponta e corrigido:** o ministro via a lista da diretoria vazia. A lista cruzava com o cadastro de pessoas, que o ministro só lê o próprio. Agora uma função mostra só o nome de quem tem cargo. O teste do banco passou a usar um associado sem cargo, e ele falha sem a correção (conferido).
+- [x] Todos os testes do banco continuam passando com a regra nova dos perfis, que vale para o sistema inteiro.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| A presidência vê quem está em exercício (presidente, conselheiros) | ✅ |
+| Registrar a diretoria com o ministro fictício, que está em atraso: o banco recusa ("não pode ser votado (Art. 11)") e nada se grava | ✅ |
+| O fim do mandato vem sugerido (4 anos) | ✅ |
+| O ministro vê a diretoria, mas não o formulário de registro | ✅ |
+
+### Dados fictícios
+
+`testes/dados/semente-diretoria-teste.sql`, aplicada no `comep-teste`:
+
+- 7 cargos do Conselho Diretor e 3 do Conselho Fiscal;
+- associados fictícios em dia, sem login;
+- mandato de 01/01/2026 a 31/12/2029, a mesma data fictícia das credenciais.
+
+A diretoria verdadeira depende da pergunta 10.

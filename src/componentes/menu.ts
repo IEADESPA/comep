@@ -39,6 +39,14 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     fase: 4,
     pronto: true,
   },
+  {
+    caminho: '/diretoria',
+    titulo: 'Diretoria',
+    descricao: 'Conselho Diretor e Conselho Fiscal: cargos e mandatos',
+    perfis: ['ministro', 'secretaria', 'tesouraria', 'presidencia', 'conselho_fiscal', 'admin_tecnico'],
+    fase: 4,
+    pronto: true,
+  },
   { caminho: '/projetos', titulo: 'Projetos', descricao: 'Projetos e eventos do Conselho', perfis: ['secretaria', 'tesouraria', 'presidencia'], fase: 5 },
   { caminho: '/avisos', titulo: 'Avisos', descricao: 'Mural de avisos', perfis: 'todos', fase: 5 },
   {

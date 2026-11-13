@@ -57,12 +57,17 @@ export async function buscarMinhaConta(usuarioId: string): Promise<ResultadoCont
   }
   if (!data) return { tipo: 'sem_cadastro' }
 
+  // Os perfis do cargo (mandato em vigor) entram também; se o banco ainda não tiver a função, ficam os dados à mão
+  const doMandato = await cliente().rpc('meus_perfis')
+  const perfis = new Set<Perfil>(data.perfis_acesso.map((p) => p.perfil))
+  if (!doMandato.error) for (const p of (doMandato.data as string[] | null) ?? []) if ((PERFIS as readonly string[]).includes(p)) perfis.add(p as Perfil)
+
   return {
     tipo: 'ok',
     conta: {
       pessoaId: data.id,
       nome: data.nome,
-      perfis: data.perfis_acesso.map((p) => p.perfil),
+      perfis: [...perfis],
     },
   }
 }

@@ -14,6 +14,7 @@ import { EditorModelo } from './telas/credencial/EditorModelo'
 import { DetalheEncontro, EditarEncontro, ListaEncontros, NovoEncontro } from './telas/assembleias/Assembleias'
 import { FaltasEJustificativas, ListaDePresenca } from './telas/assembleias/Presenca'
 import { ConducaoAssembleia } from './telas/assembleias/Conducao'
+import { Diretoria } from './telas/diretoria/Diretoria'
 import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
 import { Financeiro } from './telas/financeiro/Financeiro'
@@ -98,6 +99,9 @@ export default function App() {
                 <Route path=":id/presenca" element={<ListaDePresenca />} />
                 <Route path=":id/conducao" element={<ConducaoAssembleia />} />
                 <Route path=":id/editar" element={<EditarEncontro />} />
+              </Route>
+              <Route path="diretoria" element={<Area caminho="/diretoria" />}>
+                <Route index element={<Diretoria />} />
               </Route>
               <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>
                 <Route index element={<MinhaIgreja />} />
