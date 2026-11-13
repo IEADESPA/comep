@@ -5,11 +5,15 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
   ALTURA_MM,
+  conferirModelo,
   DADOS_EXEMPLO,
+  ITENS_NOVOS,
   LARGURA_MM,
   MAXIMO_ELEMENTOS,
   MODELO_PADRAO,
+  nomeDoElemento,
   normalizarModelo,
+  novoElemento,
   preencher,
   valoresDaCredencial,
   type ElementoTexto,
@@ -136,5 +140,42 @@ describe('dados na credencial', () => {
     assert.equal(preencher('Nº {numero} · {cpf}', valores), 'Nº 1234 · 123.456.789-09')
     assert.equal(preencher('{nao_existe} {constructor}', valores), '{nao_existe} {constructor}')
     assert.equal(preencher('{texto_verso}', valores), 'Texto do verso')
+  })
+})
+
+describe('editor: itens novos e conferência', () => {
+  it('cada item novo já passa pela conferência e fica dentro do cartão', () => {
+    for (const { tipo } of ITENS_NOVOS) {
+      const e = novoElemento(tipo, `novo-${tipo}`)
+      const m = normalizarModelo({ versao: 1, frente: { fundo: '#ffffff', elementos: [e] }, verso: { fundo: '#ffffff', elementos: [] } })
+      assert.deepEqual(m.frente.elementos[0], e, tipo)
+      assert.ok(e.x >= 0 && e.y >= 0 && e.x + e.w <= LARGURA_MM && e.y + e.h <= ALTURA_MM, tipo)
+    }
+  })
+
+  it('o modelo padrão não tem avisos', () => {
+    assert.deepEqual(conferirModelo(MODELO_PADRAO), [])
+  })
+
+  it('avisa: sem QR Code, sem foto, sem nome, sem validade, item fora do cartão, dado desconhecido, QR pequeno', () => {
+    const avisos = conferirModelo({
+      versao: 1,
+      frente: { fundo: '#ffffff', elementos: [{ ...novoElemento('texto', 'a'), texto: 'Oi {apelido}', x: 80 }] },
+      verso: { fundo: '#ffffff', elementos: [] },
+    })
+    for (const trecho of ['passa da borda', '{apelido}', 'QR Code', 'foto', 'nome', 'validade']) {
+      assert.ok(avisos.some((a) => a.includes(trecho)), trecho)
+    }
+    const qrPequeno = conferirModelo({
+      ...MODELO_PADRAO,
+      verso: { fundo: '#ffffff', elementos: [{ ...novoElemento('qr', 'q'), w: 10, h: 10 }] },
+    })
+    assert.ok(qrPequeno.some((a) => a.includes('menos de 15 mm')))
+  })
+
+  it('na lista do editor, os dados aparecem pelo nome', () => {
+    assert.equal(nomeDoElemento({ ...novoElemento('dado', 'd'), texto: 'Nº {numero}' }), '“Nº [Nº de registro]”')
+    assert.equal(nomeDoElemento(novoElemento('linha', 'l')), 'Linha')
+    assert.equal(nomeDoElemento(novoElemento('circulo', 'c')), 'Círculo')
   })
 })

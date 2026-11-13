@@ -10,6 +10,7 @@ import { Auditoria } from './telas/administracao/Auditoria'
 import { Configuracoes } from './telas/administracao/Configuracoes'
 import { NovaSenha, PrimeiroAcesso } from './telas/acesso/PrimeiroAcesso'
 import { CredencialDe, ImprimirCredenciais, ImprimirMinhaCredencial, ListaCredenciais, MinhaCredencial } from './telas/credencial/Credenciais'
+import { EditorModelo } from './telas/credencial/EditorModelo'
 import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
 import { Financeiro } from './telas/financeiro/Financeiro'
@@ -81,6 +82,7 @@ export default function App() {
               <Route path="credenciais" element={<Area caminho="/credenciais" />}>
                 <Route index element={<ListaCredenciais />} />
                 <Route path="imprimir" element={<ImprimirCredenciais />} />
+                <Route path="modelo" element={<EditorModelo />} />
                 <Route path=":pessoaId" element={<CredencialDe />} />
               </Route>
               <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>

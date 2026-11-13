@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.19 — 13 de novembro de 2026 — atualizado com o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.20 — 13 de novembro de 2026 — atualizado com a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -459,9 +459,15 @@ Decisões na seção 4.5. Revisão: `docs/revisoes/fase-3.md`.
 - [x] Impressão no tamanho de cartão (CR80, 85,6 × 54 mm): 5 por folha A4; uma ou várias de uma vez
 - [x] Ajuste de 13/11/2026: frente e verso **juntos** para dobrar e plastificar; o nome numa linha só e nada cortado; foto 3×4; **validade na credencial** (a impressa é impressa de novo a cada mandato; a digital muda sozinha)
 
-**3.4 — Editor do modelo da credencial** (versão 3.0-teste.3)
+**3.4 — Editor do modelo da credencial** (versão 3.0-teste.3) — concluída em 13/11/2026
 
-- [ ] Editar onde fica cada coisa, fotos, cores, formas e textos, com prévia, e voltar ao modelo anterior
+- [x] Editar onde fica cada coisa, fotos, cores, formas e textos, com prévia, e voltar ao modelo anterior:
+  - em Credenciais → **Editar o modelo (desenho) da credencial**, para a secretaria e a presidência;
+  - arrastar e mudar o tamanho com o mouse ou o dedo, ajustar pelos campos (em mm) ou mover com as setas;
+  - acrescentar textos, dados do associado, foto, QR Code, imagens (ex.: o logo oficial), retângulos, círculos e linhas;
+  - prévia com dados de exemplo (nome bem comprido) ou de um associado, e como sai na impressão, em tamanho real;
+  - desfazer e refazer; conferência antes de salvar (QR pequeno, item fora do cartão, falta o nome, a foto ou a validade);
+  - cada vez que se salva nasce uma versão; dá para usar qualquer versão, voltar ao modelo padrão e arquivar as que não servem (nada se apaga)
 
 ### Fase 4 — Assembleias, reuniões e diretoria (versão 4.0)
 

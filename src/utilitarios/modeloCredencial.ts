@@ -412,3 +412,100 @@ export function cqi(mm: number): string {
 export function cqiDaLetra(pt: number): string {
   return cqi(pt * PT_EM_MM)
 }
+
+// ---------------------------------------------------------------------
+// Editor (Fase 3.4): itens novos, nomes para a lista e a conferência antes de salvar
+// ---------------------------------------------------------------------
+
+export type ItemNovo = 'texto' | 'dado' | 'foto' | 'qr' | 'imagem' | 'retangulo' | 'circulo' | 'linha'
+
+export const ITENS_NOVOS: readonly { tipo: ItemNovo; rotulo: string }[] = [
+  { tipo: 'texto', rotulo: 'Texto' },
+  { tipo: 'dado', rotulo: 'Dado do associado' },
+  { tipo: 'foto', rotulo: 'Foto' },
+  { tipo: 'qr', rotulo: 'QR Code' },
+  { tipo: 'imagem', rotulo: 'Imagem ou logo' },
+  { tipo: 'retangulo', rotulo: 'Retângulo' },
+  { tipo: 'circulo', rotulo: 'Círculo' },
+  { tipo: 'linha', rotulo: 'Linha' },
+]
+
+/** Item novo, no meio do cartão, pronto para mover. */
+export function novoElemento(tipo: ItemNovo, id: string): Elemento {
+  switch (tipo) {
+    case 'texto':
+      return texto(id, 30, 24, 30, 4, 'Texto novo', { tamanho: 7 })
+    case 'dado':
+      return texto(id, 30, 24, 30, 4, '{nome}', { tamanho: 7.5, peso: 700 })
+    case 'foto':
+      return { id, tipo: 'foto', x: 33, y: 14, w: 19.5, h: 26, raio: 1.2, borda: 0.35, corBorda: VERMELHO }
+    case 'qr':
+      return { id, tipo: 'qr', x: 31, y: 14, w: 24, h: 24, cor: '#000000' }
+    case 'imagem':
+      return { id, tipo: 'imagem', x: 36, y: 20, w: 14, h: 14, arquivo: 'logo', ajuste: 'conter', raio: 0, borda: 0, corBorda: TINTA, opacidade: 1 }
+    case 'retangulo':
+      return forma(id, 30, 20, 26, 14, VERMELHO)
+    case 'circulo':
+      return forma(id, 36, 20, 14, 14, VERMELHO, { forma: 'elipse' })
+    case 'linha':
+      return forma(id, 25, 27, 36, 0.3, CINZA_ESCURO)
+  }
+}
+
+/** Nome do item na lista do editor. */
+export function nomeDoElemento(e: Elemento): string {
+  switch (e.tipo) {
+    case 'texto': {
+      // os dados aparecem pelo nome: {cnpj} → [CNPJ da igreja]
+      const t = e.texto
+        .replace(/\{([a-z_]+)\}/g, (inteiro, chave: string) => {
+          const campo = CAMPOS.find((c) => c.chave === chave)
+          return campo ? `[${campo.rotulo}]` : inteiro
+        })
+        .replace(/\s+/g, ' ')
+        .trim()
+      return t ? `“${t.length > 40 ? `${t.slice(0, 39)}…` : t}”` : 'Texto vazio'
+    }
+    case 'forma':
+      if (e.forma === 'elipse') return 'Círculo'
+      return e.h <= 0.6 || e.w <= 0.6 ? 'Linha' : 'Retângulo'
+    case 'foto':
+      return 'Foto do associado'
+    case 'qr':
+      return 'QR Code'
+    case 'imagem':
+      return e.arquivo === 'logo' ? 'Logo do sistema' : 'Imagem enviada'
+  }
+}
+
+const CHAVES = new Set<string>(CAMPOS.map((c) => c.chave))
+const NOME_DO_LADO: Record<Lado, string> = { frente: 'Frente', verso: 'Verso' }
+
+/** O que pode dar problema na credencial com este modelo (não impede salvar). */
+export function conferirModelo(m: ModeloCredencial): string[] {
+  const avisos: string[] = []
+  const todos = [...m.frente.elementos, ...m.verso.elementos]
+  const textos = todos.filter((e): e is ElementoTexto => e.tipo === 'texto')
+  const usa = (chave: ChaveCampo) => textos.some((e) => e.texto.includes(`{${chave}}`))
+
+  for (const lado of ['frente', 'verso'] as const) {
+    for (const e of m[lado].elementos) {
+      if (e.x < -0.05 || e.y < -0.05 || e.x + e.w > LARGURA_MM + 0.05 || e.y + e.h > ALTURA_MM + 0.05) {
+        avisos.push(`${NOME_DO_LADO[lado]}: ${nomeDoElemento(e)} passa da borda do cartão (a parte de fora não aparece).`)
+      }
+      if (e.tipo === 'texto') {
+        for (const [, chave] of e.texto.matchAll(/\{([a-z_]+)\}/g)) {
+          if (!CHAVES.has(chave)) avisos.push(`${NOME_DO_LADO[lado]}: o texto tem {${chave}}, que não é um dado conhecido.`)
+        }
+      }
+      if (e.tipo === 'qr' && Math.min(e.w, e.h) < 15) {
+        avisos.push(`${NOME_DO_LADO[lado]}: o QR Code tem menos de 15 mm e pode não ser lido pela câmera.`)
+      }
+    }
+  }
+  if (!todos.some((e) => e.tipo === 'qr')) avisos.push('Nenhum lado tem o QR Code: não dá para conferir a credencial.')
+  if (!todos.some((e) => e.tipo === 'foto')) avisos.push('A foto do associado não aparece.')
+  if (!usa('nome')) avisos.push('O nome do associado não aparece.')
+  if (!usa('validade')) avisos.push('A validade ("Válida até") não aparece: a credencial impressa precisa dela.')
+  return avisos
+}

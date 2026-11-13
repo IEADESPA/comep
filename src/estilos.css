@@ -1891,3 +1891,234 @@ fieldset .caixa-marcar + .caixa-marcar {
 .validacao-nota {
   margin-top: 1rem;
 }
+
+/* ---------- Editor do modelo da credencial (Fase 3.4) ---------- */
+.editor-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.editor-barra .abas {
+  margin: 0;
+}
+
+.editor-desfazer {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.editor {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 1280px) {
+  .editor {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  }
+
+  .editor-coluna-painel {
+    position: sticky;
+    top: 0.5rem;
+    max-height: calc(100vh - 1rem);
+    overflow-y: auto;
+  }
+}
+
+.editor-coluna-cartao,
+.editor-coluna-painel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  min-width: 0;
+}
+
+.editor-coluna-cartao > *,
+.editor-coluna-painel > * {
+  min-width: 0;
+}
+
+.editor-coluna-painel .painel,
+.editor-coluna-cartao .painel {
+  margin: 0;
+}
+
+/* O cartão grande, com a camada de edição exatamente por cima */
+.editor-palco {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  touch-action: none;
+}
+
+.editor-palco-real {
+  width: 85.6mm;
+  max-width: none;
+}
+
+.editor-palco .credencial {
+  max-width: none;
+  border-radius: 0;
+}
+
+.editor-camada {
+  position: absolute;
+  inset: 0;
+  outline: none;
+}
+
+.editor-camada:focus-visible {
+  outline: 3px solid var(--cor-marca);
+  outline-offset: 3px;
+}
+
+.editor-alvo {
+  position: absolute;
+  box-sizing: border-box;
+  cursor: move;
+  touch-action: none;
+}
+
+/* área de clique um pouco maior que o item (linhas finas) */
+.editor-alvo::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+}
+
+.editor-alvo:hover {
+  outline: 1px dashed #2563eb;
+}
+
+.editor-alvo-escolhido {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+.editor-alca {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 3px;
+  background: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.previa-impressao {
+  display: flex;
+  overflow-x: auto;
+  padding: 4mm 0;
+  background: #fff;
+  border-radius: var(--raio);
+}
+
+/* margem automática centraliza sem esconder o começo quando não cabe (dá para rolar) */
+.previa-impressao .par-cartoes {
+  margin: 0 auto;
+}
+
+.previa-impressao .credencial {
+  flex: none;
+  width: 85.6mm;
+  max-width: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.editor-adicionar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.editor-adicionar .botao {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.editor-fundo,
+.campo-cor {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editor-fundo {
+  margin-top: 0.75rem;
+}
+
+.campo-cor input[type='color'],
+.editor-fundo input[type='color'] {
+  flex: none;
+  width: 3rem;
+  height: 2.2rem;
+  padding: 0.1rem;
+}
+
+.editor-itens {
+  display: grid;
+  gap: 0.2rem;
+  max-height: 16rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.editor-item {
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.editor-item-escolhido {
+  border-color: #2563eb;
+  box-shadow: inset 3px 0 0 #2563eb;
+  font-weight: 600;
+}
+
+.editor-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  align-items: end;
+  gap: 0.6rem;
+  margin: 0.6rem 0;
+}
+
+.editor-grade label,
+.campo-numero {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.editor-marcas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0.4rem 0;
+}
+
+.acoes-linha {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
