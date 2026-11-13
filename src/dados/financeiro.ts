@@ -1,6 +1,6 @@
 // Financeiro — Fase 2.1: contribuições (mensalidades e anuidade), pagamentos informados e situação.
 // Todas as gravações passam por funções do banco que conferem quem pode fazer o quê.
-import { cliente, falha, ok, type Resultado } from './cliente'
+import { cliente, falha, ok, type Resultado, todasAsLinhas } from './cliente'
 import type { CategoriaContribuicao } from './configuracoes'
 import { enviarArquivo } from './pedidos'
 
@@ -83,12 +83,13 @@ export function estadoDaCobranca(c: Cobranca, hoje: string): 'paga' | 'conferenc
 
 // ---------- O associado ----------
 
+/** As do exercício e também as que ficaram em aberto de exercícios anteriores (para poder pagar). */
 export async function minhasCobrancas(pessoaId: string, exercicio: number): Promise<Resultado<Cobranca[]>> {
   const { data, error } = await cliente()
     .from('cobrancas')
     .select(CAMPOS_COBRANCA)
     .eq('pessoa_id', pessoaId)
-    .eq('exercicio', exercicio)
+    .or(`exercicio.eq.${exercicio},and(situacao.eq.aberta,exercicio.lt.${exercicio})`)
     .is('arquivado_em', null)
     .order('competencia')
     .returns<Cobranca[]>()
@@ -197,14 +198,19 @@ export async function situacaoDeTodos(): Promise<Resultado<SituacaoContribuicao[
 export type ResumoExercicio = { previsto: number; recebido: number; emAberto: number; vencido: number; cobrancas: number }
 
 export async function resumoDoExercicio(exercicio: number, hoje: string): Promise<Resultado<ResumoExercicio>> {
-  const { data, error } = await cliente()
-    .from('cobrancas')
-    .select('valor, situacao, vencimento, valor_pago')
-    .eq('exercicio', exercicio)
-    .is('arquivado_em', null)
-    .neq('situacao', 'cancelada')
-    .returns<{ valor: number; situacao: SituacaoCobranca; vencimento: string; valor_pago: number | null }[]>()
-  if (error) return falha(error)
+  const todas = await todasAsLinhas((de, ate) =>
+    cliente()
+      .from('cobrancas')
+      .select('valor, situacao, vencimento, valor_pago')
+      .eq('exercicio', exercicio)
+      .is('arquivado_em', null)
+      .neq('situacao', 'cancelada')
+      .order('id')
+      .range(de, ate)
+      .returns<{ valor: number; situacao: SituacaoCobranca; vencimento: string; valor_pago: number | null }[]>(),
+  )
+  if (todas.erro !== null) return todas
+  const data = todas.dados
   const resumo: ResumoExercicio = { previsto: 0, recebido: 0, emAberto: 0, vencido: 0, cobrancas: data.length }
   for (const c of data) {
     resumo.previsto += Number(c.valor)
@@ -260,5 +266,11 @@ export async function buscarConfigFinanceiro(): Promise<Resultado<ConfigFinancei
 
 export async function salvarConfigFinanceiro(config: ConfigFinanceiro): Promise<Resultado<null>> {
   const { error } = await cliente().from('config_financeiro').update(config).eq('id', true)
+  return error ? falha(error) : ok(null)
+}
+
+/** Tesouraria/presidência: dispensa ou corrige uma cobrança em aberto (com motivo). Não volta ao gerar de novo. */
+export async function cancelarCobranca(cobrancaId: string, motivo: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('cancelar_cobranca', { p_cobranca_id: cobrancaId, p_motivo: motivo })
   return error ? falha(error) : ok(null)
 }

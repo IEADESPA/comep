@@ -1557,3 +1557,15 @@ fieldset .caixa-marcar + .caixa-marcar {
     display: none;
   }
 }
+
+/* Confirmação na própria linha (Arquivar → Confirmar arquivamento / Não) */
+.confirmar-linha {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.texto-perigo {
+  color: var(--cor-erro);
+  font-weight: 700;
+}

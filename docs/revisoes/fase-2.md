@@ -1,6 +1,6 @@
 # Revisão da Fase 2 — Financeiro (versão 2.0-teste)
 
-**Fase concluída no ambiente de teste em 12/11/2026** — entregas 2.1, 2.2 e 2.3 (ver o fim deste arquivo).
+**Fase concluída no ambiente de teste em 12/11/2026** — entregas 2.1, 2.2 e 2.3. **Revisão geral da fase em 13/11/2026** (ver o fim deste arquivo).
 
 > Calendário (PROJETO.md, seção 9): tudo no ambiente de teste, com dados fictícios, até a Fase 5.
 > Cada entrega passa pelas travas 1 a 3. Regras: PROJETO.md, seção 14.
@@ -231,7 +231,7 @@ O que entrou (aba **Prestação de contas** do Financeiro):
 
 | Pull request | Resultado | Data |
 |---|---|---|
-| Fase 2.3 — prestação de contas | ver o pull request | 12/11/2026 |
+| #18 — Fase 2.3: prestação de contas | Aprovado (verificar + ponta a ponta) e publicado | 12/11/2026 |
 
 ### Trava 2
 
@@ -303,8 +303,75 @@ No `comep-teste`, em 12/11/2026:
 | 2.1 — Contribuições | #15 | ✅ Aprovada no teste |
 | 2.2 — Caixa | #16 | ✅ Aprovada no teste |
 | Complemento — taxa de inscrição isenta e configurável | #17 | ✅ Aprovado no teste |
-| 2.3 — Prestação de contas | ver acima | ✅ Aprovada no teste |
+| 2.3 — Prestação de contas | #18 | ✅ Aprovada no teste |
 
 - Nenhum problema bloqueante ou importante em aberto.
 - **Trava 4 (aceite e produção):** pelo calendário de 12/11/2026, fica para o lançamento, depois da versão 5.0. As migrações da Fase 2 vão para o `comep-producao` nessa hora (`docs/lancamento.md`).
 - Pendências para a diretoria, que não impedem a fase: perguntas 18 a 20 (vencimentos, voto na assembleia de abril e jubilado).
+
+## Revisão geral da Fase 2 (13/11/2026)
+
+Pedido do administrador técnico: além das travas de cada entrega, uma revisão da fase inteira (PROJETO.md, seção 14.4).
+
+**Como foi feita:**
+
+- Dois revisores independentes leram todo o código da Fase 2, sem ver o raciocínio de quem escreveu:
+  - **banco e segurança:** as seis migrações da fase, com as permissões, as regras de acesso, as funções e os gatilhos;
+  - **telas e regras:** as telas e os dados do financeiro, as configurações, a planilha e a impressão.
+- Os revisores **provaram** cada achado numa cópia local do banco, ou rodando o código, antes de relatar.
+- Cada correção ganhou um teste. Os 13 testes novos do banco **falham sem a correção e passam com ela** (conferido).
+
+**O que se conferiu e estava certo:**
+
+- O visitante sem login não lê nada do financeiro.
+- Todas as funções protegidas fixam o caminho de busca, e todas as tabelas têm regras de acesso.
+- As funções internas não podem ser chamadas direto.
+- Não há como contar um pagamento duas vezes no caixa.
+- O Conselho Fiscal só lê.
+- A planilha sai com separador, acentos e decimais certos.
+
+### Achados e correções
+
+| # | Gravidade | O que acontecia | Correção | Teste |
+|---|---|---|---|---|
+| 1 | Bloqueante | Depois de um balanço aprovado, a tesouraria ainda mudava o passado: alterava o saldo inicial das contas direto na tabela, criava conta com data antiga ou lançava num exercício anterior nunca fechado. O saldo de abertura do ano seguinte deixava de bater com o aprovado | Contas só pelas funções. Nada com data até o fim do último exercício fechado muda: lançamentos, saldos iniciais, contas novas. A data do saldo inicial não pode passar dos lançamentos da conta | Banco |
+| 2 | Bloqueante | O tesoureiro cancelava as próprias cobranças e ficava "em dia" (Art. 11) | Ninguém cancela a própria cobrança, como já valia para registrar e conferir | Banco |
+| 3 | Bloqueante | A secretaria (ou o administrador técnico) gerava código de "nova senha" para um membro do Conselho Fiscal e entrava no lugar dele | O Conselho Fiscal tem a mesma proteção da diretoria: só a presidência gera o código | Banco |
+| 4 | Bloqueante | Uma só pessoa podia ter presidência e Conselho Fiscal (a presidência dava o perfil a si mesma), fazer a análise, dar o parecer e registrar a assembleia | Ninguém dá perfil a si mesmo. A mesma pessoa não pode ser da diretoria e do Conselho Fiscal. Quem registrou a análise ou é da diretoria não dá o parecer (Art. 14) | Banco |
+| 5 | Bloqueante (só quando houver taxa de inscrição) | Plano anual com taxa de inscrição: a anuidade não era gerada e o associado não devia nada no ano | A taxa de inscrição não conta na hora de gerar a anuidade | Banco |
+| 6 | Bloqueante | Lançamento com data anterior ao início da conta era aceito, mas não entrava no saldo: dinheiro registrado que "sumia" | O banco recusa lançamento e pagamento com data antes do início das contas | Banco |
+| 7 | Bloqueante | Orçamento: "1500.50" virava 150.050. Saldo inicial: "1.234,56" virava zero e "1.500" virava 1,50, sem aviso | Um só leitor de valores para todas as telas. Entende "1.234,56", "1234,56", "1.500" e "10.5", e recusa o que é ambíguo ("1,234") em vez de adivinhar. O campo mostra o formato esperado | Unidade (15 casos) e ponta a ponta ("1.234,56") |
+| 8 | Bloqueante | O servidor devolve no máximo 1.000 linhas: depois disso, o mês a mês, a planilha e o resumo das cobranças perdiam o final sem avisar | As consultas buscam de mil em mil até o fim | — (conferido no código) |
+| 9 | Bloqueante | Jubilado marcado no meio do ano ficava "em atraso", com as mensalidades seguintes vencendo, e a tesouraria não tinha como resolver | Marcado como jubilado, as cobranças em aberto do mês em diante são canceladas sozinhas (isento). Também para quem já era jubilado. A tesouraria ganhou "Cancelar uma contribuição" (isenção ou engano), com motivo | Banco |
+| 10 | Bloqueante | Clique duplo em "Transferir" ou "Lançar" (enquanto a foto do comprovante era preparada) gravava duas vezes | Toda ação que grava roda uma vez só e trava o botão até terminar | — (conferido no código) |
+| 11 | Importante | Pagamento registrado com R$ 0 ou valor diferente, sem explicação: era um cancelamento disfarçado | Valor maior que zero. Diferença do valor da cobrança só com observação | Banco |
+| 12 | Importante | Cobrança cancelada pela tesouraria (isenção) voltava ao gerar as cobranças de novo | O cancelamento guarda o tipo: o da tesouraria não volta; o da troca de plano, sim | Banco |
+| 13 | Importante | Taxa de inscrição de pastor presidente saía com o valor de não presidente, porque era gerada antes do vínculo com a igreja | A taxa é gerada no fim da aprovação, já com o vínculo | Banco |
+| 14 | Importante | Planilha: descrição começando com "=", "+", "-" ou "@" virava fórmula no Excel. Também quebrava textos comuns ("- Tarifa") | Esses textos saem com um apóstrofo na frente. Os números negativos continuam números | Unidade |
+| 15 | Importante | O associado com mensalidade do exercício anterior em aberto via "em atraso", mas não via nem conseguia pagar a cobrança | "Minhas mensalidades" mostra também o que ficou em aberto de antes | — |
+| 16 | Importante | A tela oferecia o que o banco recusa: "Autorizar" na própria despesa, "Confirmar" no próprio pagamento, "Registrar pagamento" na própria linha. E a recusa vinha como "sem permissão", sem dizer por quê | Essas pessoas veem a explicação, não o botão. As recusas do banco aparecem com o motivo | Ponta a ponta (despesa própria) |
+| 17 | Importante | A prestação de contas impressa se contradizia: com o balanço congelado, "por igreja" e "realizado" do orçamento usavam números de hoje, e o mês a mês não seguia a regra do início da conta | "Realizado" usa os mesmos números do resumo; "por igreja" diz de quando é a posição; o mês a mês segue a mesma regra | — |
+| 18 | Importante | Depois de cada ação, a aba era montada de novo: perdia a busca, o filtro "só inadimplentes" e o exercício escolhido | A aba recarrega os dados no lugar | Ponta a ponta |
+| 19 | Importante | O "hoje" do banco virava às 21h de Parauapebas: o associado ficava "em atraso" 3 horas antes e o exercício podia ser fechado na noite de 31/03 | O banco passou a usar o fuso America/Belem | Conferido no banco de teste |
+| 20 | Importante | Um lançamento feito no mesmo instante do fechamento do exercício podia entrar no período que estava sendo fechado | Fechamento e lançamentos usam uma trava: um espera o outro | — (conferido no código) |
+| 21 | Importante | Arquivar um valor da contribuição ou uma categoria era um clique só, sem confirmação | "Arquivar" pergunta antes, na própria linha | Ponta a ponta |
+| 22 | Importante | O saldo inicial era ajustado numa janelinha do navegador, sem conferência do valor | Formulário na própria tela, com valor e data, e o mesmo leitor de valores | — |
+
+**Menores (corrigidos):**
+
+- O campo do mês, nos navegadores sem calendário de mês, agora avisa em vez de travar.
+- "Informado em" mostra a data de Parauapebas (antes, depois das 21h, mostrava o dia seguinte).
+- O exercício seguinte aparece na lista, para preparar o orçamento antes de abril.
+- Se o comprovante não abre, a tela avisa (antes ficava "carregando" para sempre).
+- Pagar a taxa de inscrição não esconde mais a troca de plano.
+- O campo do arquivo fica limpo depois de enviar.
+- A lista de exercícios se atualiza depois de cada passo do balanço.
+
+**Decisão para a diretoria (pergunta 23 do PROJETO.md):** quem pagou antes do vencimento e informou o pagamento, mas ainda não teve a conferência, conta como em dia para votar? Por enquanto, só conta depois que a tesouraria confirma.
+
+**Migração:** `20261112210000_revisao_fase2.sql`, aplicada no `comep-teste` em 13/11/2026.
+
+**Testes:**
+
+- 223 testes do banco e de unidade (193 antes + 13 de regressão + 17 de unidade);
+- 73 de ponta a ponta (72 antes + 1 novo), no computador e no celular.

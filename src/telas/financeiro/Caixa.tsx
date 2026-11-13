@@ -18,8 +18,10 @@ import { ok } from '../../dados/cliente'
 import { formatarReais } from '../../dados/configuracoes'
 import { linkDoArquivo } from '../../dados/pedidos'
 import { useCarregar } from '../../estado/useCarregar'
+import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
 import { prepararComprovante } from '../../utilitarios/imagens'
+import { DICA_VALOR, lerValor, PADRAO_VALOR } from '../../utilitarios/valores'
 
 type Concluir = (r: { erro: string | null }, sucesso: string) => boolean
 
@@ -122,6 +124,7 @@ function LinhaLancamento({
   somenteLeitura: boolean
 }) {
   const [motivo, setMotivo] = useState('')
+  const [enviando, umaVez] = useUmaVez()
   const sinal = l.tipo === 'entrada' ? '+' : '−'
   const valeNoSaldo = l.situacao === 'efetivado'
   return (
@@ -150,16 +153,16 @@ function LinhaLancamento({
           <summary>Cancelar lançamento</summary>
           <form
             className="form-linha form-compacto"
-            onSubmit={async (e) => {
+            onSubmit={(e) => {
               e.preventDefault()
-              concluir(await cancelarLancamento(l.id, motivo), 'Lançamento cancelado.')
+              void umaVez(async () => concluir(await cancelarLancamento(l.id, motivo), 'Lançamento cancelado.'))
             }}
           >
             <label>
               Motivo *
               <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} />
             </label>
-            <button type="submit" className="botao botao-perigo-cheio">
+            <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
               Cancelar
             </button>
           </form>
@@ -188,33 +191,27 @@ function NovoLancamento({
   const [descricao, setDescricao] = useState('')
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [erro, setErro] = useState<string | null>(null)
-  const [enviando, setEnviando] = useState(false)
+  const [enviando, umaVez] = useUmaVez()
+  const [versaoArquivo, setVersaoArquivo] = useState(0)
   const opcoes = categorias.filter((c) => c.tipo === tipo && !c.sistema)
+  const inicioDaConta = contas.find((c) => c.id === contaId)?.saldo_inicial_em
 
   async function enviar() {
     setErro(null)
+    const numero = lerValor(valor)
+    if (numero === null || numero <= 0) return setErro(`Valor inválido. ${DICA_VALOR}.`)
     let comprovante: { blob: Blob; extensao: string } | null = null
     if (arquivo) {
       const pronto = await prepararComprovante(arquivo)
       if ('erro' in pronto) return setErro(pronto.erro)
       comprovante = pronto
     }
-    setEnviando(true)
-    const r = await lancar({
-      pessoaId,
-      contaId,
-      tipo,
-      categoriaId,
-      data,
-      valor: Number(valor.replace(',', '.')),
-      descricao,
-      comprovante,
-    })
-    setEnviando(false)
+    const r = await lancar({ pessoaId, contaId, tipo, categoriaId, data, valor: numero, descricao, comprovante })
     if (r.erro !== null) return setErro(r.erro)
     setValor('')
     setDescricao('')
     setArquivo(null)
+    setVersaoArquivo((v) => v + 1)
     concluir(
       r,
       tipo === 'entrada' ? 'Entrada lançada.' : 'Despesa lançada. Ela só sai do saldo depois que o presidente autorizar.',
@@ -227,7 +224,7 @@ function NovoLancamento({
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          void enviar()
+          void umaVez(enviar)
         }}
       >
         <div className="grade-form">
@@ -267,14 +264,22 @@ function NovoLancamento({
           </label>
           <label>
             Data
-            <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
+            <input
+              type="date"
+              required
+              min={inicioDaConta}
+              max={hojeIso()}
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+            />
           </label>
           <label>
             Valor (R$)
             <input
               required
               inputMode="decimal"
-              pattern="[0-9]+([,.][0-9]{1,2})?"
+              pattern={PADRAO_VALOR}
+              title={DICA_VALOR}
               placeholder="0,00"
               value={valor}
               onChange={(e) => setValor(e.target.value)}
@@ -282,7 +287,12 @@ function NovoLancamento({
           </label>
           <label>
             Comprovante (nota, recibo)
-            <input type="file" accept="image/*,application/pdf" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
+            <input
+              key={versaoArquivo}
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+            />
           </label>
           <label className="largura-total">
             Descrição *
@@ -309,22 +319,27 @@ function Transferencia({ contas, concluir }: { contas: SaldoConta[]; concluir: C
   const [data, setData] = useState(hojeIso())
   const [valor, setValor] = useState('')
   const [descricao, setDescricao] = useState('')
+  const [enviando, umaVez] = useUmaVez()
   if (contas.length < 2) return null
+  const inicio = [origem, destino]
+    .map((id) => contas.find((c) => c.id === id)?.saldo_inicial_em ?? '')
+    .sort()
+    .at(-1)
   return (
     <details className="painel acao-recolhida-painel">
       <summary>Transferência entre contas</summary>
       <form
         className="form-linha"
-        onSubmit={async (e) => {
+        onSubmit={(e) => {
           e.preventDefault()
-          const certo = concluir(
-            await transferir(origem, destino, data, Number(valor.replace(',', '.')), descricao),
-            'Transferência registrada.',
-          )
-          if (certo) {
-            setValor('')
-            setDescricao('')
-          }
+          void umaVez(async () => {
+            const numero = lerValor(valor)
+            if (numero === null || numero <= 0) return concluir({ erro: `Valor inválido. ${DICA_VALOR}.` }, '')
+            if (concluir(await transferir(origem, destino, data, numero, descricao), 'Transferência registrada.')) {
+              setValor('')
+              setDescricao('')
+            }
+          })
         }}
       >
         <label>
@@ -349,17 +364,24 @@ function Transferencia({ contas, concluir }: { contas: SaldoConta[]; concluir: C
         </label>
         <label>
           Data
-          <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
+          <input type="date" required min={inicio || undefined} max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
         </label>
         <label>
           Valor (R$)
-          <input required inputMode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" value={valor} onChange={(e) => setValor(e.target.value)} />
+          <input
+            required
+            inputMode="decimal"
+            pattern={PADRAO_VALOR}
+            title={DICA_VALOR}
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+          />
         </label>
         <label>
           Descrição
           <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: Depósito das ofertas" />
         </label>
-        <button type="submit" className="botao">
+        <button type="submit" className="botao" disabled={enviando}>
           Transferir
         </button>
       </form>
@@ -368,7 +390,15 @@ function Transferencia({ contas, concluir }: { contas: SaldoConta[]; concluir: C
 }
 
 /** Aba "Despesas a autorizar": a presidência autoriza ou recusa; a tesouraria acompanha. */
-export function DespesasAutorizar({ podeAutorizar, concluir }: { podeAutorizar: boolean; concluir: Concluir }) {
+export function DespesasAutorizar({
+  podeAutorizar,
+  usuarioId,
+  concluir,
+}: {
+  podeAutorizar: boolean
+  usuarioId: string
+  concluir: Concluir
+}) {
   const [carga, recarregar] = useCarregar(despesasAguardando)
   const concluirERecarregar: Concluir = (r, sucesso) => {
     const certo = concluir(r, sucesso)
@@ -385,7 +415,13 @@ export function DespesasAutorizar({ podeAutorizar, concluir }: { podeAutorizar: 
             {!podeAutorizar && <p className="detalhe">Quem autoriza é o presidente (Art. 12, §2º, VI).</p>}
             <ul className="lista" aria-label="Despesas aguardando autorização">
               {despesas.map((d) => (
-                <Despesa key={d.id} despesa={d} podeAutorizar={podeAutorizar} concluir={concluirERecarregar} />
+                <Despesa
+                  key={d.id}
+                  despesa={d}
+                  podeAutorizar={podeAutorizar}
+                  minha={d.criado_por === usuarioId}
+                  concluir={concluirERecarregar}
+                />
               ))}
             </ul>
           </>
@@ -395,9 +431,20 @@ export function DespesasAutorizar({ podeAutorizar, concluir }: { podeAutorizar: 
   )
 }
 
-function Despesa({ despesa: d, podeAutorizar, concluir }: { despesa: Lancamento; podeAutorizar: boolean; concluir: Concluir }) {
+function Despesa({
+  despesa: d,
+  podeAutorizar,
+  minha,
+  concluir,
+}: {
+  despesa: Lancamento
+  podeAutorizar: boolean
+  minha: boolean
+  concluir: Concluir
+}) {
   const [comprovante, setComprovante] = useState<string | null>(null)
   const [motivo, setMotivo] = useState('')
+  const [enviando, umaVez] = useUmaVez()
   useEffect(() => {
     let ativo = true
     if (d.comprovante_caminho) void linkDoArquivo(d.comprovante_caminho).then((u) => ativo && setComprovante(u))
@@ -421,13 +468,21 @@ function Despesa({ despesa: d, podeAutorizar, concluir }: { despesa: Lancamento;
           </a>
         </span>
       )}
-      {podeAutorizar && (
+      {podeAutorizar && minha && (
+        <p className="detalhe">Você lançou esta despesa: outra pessoa da presidência autoriza.</p>
+      )}
+      {podeAutorizar && !minha && (
         <>
           <div className="acoes">
             <button
               type="button"
               className="botao"
-              onClick={async () => concluir(await autorizarDespesa(d.id, true, ''), `Despesa autorizada: ${d.descricao}.`)}
+              disabled={enviando}
+              onClick={() =>
+                void umaVez(async () =>
+                  concluir(await autorizarDespesa(d.id, true, ''), `Despesa autorizada: ${d.descricao}.`),
+                )
+              }
             >
               Autorizar despesa
             </button>
@@ -436,16 +491,16 @@ function Despesa({ despesa: d, podeAutorizar, concluir }: { despesa: Lancamento;
             <summary>Recusar</summary>
             <form
               className="form-linha form-compacto"
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault()
-                concluir(await autorizarDespesa(d.id, false, motivo), `Despesa recusada: ${d.descricao}.`)
+                void umaVez(async () => concluir(await autorizarDespesa(d.id, false, motivo), `Despesa recusada: ${d.descricao}.`))
               }}
             >
               <label>
                 Motivo *
                 <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} />
               </label>
-              <button type="submit" className="botao botao-perigo-cheio">
+              <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
                 Recusar
               </button>
             </form>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { BotaoArquivar, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import {
   alterarItem,
   arquivarItem,
@@ -37,6 +37,8 @@ import {
 } from '../../dados/caixa'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
+import { useUmaVez } from '../../estado/useUmaVez'
+import { DICA_VALOR, lerValor, PADRAO_VALOR, valorParaCampo } from '../../utilitarios/valores'
 import { cnpjValido, formatarCnpj, formatarData, hojeIso, limparCnpj } from '../../utilitarios/formatos'
 
 type Retorno = { sucesso?: string; erro?: string }
@@ -361,14 +363,10 @@ function Valores({ podeEditar, aoMudar }: { podeEditar: boolean; aoMudar: () => 
                       {v.observacao && <span className="detalhe"> — {v.observacao}</span>}
                     </span>
                     {podeEditar && (
-                      <button
-                        type="button"
-                        className="botao-texto"
-                        aria-label={`Arquivar o valor ${NOME_DA_CATEGORIA[v.categoria]} ${NOME_DO_TIPO_VALOR[v.tipo]} de ${formatarData(v.vigente_desde)}`}
-                        onClick={async () => concluir(await arquivarValor(v.id), 'Valor arquivado.')}
-                      >
-                        Arquivar
-                      </button>
+                      <BotaoArquivar
+                        rotulo={`Arquivar o valor ${NOME_DA_CATEGORIA[v.categoria]} ${NOME_DO_TIPO_VALOR[v.tipo]} de ${formatarData(v.vigente_desde)}`}
+                        aoConfirmar={async () => concluir(await arquivarValor(v.id), 'Valor arquivado.')}
+                      />
                     )}
                   </li>
                 ))}
@@ -394,13 +392,12 @@ function LancarValor({ aoLancar }: { aoLancar: (r: { erro: string | null }, text
   }
   const [novo, setNovo] = useState<NovoValor>(vazio)
   const [valorTexto, setValorTexto] = useState('')
-  const [enviando, setEnviando] = useState(false)
+  const [enviando, umaVez] = useUmaVez()
 
   async function lancar() {
-    const valor = Number(valorTexto.replace(',', '.'))
-    setEnviando(true)
+    const valor = lerValor(valorTexto)
+    if (valor === null || valor < 0) return aoLancar({ erro: `Valor inválido. ${DICA_VALOR}.` }, '')
     const r = await lancarValor({ ...novo, valor })
-    setEnviando(false)
     const texto = `Valor lançado: ${NOME_DA_CATEGORIA[novo.categoria]} · ${NOME_DO_TIPO_VALOR[novo.tipo]} = ${formatarReais(valor)} a partir de ${formatarData(novo.vigente_desde)}.`
     if (aoLancar(r, texto)) {
       setNovo(vazio)
@@ -414,7 +411,7 @@ function LancarValor({ aoLancar }: { aoLancar: (r: { erro: string | null }, text
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          void lancar()
+          void umaVez(lancar)
         }}
       >
         <div className="grade-form">
@@ -446,7 +443,8 @@ function LancarValor({ aoLancar }: { aoLancar: (r: { erro: string | null }, text
             <input
               required
               inputMode="decimal"
-              pattern="[0-9]+([,.][0-9]{1,2})?"
+              pattern={PADRAO_VALOR}
+              title={DICA_VALOR}
               placeholder="0,00"
               value={valorTexto}
               onChange={(e) => setValorTexto(e.target.value)}
@@ -679,7 +677,8 @@ function TaxaInscricao({ podeEditar, aoMudar }: { podeEditar: boolean; aoMudar: 
                     aria-label="Personalizar a taxa de inscrição"
                     onSubmit={async (e) => {
                       e.preventDefault()
-                      const numero = Number(valor.replace(',', '.'))
+                      const numero = lerValor(valor)
+                      if (numero === null || numero < 0) return setRetorno({ erro: `Valor inválido. ${DICA_VALOR}.` })
                       setEnviando(true)
                       const r = await definirTaxaInscricao({
                         valor: numero,
@@ -706,7 +705,8 @@ function TaxaInscricao({ podeEditar, aoMudar }: { podeEditar: boolean; aoMudar: 
                         <input
                           required
                           inputMode="decimal"
-                          pattern="[0-9]+([,.][0-9]{1,2})?"
+                          pattern={PADRAO_VALOR}
+              title={DICA_VALOR}
                           placeholder="0 = isenta"
                           value={valor}
                           onChange={(e) => setValor(e.target.value)}
@@ -776,6 +776,7 @@ function ContasECategorias() {
   const [desde, setDesde] = useState(hojeIso())
   const [nomeCategoria, setNomeCategoria] = useState('')
   const [tipoCategoria, setTipoCategoria] = useState<TipoLancamento>('saida')
+  const [enviando, umaVez] = useUmaVez()
 
   function concluir(r: { erro: string | null }, sucesso: string) {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
@@ -799,32 +800,22 @@ function ContasECategorias() {
                   <span className="detalhe">
                     saldo inicial {formatarReais(c.saldo_inicial)} em {formatarData(c.saldo_inicial_em)}
                   </span>
-                  <button
-                    type="button"
-                    className="botao-texto"
-                    aria-label={`Ajustar o saldo inicial de ${c.nome}`}
-                    onClick={async () => {
-                      const valor = window.prompt(`Saldo inicial de "${c.nome}" (R$):`, String(c.saldo_inicial))
-                      if (valor === null) return
-                      concluir(
-                        await alterarConta(c.id, { nome: c.nome, saldo_inicial: Number(valor.replace(',', '.')) || 0, saldo_inicial_em: c.saldo_inicial_em }),
-                        'Saldo inicial ajustado.',
-                      )
-                    }}
-                  >
-                    Ajustar saldo inicial
-                  </button>
+                  <AjustarSaldo conta={c} concluir={concluir} />
                 </li>
               ))}
             </ul>
             <form
               className="form-linha"
               aria-label="Nova conta"
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault()
-                if (concluir(await criarConta(nomeConta, tipoConta, Number(saldoInicial.replace(',', '.')) || 0, desde), `Conta "${nomeConta.trim()}" criada.`)) {
-                  setNomeConta('')
-                }
+                void umaVez(async () => {
+                  const saldo = lerValor(saldoInicial)
+                  if (saldo === null) return concluir({ erro: `Saldo inicial inválido. ${DICA_VALOR}.` }, '')
+                  if (concluir(await criarConta(nomeConta, tipoConta, saldo, desde), `Conta "${nomeConta.trim()}" criada.`)) {
+                    setNomeConta('')
+                  }
+                })
               }}
             >
               <label>
@@ -840,13 +831,19 @@ function ContasECategorias() {
               </label>
               <label className="campo-curto">
                 Saldo inicial
-                <input inputMode="decimal" value={saldoInicial} onChange={(e) => setSaldoInicial(e.target.value)} />
+                <input
+                  inputMode="decimal"
+                  pattern={PADRAO_VALOR}
+                  title={DICA_VALOR}
+                  value={saldoInicial}
+                  onChange={(e) => setSaldoInicial(e.target.value)}
+                />
               </label>
               <label className="campo-curto">
                 Em
-                <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+                <input type="date" required max={hojeIso()} value={desde} onChange={(e) => setDesde(e.target.value)} />
               </label>
-              <button type="submit" className="botao">
+              <button type="submit" className="botao" disabled={enviando}>
                 Criar conta
               </button>
             </form>
@@ -864,14 +861,12 @@ function ContasECategorias() {
                           {c.sistema && <span className="detalhe"> (automática)</span>}
                         </span>
                         {!c.sistema && (
-                          <button
-                            type="button"
-                            className="botao-texto"
-                            aria-label={`Arquivar a categoria ${c.nome}`}
-                            onClick={async () => concluir(await arquivarCategoriaFinanceira(c.id), `Categoria "${c.nome}" arquivada.`)}
-                          >
-                            Arquivar
-                          </button>
+                          <BotaoArquivar
+                            rotulo={`Arquivar a categoria ${c.nome}`}
+                            aoConfirmar={async () =>
+                              concluir(await arquivarCategoriaFinanceira(c.id), `Categoria "${c.nome}" arquivada.`)
+                            }
+                          />
                         )}
                       </li>
                     ))}
@@ -908,5 +903,58 @@ function ContasECategorias() {
       </MostrarCarga>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
     </section>
+  )
+}
+
+/** Ajusta o saldo inicial de uma conta. O banco recusa se o período dela já foi fechado na prestação de contas. */
+function AjustarSaldo({
+  conta,
+  concluir,
+}: {
+  conta: { id: string; nome: string; saldo_inicial: number; saldo_inicial_em: string }
+  concluir: (r: { erro: string | null }, sucesso: string) => boolean
+}) {
+  const [valor, setValor] = useState(valorParaCampo(conta.saldo_inicial))
+  const [desde, setDesde] = useState(conta.saldo_inicial_em)
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <details className="acao-recolhida">
+      <summary>Ajustar saldo inicial</summary>
+      <form
+        className="form-linha form-compacto"
+        aria-label={`Ajustar o saldo inicial de ${conta.nome}`}
+        onSubmit={(e) => {
+          e.preventDefault()
+          void umaVez(async () => {
+            const numero = lerValor(valor)
+            if (numero === null) return concluir({ erro: `Saldo inicial inválido. ${DICA_VALOR}.` }, '')
+            concluir(
+              await alterarConta(conta.id, { nome: conta.nome, saldo_inicial: numero, saldo_inicial_em: desde }),
+              `Saldo inicial de "${conta.nome}" ajustado.`,
+            )
+          })
+        }}
+      >
+        <label className="campo-curto">
+          Saldo inicial (R$)
+          <input
+            required
+            inputMode="decimal"
+            pattern={PADRAO_VALOR}
+            title={DICA_VALOR}
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+          />
+        </label>
+        <label className="campo-curto">
+          Em
+          <input type="date" required max={hojeIso()} value={desde} onChange={(e) => setDesde(e.target.value)} />
+        </label>
+        <button type="submit" className="botao" disabled={enviando}>
+          Salvar
+        </button>
+      </form>
+      <p className="detalhe">Depois que o exercício é fechado na prestação de contas, o saldo inicial não muda mais.</p>
+    </details>
   )
 }

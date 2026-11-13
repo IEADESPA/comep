@@ -31,8 +31,10 @@ import {
   type TotalCategoria,
 } from '../../dados/prestacao'
 import { useCarregar } from '../../estado/useCarregar'
+import { useUmaVez } from '../../estado/useUmaVez'
 import { baixarCsv, imprimir, numeroPlanilha } from '../../utilitarios/exportar'
 import { formatarData, formatarDataHora, hojeIso } from '../../utilitarios/formatos'
+import { DICA_VALOR, lerValor, PADRAO_VALOR, valorParaCampo } from '../../utilitarios/valores'
 
 type Retorno = { sucesso?: string; erro?: string }
 
@@ -46,10 +48,14 @@ const ehTransferencia = (sistema: string | null | undefined) => (sistema ?? '').
 export function PrestacaoContasAba({ perfis, pessoaId }: { perfis: Perfil[]; pessoaId: string }) {
   const atual = exercicioDe(hojeIso())
   const [exercicio, setExercicio] = useState(atual)
-  const [carga] = useCarregar(exerciciosComBalanco)
+  const [carga, recarregarLista] = useCarregar(exerciciosComBalanco)
   const situacoes = new Map((carga.situacao === 'ok' ? carga.dados : []).map((b) => [b.exercicio, b.situacao]))
   const anos = [
-    ...new Set([...Array.from({ length: Math.max(atual - PRIMEIRO_EXERCICIO + 1, 1) }, (_, i) => atual - i), ...situacoes.keys()]),
+    ...new Set([
+      atual + 1, // o orçamento do próximo exercício pode ser preparado antes de abril
+      ...Array.from({ length: Math.max(atual - PRIMEIRO_EXERCICIO + 1, 1) }, (_, i) => atual - i),
+      ...situacoes.keys(),
+    ]),
   ].sort((a, b) => b - a)
 
   return (
@@ -63,7 +69,7 @@ export function PrestacaoContasAba({ perfis, pessoaId }: { perfis: Perfil[]; pes
               return (
                 <option key={a} value={a}>
                   {nomeDoExercicio(a)}
-                  {a === atual ? ' (atual)' : ''}
+                  {a === atual ? ' (atual)' : a > atual ? ' (próximo)' : ''}
                   {s ? ` — ${NOME_DA_SITUACAO_BALANCO[s].toLowerCase()}` : ''}
                 </option>
               )
@@ -71,7 +77,13 @@ export function PrestacaoContasAba({ perfis, pessoaId }: { perfis: Perfil[]; pes
           </select>
         </label>
       </div>
-      <ConteudoExercicio key={exercicio} exercicio={exercicio} perfis={perfis} pessoaId={pessoaId} />
+      <ConteudoExercicio
+        key={exercicio}
+        exercicio={exercicio}
+        perfis={perfis}
+        pessoaId={pessoaId}
+        aoMudarBalanco={recarregarLista}
+      />
     </>
   )
 }
@@ -85,7 +97,17 @@ type Dados = {
   categorias: CategoriaFinanceira[]
 }
 
-function ConteudoExercicio({ exercicio, perfis, pessoaId }: { exercicio: number; perfis: Perfil[]; pessoaId: string }) {
+function ConteudoExercicio({
+  exercicio,
+  perfis,
+  pessoaId,
+  aoMudarBalanco,
+}: {
+  exercicio: number
+  perfis: Perfil[]
+  pessoaId: string
+  aoMudarBalanco: () => void
+}) {
   const [carga, recarregar] = useCarregar(async (): Promise<Resultado<Dados>> => {
     const [resumo, balanco, orcamento, porIgreja, lancamentos, categorias] = await Promise.all([
       resumoExercicio(exercicio),
@@ -134,7 +156,9 @@ function ConteudoExercicio({ exercicio, perfis, pessoaId }: { exercicio: number;
               <button
                 type="button"
                 className="botao botao-secundario"
-                onClick={() => baixarCsv(`resumo-${exercicio}-${exercicio + 1}.csv`, linhasResumo(resumo, d.porIgreja))}
+                onClick={() =>
+                  baixarCsv(`resumo-${exercicio}-${exercicio + 1}.csv`, linhasResumo(resumo, d.porIgreja, d.resumo.calculado_em))
+                }
               >
                 Baixar resumo (planilha)
               </button>
@@ -151,19 +175,22 @@ function ConteudoExercicio({ exercicio, perfis, pessoaId }: { exercicio: number;
               eventos={eventos}
               perfis={perfis}
               pessoaId={pessoaId}
-              recarregar={recarregar}
+              recarregar={() => {
+                recarregar()
+                aoMudarBalanco()
+              }}
             />
             <PainelResumo
               resumo={resumo}
               origem={congelado ? `Números congelados quando a tesouraria fechou o exercício (${formatarDataHora(balanco.fechado_em ?? resumo.calculado_em)}).` : undefined}
             />
             <PainelMesAMes exercicio={exercicio} lancamentos={d.lancamentos} />
-            <PainelPorIgreja linhas={d.porIgreja} />
+            <PainelPorIgreja linhas={d.porIgreja} posicaoDe={congelado ? d.resumo.calculado_em : null} />
             <PainelOrcamento
               exercicio={exercicio}
               orcamento={d.orcamento}
               categorias={d.categorias}
-              realizado={d.resumo}
+              realizado={resumo}
               perfis={perfis}
               recarregar={recarregar}
             />
@@ -204,7 +231,7 @@ function PainelBalanco({
   const [decisao, setDecisao] = useState<'aprovado' | 'reprovado'>('aprovado')
   const [data, setData] = useState(hojeIso())
   const [ata, setAta] = useState('')
-  const [enviando, setEnviando] = useState(false)
+  const [enviando, umaVez] = useUmaVez()
 
   const situacao = balanco?.situacao ?? null
   const opera = perfis.includes('tesouraria') || perfis.includes('presidencia')
@@ -213,17 +240,17 @@ function PainelBalanco({
   const fecheiEu = balanco?.fechado?.id === pessoaId
   const nome = nomeDoExercicio(exercicio)
 
-  async function agir(promessa: Promise<Resultado<null>>, sucesso: string) {
-    setEnviando(true)
-    const r = await promessa
-    setEnviando(false)
-    setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
-    if (r.erro === null) {
-      setTexto('')
-      setMotivo('')
-      setAta('')
-      recarregar()
-    }
+  function agir(acao: () => Promise<Resultado<null>>, sucesso: string) {
+    return umaVez(async () => {
+      const r = await acao()
+      setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+      if (r.erro === null) {
+        setTexto('')
+        setMotivo('')
+        setAta('')
+        recarregar()
+      }
+    })
   }
 
   const devolver = (
@@ -233,7 +260,7 @@ function PainelBalanco({
         className="form-compacto"
         onSubmit={(e) => {
           e.preventDefault()
-          if (balanco) void agir(devolverBalanco(balanco.id, motivo), 'Balanço devolvido à tesouraria.')
+          if (balanco) void agir(() => devolverBalanco(balanco.id, motivo), 'Balanço devolvido à tesouraria.')
         }}
       >
         <label>
@@ -312,7 +339,7 @@ function PainelBalanco({
             aria-label="Fechar o exercício"
             onSubmit={(e) => {
               e.preventDefault()
-              void agir(fecharBalanco(exercicio, texto), `Exercício ${nome} fechado e enviado à diretoria.`)
+              void agir(() => fecharBalanco(exercicio, texto), `Exercício ${nome} fechado e enviado à diretoria.`)
             }}
           >
             {aguardando > 0 && (
@@ -350,7 +377,8 @@ function PainelBalanco({
                 aria-label="Análise da diretoria"
                 onSubmit={(e) => {
                   e.preventDefault()
-                  if (balanco) void agir(analisarBalanco(balanco.id, texto), 'Análise da diretoria registrada. Agora é com o Conselho Fiscal.')
+                  if (balanco)
+                    void agir(() => analisarBalanco(balanco.id, texto), 'Análise da diretoria registrada. Agora é com o Conselho Fiscal.')
                 }}
               >
                 <label>
@@ -376,7 +404,7 @@ function PainelBalanco({
                 aria-label="Parecer do Conselho Fiscal"
                 onSubmit={(e) => {
                   e.preventDefault()
-                  if (balanco) void agir(parecerBalanco(balanco.id, parecer, texto), 'Parecer do Conselho Fiscal registrado.')
+                  if (balanco) void agir(() => parecerBalanco(balanco.id, parecer, texto), 'Parecer do Conselho Fiscal registrado.')
                 }}
               >
                 <label>
@@ -410,7 +438,7 @@ function PainelBalanco({
               e.preventDefault()
               if (balanco)
                 void agir(
-                  assembleiaBalanco(balanco.id, decisao === 'aprovado', data, ata),
+                  () => assembleiaBalanco(balanco.id, decisao === 'aprovado', data, ata),
                   decisao === 'aprovado' ? 'Balanço aprovado pela assembleia.' : 'Balanço reprovado: voltou para a tesouraria corrigir.',
                 )
             }}
@@ -627,7 +655,11 @@ function PainelMesAMes({ exercicio, lancamentos }: { exercicio: number; lancamen
     const ano = mes >= 4 ? exercicio : exercicio + 1
     const prefixo = `${ano}-${String(mes).padStart(2, '0')}`
     const doMes = lancamentos.filter(
-      (l) => l.situacao === 'efetivado' && l.data.startsWith(prefixo) && !ehTransferencia(l.categoria?.sistema),
+      (l) =>
+        l.situacao === 'efetivado' &&
+        l.data.startsWith(prefixo) &&
+        !ehTransferencia(l.categoria?.sistema) &&
+        (!l.conta || l.data >= l.conta.saldo_inicial_em),
     )
     const receitas = doMes.filter((l) => l.tipo === 'entrada').reduce((t, l) => t + Number(l.valor), 0)
     const despesas = doMes.filter((l) => l.tipo === 'saida').reduce((t, l) => t + Number(l.valor), 0)
@@ -683,10 +715,16 @@ function PainelMesAMes({ exercicio, lancamentos }: { exercicio: number; lancamen
   )
 }
 
-function PainelPorIgreja({ linhas }: { linhas: ContribuicaoIgreja[] }) {
+function PainelPorIgreja({ linhas, posicaoDe }: { linhas: ContribuicaoIgreja[]; posicaoDe: string | null }) {
   return (
     <section className="painel" aria-labelledby="titulo-por-igreja">
       <h2 id="titulo-por-igreja">Contribuições por igreja</h2>
+      {posicaoDe && (
+        <p className="detalhe">
+          Posição de {formatarDataHora(posicaoDe)} — não fica congelada com o balanço: inclui pagamentos atrasados recebidos
+          depois do fechamento.
+        </p>
+      )}
       {linhas.length === 0 ? (
         <p className="vazio">Nenhuma contribuição gerada para este exercício.</p>
       ) : (
@@ -761,19 +799,19 @@ function PainelOrcamento({
 
   const [plano, setPlano] = useState(orcamento?.plano_trabalho ?? '')
   const [valores, setValores] = useState<Record<string, string>>(() =>
-    Object.fromEntries(doOrcamento.map((c) => [c.id, previstoDe(c.id) ? String(previstoDe(c.id)).replace('.', ',') : ''])),
+    Object.fromEntries(doOrcamento.map((c) => [c.id, previstoDe(c.id) ? valorParaCampo(previstoDe(c.id)) : ''])),
   )
   const [data, setData] = useState(hojeIso())
   const [ata, setAta] = useState('')
   const [retorno, setRetorno] = useState<Retorno>({})
-  const [enviando, setEnviando] = useState(false)
+  const [enviando, umaVez] = useUmaVez()
 
-  async function agir(promessa: Promise<Resultado<null>>, sucesso: string) {
-    setEnviando(true)
-    const r = await promessa
-    setEnviando(false)
-    setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
-    if (r.erro === null) recarregar()
+  function agir(acao: () => Promise<Resultado<null>>, sucesso: string) {
+    return umaVez(async () => {
+      const r = await acao()
+      setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+      if (r.erro === null) recarregar()
+    })
   }
 
   const linhas = (tipo: 'entrada' | 'saida') =>
@@ -839,11 +877,13 @@ function PainelOrcamento({
               aria-label="Orçamento"
               onSubmit={(e) => {
                 e.preventDefault()
-                const itens = doOrcamento.map((c) => ({
-                  categoria_id: c.id,
-                  valor: Number((valores[c.id] || '0').replace(/\./g, '').replace(',', '.')) || 0,
-                }))
-                void agir(salvarOrcamento(exercicio, plano, itens), `Orçamento ${nome} salvo.`)
+                const itens = doOrcamento.map((c) => ({ categoria: c, valor: lerValor(valores[c.id]?.trim() || '0') }))
+                const invalido = itens.find((i) => i.valor === null || i.valor < 0)
+                if (invalido) return setRetorno({ erro: `Valor inválido em "${invalido.categoria.nome}". ${DICA_VALOR}.` })
+                void agir(
+                  () => salvarOrcamento(exercicio, plano, itens.map((i) => ({ categoria_id: i.categoria.id, valor: i.valor ?? 0 }))),
+                  `Orçamento ${nome} salvo.`,
+                )
               }}
             >
               <label>
@@ -865,7 +905,8 @@ function PainelOrcamento({
                         {c.nome}
                         <input
                           inputMode="decimal"
-                          pattern="[0-9.]*([,][0-9]{1,2})?"
+                          pattern={PADRAO_VALOR}
+                          title={DICA_VALOR}
                           placeholder="0,00"
                           aria-label={`Previsto para ${c.nome}`}
                           value={valores[c.id] ?? ''}
@@ -891,7 +932,7 @@ function PainelOrcamento({
               aria-label="Aprovação do orçamento"
               onSubmit={(e) => {
                 e.preventDefault()
-                void agir(aprovarOrcamento(exercicio, data, ata), `Orçamento ${nome} aprovado.`)
+                void agir(() => aprovarOrcamento(exercicio, data, ata), `Orçamento ${nome} aprovado.`)
               }}
             >
               <label className="campo-curto">
@@ -935,7 +976,7 @@ function linhasLancamentos(lancamentos: LancamentoRelatorio[]) {
   ]
 }
 
-function linhasResumo(resumo: Resumo, porIgreja: ContribuicaoIgreja[]) {
+function linhasResumo(resumo: Resumo, porIgreja: ContribuicaoIgreja[], posicaoDe: string) {
   const nome = nomeDoExercicio(resumo.exercicio)
   const c = resumo.contribuicoes
   return [
@@ -965,6 +1006,7 @@ function linhasResumo(resumo: Resumo, porIgreja: ContribuicaoIgreja[]) {
     ['Contribuições', 'Previsto', 'Recebido', 'Em aberto', 'Vencido'],
     ['Associados', numeroPlanilha(c.previsto), numeroPlanilha(c.recebido), numeroPlanilha(c.em_aberto), numeroPlanilha(c.vencido)],
     [],
+    [`Contribuições por igreja — posição de ${formatarDataHora(posicaoDe)}`],
     ['Igreja', 'Associados', 'Previsto', 'Recebido', 'Em aberto', 'Vencido'],
     ...porIgreja.map((x) => [
       x.igreja,

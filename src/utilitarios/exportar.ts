@@ -7,8 +7,13 @@ export function numeroPlanilha(valor: number | string | null | undefined): strin
   return Number(valor ?? 0).toFixed(2).replace('.', ',')
 }
 
+const NUMERO = /^-?\d+(,\d+)?$/
+
 function celulaCsv(valor: Celula): string {
-  const texto = valor === null || valor === undefined ? '' : String(valor)
+  let texto = valor === null || valor === undefined ? '' : String(valor)
+  // O Excel executa o que começa com = + - @ (fórmula). Com um apóstrofo na frente, vira texto.
+  // Números negativos (ex.: "-12,50") continuam números.
+  if (/^[=+\-@\t\r]/.test(texto) && !NUMERO.test(texto)) texto = `'${texto}`
   return /[";\n\r]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto
 }
 

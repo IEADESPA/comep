@@ -66,6 +66,7 @@ test('mostra os valores da contribuição; a presidência lança e arquiva um va
 
   await secao.getByText(/^Histórico de valores/).click()
   await secao.getByRole('button', { name: `Arquivar o valor Jubilado Taxa de inscrição de ${dataBr}` }).click()
+  await secao.getByRole('button', { name: `Confirmar — Arquivar o valor Jubilado Taxa de inscrição de ${dataBr}` }).click()
   await expect(mensagem(page, 'Valor arquivado.')).toBeVisible()
 })
 
@@ -98,6 +99,7 @@ test('a taxa de inscrição hoje é isenta; a presidência programa um valor fut
   await valores.getByText(/^Histórico de valores/).click()
   for (const categoria of ['Presidente de igreja', 'Não presidente de igreja']) {
     await valores.getByRole('button', { name: `Arquivar o valor ${categoria} Taxa de inscrição de ${dataBr}` }).click()
+    await valores.getByRole('button', { name: `Confirmar — Arquivar o valor ${categoria} Taxa de inscrição de ${dataBr}` }).click()
     await expect(mensagem(page, 'Valor arquivado.')).toBeVisible()
   }
   await expect(valores.getByRole('button', { name: new RegExp(`Taxa de inscrição de ${dataBr}$`) })).toHaveCount(0)
