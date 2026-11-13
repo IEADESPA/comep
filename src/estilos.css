@@ -2137,3 +2137,51 @@ fieldset .caixa-marcar + .caixa-marcar {
   flex-wrap: wrap;
   gap: 0.75rem;
 }
+
+/* ---------- Assembleias e reuniões (Fase 4.1) ---------- */
+.texto-edital {
+  white-space: pre-line;
+  line-height: 1.55;
+}
+
+.pauta-campos {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+}
+
+.pauta-lista {
+  display: grid;
+  gap: 0.75rem;
+  padding-left: 1.4rem;
+}
+
+.pauta-item {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.site-convocacoes {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-convocacoes li {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.site-convocacoes a {
+  font-weight: 700;
+}
+
+@media print {
+  .edital {
+    border: 0;
+    box-shadow: none;
+  }
+}
