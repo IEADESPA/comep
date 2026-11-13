@@ -143,10 +143,12 @@ describe('Fase 4.1 — assembleias e reuniões', () => {
 
     it('a antecedência vem da configuração (se o estatuto mudar); o ministro não mexe nela', async () => {
       await chamar(ministro, 'update public.config_assembleias set antecedencia_dias = 0')
-      await chamar(secretaria, 'update public.config_assembleias set antecedencia_dias = 5')
+      // a secretaria também não (revisão da Fase 4: só a presidência muda as regras)
+      await chamar(secretaria, 'update public.config_assembleias set antecedencia_dias = 0')
+      await chamar(presidencia, 'update public.config_assembleias set antecedencia_dias = 5')
       const age = await salvar(secretaria, null, { ...AGO, tipo: 'age', fundamento: 'Conselho Diretor', inicio: quando(daqui(10)) })
       await convocar(presidencia, age)
-      await chamar(secretaria, 'update public.config_assembleias set antecedencia_dias = 30')
+      await chamar(presidencia, 'update public.config_assembleias set antecedencia_dias = 30')
     })
   })
 

@@ -33,11 +33,11 @@ describe('Fase 4.3 — quórum, votações e ata', () => {
     return r.rows[0].id
   }
 
-  async function pauta(encontro: string, ordem: number, deliberativo: boolean, maioria: string | null): Promise<string> {
+  async function pauta(encontro: string, ordem: number, deliberativo: boolean, maioria: string | null, desligar: string | null = null): Promise<string> {
     const r = await db.query<{ id: string }>(
-      `insert into public.encontro_pauta (encontro_id, ordem, titulo, deliberativo, maioria)
-       values ($1, $2::integer, 'Item ' || $2::text, $3, $4::public.maioria_exigida) returning id`,
-      [encontro, ordem, deliberativo, maioria],
+      `insert into public.encontro_pauta (encontro_id, ordem, titulo, deliberativo, maioria, desligamento_pessoa_id)
+       values ($1, $2::integer, 'Item ' || $2::text, $3, $4::public.maioria_exigida, $5) returning id`,
+      [encontro, ordem, deliberativo, maioria, desligar],
     )
     return r.rows[0].id
   }
@@ -67,7 +67,7 @@ describe('Fase 4.3 — quórum, votações e ata', () => {
     )
     ago = await assembleia('ago', 10)
     item.simples = await pauta(ago, 1, true, 'simples')
-    item.desligamento = await pauta(ago, 2, true, 'tres_quintos')
+    item.desligamento = await pauta(ago, 2, true, 'tres_quintos', pessoa[2])
     item.estatuto = await pauta(ago, 3, true, 'dois_tercos')
     item.informes = await pauta(ago, 4, false, null)
   })

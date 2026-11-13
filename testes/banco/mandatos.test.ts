@@ -13,14 +13,32 @@ describe('Fase 4.4 — mandatos e perfis automáticos', () => {
   let presidencia: string
   const u: string[] = []
   const p: string[] = []
+  let eleicao: string
+  let eleicaoAntiga: string
 
   const chamar = (quem: string | null, sql: string, params: unknown[] = []) => como(db, quem, () => db.query(sql, params))
-  const registrar = (quem: string, membros: { cargo: string; pessoa: string }[], inicio = 'current_date - 10', fim = 'current_date + 1450') =>
+  /** O primeiro registro (diretoria eleita antes do sistema) leva o documento; os seguintes, a assembleia instalada. */
+  const registrar = (
+    quem: string,
+    membros: { cargo: string; pessoa: string }[],
+    inicio = 'current_date - 10',
+    fim = 'current_date + 1450',
+    encontro: string | null = eleicao ?? null,
+  ) =>
     chamar(
       quem,
-      `select public.registrar_diretoria(jsonb_build_object('inicio', ${inicio}, 'fim', ${fim}, 'membros', $1::jsonb)) as n`,
-      [JSON.stringify(membros.map((m) => ({ cargo: m.cargo, pessoa_id: m.pessoa })))],
+      `select public.registrar_diretoria(jsonb_build_object('inicio', ${inicio}, 'fim', ${fim}, 'encontro_id', $2::text,
+         'documento', 'Ata da eleição (teste)', 'membros', $1::jsonb)) as n`,
+      [JSON.stringify(membros.map((m) => ({ cargo: m.cargo, pessoa_id: m.pessoa }))), encontro],
     )
+  async function assembleiaInstalada(diasAtras: number): Promise<string> {
+    const r = await db.query<{ id: string }>(
+      `insert into public.encontros (tipo, titulo, inicio, local, situacao, convocado_em, instalada_em, chamada)
+       values ('ago', 'Eleição', now() - make_interval(days => $1), 'Sede', 'realizado', now(), now(), 'segunda') returning id`,
+      [diasAtras],
+    )
+    return r.rows[0].id
+  }
   const tem = async (quem: string, perfil: string) =>
     ((await chamar(quem, `select interno.tenho_perfil('${perfil}') as t`)).rows[0] as { t: boolean }).t
 
@@ -51,7 +69,7 @@ describe('Fase 4.4 — mandatos e perfis automáticos', () => {
       await assert.rejects(registrar(presidencia, [{ cargo: 'segundo_secretario', pessoa: p[4] }]), erroComCodigo(BLOQUEADO_PELO_BANCO))
     })
 
-    it('registra presidente, 1º secretário, 1º tesoureiro e um conselheiro fiscal', async () => {
+    it('registra presidente, 1º secretário, 1º tesoureiro e um conselheiro fiscal (primeiro registro, com o documento)', async () => {
       const r = await registrar(presidencia, [
         { cargo: 'presidente', pessoa: p[0] },
         { cargo: 'primeiro_secretario', pessoa: p[1] },
@@ -59,6 +77,9 @@ describe('Fase 4.4 — mandatos e perfis automáticos', () => {
         { cargo: 'conselheiro_fiscal', pessoa: p[3] },
       ])
       assert.equal((r.rows[0] as { n: number }).n, 4)
+      // daqui em diante, a diretoria eleita precisa da assembleia instalada que elegeu
+      eleicao = await assembleiaInstalada(20)
+      eleicaoAntiga = await assembleiaInstalada(1500)
     })
 
     it('um por cargo no período; no Conselho Fiscal, no máximo 3; ninguém acumula dois cargos', async () => {
@@ -92,9 +113,9 @@ describe('Fase 4.4 — mandatos e perfis automáticos', () => {
     })
 
     it('mandato futuro ainda não dá perfil; mandato que já acabou não dá mais', async () => {
-      await registrar(presidencia, [{ cargo: 'segundo_tesoureiro', pessoa: p[7] }], 'current_date + 30', 'current_date + 1500')
+      await registrar(presidencia, [{ cargo: 'segundo_tesoureiro', pessoa: p[7] }], 'current_date + 30', 'current_date + 1460')
       assert.equal(await tem(u[7], 'tesouraria'), false)
-      await registrar(presidencia, [{ cargo: 'vice_presidente', pessoa: p[7] }], 'current_date - 1500', 'current_date - 1')
+      await registrar(presidencia, [{ cargo: 'vice_presidente', pessoa: p[7] }], 'current_date - 1400', 'current_date - 1', eleicaoAntiga)
       assert.equal(await tem(u[7], 'presidencia'), false)
     })
 
@@ -121,7 +142,8 @@ describe('Fase 4.4 — mandatos e perfis automáticos', () => {
       // quem tem perfil da diretoria à mão não assume cargo no Conselho Fiscal
       await chamar(presidencia, "insert into public.perfis_acesso (pessoa_id, perfil) values ($1, 'secretaria')", [p[2]])
       const m = await db.query<{ id: string }>("select id from public.mandatos where cargo = 'conselheiro_fiscal' and pessoa_id = $1", [p[6]])
-      await chamar(presidencia, "select public.encerrar_mandato($1, current_date, 'Renúncia')", [m.rows[0].id])
+      // tirar alguém do Conselho Fiscal pede a assembleia que tratou disso
+      await chamar(presidencia, "select public.encerrar_mandato($1, current_date, 'Renúncia', $2)", [m.rows[0].id, eleicao])
       await assert.rejects(registrar(presidencia, [{ cargo: 'conselheiro_fiscal', pessoa: p[2] }], 'current_date + 1', 'current_date + 1450'), erroComCodigo(BLOQUEADO_PELO_BANCO))
     })
 
