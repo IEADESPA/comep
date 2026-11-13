@@ -93,6 +93,7 @@ function Conteudo({ pessoaId, perfis, email }: { pessoaId: string; perfis: Perfi
             <MeusDados
               dados={dados}
               email={email}
+              nomeTravado={ficha?.associado.situacao === 'ativo'}
               concluir={(r, s) => {
                 const certo = concluir(r, s)
                 if (certo) recarregarConta()
@@ -133,7 +134,18 @@ function Conteudo({ pessoaId, perfis, email }: { pessoaId: string; perfis: Perfi
   )
 }
 
-function MeusDados({ dados, email, concluir }: { dados: MeusDadosCompletos; email: string | null; concluir: Concluir }) {
+function MeusDados({
+  dados,
+  email,
+  nomeTravado,
+  concluir,
+}: {
+  dados: MeusDadosCompletos
+  email: string | null
+  /** associado ativo: o nome vai na credencial e só a secretaria corrige */
+  nomeTravado: boolean
+  concluir: Concluir
+}) {
   const [nome, setNome] = useState(dados.nome)
   const [telefone, setTelefone] = useState(dados.telefone ?? '')
   const [identidade, setIdentidade] = useState(identidadeInicial(dados))
@@ -200,7 +212,8 @@ function MeusDados({ dados, email, concluir }: { dados: MeusDadosCompletos; emai
         >
           <label>
             Nome completo
-            <input required value={nome} onChange={(e) => setNome(e.target.value)} />
+            <input required value={nome} disabled={nomeTravado} onChange={(e) => setNome(e.target.value)} />
+            {nomeTravado && <span className="detalhe">O nome vai na credencial: para corrigir, fale com a secretaria.</span>}
           </label>
           <label>
             Telefone (WhatsApp)

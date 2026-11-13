@@ -1,7 +1,7 @@
 // Portal do ministro: meu perfil (foto, senha), pedido de troca de igreja e painel do presidente de igreja.
 import { cliente, falha, ok, type Resultado } from './cliente'
 import { senhaForte } from './codigos'
-import type { IdentidadeGravada } from './credencial'
+import { lerIdentidade, type IdentidadeGravada } from './credencial'
 import { enviarArquivo } from './pedidos'
 
 // ---------- Meu perfil ----------
@@ -15,12 +15,17 @@ export type MeusDadosCompletos = {
 } & IdentidadeGravada
 
 export async function buscarMeusDados(pessoaId: string): Promise<Resultado<MeusDadosCompletos>> {
-  const { data, error } = await cliente()
-    .from('pessoas')
-    .select('id, nome, email, telefone, foto_caminho, cpf, nome_pai, nome_mae')
-    .eq('id', pessoaId)
-    .single<MeusDadosCompletos>()
-  return error ? falha(error) : ok(data)
+  const [{ data, error }, identidade] = await Promise.all([
+    cliente()
+      .from('pessoas')
+      .select('id, nome, email, telefone, foto_caminho')
+      .eq('id', pessoaId)
+      .single<Omit<MeusDadosCompletos, keyof IdentidadeGravada>>(),
+    lerIdentidade(pessoaId),
+  ])
+  if (error) return falha(error)
+  if (identidade.erro !== null) return identidade
+  return ok({ ...data, ...identidade.dados })
 }
 
 /** Envia a foto nova para a própria pasta e passa a usá-la no cadastro. */

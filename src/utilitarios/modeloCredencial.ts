@@ -120,6 +120,33 @@ export function valoresDaCredencial(c: DadosCredencial, textoVerso: string): Val
   }
 }
 
+// Partículas que ficam por extenso (e somem só no último passo) e finais que andam junto com o último nome
+const PARTICULAS = new Set(['de', 'da', 'das', 'do', 'dos', 'e', "d'"])
+const FINAIS = new Set(['filho', 'filha', 'júnior', 'junior', 'jr.', 'neto', 'neta', 'sobrinho', 'sobrinha', 'segundo', 'terceiro'])
+
+/**
+ * Formas do nome, da completa para a mais curta, como nos documentos brasileiros: os nomes do meio viram
+ * iniciais, do último para o primeiro ("Antonio Carlos F. das C. N. de Oliveira" … "Antonio C. F. C. N. Oliveira").
+ * O primeiro e o último nome (com Filho, Júnior, Neto…) ficam sempre por extenso.
+ */
+export function abreviacoesDoNome(nome: string): string[] {
+  const partes = nome.trim().split(/\s+/).filter(Boolean)
+  if (partes.length <= 2) return [partes.join(' ')]
+  let fim = partes.length - 1
+  if (fim > 1 && FINAIS.has(partes[fim].toLowerCase())) fim--
+  const meio = partes.slice(1, fim)
+  const formas = [partes.join(' ')]
+  const atual = [...meio]
+  for (let i = meio.length - 1; i >= 0; i--) {
+    if (PARTICULAS.has(meio[i].toLowerCase())) continue
+    atual[i] = `${meio[i].charAt(0).toUpperCase()}.`
+    formas.push([partes[0], ...atual, ...partes.slice(fim)].join(' '))
+  }
+  const semParticulas = atual.filter((p) => !PARTICULAS.has(p.toLowerCase()))
+  if (semParticulas.length !== atual.length) formas.push([partes[0], ...semParticulas, ...partes.slice(fim)].join(' '))
+  return [...new Set(formas)]
+}
+
 /** Troca {chave} pelo dado. Chave desconhecida fica como está (assim o erro de digitação aparece). */
 export function preencher(texto: string, valores: ValoresCredencial): string {
   return texto.replace(/\{([a-z_]+)\}/g, (inteiro, chave: string) =>
@@ -314,14 +341,27 @@ function opcao<T extends string | number>(v: unknown, opcoes: readonly T[], padr
 
 const sim = (v: unknown, padrao: boolean) => (typeof v === 'boolean' ? v : padrao)
 
-function caixa(b: Bruto, id: string): Caixa {
+/** Limites de posição e tamanho (mm): os mesmos no editor e na conferência. */
+export const LIMITES = {
+  x: [-20, LARGURA_MM],
+  y: [-20, ALTURA_MM],
+  w: [0.2, 120],
+  h: [0.2, 80],
+} as const
+
+/** Põe a posição e o tamanho dentro dos limites (o editor usa ao arrastar). */
+export function limitarCaixa<T extends { x: number; y: number; w: number; h: number }>(e: T): T {
   return {
-    id,
-    x: num(b.x, -20, LARGURA_MM, 0),
-    y: num(b.y, -20, ALTURA_MM, 0),
-    w: num(b.w, 0.2, 120, 10),
-    h: num(b.h, 0.2, 80, 5),
+    ...e,
+    x: num(e.x, LIMITES.x[0], LIMITES.x[1], 0),
+    y: num(e.y, LIMITES.y[0], LIMITES.y[1], 0),
+    w: num(e.w, LIMITES.w[0], LIMITES.w[1], 10),
+    h: num(e.h, LIMITES.h[0], LIMITES.h[1], 5),
   }
+}
+
+function caixa(b: Bruto, id: string): Caixa {
+  return limitarCaixa({ id, x: b.x as number, y: b.y as number, w: b.w as number, h: b.h as number })
 }
 
 function elemento(b: Bruto, id: string): Elemento | null {
@@ -383,7 +423,8 @@ function face(bruto: unknown, padrao: Face): Face {
     if (elementos.length >= MAXIMO_ELEMENTOS) break
     if (!ehObjeto(item)) continue
     let id = typeof item.id === 'string' && ID.test(item.id) ? item.id : `item-${i + 1}`
-    while (usados.has(id)) id = `${id}-${i + 1}`.slice(-40)
+    // repetido: ganha outro nome; o contador sempre cresce, então o laço sempre termina
+    for (let n = 1; usados.has(id); n++) id = `item-${i + 1}-${n}`
     const e = elemento(item, id)
     if (e) {
       usados.add(id)
@@ -480,6 +521,15 @@ export function nomeDoElemento(e: Elemento): string {
 
 const CHAVES = new Set<string>(CAMPOS.map((c) => c.chave))
 const NOME_DO_LADO: Record<Lado, string> = { frente: 'Frente', verso: 'Verso' }
+
+/** Id novo, que ainda não existe na lista (dois cliques no mesmo instante não repetem). */
+export function novoId(existentes: readonly { id: string }[]): string {
+  const usados = new Set(existentes.map((e) => e.id))
+  let id = ''
+  do id = `item-${Math.random().toString(36).slice(2, 10)}`
+  while (usados.has(id))
+  return id
+}
 
 /** O que pode dar problema na credencial com este modelo (não impede salvar). */
 export function conferirModelo(m: ModeloCredencial): string[] {

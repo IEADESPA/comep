@@ -299,3 +299,76 @@ O que entrou:
   - arrastar o nome (2 mm para a direita e 5 mm para baixo) e desfazer;
   - o verso;
   - a prévia da impressão.
+
+## Revisão geral da Fase 3 (13/11/2026)
+
+Pedido do administrador técnico (13/11/2026): revisar a Fase 3 como um todo, "para não ter bugs" (PROJETO.md, seção 14.4).
+
+**Como foi feita:**
+
+- Dois revisores independentes leram todo o código da Fase 3, sem ver o raciocínio de quem escreveu:
+  - **banco e segurança:** as seis migrações da fase, com as permissões, as regras de acesso, as funções, as pastas de arquivos e o que um visitante sem login consegue fazer;
+  - **telas e regras:** o desenho da credencial, a impressão, a validação pública, o editor do modelo, as configurações e os campos de CPF e filiação.
+- Os revisores **provaram** cada achado antes de relatar:
+  - o de banco, numa cópia local;
+  - o de telas, no navegador. As gravações no banco de teste ficaram bloqueadas: nada foi gravado.
+- Cada correção ganhou um teste. Os 12 testes novos do banco **falham sem a correção e passam com ela** (conferido).
+
+**O que se conferiu e estava certo:**
+
+- O visitante sem login só consegue a validação pública. Ela nunca mostra CPF nem filiação, e um código malformado não revela nada.
+- Não há como ter duas credenciais atuais para a mesma pessoa.
+- Na perda, todas as credenciais da pessoa viram "substituída".
+- Versões do modelo não mudam, e a versão em uso não se arquiva.
+- O desenho vindo do banco não injeta estilo nem carrega endereço de fora.
+- A impressão: cada lado tem 85,6 × 54 mm, frente e verso ficam sem espaço entre si, 5 por folha, sem página em branco.
+- **No banco de teste, como visitante:**
+  - a listagem das pastas públicas volta vazia;
+  - CPF e identidade dão "sem permissão".
+
+### Achados e correções
+
+| # | Gravidade | O que acontecia | Correção | Teste |
+|---|---|---|---|---|
+| 1 | Bloqueante | **CPF e filiação de todos os associados** podiam ser lidos pelo Conselho Fiscal e pela tesouraria, direto na tabela de pessoas. O administrador técnico lia pela auditoria | CPF e filiação saíram da leitura comum do cadastro: só a própria pessoa, a secretaria e a presidência leem e gravam, por funções do banco. A auditoria guarda esses campos **mascarados**: mostra que mudou, não o valor | Banco (3) |
+| 2 | Bloqueante | **Nome comprido** (de umas 55 letras para cima) saía cortado com "…", e o teste automático não percebia | O nome é **abreviado como nos documentos**: os do meio viram iniciais, do último para o primeiro, por exemplo "Antonio C. F. das C. N. de Oliveira". Antes de a letra ficar pequena demais, o sistema prefere abreviar. O teste passou a reprovar qualquer texto cortado | Unidade e ponta a ponta |
+| 3 | Bloqueante | Um modelo salvo com um código de item repetido de um jeito específico **travava** todas as páginas de credencial, inclusive o editor (laço sem fim) | O nome repetido ganha outro, por um contador que sempre cresce | Unidade |
+| 4 | Importante | O associado mudava o **próprio nome**, e a página do QR Code mostrava o nome novo como "válida" | O nome vai na credencial: depois da associação, só a secretaria corrige. Em "Meu perfil", o campo fica travado, com a explicação | Banco e ponta a ponta |
+| 5 | Importante | Uma aba de Configurações aberta antes da posse, ao salvar só o texto do verso, **devolvia a data antiga do mandato**: todas as credenciais voltavam a vencer na data antiga | "Corrigir a data" e "Texto do verso" viraram ações separadas. A correção confere se a data não mudou enquanto a tela estava aberta e se fica depois do fim do mandato anterior | Banco (3) |
+| 6 | Importante | No editor, os campos de número "corrigiam" enquanto se digitava: "12" virava 32 pt e "0,5" virava 0,25 | O número só vale quando está dentro dos limites; ao sair do campo, é conferido | — (conferido no navegador) |
+| 7 | Importante | O editor **perdia o rascunho** ao clicar num item do menu, ou se a lista de versões falhasse ao recarregar | Antes de sair por um link do sistema, o editor pergunta. A lista que falha não tira mais o editor da tela | — (conferido no navegador) |
+| 8 | Importante | Item arrastado para fora do cartão: o editor mostrava uma posição e gravava outra (um pedaço aparecia) | Arrastar e as setas respeitam os mesmos limites da gravação. Depois de salvar, o editor mostra o que foi gravado | Unidade |
+| 9 | Menor | Qualquer pessoa com login podia **testar CPFs à vontade** para descobrir quem está no cadastro (participar do Conselho revela religião, dado sensível na LGPD) | No máximo 5 tentativas com CPF de outra pessoa; depois, só a secretaria resolve | Banco |
+| 10 | Menor | Ex-associado continuava enviando arquivos para a pasta pública da credencial (sem limite), e a posse renovava a credencial dele | Só associado ativo publica foto, com no máximo 20 arquivos por credencial e nome de arquivo conferido (sem ".."). A posse e a "nova credencial" são só para associados ativos | Banco (2) |
+| 11 | Menor | O limite de "1 a 500 credenciais" de uma vez podia ser burlado com uma lista de duas dimensões | Limite de verdade; ids repetidos contam uma vez | Banco |
+| 12 | Menor | Corridas raras: credencial criada no mesmo instante da posse escapava dela; versão podia ficar arquivada e em uso ao mesmo tempo; duas telas podiam travar uma à outra | Tudo o que cria ou troca credencial passa antes pela mesma trava da posse, em ordem fixa. Usar e arquivar versão também | — (conferido no código) |
+| 13 | Menor | A impressão saía sem avisar o que estava incompleto | A tela de impressão lista o que vai sair incompleto (pendências, sem validade) e os textos que não couberam. "Sem foto" não sai no papel | — |
+| 14 | Menor | "Emitir nova credencial" e "Salvar e usar" do editor agiam ao apertar Enter, sem confirmação | Os dois pedem confirmação; o Enter no editor salva sem usar | Ponta a ponta |
+
+**Menores (corrigidos):**
+
+- **Editor:**
+  - o Ctrl+Z não funcionava depois de marcar uma caixa ou trocar uma opção;
+  - dois cliques no mesmo instante criavam itens com o mesmo código;
+  - a prévia podia mostrar a resposta de uma escolha anterior;
+  - abrir o editor criava a credencial de um associado só para ler o texto do verso.
+- **Credencial e validação:**
+  - a busca pelo número como sai impresso ("0012") não achava;
+  - a página de validação passava da borda em celular de 320 px;
+  - texto de várias linhas que não cabia era cortado sem sinal (agora o fim some aos poucos).
+- **Impressão:** com muitas credenciais marcadas, o endereço da impressão ficava grande demais para recarregar.
+- **Avisos e textos da tela:**
+  - "Fim do novo mandato" aceitava uma data que o banco recusa;
+  - o aviso de pendências apontava para o lugar errado;
+  - Configurações agora avisa que as já impressas guardam a data antiga.
+- **Documento:** o PROJETO.md ainda dizia "sem data impressa" em dois lugares.
+
+**Riscos aceitos e registrados:**
+
+- **Posse com data errada:** se a posse for registrada com o fim do mandato atual errado, não há tela para corrigir a data guardada nas credenciais renovadas. É raro; corrige-se por uma migração.
+- **O modelo em uso** (só o desenho, sem dados pessoais) é lido por qualquer pessoa com login.
+- **A auditoria guarda os códigos das credenciais**, e quem a lê (presidência e administrador técnico) consegue abrir a validação pública. Ela mostra só o que já é público.
+- **A foto** é do próprio associado, como no perfil; a secretaria confere.
+- **Não deu para testar** a impressão no Firefox e no Safari/iPhone, nem numa impressora de verdade. Fica para a aceitação.
+
+**Migração:** `20261113190000_revisao_fase3.sql`, aplicada no `comep-teste` em 13/11/2026. Verificador do Supabase: só o aviso já conhecido (proteção contra senhas vazadas, do plano pago).

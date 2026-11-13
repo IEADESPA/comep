@@ -7,6 +7,7 @@ import { Aviso, BotaoArquivar, Mensagem, MostrarCarga } from '../../componentes/
 import { FaceCredencial } from '../../componentes/CartaoCredencial'
 import {
   arquivarModelo,
+  buscarConfigCredencial,
   dadosCredenciais,
   enviarImagemModelo,
   listarPendencias,
@@ -29,11 +30,14 @@ import {
   DADOS_EXEMPLO,
   ITENS_NOVOS,
   LARGURA_MM,
+  LIMITES,
+  limitarCaixa,
   MAXIMO_ELEMENTOS,
   MODELO_PADRAO,
   nomeDoElemento,
   normalizarModelo,
   novoElemento,
+  novoId,
   valoresDaCredencial,
   type Elemento,
   type ItemNovo,
@@ -116,6 +120,9 @@ function useHistorico(inicial: ModeloCredencial) {
 
 export function EditorModelo() {
   const [carga, recarregar] = useCarregar(listarVersoesModelo)
+  // Guarda a última lista boa: se recarregar falhar, o editor (e o rascunho) continua na tela
+  const [versoes, setVersoes] = useState<VersaoModelo[] | null>(null)
+  if (carga.situacao === 'ok' && carga.dados !== versoes) setVersoes(carga.dados)
   return (
     <>
       <p className="nao-imprimir">
@@ -127,9 +134,18 @@ export function EditorModelo() {
         quadradinho do canto muda o tamanho. As setas do teclado movem 0,5 mm (com Shift, 2 mm). Cada vez que se salva,
         nasce uma versão nova; dá para voltar a qualquer uma.
       </p>
-      <MostrarCarga carga={carga} recarregar={recarregar}>
-        {(versoes) => <Editor versoes={versoes} aoMudarVersoes={recarregar} />}
-      </MostrarCarga>
+      {versoes === null ? (
+        <MostrarCarga carga={carga} recarregar={recarregar}>
+          {() => null}
+        </MostrarCarga>
+      ) : (
+        <>
+          {carga.situacao === 'erro' && (
+            <Mensagem erro={`Não foi possível atualizar a lista de versões (${carga.erro}). O rascunho continua aqui.`} />
+          )}
+          <Editor versoes={versoes} aoMudarVersoes={recarregar} />
+        </>
+      )}
     </>
   )
 }
@@ -151,19 +167,32 @@ function Editor({ versoes, aoMudarVersoes }: { versoes: VersaoModelo[]; aoMudarV
   const escolhido = face.elementos.find((e) => e.id === selecionado) ?? null
   const mudou = JSON.stringify(modelo) !== JSON.stringify(salvo)
 
-  // Avisa antes de sair da página com mudanças não salvas
+  // Avisa antes de sair com mudanças não salvas: fechando a aba ou clicando num link do sistema (menu, voltar)
   useEffect(() => {
     if (!mudou) return
     const avisar = (e: BeforeUnloadEvent) => e.preventDefault()
+    const clique = (e: MouseEvent) => {
+      const link = (e.target as HTMLElement).closest('a[href]')
+      if (!link || link.getAttribute('target') === '_blank' || e.defaultPrevented) return
+      if (!window.confirm('Há mudanças no modelo que não foram salvas. Sair mesmo assim e perder as mudanças?')) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
     window.addEventListener('beforeunload', avisar)
-    return () => window.removeEventListener('beforeunload', avisar)
+    document.addEventListener('click', clique, true)
+    return () => {
+      window.removeEventListener('beforeunload', avisar)
+      document.removeEventListener('click', clique, true)
+    }
   }, [mudou])
 
   // Ctrl+Z / Ctrl+Y fora dos campos de texto (nos campos, vale o desfazer do próprio campo)
   useEffect(() => {
     const teclas = (e: globalThis.KeyboardEvent) => {
       const alvo = e.target as HTMLElement
-      if (alvo.closest('input, textarea, select')) return
+      // nos campos de digitar vale o desfazer do próprio campo; caixas de marcar, cores e listas usam o do editor
+      if (alvo.closest('textarea, input:not([type=checkbox]):not([type=color]):not([type=radio]):not([type=file])')) return
       if (!(e.ctrlKey || e.metaKey)) return
       const tecla = e.key.toLowerCase()
       if (tecla === 'z' && !e.shiftKey) {
@@ -185,16 +214,16 @@ function Editor({ versoes, aoMudarVersoes }: { versoes: VersaoModelo[]; aoMudarV
     mudarFace((lista) => lista.map((e) => (e.id === id ? ({ ...e, ...mudanca } as Elemento) : e)), chave && `${lado}:${id}:${chave}`)
 
   function adicionar(tipo: ItemNovo) {
-    const id = `item-${Date.now().toString(36)}`
+    const id = novoId([...modelo.frente.elementos, ...modelo.verso.elementos])
     mudarFace((lista) => [...lista, novoElemento(tipo, id)])
     setSelecionado(id)
   }
 
   function duplicar(e: Elemento) {
-    const id = `item-${Date.now().toString(36)}`
+    const id = novoId([...modelo.frente.elementos, ...modelo.verso.elementos])
     mudarFace((lista) => {
       const i = lista.findIndex((x) => x.id === e.id)
-      return [...lista.slice(0, i + 1), { ...e, id, x: e.x + 2, y: e.y + 2 }, ...lista.slice(i + 1)]
+      return [...lista.slice(0, i + 1), limitarCaixa({ ...e, id, x: e.x + 2, y: e.y + 2 }), ...lista.slice(i + 1)]
     })
     setSelecionado(id)
   }
@@ -358,8 +387,10 @@ function Editor({ versoes, aoMudarVersoes }: { versoes: VersaoModelo[]; aoMudarV
         modelo={modelo}
         mudou={mudou}
         avisos={avisos}
-        aoSalvar={(usar) => {
-          setSalvo(modelo)
+        aoSalvar={(usar, gravado) => {
+          // o que foi gravado (conferido) passa a ser o que aparece no editor
+          mudar(() => gravado)
+          setSalvo(gravado)
           setRetorno({ sucesso: usar ? 'Modelo salvo e em uso em todas as credenciais.' : 'Modelo salvo (sem usar ainda).' })
           aoMudarVersoes()
         }}
@@ -395,25 +426,32 @@ function usePrevia() {
     foto: FOTO_EXEMPLO,
   })
   const [textoVerso, setTextoVerso] = useState<string | null>(null)
+  // a última escolha: resposta de uma escolha anterior (mais lenta) não troca a prévia
+  const pedido = useRef(0)
 
   // O texto do verso de verdade (Configurações), também para a prévia de exemplo
   useEffect(() => {
-    if (lista.situacao !== 'ok' || lista.dados.length === 0 || textoVerso !== null) return
-    void dadosCredenciais([lista.dados[0].pessoa_id]).then((r) => {
-      if (r.erro === null) setTextoVerso(r.dados.texto_verso)
+    let ativo = true
+    void buscarConfigCredencial().then((r) => {
+      if (ativo && r.erro === null) setTextoVerso(r.dados.texto_verso)
     })
-  }, [lista, textoVerso])
+    return () => {
+      ativo = false
+    }
+  }, [])
 
   async function escolher(valor: string) {
     setEscolha(valor)
+    const meu = ++pedido.current
     if (valor === 'exemplo') {
       setDados({ c: DADOS_EXEMPLO, texto: textoVerso ?? dados.texto, foto: FOTO_EXEMPLO })
       return
     }
     const r = await dadosCredenciais([valor])
     const c = r.erro === null ? r.dados.credenciais[0] : undefined
-    if (!c || r.erro !== null) return
+    if (!c || r.erro !== null || meu !== pedido.current) return
     const foto = c.foto_caminho ? await linkDoArquivo(c.foto_caminho) : null
+    if (meu !== pedido.current) return
     setDados({ c, texto: r.dados.texto_verso, foto })
   }
 
@@ -468,7 +506,10 @@ function Palco({
   const trocarItem = (id: string, mudanca: Partial<Elemento>) =>
     historico.trocar((m) => ({
       ...m,
-      [lado]: { ...m[lado], elementos: m[lado].elementos.map((e) => (e.id === id ? ({ ...e, ...mudanca } as Elemento) : e)) },
+      [lado]: {
+        ...m[lado],
+        elementos: m[lado].elementos.map((e) => (e.id === id ? limitarCaixa({ ...e, ...mudanca } as Elemento) : e)),
+      },
     }))
 
   function iniciar(ev: PointerEvent<HTMLElement>, e: Elemento, modo: Arrasto['modo']) {
@@ -529,7 +570,7 @@ function Palco({
         [lado]: {
           ...m[lado],
           elementos: m[lado].elementos.map((x) =>
-            x.id === e.id ? { ...x, x: arredondar(x.x + d[0] * passo, 0.01), y: arredondar(x.y + d[1] * passo, 0.01) } : x,
+            x.id === e.id ? limitarCaixa({ ...x, x: arredondar(x.x + d[0] * passo, 0.01), y: arredondar(x.y + d[1] * passo, 0.01) }) : x,
           ),
         },
       }),
@@ -611,7 +652,14 @@ function CampoNumero({
         onChange={(e) => {
           setTexto(e.target.value)
           const n = e.target.valueAsNumber
-          if (Number.isFinite(n)) aoMudar(Math.min(max, Math.max(min, Math.round(n * 100) / 100)))
+          // enquanto digita, só usa o número se já estiver dentro dos limites ("1" a caminho de "12" não vira 3)
+          if (Number.isFinite(n) && n >= min && n <= max) aoMudar(Math.round(n * 100) / 100)
+        }}
+        onBlur={(e) => {
+          const n = e.target.valueAsNumber
+          const certo = Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n * 100) / 100)) : valor
+          if (certo !== valor) aoMudar(certo)
+          setTexto(String(certo))
         }}
       />
     </label>
@@ -659,10 +707,10 @@ function Propriedades({
     <section className="painel" aria-label="Item escolhido">
       <h2>{nomeDoElemento(e)}</h2>
       <div className="editor-grade">
-        <CampoNumero rotulo="Da esquerda (mm)" valor={e.x} min={-20} max={LARGURA_MM} aoMudar={(x) => alterar({ x }, 'x')} />
-        <CampoNumero rotulo="Do topo (mm)" valor={e.y} min={-20} max={ALTURA_MM} aoMudar={(y) => alterar({ y }, 'y')} />
-        <CampoNumero rotulo="Largura (mm)" valor={e.w} min={0.2} max={120} aoMudar={(w) => alterar({ w }, 'w')} />
-        <CampoNumero rotulo="Altura (mm)" valor={e.h} min={0.2} max={80} aoMudar={(h) => alterar({ h }, 'h')} />
+        <CampoNumero rotulo="Da esquerda (mm)" valor={e.x} min={LIMITES.x[0]} max={LIMITES.x[1]} aoMudar={(x) => alterar({ x }, 'x')} />
+        <CampoNumero rotulo="Do topo (mm)" valor={e.y} min={LIMITES.y[0]} max={LIMITES.y[1]} aoMudar={(y) => alterar({ y }, 'y')} />
+        <CampoNumero rotulo="Largura (mm)" valor={e.w} min={LIMITES.w[0]} max={LIMITES.w[1]} aoMudar={(w) => alterar({ w }, 'w')} />
+        <CampoNumero rotulo="Altura (mm)" valor={e.h} min={LIMITES.h[0]} max={LIMITES.h[1]} aoMudar={(h) => alterar({ h }, 'h')} />
       </div>
       {e.tipo === 'texto' && <PropriedadesTexto e={e} alterar={alterar} />}
       {e.tipo === 'forma' && <PropriedadesForma e={e} alterar={alterar} />}
@@ -906,20 +954,23 @@ function Salvar({
   modelo: ModeloCredencial
   mudou: boolean
   avisos: string[]
-  aoSalvar: (usar: boolean) => void
+  aoSalvar: (usar: boolean, gravado: ModeloCredencial) => void
   aoErro: (erro: string) => void
   aoDescartar: () => void
   aoPadrao: () => void
 }) {
   const [descricao, setDescricao] = useState('')
+  const [perguntando, setPerguntando] = useState(false)
   const [enviando, umaVez] = useUmaVez()
   function salvar(usar: boolean) {
+    setPerguntando(false)
+    const gravado = normalizarModelo(modelo)
     void umaVez(async () => {
-      const r = await salvarModelo(normalizarModelo(modelo), descricao, usar)
+      const r = await salvarModelo(gravado, descricao, usar)
       if (r.erro !== null) aoErro(r.erro)
       else {
         setDescricao('')
-        aoSalvar(usar)
+        aoSalvar(usar, gravado)
       }
     })
   }
@@ -941,26 +992,37 @@ function Salvar({
         aria-label="Salvar o modelo"
         onSubmit={(e) => {
           e.preventDefault()
-          salvar(true)
+          salvar(false)
         }}
       >
         <label>
           O que mudou? *
           <input required maxLength={200} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: logo oficial no cabeçalho" />
         </label>
-        <button type="submit" className="botao" disabled={enviando}>
-          Salvar e usar em todas as credenciais
-        </button>
-        <button
-          type="button"
-          className="botao botao-secundario"
-          disabled={enviando}
-          onClick={(e) => {
-            if (e.currentTarget.form?.reportValidity()) salvar(false)
-          }}
-        >
+        <button type="submit" className="botao botao-secundario" disabled={enviando}>
           Salvar sem usar ainda
         </button>
+        {perguntando ? (
+          <span className="confirmar-linha">
+            <button type="button" className="botao botao-perigo-cheio" disabled={enviando} onClick={() => salvar(true)}>
+              Confirmar — usar em todas as credenciais
+            </button>
+            <button type="button" className="botao-texto" onClick={() => setPerguntando(false)}>
+              Não
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="botao"
+            disabled={enviando}
+            onClick={(e) => {
+              if (e.currentTarget.form?.reportValidity()) setPerguntando(true)
+            }}
+          >
+            Salvar e usar em todas as credenciais
+          </button>
+        )}
       </form>
       <div className="acoes">
         <button type="button" className="botao-texto" disabled={!mudou} onClick={aoDescartar}>

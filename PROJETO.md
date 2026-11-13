@@ -169,6 +169,9 @@ Decisões de 12/11/2026 (administrador técnico, com base na credencial que já 
   - no **verso**: QR Code, texto de rodapé configurável e espaço para outros dados que se quiser.
 - **Desenho:** cada item tem o seu lugar fixo. **O nome fica numa linha só** (a letra diminui para caber), e nenhum texto comprido corta ou empurra o item vizinho (o CNPJ, por exemplo).
 - **Página pública de validação:** mostra só nome, foto, título, nº de registro, igreja (sigla) e a situação. Não mostra CPF nem filiação.
+- **Privacidade e correções** *(revisão geral da Fase 3, 13/11/2026)*:
+  - CPF e filiação, só a própria pessoa, a secretaria e a presidência veem;
+  - o nome, o CPF e a filiação vão na credencial: depois de preenchidos (o nome, depois da associação), só a secretaria corrige.
 - **Física:**
   - tamanho padrão de cartão (**CR80: 85,6 × 54 mm**). A capa plástica usada é uns 10 mm maior, o que deixa uma borda boa;
   - **frente e verso juntos, lado a lado, sem espaço entre eles:** recorta-se em volta, **dobra-se ao meio**, põe-se na capa e plastifica-se. Não se recorta frente e verso separados (isso só seria para o PVC);
@@ -544,7 +547,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 | 4. Conselho Fiscal | 3 membros, mandato de 4 anos, com as mesmas datas do Conselho Diretor | Regra fixa no sistema |
 | 6. Quórum | 1ª chamada: 50% + 1 dos associados aptos. 2ª chamada: com os presentes | Quórum calculado sobre os associados em dia na data da assembleia |
 | 7. Reuniões mensais | Não têm efeito de AGO nem de AGE. A justificativa de falta vai ao 1º secretário | Reunião mensal registra presença e faltas, sem votações de assembleia; o 1º secretário aceita ou recusa a justificativa. Continua pendente: têm dia fixo? |
-| 8. Carteirinha | Validade de 4 anos, correspondente ao pleito | **Respondida em 12/11/2026** (seção 4.5): o QR Code mostra a validade de agora, sem data impressa e sem reimpressão |
+| 8. Carteirinha | Validade de 4 anos, correspondente ao pleito | **Respondida em 12/11/2026** (seção 4.5): o QR Code mostra a validade de agora, sem data impressa e sem reimpressão. **Revista em 13/11/2026:** a credencial traz "Válida até" (fim do mandato); a digital passa sozinha para o mandato seguinte e a impressa é impressa de novo a cada mandato |
 | 9. Títulos aceitos *(12/11/2026)* | Pastor(a), Evangelista, Presbítero, Apóstolo(a), Bispo(a) | Lista aplicada; "Missionário" e "Líder" (provisórios) arquivados. A lista continua editável em Configurações |
 | 10. Diretoria atual *(12/11/2026)* | A composição completa não está disponível; só se tem o presidente | No lançamento, o presidente é cadastrado e recebe o perfil Presidência. Os demais cargos recebem os perfis em "Perfis de acesso" quando forem informados (e, na Fase 4, pelos mandatos) |
 | 14. Dados para o site *(12/11/2026)* | Ainda não há (CNPJ, sede, contatos) | O site mostra "—"; a diretoria preenche em Configurações → Dados do COMEP no site, e o site atualiza na hora |
@@ -556,7 +559,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 5. **Desligamento:** todos os casos do Art. 8º passam por votação de 3/5 em assembleia, ou só conduta (II) e faltas (IV)? Pedido próprio, transferência e falecimento podem ser registrados direto pela secretaria e só comunicados à assembleia?
 6. **Quórum:** a "metade mais um" conta todos os associados ativos ou só os em dia?
 7. **Reuniões mensais:** têm dia fixo? *(quem aceita a justificativa já foi respondido: o 1º secretário. Quando houver dia fixo, ele é preenchido em Configurações → Dados do COMEP no site)*
-8. ~~Carteirinha~~ — *respondida em 12/11/2026 (seção 4.5): foto, nome, CPF, filiação, nº de registro, data de ingresso, título, função na igreja, sigla e CNPJ da igreja; validade pelo QR Code.*
+8. ~~Carteirinha~~ — *respondida em 12/11/2026 (seção 4.5): foto, nome, CPF, filiação, nº de registro, data de ingresso, título, função na igreja, sigla e CNPJ da igreja; validade pelo QR Code. Revista em 13/11/2026: também com "Válida até" impresso (a impressa é renovada a cada mandato).*
 9. ~~Títulos ministeriais aceitos~~ — *respondida em 12/11/2026 (seção 11.2).*
 10. **Diretoria atual:** quem são hoje o Conselho Diretor e o Conselho Fiscal, e as datas dos mandatos. *Em 12/11/2026: só o presidente é conhecido (seção 11.2); os demais continuam pendentes.*
 11. **Regimento Interno:** existe um aprovado (Art. 10, I e Art. 13)? Se existir, enviar — pode responder várias perguntas acima.
@@ -731,3 +734,4 @@ Além das travas de cada entrega, toda fase termina com uma **revisão geral ind
 |---|---|---|---|
 | 1 — Cadastros e acessos | 12/11/2026 (entrega 1.4) | 10 correções de segurança, 3 riscos aceitos e registrados | `docs/revisoes/fase-1.md` |
 | 2 — Financeiro | 13/11/2026 | 10 problemas bloqueantes e 12 importantes corrigidos; 13 testes de regressão no banco, 17 de unidade e 1 de ponta a ponta | `docs/revisoes/fase-2.md`, seção "Revisão geral da Fase 2" |
+| 3 — Credencial | 13/11/2026 | 3 problemas bloqueantes, 5 importantes e 6 menores, mais 13 pequenos ajustes; 12 testes de regressão no banco, 3 de unidade e 2 de ponta a ponta | `docs/revisoes/fase-3.md`, seção "Revisão geral da Fase 3" |

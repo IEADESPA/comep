@@ -110,15 +110,16 @@ describe('Fase 3.2 — credencial digital e validação', () => {
     })
 
     it('validade pelo fim do mandato: depois dele, "vencida" até a posse da nova diretoria', async () => {
-      await chamar(secretaria, "update public.config_credencial set fim_mandato = current_date + 100")
+      await chamar(secretaria, 'select public.corrigir_fim_mandato(current_date + 100, null)')
       assert.equal((await validar(codigo)).situacao, 'valida')
-      await chamar(secretaria, "update public.config_credencial set fim_mandato = current_date - 1")
+      await chamar(secretaria, 'select public.corrigir_fim_mandato(current_date - 1, current_date + 100)')
       assert.equal((await validar(codigo)).situacao, 'vencida')
-      // o ministro não mexe na configuração
-      await chamar(ministro, 'update public.config_credencial set fim_mandato = null')
+      // o ministro não mexe na configuração (nem pela função, nem direto na tabela)
+      await assert.rejects(chamar(ministro, 'select public.corrigir_fim_mandato(null, current_date - 1)'), erroComCodigo(SEM_PERMISSAO))
+      await assert.rejects(chamar(ministro, 'update public.config_credencial set fim_mandato = null'), erroComCodigo(SEM_PERMISSAO))
       const r = await db.query<{ fim: string | null }>('select fim_mandato::text as fim from public.config_credencial')
       assert.notEqual(r.rows[0].fim, null)
-      await chamar(secretaria, 'update public.config_credencial set fim_mandato = null')
+      await chamar(secretaria, 'select public.corrigir_fim_mandato(null, current_date - 1)')
     })
 
     it('código inexistente ou malformado não revela nada', async () => {

@@ -1,6 +1,6 @@
 // Associados (ministros): lista, ficha, cadastro direto e históricos de título e igreja.
 import { cliente, falha, ok, type Resultado } from './cliente'
-import { MENSAGEM_CPF_REPETIDO, pendenciasDe, type IdentidadeGravada } from './credencial'
+import { lerIdentidade, gravarIdentidade, pendenciasDe, type IdentidadeGravada } from './credencial'
 import type { CategoriaContribuicao } from './configuracoes'
 
 export type SituacaoAssociado = 'ativo' | 'desligado' | 'falecido'
@@ -94,18 +94,19 @@ export async function buscarFicha(pessoaId: string): Promise<Resultado<FichaAsso
       .is('arquivado_em', null)
       .order('criado_em', { ascending: false })
       .returns<VinculoDaPessoa[]>(),
-    cliente().from('pessoas').select('cpf, nome_pai, nome_mae').eq('id', pessoaId).maybeSingle<IdentidadeGravada>(),
+    lerIdentidade(pessoaId),
     pendenciasDe(pessoaId),
   ])
-  const erro = associado.error ?? titulos.error ?? vinculos.error ?? identidade.error
+  const erro = associado.error ?? titulos.error ?? vinculos.error
   if (erro) return falha(erro)
+  if (identidade.erro !== null) return identidade
   if (pendencias.erro !== null) return pendencias
   if (!associado.data) return ok(null)
   return ok({
     associado: associado.data,
     titulos: titulos.data ?? [],
     vinculos: vinculos.data ?? [],
-    identidade: identidade.data ?? { cpf: null, nome_pai: null, nome_mae: null },
+    identidade: identidade.dados,
     pendencias: pendencias.dados ?? [],
   })
 }
@@ -149,10 +150,13 @@ export async function atualizarContato(
   dados: { nome: string; telefone: string; email?: string },
   identidade: Partial<IdentidadeGravada> = {},
 ): Promise<Resultado<null>> {
-  const linha: Record<string, string | null> = { nome: dados.nome.trim(), telefone: dados.telefone.trim() || null, ...identidade }
+  // primeiro CPF e filiação (se o CPF já é de outra pessoa, nada se grava)
+  const gravada = await gravarIdentidade(pessoaId, identidade)
+  if (gravada.erro !== null) return gravada
+  const linha: Record<string, string | null> = { nome: dados.nome.trim(), telefone: dados.telefone.trim() || null }
   if (dados.email !== undefined) linha.email = dados.email.trim().toLowerCase() || null
   const { error } = await cliente().from('pessoas').update(linha).eq('id', pessoaId)
-  return error ? falha(error, MENSAGEM_CPF_REPETIDO) : ok(null)
+  return error ? falha(error) : ok(null)
 }
 
 export async function registrarTitulo(pessoaId: string, tituloId: string, desde: string): Promise<Resultado<null>> {

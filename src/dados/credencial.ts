@@ -6,6 +6,24 @@ export type IdentidadeGravada = { cpf: string | null; nome_pai: string | null; n
 
 export const MENSAGEM_CPF_REPETIDO = 'Este CPF já está no cadastro de outra pessoa. Confira os números ou fale com a secretaria.'
 
+/**
+ * CPF e filiação não saem na leitura comum do cadastro (revisão da Fase 3): só a própria pessoa,
+ * a secretaria e a presidência leem, por esta função.
+ */
+export async function lerIdentidade(pessoaId: string): Promise<Resultado<IdentidadeGravada>> {
+  const { data, error } = await cliente().rpc('identidade_pessoa', { p_pessoa_id: pessoaId })
+  if (error) return falha(error)
+  return ok((data as IdentidadeGravada | null) ?? { cpf: null, nome_pai: null, nome_mae: null })
+}
+
+/** Grava só os campos enviados. O associado só preenche o que está vazio; a secretaria corrige (o banco garante). */
+export async function gravarIdentidade(pessoaId: string, dados: Partial<IdentidadeGravada>): Promise<Resultado<null>> {
+  if (Object.keys(dados).length === 0) return ok(null)
+  const { data, error } = await cliente().rpc('gravar_identidade', { p_pessoa_id: pessoaId, p_dados: dados })
+  if (error) return falha(error, MENSAGEM_CPF_REPETIDO)
+  return data === 'cpf_repetido' ? { dados: null, erro: MENSAGEM_CPF_REPETIDO } : ok(null)
+}
+
 export type PendenciaCredencial = {
   associado_id: string
   pessoa_id: string
@@ -142,6 +160,20 @@ export async function publicarFoto(c: DadosCredencial, linkPrivado: (caminho: st
 
 export type ConfigCredencial = { fim_mandato: string | null; texto_verso: string }
 
+/**
+ * Corrige o fim do mandato em curso. `esperado` é a data que a tela mostrava: se mudou nesse meio-tempo
+ * (alguém registrou a posse), o banco recusa e pede para recarregar.
+ */
+export async function corrigirFimMandato(fim: string | null, esperado: string | null): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('corrigir_fim_mandato', { p_fim: fim || null, p_esperado: esperado })
+  return error ? falha(error) : ok(null)
+}
+
+export async function salvarTextoVerso(texto: string): Promise<Resultado<null>> {
+  const { error } = await cliente().from('config_credencial').update({ texto_verso: texto.trim() }).eq('id', true)
+  return error ? falha(error) : ok(null)
+}
+
 export async function buscarConfigCredencial(): Promise<Resultado<ConfigCredencial>> {
   const { data, error } = await cliente().from('config_credencial').select('fim_mandato, texto_verso').single<ConfigCredencial>()
   return error ? falha(error) : ok(data)
@@ -153,13 +185,6 @@ export async function registrarNovoMandato(fim: string): Promise<Resultado<numbe
   return error ? falha(error) : ok(data as number)
 }
 
-export async function salvarConfigCredencial(config: ConfigCredencial): Promise<Resultado<null>> {
-  const { error } = await cliente()
-    .from('config_credencial')
-    .update({ fim_mandato: config.fim_mandato || null, texto_verso: config.texto_verso.trim() })
-    .eq('id', true)
-  return error ? falha(error) : ok(null)
-}
 
 // ---------- Modelo (desenho) da credencial — Fase 3.4 ----------
 
