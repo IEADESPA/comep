@@ -1,7 +1,7 @@
 // Fase 3.2/3.3 — Credenciais: a do próprio associado e, para a secretaria/presidência, a de todos.
 // Ver (digital), imprimir (tamanho real, CR80) e conferir a página de validação.
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { FaceCredencial } from '../../componentes/CartaoCredencial'
 import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
@@ -168,7 +168,9 @@ export function ListaCredenciais() {
           const visiveis = todos.filter(
             (a) =>
               (filtro === 'todas' || (filtro === 'completas' ? a.pendencias.length === 0 : a.pendencias.length > 0)) &&
-              (contemTexto(a.nome, busca) || contemTexto(a.igreja, busca) || String(a.numero_registro) === busca.trim()),
+              (contemTexto(a.nome, busca) ||
+                contemTexto(a.igreja, busca) ||
+                (/^\d+$/.test(busca.trim()) && Number(busca.trim()) === a.numero_registro)),
           )
           const completas = todos.filter((a) => a.pendencias.length === 0).length
           const todasMarcadas = visiveis.length > 0 && visiveis.every((a) => escolhidas.includes(a.pessoa_id))
@@ -207,7 +209,7 @@ export function ListaCredenciais() {
                   type="button"
                   className="botao"
                   disabled={escolhidas.length === 0}
-                  onClick={() => navegar(`/credenciais/imprimir?p=${escolhidas.join(',')}`)}
+                  onClick={() => navegar('/credenciais/imprimir', { state: { pessoas: escolhidas } })}
                 >
                   Imprimir as marcadas ({escolhidas.length})
                 </button>
@@ -270,6 +272,7 @@ function ConteudoDe({ pessoaId }: { pessoaId: string }) {
   const [carga, recarregar] = useCarregar(() => dadosCredenciais([pessoaId]))
   const [motivo, setMotivo] = useState('')
   const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
+  const [perguntando, setPerguntando] = useState(false)
   const [enviando, umaVez] = useUmaVez()
   return (
     <>
@@ -310,6 +313,11 @@ function ConteudoDe({ pessoaId }: { pessoaId: string }) {
                   className="form-linha"
                   onSubmit={(e) => {
                     e.preventDefault()
+                    if (!perguntando) {
+                      setPerguntando(true)
+                      return
+                    }
+                    setPerguntando(false)
                     void umaVez(async () => {
                       const r = await substituirCredencial(c.pessoa_id, motivo)
                       setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Nova credencial emitida. Imprima de novo.' })
@@ -322,11 +330,30 @@ function ConteudoDe({ pessoaId }: { pessoaId: string }) {
                 >
                   <label>
                     Motivo *
-                    <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: perda" />
+                    <input
+                      required
+                      value={motivo}
+                      onChange={(e) => {
+                        setMotivo(e.target.value)
+                        setPerguntando(false)
+                      }}
+                      placeholder="Ex.: perda"
+                    />
                   </label>
-                  <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
-                    Emitir nova credencial
-                  </button>
+                  {perguntando ? (
+                    <span className="confirmar-linha">
+                      <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
+                        Confirmar — as antigas deixam de valer
+                      </button>
+                      <button type="button" className="botao-texto" onClick={() => setPerguntando(false)}>
+                        Não
+                      </button>
+                    </span>
+                  ) : (
+                    <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
+                      Emitir nova credencial
+                    </button>
+                  )}
                 </form>
                 <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
               </section>
@@ -347,7 +374,14 @@ const POR_FOLHA = 5
 
 export function ImprimirCredenciais() {
   const [parametros] = useSearchParams()
-  const pessoas = useMemo(() => (parametros.get('p') ?? '').split(',').filter(Boolean), [parametros])
+  const local = useLocation()
+  // vindas da lista (estado da navegação: aguenta recarregar a página) ou do endereço (?p=, uma ou poucas)
+  const doEstado = (local.state as { pessoas?: unknown } | null)?.pessoas
+  const pessoas = useMemo(
+    () =>
+      Array.isArray(doEstado) ? doEstado.filter((p): p is string => typeof p === 'string') : (parametros.get('p') ?? '').split(',').filter(Boolean),
+    [doEstado, parametros],
+  )
   return <TelaImpressao key={pessoas.join(',')} pessoas={pessoas} voltar="/credenciais" />
 }
 
@@ -387,6 +421,8 @@ function TelaImpressao({ pessoas, voltar }: { pessoas: string[]; voltar: string 
           pacote.credenciais.length === 0 ? (
             <p className="vazio">Nenhuma credencial para imprimir.</p>
           ) : (
+            <>
+            <AvisosDaImpressao pacote={pacote} />
             <div className="folhas-impressao">
               {Array.from({ length: Math.ceil(pacote.credenciais.length / POR_FOLHA) }, (_, f) => (
                 <section key={f} className="folha-a4" aria-label={`Folha ${f + 1}`}>
@@ -396,10 +432,50 @@ function TelaImpressao({ pessoas, voltar }: { pessoas: string[]; voltar: string 
                 </section>
               ))}
             </div>
+            </>
           )
         }
       </MostrarCarga>
     </>
+  )
+}
+
+/** Antes de imprimir: o que vai sair incompleto (pendências, sem validade) e textos que não couberam. */
+function AvisosDaImpressao({ pacote }: { pacote: PacoteCredenciais }) {
+  const comPendencia = pacote.credenciais.filter((c) => c.pendencias.length > 0)
+  const semValidade = pacote.credenciais.some((c) => !c.valida_ate)
+  const [cortadas, setCortadas] = useState<string[]>([])
+  useEffect(() => {
+    // confere depois que as letras se ajustaram (e quando as fotos chegam)
+    const conferir = () =>
+      setCortadas(
+        [...document.querySelectorAll<HTMLElement>('.folhas-impressao .par-cartoes')]
+          .filter((par) => par.querySelector('.cr-cortar'))
+          .map((par) => par.getAttribute('aria-label')?.replace(/^Credencial de | para dobrar$/g, '') ?? ''),
+      )
+    const tempo = window.setTimeout(conferir, 800)
+    return () => window.clearTimeout(tempo)
+  }, [pacote])
+  if (comPendencia.length === 0 && !semValidade && cortadas.length === 0) return null
+  return (
+    <div className="nao-imprimir">
+      <Aviso titulo="Confira antes de imprimir">
+        <ul>
+          {semValidade && (
+            <li>
+              O fim do mandato não foi informado (Configurações → Credencial): a credencial sai com "Válida até: enquanto
+              ativo".
+            </li>
+          )}
+          {comPendencia.length > 0 && (
+            <li>
+              Sairão incompletas (com "—" ou sem foto): {comPendencia.map((c) => `${c.nome} (${c.pendencias.join(', ')})`).join('; ')}.
+            </li>
+          )}
+          {cortadas.length > 0 && <li>Texto que não coube nem com a letra menor (saiu cortado): {cortadas.join('; ')}.</li>}
+        </ul>
+      </Aviso>
+    </div>
   )
 }
 

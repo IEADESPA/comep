@@ -31,6 +31,8 @@ test.describe('ministro fictício (sessão guardada)', () => {
     await expect(noComep).toContainText('Não presidente de igreja — R$ 20,00 por mês ou R$ 200,00 por ano')
     await expect(page.getByText('Igreja Fictícia A (teste)')).toBeVisible()
 
+    // o nome vai na credencial: o associado não muda sozinho (a secretaria corrige)
+    await expect(page.getByLabel(/^Nome completo/)).toBeDisabled()
     const telefone = `(94) 9${Math.floor(1000 + Math.random() * 8999)}-0000`
     await page.getByLabel('Telefone (WhatsApp)').fill(telefone)
     await page.getByRole('button', { name: 'Salvar meus dados' }).click()

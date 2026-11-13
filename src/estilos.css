@@ -1668,6 +1668,19 @@ fieldset .caixa-marcar + .caixa-marcar {
   object-fit: cover;
 }
 
+/* "sem foto" é aviso de tela: no papel, a caixa da foto sai em branco */
+@media print {
+  .cr-foto span {
+    visibility: hidden;
+  }
+}
+
+/* várias linhas que não couberam nem com a letra menor: o fim some aos poucos (mostra que continua) */
+.cr-linhas.cr-cortar {
+  -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent);
+  mask-image: linear-gradient(to bottom, #000 75%, transparent);
+}
+
 .cr-qr svg {
   display: block;
   width: 100%;
@@ -1868,6 +1881,7 @@ fieldset .caixa-marcar + .caixa-marcar {
 }
 
 .validacao-pessoa dl {
+  min-width: 0;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.3rem 0.75rem;
@@ -1879,6 +1893,7 @@ fieldset .caixa-marcar + .caixa-marcar {
 }
 
 .validacao-pessoa dd {
+  overflow-wrap: anywhere;
   margin: 0;
   font-weight: 600;
 }

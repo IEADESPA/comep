@@ -55,7 +55,7 @@ describe('Fase 3.3 — validade da credencial por mandato', () => {
   })
 
   it('a credencial atual acompanha o fim do mandato em curso (mandato acabou e a posse atrasou: "vencida")', async () => {
-    await chamar(secretaria, 'update public.config_credencial set fim_mandato = current_date - 1')
+    await chamar(secretaria, 'select public.corrigir_fim_mandato(current_date - 1, null)')
     const c = await minha()
     codigos.a = c.codigo
     assert.equal(c.valida_ate, await dia(-1))
@@ -91,7 +91,7 @@ describe('Fase 3.3 — validade da credencial por mandato', () => {
   })
 
   it('corrigir a data muda a validade do mandato em curso, sem trocar o QR nem mexer no mandato anterior', async () => {
-    await chamar(secretaria, 'update public.config_credencial set fim_mandato = current_date + 900')
+    await chamar(secretaria, 'select public.corrigir_fim_mandato(current_date + 900, current_date + 1000)')
     const c = await minha()
     assert.equal(c.codigo, codigos.b)
     assert.equal(c.valida_ate, await dia(900))

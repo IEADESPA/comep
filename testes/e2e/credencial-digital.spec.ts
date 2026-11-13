@@ -23,12 +23,18 @@ const FOTO = {
 /** 85,6 mm em pixels de CSS (96 por polegada) */
 const LARGURA_CR80 = (85.6 / 25.4) * 96
 
-/** Quantos textos passam da própria caixa (deve ser zero: a letra diminui para caber) */
+/** Quantos textos não couberam (deve ser zero: a letra diminui e o nome é abreviado) — inclui os cortados com "…" */
 function textosQueTransbordam(cartao: Element) {
-  return [...cartao.querySelectorAll('[data-ajustar]')].filter((caixa) => {
-    const texto = caixa.firstElementChild!.getBoundingClientRect()
+  return [...cartao.querySelectorAll<HTMLElement>('[data-ajustar]')].filter((caixa) => {
+    const texto = caixa.firstElementChild as HTMLElement
+    const r = texto.getBoundingClientRect()
     const limite = caixa.getBoundingClientRect()
-    return texto.width > limite.width + 1 || texto.height > limite.height + 1
+    return (
+      caixa.classList.contains('cr-cortar') ||
+      texto.scrollWidth > texto.clientWidth + 1 ||
+      r.width > limite.width + 1 ||
+      r.height > limite.height + 1
+    )
   }).length
 }
 
@@ -60,7 +66,8 @@ test('credencial digital, impressão no tamanho real e validação pelo QR Code;
   await page.getByRole('link', { name: 'Ver a credencial (digital e impressão)' }).click()
   await expect(page).toHaveURL(/\/minha-credencial$/)
   const frente = page.getByRole('article', { name: `Credencial de ${nome} — frente` })
-  await expect(frente).toContainText(nome)
+  // nome comprido demais para uma linha: sai abreviado como nos documentos (primeiro e último nome por extenso)
+  await expect(frente.locator('[data-item="nome"]')).toHaveText(new RegExp(`^Maria .+ ${sufixo}$`))
   await expect(frente).toContainText('Associado desde')
   await expect(frente).toContainText('Válida até')
   expect(await frente.evaluate(textosQueTransbordam)).toBe(0)
@@ -107,6 +114,7 @@ test('credencial digital, impressão no tamanho real e validação pelo QR Code;
   await page.getByRole('listitem', { name: nome }).getByRole('link', { name: 'Ver a credencial' }).click()
   await page.getByLabel('Motivo *').fill('Perda (teste automático)')
   await page.getByRole('button', { name: 'Emitir nova credencial' }).click()
+  await page.getByRole('button', { name: 'Confirmar — as antigas deixam de valer' }).click()
   await expect(mensagemNaTela(page, 'Nova credencial emitida.')).toBeVisible()
   await v.reload()
   await expect(v.getByLabel('Resultado da validação')).toContainText('Credencial substituída')

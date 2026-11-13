@@ -4,16 +4,19 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  abreviacoesDoNome,
   ALTURA_MM,
   conferirModelo,
   DADOS_EXEMPLO,
   ITENS_NOVOS,
   LARGURA_MM,
+  limitarCaixa,
   MAXIMO_ELEMENTOS,
   MODELO_PADRAO,
   nomeDoElemento,
   normalizarModelo,
   novoElemento,
+  novoId,
   preencher,
   valoresDaCredencial,
   type ElementoTexto,
@@ -177,5 +180,44 @@ describe('editor: itens novos e conferência', () => {
     assert.equal(nomeDoElemento({ ...novoElemento('dado', 'd'), texto: 'Nº {numero}' }), '“Nº [Nº de registro]”')
     assert.equal(nomeDoElemento(novoElemento('linha', 'l')), 'Linha')
     assert.equal(nomeDoElemento(novoElemento('circulo', 'c')), 'Círculo')
+  })
+})
+
+describe('revisão da Fase 3', () => {
+  it('nome comprido: abrevia os do meio, do último para o primeiro; primeiro e último (com Júnior, Filho…) ficam', () => {
+    assert.deepEqual(abreviacoesDoNome('Antonio Carlos Francisco das Chagas Nascimento de Oliveira'), [
+      'Antonio Carlos Francisco das Chagas Nascimento de Oliveira',
+      'Antonio Carlos Francisco das Chagas N. de Oliveira',
+      'Antonio Carlos Francisco das C. N. de Oliveira',
+      'Antonio Carlos F. das C. N. de Oliveira',
+      'Antonio C. F. das C. N. de Oliveira',
+      'Antonio C. F. C. N. Oliveira',
+    ])
+    const junior = abreviacoesDoNome('José da Silva Santos Júnior')
+    assert.equal(junior.at(-1), 'José S. Santos Júnior')
+    assert.deepEqual(abreviacoesDoNome('Maria Silva'), ['Maria Silva'])
+  })
+
+  it('id repetido feito de propósito não trava a conferência (antes: laço sem fim)', () => {
+    const id = '-5'.repeat(20)
+    const inicio = Date.now()
+    const m = normalizarModelo({
+      versao: 1,
+      frente: { elementos: [{ id, tipo: 'qr' }, { id: 'a', tipo: 'qr' }, { id: 'b', tipo: 'qr' }, { id: 'c', tipo: 'qr' }, { id, tipo: 'qr' }] },
+      verso: { elementos: [] },
+    })
+    assert.ok(Date.now() - inicio < 1000)
+    assert.equal(new Set(m.frente.elementos.map((e) => e.id)).size, 5)
+  })
+
+  it('ids novos não repetem; posição e tamanho ficam dentro dos limites', () => {
+    const lista = Array.from({ length: 50 }, () => ({ id: 'x' }))
+    const ids = new Set<string>()
+    for (let i = 0; i < 200; i++) {
+      const id = novoId([...lista, ...[...ids].map((x) => ({ id: x }))])
+      assert.ok(!ids.has(id))
+      ids.add(id)
+    }
+    assert.deepEqual(limitarCaixa({ x: -86.3, y: 999, w: 0, h: 500 }), { x: -20, y: ALTURA_MM, w: 0.2, h: 80 })
   })
 })

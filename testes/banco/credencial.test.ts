@@ -23,6 +23,12 @@ describe('Fase 3.1 — dados da credencial', () => {
 
   const chamar = (quem: string, sql: string, params: unknown[] = []) => como(db, quem, () => db.query(sql, params))
 
+  /** CPF e filiação só se gravam pela função (revisão da Fase 3): devolve 'ok' ou 'cpf_repetido' */
+  const gravar = (quem: string, pessoa: string, dados: Record<string, string | null>) =>
+    chamar(quem, 'select public.gravar_identidade($1, $2::jsonb) as r', [pessoa, JSON.stringify(dados)]).then(
+      (r) => (r.rows[0] as { r: string }).r,
+    )
+
   async function pessoaDe(usuarioId: string): Promise<string> {
     const r = await db.query<{ id: string }>('select id from public.pessoas where usuario_id = $1', [usuarioId])
     return r.rows[0].id
@@ -69,36 +75,32 @@ describe('Fase 3.1 — dados da credencial', () => {
   })
 
   it('CPF só com dígitos verificadores certos', async () => {
-    for (const errado of ['12345678900', '11111111111', '5299822472', '529.982.247-25']) {
-      await assert.rejects(
-        chamar(ministro, 'update public.pessoas set cpf = $1 where id = $2', [errado, pessoaMinistro]),
-        erroComCodigo(FORA_DO_FORMATO),
-        errado,
-      )
+    for (const errado of ['12345678900', '11111111111', '5299822472', '529.982.247-2']) {
+      await assert.rejects(gravar(ministro, pessoaMinistro, { cpf: errado }), erroComCodigo(FORA_DO_FORMATO), errado)
     }
+    // direto na tabela, nem tenta (sem permissão na coluna)
+    await assert.rejects(
+      chamar(ministro, 'update public.pessoas set cpf = $1 where id = $2', [CPF_A, pessoaMinistro]),
+      erroComCodigo(SEM_PERMISSAO),
+    )
   })
 
   it('o ministro preenche o próprio CPF e a filiação; depois, não muda mais', async () => {
-    await chamar(ministro, "update public.pessoas set cpf = $1, nome_mae = 'Maria de Teste' where id = $2", [CPF_A, pessoaMinistro])
-    await assert.rejects(
-      chamar(ministro, 'update public.pessoas set cpf = $1 where id = $2', [CPF_B, pessoaMinistro]),
-      erroComCodigo(SEM_PERMISSAO),
-    )
-    await assert.rejects(
-      chamar(ministro, "update public.pessoas set nome_mae = 'Outra' where id = $1", [pessoaMinistro]),
-      erroComCodigo(SEM_PERMISSAO),
-    )
+    assert.equal(await gravar(ministro, pessoaMinistro, { cpf: '529.982.247-25', nome_mae: 'Maria de Teste' }), 'ok')
+    await assert.rejects(gravar(ministro, pessoaMinistro, { cpf: CPF_B }), erroComCodigo(SEM_PERMISSAO))
+    await assert.rejects(gravar(ministro, pessoaMinistro, { nome_mae: 'Outra' }), erroComCodigo(SEM_PERMISSAO))
     // O pai, ainda vazio, ele preenche
-    await chamar(ministro, "update public.pessoas set nome_pai = 'José de Teste' where id = $1", [pessoaMinistro])
+    assert.equal(await gravar(ministro, pessoaMinistro, { nome_pai: 'José de Teste' }), 'ok')
+    const r = await chamar(ministro, 'select public.identidade_pessoa($1) as i', [pessoaMinistro])
+    assert.deepEqual((r.rows[0] as { i: unknown }).i, { cpf: CPF_A, nome_pai: 'José de Teste', nome_mae: 'Maria de Teste' })
   })
 
   it('a secretaria corrige; o mesmo CPF não serve para duas pessoas', async () => {
-    await chamar(secretaria, 'update public.pessoas set cpf = $1 where id = $2', [CPF_B, pessoaMinistro])
+    assert.equal(await gravar(secretaria, pessoaMinistro, { cpf: CPF_B }), 'ok')
     const pastorPessoa = await pessoaDe(pastor)
-    await assert.rejects(
-      chamar(secretaria, 'update public.pessoas set cpf = $1 where id = $2', [CPF_B, pastorPessoa]),
-      erroComCodigo(DUPLICADO),
-    )
+    assert.equal(await gravar(secretaria, pastorPessoa, { cpf: CPF_B }), 'cpf_repetido')
+    // e o índice único continua lá, por garantia
+    await assert.rejects(db.query('update public.pessoas set cpf = $1 where id = $2', [CPF_B, pastorPessoa]), erroComCodigo(DUPLICADO))
   })
 
   it('o pastor presidente põe a sigla da própria igreja, mas não o CNPJ', async () => {

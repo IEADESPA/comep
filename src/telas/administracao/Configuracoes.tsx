@@ -39,7 +39,7 @@ import {
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { buscarConfigCredencial, registrarNovoMandato, salvarConfigCredencial } from '../../dados/credencial'
+import { buscarConfigCredencial, corrigirFimMandato, registrarNovoMandato, salvarTextoVerso } from '../../dados/credencial'
 import { DICA_VALOR, lerValor, PADRAO_VALOR, valorParaCampo } from '../../utilitarios/valores'
 import { cnpjValido, formatarCnpj, formatarData, hojeIso, limparCnpj } from '../../utilitarios/formatos'
 
@@ -982,38 +982,55 @@ function ConfigCredencialSecao({ podeEditar }: { podeEditar: boolean }) {
         {(config) => (
           <>
             <form
-              aria-label="Credencial"
+              key={`fim-${config.fim_mandato ?? ''}`}
+              aria-label="Fim do mandato"
+              className="form-linha"
               onSubmit={(e) => {
                 e.preventDefault()
-                const dados = new FormData(e.currentTarget)
+                const fim = String(new FormData(e.currentTarget).get('fim_mandato') ?? '')
                 void umaVez(async () => {
-                  const r = await salvarConfigCredencial({
-                    fim_mandato: String(dados.get('fim_mandato') ?? ''),
-                    texto_verso: String(dados.get('texto_verso') ?? ''),
-                  })
-                  setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Configuração da credencial salva.' })
+                  const r = await corrigirFimMandato(fim, config.fim_mandato)
+                  setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Fim do mandato corrigido.' })
                   if (r.erro === null) recarregar()
                 })
               }}
             >
-              <div className="grade-form">
-                <label>
-                  Fim do mandato da diretoria em curso
-                  <input name="fim_mandato" type="date" defaultValue={config.fim_mandato ?? ''} disabled={!podeEditar} />
-                </label>
-                <label className="largura-total">
-                  Texto do verso
-                  <textarea name="texto_verso" rows={3} maxLength={600} required defaultValue={config.texto_verso} disabled={!podeEditar} />
-                </label>
-              </div>
-              <p className="detalhe">
-                Mudar a data aqui só <strong>corrige</strong> o mandato em curso: todas as credenciais dele acompanham. Em
-                branco, a credencial vale enquanto o associado estiver ativo.
-              </p>
+              <label>
+                Fim do mandato da diretoria em curso
+                <input name="fim_mandato" type="date" defaultValue={config.fim_mandato ?? ''} disabled={!podeEditar} />
+              </label>
+              {podeEditar && (
+                <button type="submit" className="botao" disabled={enviando}>
+                  Corrigir a data
+                </button>
+              )}
+            </form>
+            <p className="detalhe">
+              Mudar a data aqui só <strong>corrige</strong> o mandato em curso: todas as credenciais dele acompanham (a
+              digital e o QR Code). As já impressas continuam com a data antiga no papel: se a data mudou, imprima de novo.
+              Em branco, a credencial vale enquanto o associado estiver ativo.
+            </p>
+            <form
+              key={`verso-${config.texto_verso}`}
+              aria-label="Texto do verso"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const texto = String(new FormData(e.currentTarget).get('texto_verso') ?? '')
+                void umaVez(async () => {
+                  const r = await salvarTextoVerso(texto)
+                  setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Texto do verso salvo.' })
+                  if (r.erro === null) recarregar()
+                })
+              }}
+            >
+              <label className="largura-total">
+                Texto do verso
+                <textarea name="texto_verso" rows={3} maxLength={600} required defaultValue={config.texto_verso} disabled={!podeEditar} />
+              </label>
               {podeEditar && (
                 <div className="acoes">
                   <button type="submit" className="botao" disabled={enviando}>
-                    Salvar credencial
+                    Salvar o texto do verso
                   </button>
                 </div>
               )}
@@ -1041,6 +1058,13 @@ function ConfigCredencialSecao({ podeEditar }: { podeEditar: boolean }) {
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
     </section>
   )
+}
+
+/** O dia seguinte (aaaa-mm-dd), para o menor fim de mandato aceito. */
+function diaSeguinte(dia: string): string {
+  const d = new Date(`${dia}T12:00:00`)
+  d.setDate(d.getDate() + 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 /** Posse da nova diretoria: as credenciais passam para o novo mandato (as impressas antigas valem até o fim do atual). */
@@ -1089,7 +1113,7 @@ function NovoMandato({
           <input
             type="date"
             required
-            min={fimAtual > hojeIso() ? fimAtual : hojeIso()}
+            min={diaSeguinte(fimAtual > hojeIso() ? fimAtual : hojeIso())}
             value={fim}
             onChange={(e) => {
               setFim(e.target.value)

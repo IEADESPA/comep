@@ -1,6 +1,6 @@
 // Pedido de associação (Art. 7º) e arquivos (foto e comprovante) no Storage.
 import { cliente, falha, ok, type Resultado } from './cliente'
-import { MENSAGEM_CPF_REPETIDO, type IdentidadeGravada } from './credencial'
+import { gravarIdentidade, lerIdentidade, type IdentidadeGravada } from './credencial'
 
 export type SituacaoPedido = 'enviado' | 'pendencia' | 'aguardando_assembleia' | 'aprovado' | 'recusado' | 'desistiu'
 
@@ -130,22 +130,26 @@ export async function atualizarMeusDados(
   telefone: string,
   identidade: Partial<IdentidadeGravada> = {},
 ): Promise<Resultado<null>> {
+  // primeiro CPF e filiação (se o CPF já é de outra pessoa, nada se grava)
+  const gravada = await gravarIdentidade(pessoaId, identidade)
+  if (gravada.erro !== null) return gravada
   const { error } = await cliente()
     .from('pessoas')
-    .update({ nome: nome.trim(), telefone: telefone.trim() || null, ...identidade })
+    .update({ nome: nome.trim(), telefone: telefone.trim() || null })
     .eq('id', pessoaId)
-  return error ? falha(error, MENSAGEM_CPF_REPETIDO) : ok(null)
+  return error ? falha(error) : ok(null)
 }
 
 export type MeusDadosBasicos = { nome: string; telefone: string | null } & IdentidadeGravada
 
 export async function meusDados(pessoaId: string): Promise<Resultado<MeusDadosBasicos>> {
-  const { data, error } = await cliente()
-    .from('pessoas')
-    .select('nome, telefone, cpf, nome_pai, nome_mae')
-    .eq('id', pessoaId)
-    .single<MeusDadosBasicos>()
-  return error ? falha(error) : ok(data)
+  const [{ data, error }, identidade] = await Promise.all([
+    cliente().from('pessoas').select('nome, telefone').eq('id', pessoaId).single<{ nome: string; telefone: string | null }>(),
+    lerIdentidade(pessoaId),
+  ])
+  if (error) return falha(error)
+  if (identidade.erro !== null) return identidade
+  return ok({ ...data, ...identidade.dados })
 }
 
 // ---------- Secretaria / presidência ----------

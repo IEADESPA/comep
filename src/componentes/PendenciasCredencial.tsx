@@ -27,9 +27,14 @@ export function PendenciasCredencial({
             ))}
           </ul>
           <p className="detalhe">
-            {propria
-              ? 'Foto, CPF e filiação você preenche aqui no seu perfil. Título, igreja e função são com a secretaria. A sigla e o CNPJ da igreja: o pastor presidente informa (o CNPJ, à secretaria).'
-              : 'Foto, CPF e filiação: o próprio associado preenche no perfil, ou a secretaria aqui. Sigla e CNPJ: no cadastro da igreja.'}
+            {propria ? (
+              <>
+                Foto, CPF e filiação você preenche em <Link to="/meu-perfil">Meu perfil</Link>. Título, igreja e função são
+                com a secretaria. A sigla e o CNPJ da igreja: o pastor presidente informa (o CNPJ, à secretaria).
+              </>
+            ) : (
+              'Foto, CPF e filiação: o próprio associado preenche no perfil, ou a secretaria na ficha do ministro. Sigla e CNPJ: no cadastro da igreja.'
+            )}
           </p>
         </>
       )}
