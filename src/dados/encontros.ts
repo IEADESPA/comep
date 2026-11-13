@@ -48,11 +48,19 @@ export type Encontro = {
   cancelado_em: string | null
   motivo_cancelamento: string | null
   criado_em: string
+  presenca_encerrada_em: string | null
+  instalada_em: string | null
+  chamada: 'primeira' | 'segunda' | null
+  aptos_na_instalacao: number | null
+  presentes_aptos_na_instalacao: number | null
 }
 
-export type EncontroCompleto = Encontro & { pauta: (ItemPauta & { ordem: number })[] }
+export type ItemDaPauta = ItemPauta & { id: string; ordem: number }
+export type EncontroCompleto = Encontro & { pauta: ItemDaPauta[] }
 
-const CAMPOS = 'id, tipo, titulo, inicio, local, edital, fundamento, situacao, convocado_em, cancelado_em, motivo_cancelamento, criado_em'
+const CAMPOS =
+  'id, tipo, titulo, inicio, local, edital, fundamento, situacao, convocado_em, cancelado_em, motivo_cancelamento, criado_em, ' +
+  'presenca_encerrada_em, instalada_em, chamada, aptos_na_instalacao, presentes_aptos_na_instalacao'
 
 /** Os encontros que a pessoa vê (rascunhos, só a secretaria e a presidência — o banco garante). */
 export async function listarEncontros(): Promise<Resultado<Encontro[]>> {
@@ -70,11 +78,11 @@ export async function buscarEncontro(id: string): Promise<Resultado<EncontroComp
     cliente().from('encontros').select(CAMPOS).eq('id', id).is('arquivado_em', null).maybeSingle<Encontro>(),
     cliente()
       .from('encontro_pauta')
-      .select('ordem, titulo, descricao, deliberativo, maioria')
+      .select('id, ordem, titulo, descricao, deliberativo, maioria')
       .eq('encontro_id', id)
       .is('arquivado_em', null)
       .order('ordem')
-      .returns<(ItemPauta & { ordem: number })[]>(),
+      .returns<ItemDaPauta[]>(),
   ])
   if (encontro.error) return falha(encontro.error)
   if (pauta.error) return falha(pauta.error)
@@ -292,4 +300,134 @@ export type FaltasDoAssociado = { pessoa_id: string; nome: string; numero_regist
 export async function faltasDosAssociados(): Promise<Resultado<FaltasDoAssociado[]>> {
   const { data, error } = await cliente().rpc('faltas_dos_associados')
   return error ? falha(error) : ok((data as FaltasDoAssociado[] | null) ?? [])
+}
+
+// ---------- Quórum, votações, desligamento e ata (Fase 4.3) ----------
+
+export type ContagemQuorum = { aptos: number; presentes: number; presentes_aptos: number }
+
+/** Associados aptos (ativos e em dia) e presentes aptos, agora. */
+export async function contagemQuorum(encontroId: string): Promise<Resultado<ContagemQuorum>> {
+  const { data, error } = await cliente().rpc('contagem_quorum', { p_encontro_id: encontroId })
+  return error ? falha(error) : ok(data as ContagemQuorum)
+}
+
+export type Instalacao = { chamada: 'primeira' | 'segunda'; aptos: number; presentes_aptos: number; minimo: number }
+
+/** Instala a assembleia: 1ª chamada com quórum, ou 2ª chamada depois do prazo (Art. 16, §4º). */
+export async function instalarAssembleia(encontroId: string): Promise<Resultado<Instalacao>> {
+  const { data, error } = await cliente().rpc('instalar_assembleia', { p_encontro_id: encontroId })
+  return error ? falha(error) : ok(data as Instalacao)
+}
+
+export type IncisoDesligamento = 'I' | 'II' | 'III' | 'IV' | 'V'
+
+export const NOME_DO_INCISO: Record<IncisoDesligamento, string> = {
+  I: 'I — a pedido, por escrito',
+  II: 'II — conduta contrária à ética e aos princípios cristãos',
+  III: 'III — transferência pela denominação para outra cidade',
+  IV: 'IV — três faltas seguidas sem justificativa',
+  V: 'V — falecimento',
+}
+
+export type Deliberacao = {
+  id: string
+  pauta_id: string
+  maioria: Maioria
+  votantes: number
+  a_favor: number
+  contra: number
+  abstencoes: number
+  aprovada: boolean
+  desligamento_pessoa_id: string | null
+  desligamento_inciso: IncisoDesligamento | null
+  observacao: string | null
+  criado_em: string
+}
+
+export async function listarDeliberacoes(encontroId: string): Promise<Resultado<Deliberacao[]>> {
+  const { data, error } = await cliente()
+    .from('deliberacoes')
+    .select('id, pauta_id, maioria, votantes, a_favor, contra, abstencoes, aprovada, desligamento_pessoa_id, desligamento_inciso, observacao, criado_em')
+    .eq('encontro_id', encontroId)
+    .is('arquivado_em', null)
+    .returns<Deliberacao[]>()
+  return error ? falha(error) : ok(data)
+}
+
+export type NovaVotacao = {
+  aFavor: number
+  contra: number
+  abstencoes: number
+  desligamentoPessoaId: string | null
+  desligamentoInciso: IncisoDesligamento | null
+  observacao: string
+}
+
+export async function registrarVotacao(pautaId: string, v: NovaVotacao): Promise<Resultado<{ aprovada: boolean; votantes: number }>> {
+  const { data, error } = await cliente().rpc('registrar_votacao', {
+    p_pauta_id: pautaId,
+    p_a_favor: v.aFavor,
+    p_contra: v.contra,
+    p_abstencoes: v.abstencoes,
+    p_desligamento_pessoa_id: v.desligamentoPessoaId,
+    p_desligamento_inciso: v.desligamentoInciso,
+    p_observacao: v.observacao,
+  })
+  return error ? falha(error) : ok(data as { aprovada: boolean; votantes: number })
+}
+
+/** Falecimento (Art. 8º, V): a secretaria registra, sem votação. */
+export async function registrarFalecimento(pessoaId: string, data: string, observacao: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('registrar_falecimento', { p_pessoa_id: pessoaId, p_data: data, p_observacao: observacao })
+  return error ? falha(error) : ok(null)
+}
+
+export type Ata = {
+  id: string
+  texto: string
+  arquivo_caminho: string | null
+  assinada_secretario_em: string | null
+  assinada_presidente_em: string | null
+  secretario: { nome: string } | null
+  presidente: { nome: string } | null
+}
+
+export async function buscarAta(encontroId: string): Promise<Resultado<Ata | null>> {
+  const { data, error } = await cliente()
+    .from('atas')
+    .select(
+      'id, texto, arquivo_caminho, assinada_secretario_em, assinada_presidente_em, ' +
+        'secretario:pessoas!atas_assinada_secretario_por_fkey(nome), presidente:pessoas!atas_assinada_presidente_por_fkey(nome)',
+    )
+    .eq('encontro_id', encontroId)
+    .is('arquivado_em', null)
+    .maybeSingle<Ata>()
+  return error ? falha(error) : ok(data)
+}
+
+export async function salvarAta(encontroId: string, texto: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('salvar_ata', { p_encontro_id: encontroId, p_texto: texto })
+  return error ? falha(error) : ok(null)
+}
+
+/** Assina como 1º secretário (perfil Secretaria) ou presidente (Presidência): duas pessoas diferentes. */
+export async function assinarAta(encontroId: string, como: 'secretario' | 'presidente'): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('assinar_ata', { p_encontro_id: encontroId, p_como: como })
+  return error ? falha(error) : ok(null)
+}
+
+/** Anexa a ata assinada no papel (PDF ou foto), na pasta privada da assembleia. */
+export async function anexarArquivoAta(encontroId: string, arquivo: Blob, extensao: string): Promise<Resultado<null>> {
+  const caminho = `${encontroId}/ata-${Date.now()}.${extensao}`
+  const envio = await cliente().storage.from('atas').upload(caminho, arquivo, { upsert: false, contentType: arquivo.type })
+  if (envio.error) return { dados: null, erro: 'Não foi possível enviar o arquivo da ata. Tente de novo.' }
+  const { error } = await cliente().rpc('anexar_ata', { p_encontro_id: encontroId, p_caminho: caminho })
+  return error ? falha(error) : ok(null)
+}
+
+/** Link temporário (10 minutos) para abrir o arquivo da ata. */
+export async function linkArquivoAta(caminho: string): Promise<string | null> {
+  const { data } = await cliente().storage.from('atas').createSignedUrl(caminho, 600)
+  return data?.signedUrl ?? null
 }

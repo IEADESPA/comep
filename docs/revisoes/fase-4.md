@@ -151,4 +151,87 @@ O que entrou:
 | O ministro não abre as faltas de todos | ✅ |
 
 - **98 testes de ponta a ponta** passando no computador e no celular; **323** do banco e de unidade.
+
+### Trava 1
+
+| Pull request | Resultado | Data |
+|---|---|---|
+| #26 — Fase 4.2: presença e faltas | Aprovado (verificar + ponta a ponta), publicado e conferido no site de teste (17 de 17 nos testes de presença e assembleias) | 13/11/2026 |
 - Ler o QR Code com a câmera dentro do app não dá para testar automaticamente (precisa de câmera). O caminho pela câmera do celular, que abre a página de validação, foi testado.
+
+## Entrega 4.3 — Quórum, votações, desligamentos e ata (versão 4.0-teste.3)
+
+**Resultado: aprovada no ambiente de teste em 13/11/2026.**
+
+O que entrou:
+
+- **Onde fica:** "Conduzir: quórum, votações e ata", na página da assembleia (AGO ou AGE), para a secretaria e a presidência.
+- **1. Quórum de instalação** (Art. 16, §4º):
+  - mostra os aptos (ativos e em dia), os presentes e quantos a 1ª chamada precisa: metade mais um;
+  - **"Instalar a assembleia"**:
+    - com quórum, instala em 1ª chamada;
+    - sem quórum, mostra quantos faltam e a hora da 2ª chamada;
+    - passados os minutos das regras (60), instala em 2ª chamada, com qualquer número;
+  - a conta do momento fica guardada.
+- **2. Votações** de cada item da pauta que vai a votação:
+  - a favor, contra e abstenções;
+  - **votam só os presentes em dia** (Art. 11): o sistema recusa mais votos que isso;
+  - **maiorias:**
+    - simples: mais a favor que contra;
+    - **3/5 e 2/3 sobre os presentes aptos** (pergunta 24), com a conta mostrada (ex.: "3/5 dos 25 presentes aptos = 15 votos a favor");
+  - corrigir guarda a votação anterior.
+- **Desligamento (Art. 8º):**
+  - num item de 3/5 da **AGO**, escolhe-se o associado e o motivo (I a pedido, II conduta, III transferência, IV três faltas);
+  - aprovado, o associado fica **desligado**, perde o perfil de ministro e a credencial passa a mostrar "inativa";
+  - essa votação não se refaz;
+  - **falecimento (V):** registrado na ficha do ministro, sem votação (pergunta 5).
+- **3. Ata** (Art. 12, §2º, IV e §4º):
+  - **"Gerar o texto da ata"**: data, local, instalação (chamada e quórum) e cada item com o resultado e a conta, incluindo o desligamento. O 1º secretário completa e ajusta;
+  - **assinaturas:** "Assinar como 1º secretário" (perfil Secretaria até a 4.4) e "Assinar como presidente". São **duas pessoas diferentes**;
+  - depois da primeira assinatura, o texto não muda; com as duas, nada muda, e as votações ficam travadas;
+  - **anexar a ata assinada no papel** (PDF ou foto), numa pasta privada;
+  - **assinada, todos os associados leem** a ata e o resultado na página da assembleia.
+
+### Trava 2
+
+- [x] Migração `20261114100000_conducao_assembleia.sql`, aplicada no `comep-teste`, com a pasta privada `atas`.
+- [x] **13 testes novos do banco** (`conducao.test.ts`):
+  - **quórum:**
+    - conta só os aptos (o presente em atraso não conta);
+    - sem quórum antes da 2ª chamada: recusa;
+    - com quórum: instala em 1ª chamada, e não instala duas vezes;
+    - depois do prazo: instala em 2ª chamada;
+  - **votações:**
+    - item sem votação, ou votos demais: recusado;
+    - maioria simples;
+    - correção guarda a anterior;
+    - 2/3 dos presentes aptos;
+  - **desligamento:** só em item de 3/5 da AGO; perde o perfil; não se refaz;
+  - **falecimento:** só a secretaria, e sem data futura;
+  - **ata:**
+    - o ministro não vê o rascunho;
+    - assinaturas pelo perfil certo e por duas pessoas, mesmo quando uma pessoa tem os dois perfis;
+    - o texto trava;
+    - assinada, todos leem e as votações travam;
+    - o arquivo só entra na pasta da assembleia.
+- [x] **2 testes de unidade:**
+  - metade mais um e o arredondamento de 3/5 e 2/3;
+  - o texto da ata.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| Antes da hora, "Instalar" avisa que a assembleia ainda não começou | ✅ |
+| Depois do início, sem quórum, instala em 2ª chamada (o teste zera por alguns minutos o prazo nas Regras e devolve 30 dias e 60 minutos) | ✅ |
+| O ministro fictício está em atraso: aparece "Em atraso: não vota"; 1 voto a favor é recusado ("só 0 presentes em dia podem votar"); a votação sem votos fica "rejeitado" | ✅ |
+| "Gerar o texto da ata" traz a instalação em 2ª chamada e o item rejeitado; salvar e assinar como presidente; o texto trava | ✅ |
+| A página da assembleia mostra o resultado | ✅ |
+
+- O desligamento, que não tem volta, é testado só no banco.
+- A assinatura do 1º secretário também: não há usuário fictício só com o perfil Secretaria nos testes de ponta a ponta.
+
+### Decisões em aberto
+
+- **Pergunta 24 (nova):** nas maiorias de 3/5 e 2/3, a base é os presentes aptos (como está) ou os votos válidos?
+- **Pergunta 5:** previsão de que os casos I a IV vão à votação e o falecimento é registrado direto.

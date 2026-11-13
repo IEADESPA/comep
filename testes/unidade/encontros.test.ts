@@ -5,6 +5,10 @@ import { describe, it } from 'node:test'
 import {
   avisosDaData,
   codigoDoQr,
+  explicarMaioria,
+  minimoAFavor,
+  quorumPrimeiraChamada,
+  textoDaAta,
   doCampoDataHora,
   mesmasDatasNosProximosMeses,
   nomesDosMeses,
@@ -97,5 +101,44 @@ describe('QR Code da credencial (check-in)', () => {
     assert.equal(codigoDoQr(` ${codigo} `), codigo)
     assert.equal(codigoDoQr('https://exemplo.com/validar/123'), null)
     assert.equal(codigoDoQr('texto qualquer'), null)
+  })
+})
+
+describe('quórum, maiorias e ata (Fase 4.3)', () => {
+  it('metade mais um; 3/5 e 2/3 arredondam para cima', () => {
+    assert.equal(quorumPrimeiraChamada(3), 2)
+    assert.equal(quorumPrimeiraChamada(74), 38)
+    assert.equal(minimoAFavor('tres_quintos', 23), 14)
+    assert.equal(minimoAFavor('dois_tercos', 23), 16)
+    assert.equal(minimoAFavor('simples', 23), null)
+    assert.equal(explicarMaioria('tres_quintos', 23), '3/5 dos 23 presentes aptos = 14 votos a favor')
+  })
+
+  it('a ata traz a instalação, cada item com o resultado e o desligamento', () => {
+    const texto = textoDaAta({
+      tipo: 'ago',
+      inicio: '2027-04-22T19:00:00-03:00',
+      local: 'Sede',
+      chamada: 'primeira',
+      aptos: 40,
+      presentesAptos: 25,
+      presentes: 28,
+      pauta: [
+        { id: 'a', ordem: 1, titulo: 'Balanço', deliberativo: true },
+        { id: 'b', ordem: 2, titulo: 'Desligamento de Fulano', deliberativo: true },
+        { id: 'c', ordem: 3, titulo: 'Informes', deliberativo: false },
+      ],
+      votos: [
+        { pauta_id: 'a', maioria: 'simples', votantes: 25, a_favor: 20, contra: 2, abstencoes: 3, aprovada: true },
+        { pauta_id: 'b', maioria: 'tres_quintos', votantes: 25, a_favor: 16, contra: 5, abstencoes: 4, aprovada: true, desligado: 'Fulano de Tal' },
+      ],
+    })
+    assert.match(texto, /^ATA DA ASSEMBLEIA GERAL ORDINÁRIA/)
+    assert.match(texto, /Em 22 de abril de 2027, às 19h00, em Sede/)
+    assert.match(texto, /instalada em primeira chamada, com 25 associados aptos presentes, de 40 aptos \(28 presentes ao todo\)/)
+    assert.match(texto, /1\. Balanço: APROVADO, com 20 votos a favor, 2 contra e 3 abstenções/)
+    assert.match(texto, /3\/5 dos 25 presentes aptos = 15 votos a favor\)\. Fica desligado\(a\) do COMEP: Fulano de Tal/)
+    assert.match(texto, /3\. Informes: \(informe/)
+    assert.match(texto, /Parauapebas, 22 de abril de 2027\./)
   })
 })

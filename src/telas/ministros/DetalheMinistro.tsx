@@ -28,6 +28,8 @@ import {
 } from '../../dados/configuracoes'
 import { situacaoDe, type SituacaoContribuicao } from '../../dados/financeiro'
 import { useCarregar } from '../../estado/useCarregar'
+import { useUmaVez } from '../../estado/useUmaVez'
+import { registrarFalecimento } from '../../dados/encontros'
 import { formatarCpf, formatarData, hojeIso } from '../../utilitarios/formatos'
 
 /** /ministros/:pessoaId — remonta a tela ao trocar de pessoa */
@@ -173,11 +175,13 @@ function Conteudo({ ficha, titulos, igrejas, valores, situacao, retorno, conclui
         </dl>
       </section>
 
+      <Desligamento ficha={ficha} concluir={concluir} />
+
       <section className="painel painel-perigo">
         <h2>Arquivar cadastro</h2>
         <p className="detalhe">
           Só para cadastro feito <strong>por engano</strong> (pessoa duplicada ou errada). Desligamento e falecimento
-          são registrados em assembleia (Art. 8º) e entram numa próxima fase.
+          ficam na seção "Desligamento" (Art. 8º): nada se arquiva nesses casos.
         </p>
         <BotaoConfirmar
           texto="Arquivar cadastro"
@@ -530,3 +534,55 @@ function Contribuicao({ ficha, valores, situacao, concluir }: Pick<PropsConteudo
     </section>
   )
 }
+
+/**
+ * Desligamento (Art. 8º): os casos I a IV são votados em Assembleia Ordinária, por 3/5 (Assembleias → condução);
+ * o falecimento (V) é registrado aqui, sem votação (pergunta 5 do PROJETO.md).
+ */
+function Desligamento({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>) {
+  const { associado } = ficha
+  const [data, setData] = useState('')
+  const [observacao, setObservacao] = useState('')
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <section className="painel" aria-labelledby="titulo-desligamento">
+      <h2 id="titulo-desligamento">Desligamento (Art. 8º)</h2>
+      {associado.situacao !== 'ativo' ? (
+        <p>
+          Situação: <strong>{NOME_DA_SITUACAO[associado.situacao]}</strong>. O histórico fica guardado.
+        </p>
+      ) : (
+        <>
+          <p className="detalhe">
+            A pedido, por conduta, por transferência ou por três faltas seguidas: decide a Assembleia Ordinária, por 3/5. Ponha o caso
+            na pauta da assembleia (item com maioria de 3/5) e registre a votação na condução da assembleia.
+          </p>
+          <details className="acao-recolhida">
+            <summary>Registrar falecimento (Art. 8º, V)</summary>
+            <form
+              className="form-linha"
+              aria-label="Registrar falecimento"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void umaVez(async () => concluir(await registrarFalecimento(associado.pessoa_id, data, observacao), 'Falecimento registrado.'))
+              }}
+            >
+              <label className="campo-curto">
+                Data *
+                <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
+              </label>
+              <label>
+                Observação
+                <input maxLength={1000} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+              </label>
+              <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
+                Registrar falecimento
+              </button>
+            </form>
+          </details>
+        </>
+      )}
+    </section>
+  )
+}
+

@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.22 — 13 de novembro de 2026 — atualizado com a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.23 — 13 de novembro de 2026 — atualizado com a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -279,7 +279,7 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - `dados_comep` — dados públicos do COMEP mostrados no site (uma linha só) ✅ criada
 - `pedidos_associacao` — pedidos do formulário, análise da diretoria, assembleia que aprovou, aceites do associado e do diretor ✅ criada
 - `codigos_acesso` — códigos de primeiro acesso e de nova senha (o código em si fica só como resumo, numa tabela interna) ✅ criada
-- `desligamentos` — motivo (Art. 8º), assembleia e resultado da votação
+- `desligamentos` — motivo (Art. 8º, I a V), a votação que decidiu (ou o falecimento) e a data ✅ criada
 - Arquivos (fotos e comprovantes): Storage, bucket privado `documentos`, uma pasta por pessoa; ninguém sobrescreve nem apaga ✅ criado
 - `valores_contribuicao` (seção acima) e `config_financeiro` — valores com vigência e dias de vencimento ✅ criadas
 - `planos_contribuicao` — mensal ou anual, por associado e exercício ✅ criada
@@ -293,7 +293,8 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - `config_assembleias` — os números do estatuto (antecedência, meses da AGO, 2ª chamada, faltas) ✅ criada
 - `encontro_presencas` — confirmação e presença (lista ou QR Code) ✅ criada
 - `justificativas_falta` — justificativa de falta e a decisão do 1º secretário ✅ criada
-- `deliberacoes` — pauta votada, maioria exigida (simples, 3/5, 2/3), votos e resultado
+- `deliberacoes` — pauta votada, maioria exigida (simples, 3/5, 2/3), votantes, votos e resultado ✅ criada
+- `atas` — texto, arquivo da ata assinada e as assinaturas do 1º secretário e do presidente ✅ criada
 - `mandatos` — pessoa, cargo, órgão (Conselho Diretor ou Conselho Fiscal), início, fim, assembleia que elegeu
 - `comissoes` e `comissao_membros`
 - `projetos`
@@ -498,11 +499,19 @@ Decisões na seção 4.6. Revisão: `docs/revisoes/fase-4.md`. **O estatuto pode
   - a justificativa vai ao 1º secretário (por enquanto, o perfil Secretaria; na 4.4, pelo cargo), que aceita ou recusa com motivo;
   - **faltas seguidas** às reuniões mensais, sem justificativa aceita: com 2, o associado vê o aviso no Início e a secretaria vê a lista; com 3, "levar à pauta da assembleia". Se vale também para as assembleias é a pergunta 22
 
-**4.3 — Quórum, votações e ata** (versão 4.0-teste.3)
+**4.3 — Quórum, votações e ata** (versão 4.0-teste.3) — concluída em 13/11/2026
 
-- [ ] Quórum sobre os associados aptos (Art. 16, §4º), só votantes em dia (Art. 11) e maiorias exigidas (3/5, 2/3)
-- [ ] Deliberações e ata assinada pelo presidente e pelo 1º secretário
-- [ ] Desligamentos decididos em assembleia (Art. 8º)
+- [x] Quórum sobre os associados aptos (Art. 16, §4º), só votantes em dia (Art. 11) e maiorias exigidas (3/5, 2/3):
+  - "Instalar a assembleia": 1ª chamada com metade mais um dos aptos (ativos e em dia) presentes; sem quórum, a 2ª chamada, passados os minutos das regras (60), instala com qualquer número. A conta do momento fica guardada;
+  - votam só os presentes em dia: o sistema recusa mais votos que isso;
+  - maioria simples (mais a favor que contra); 3/5 e 2/3 sobre os presentes aptos (pergunta 24). A conta aparece na tela e na ata
+- [x] Deliberações e ata assinada pelo presidente e pelo 1º secretário:
+  - o 1º secretário (perfil Secretaria até a 4.4) gera o texto da ata a partir do registrado (instalação, cada item com o resultado) e ajusta;
+  - assinam o 1º secretário e o presidente, duas pessoas diferentes; depois da primeira assinatura o texto não muda;
+  - dá para anexar a ata assinada no papel (PDF ou foto); assinada, todos os associados leem
+- [x] Desligamentos decididos em assembleia (Art. 8º):
+  - casos I a IV: item da pauta da AGO com maioria de 3/5; aprovado, o associado fica "desligado" e perde o perfil de ministro;
+  - falecimento (V): registrado na ficha do ministro, sem votação (pergunta 5)
 
 **4.4 — Diretoria e Conselho Fiscal** (versão 4.0-teste.4)
 
@@ -583,7 +592,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 
 **Levadas à diretoria em 11/11/2026, ainda sem resposta:**
 
-5. **Desligamento:** todos os casos do Art. 8º passam por votação de 3/5 em assembleia, ou só conduta (II) e faltas (IV)? Pedido próprio, transferência e falecimento podem ser registrados direto pela secretaria e só comunicados à assembleia?
+5. **Desligamento:** todos os casos do Art. 8º passam por votação de 3/5 em assembleia, ou só conduta (II) e faltas (IV)? Pedido próprio, transferência e falecimento podem ser registrados direto pela secretaria e só comunicados à assembleia? *Previsão (13/11/2026, Fase 4.3): os casos I a IV vão à votação de 3/5 na AGO; o falecimento é registrado direto (não se vota um fato). Muda se a diretoria disser o contrário.*
 6. **Quórum:** a "metade mais um" conta todos os associados ativos ou só os em dia?
 7. **Reuniões mensais:** têm dia fixo? *(quem aceita a justificativa já foi respondido: o 1º secretário. Quando houver dia fixo, ele é preenchido em Configurações → Dados do COMEP no site)*
 8. ~~Carteirinha~~ — *respondida em 12/11/2026 (seção 4.5): foto, nome, CPF, filiação, nº de registro, data de ingresso, título, função na igreja, sigla e CNPJ da igreja; validade pelo QR Code. Revista em 13/11/2026: também com "Válida até" impresso (a impressa é renovada a cada mandato).*
@@ -603,6 +612,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 21. ~~Validade da carteirinha~~ — *respondida em 12/11/2026: sim, vale até o fim do mandato em curso; renovando (em dia no ano da eleição), o QR Code passa sozinho para o mandato seguinte, sem reimprimir. Revisto em 13/11/2026: isso vale para a digital; a impressa traz a validade e é impressa de novo a cada mandato (seção 4.5).*
 22. **Faltas:** a regra de desligamento por 3 faltas seguidas sem justificativa (Art. 8º, IV) vale para as reuniões mensais?
 23. **Pagamento informado e ainda não conferido:** o associado pagou antes do vencimento e informou o pagamento, mas a tesouraria ainda não conferiu. Até a conferência, ele conta como **em dia** para votar? *(Hoje o sistema só conta como em dia depois que a tesouraria confirma. Revisão geral da Fase 2, 13/11/2026.)*
+24. **Maiorias de 3/5 e 2/3** *(13/11/2026, Fase 4.3)*: a base é o número de **presentes aptos** (em dia) ou os **votos válidos** (a favor + contra)? Ex.: 25 presentes aptos, 3/5 = 15 votos a favor; se fossem só os votos válidos (20 a favor e contra), 3/5 = 12. *Hoje o sistema usa os presentes aptos e mostra a conta.*
 
 ### 11.4 Internas (equipe técnica, sem levar à diretoria)
 
