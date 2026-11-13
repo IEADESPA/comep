@@ -9,6 +9,8 @@ export type Igreja = {
   nome: string
   denominacao_id: string | null
   cnpj: string | null
+  /** Nome curto que vai na credencial (ex.: IEADESPA) */
+  sigla: string | null
   endereco: string | null
   bairro_id: string | null
   telefone: string | null
@@ -20,7 +22,7 @@ export type Igreja = {
 export type DadosIgreja = Omit<Igreja, 'id' | 'denominacao' | 'bairro'>
 
 const CAMPOS_IGREJA =
-  'id, nome, denominacao_id, cnpj, endereco, bairro_id, telefone, presidente_nome, denominacao:denominacoes(nome, sigla, arquivado_em), bairro:bairros(nome, arquivado_em)'
+  'id, nome, denominacao_id, cnpj, sigla, endereco, bairro_id, telefone, presidente_nome, denominacao:denominacoes(nome, sigla, arquivado_em), bairro:bairros(nome, arquivado_em)'
 
 const vazioParaNulo = (valor: string | null) => (valor && valor.trim() ? valor.trim() : null)
 
@@ -75,6 +77,7 @@ export async function salvarIgreja(dados: DadosIgreja, id?: string): Promise<Res
     nome: dados.nome.trim(),
     denominacao_id: dados.denominacao_id || null,
     cnpj: vazioParaNulo(dados.cnpj),
+    sigla: vazioParaNulo(dados.sigla),
     endereco: vazioParaNulo(dados.endereco),
     bairro_id: dados.bairro_id || null,
     telefone: vazioParaNulo(dados.telefone),

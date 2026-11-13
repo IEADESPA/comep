@@ -1,5 +1,6 @@
 // Pedido de associação (Art. 7º) e arquivos (foto e comprovante) no Storage.
 import { cliente, falha, ok, type Resultado } from './cliente'
+import { MENSAGEM_CPF_REPETIDO, type IdentidadeGravada } from './credencial'
 
 export type SituacaoPedido = 'enviado' | 'pendencia' | 'aguardando_assembleia' | 'aprovado' | 'recusado' | 'desistiu'
 
@@ -119,17 +120,31 @@ export async function desistirDoPedido(pedidoId: string): Promise<Resultado<null
   return error ? falha(error) : ok(null)
 }
 
-/** Nome e telefone ficam no cadastro da pessoa (o próprio candidato atualiza). */
-export async function atualizarMeusDados(pessoaId: string, nome: string, telefone: string): Promise<Resultado<null>> {
+/**
+ * Nome, telefone, CPF e filiação ficam no cadastro da pessoa (o próprio candidato ou associado atualiza).
+ * CPF e filiação: só o que ainda estava vazio (depois, só a secretaria corrige — o banco garante).
+ */
+export async function atualizarMeusDados(
+  pessoaId: string,
+  nome: string,
+  telefone: string,
+  identidade: Partial<IdentidadeGravada> = {},
+): Promise<Resultado<null>> {
   const { error } = await cliente()
     .from('pessoas')
-    .update({ nome: nome.trim(), telefone: telefone.trim() || null })
+    .update({ nome: nome.trim(), telefone: telefone.trim() || null, ...identidade })
     .eq('id', pessoaId)
-  return error ? falha(error) : ok(null)
+  return error ? falha(error, MENSAGEM_CPF_REPETIDO) : ok(null)
 }
 
-export async function meusDados(pessoaId: string): Promise<Resultado<{ nome: string; telefone: string | null }>> {
-  const { data, error } = await cliente().from('pessoas').select('nome, telefone').eq('id', pessoaId).single()
+export type MeusDadosBasicos = { nome: string; telefone: string | null } & IdentidadeGravada
+
+export async function meusDados(pessoaId: string): Promise<Resultado<MeusDadosBasicos>> {
+  const { data, error } = await cliente()
+    .from('pessoas')
+    .select('nome, telefone, cpf, nome_pai, nome_mae')
+    .eq('id', pessoaId)
+    .single<MeusDadosBasicos>()
   return error ? falha(error) : ok(data)
 }
 

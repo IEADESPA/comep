@@ -82,7 +82,7 @@ O Claude Code faz: cria a marca `v1.0` no GitHub e registra o aceite e a data em
 | Item | Situação |
 |---|---|
 | Estrutura do banco de produção | ✅ 12/11/2026: as 9 migrações aplicadas numa produção vazia, sem erro |
-| Migrações que faltam na produção | A partir de `20261112153856_limite_arquivos.sql`: limite de arquivos e toda a Fase 2 (contribuições, caixa, taxa de inscrição, Conselho Fiscal e prestação de contas). Já passaram pelas travas no teste e são aplicadas no lançamento, junto com as das fases 3 a 5 |
+| Migrações que faltam na produção | A partir de `20261112153856_limite_arquivos.sql`: limite de arquivos, toda a Fase 2 (contribuições, caixa, taxa de inscrição, Conselho Fiscal, prestação de contas e revisão geral) e a Fase 3 até aqui (dados da credencial). Já passaram pelas travas no teste e são aplicadas no lançamento, junto com as que vierem até a versão 5.0 |
 | Login da produção (`docs/configuracao-login.md`) | ✅ 12/11/2026: sem confirmação por e-mail, senha de 8 caracteres com letras e números, endereço do site |
 | Conferência da produção | ✅ 12/11/2026: mesmas regras do teste. O visitante recebe "sem permissão" em tudo, exceto os dados do site. 0 logins, 0 cadastros. Títulos e valores carregados. Pasta de arquivos privada |
 | Backup da produção | ✅ Entra no backup semanal (banco + arquivos) |

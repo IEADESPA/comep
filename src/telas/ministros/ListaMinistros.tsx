@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { listarAssociados, NOME_DA_SITUACAO } from '../../dados/associados'
+import { ok } from '../../dados/cliente'
+import { listarPendencias } from '../../dados/credencial'
 import { useCarregar } from '../../estado/useCarregar'
 import { contemTexto } from '../../utilitarios/formatos'
 import { TrocasPendentes } from './TrocasPendentes'
@@ -9,8 +11,14 @@ import { TrocasPendentes } from './TrocasPendentes'
 export function ListaMinistros() {
   const location = useLocation()
   const mensagem = (location.state as { mensagem?: string } | null)?.mensagem
-  const [carga, recarregar] = useCarregar(listarAssociados)
+  const [carga, recarregar] = useCarregar(async () => {
+    const [associados, pendencias] = await Promise.all([listarAssociados(), listarPendencias()])
+    if (associados.erro !== null) return associados
+    if (pendencias.erro !== null) return pendencias
+    return ok({ associados: associados.dados, pendencias: new Map(pendencias.dados.map((p) => [p.pessoa_id, p.pendencias])) })
+  })
   const [busca, setBusca] = useState('')
+  const [soPendencia, setSoPendencia] = useState(false)
 
   return (
     <>
@@ -24,14 +32,16 @@ export function ListaMinistros() {
       <TrocasPendentes />
 
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {(associados) => {
+        {({ associados, pendencias }) => {
           const filtrados = associados.filter(
             (a) =>
-              contemTexto(a.nome, busca) ||
-              contemTexto(a.igreja, busca) ||
-              contemTexto(a.titulo, busca) ||
-              String(a.numero_registro) === busca.trim(),
+              (!soPendencia || (pendencias.get(a.pessoa_id)?.length ?? 0) > 0) &&
+              (contemTexto(a.nome, busca) ||
+                contemTexto(a.igreja, busca) ||
+                contemTexto(a.titulo, busca) ||
+                String(a.numero_registro) === busca.trim()),
           )
+          const comPendencia = associados.filter((a) => (pendencias.get(a.pessoa_id)?.length ?? 0) > 0).length
           return (
             <>
               <label className="busca">
@@ -42,6 +52,10 @@ export function ListaMinistros() {
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                 />
+              </label>
+              <label className="caixa-marcar">
+                <input type="checkbox" checked={soPendencia} onChange={(e) => setSoPendencia(e.target.checked)} />
+                Só com pendência na credencial ({comPendencia})
               </label>
               <p className="detalhe">
                 {filtrados.length === associados.length
@@ -62,6 +76,11 @@ export function ListaMinistros() {
                         <span className="etiquetas">
                           {a.situacao !== 'ativo' && <span className="etiqueta">{NOME_DA_SITUACAO[a.situacao]}</span>}
                           {!a.tem_login && <span className="etiqueta etiqueta-neutra">Sem login</span>}
+                          {(pendencias.get(a.pessoa_id)?.length ?? 0) > 0 && (
+                            <span className="etiqueta etiqueta-atraso" title={pendencias.get(a.pessoa_id)?.join(', ')}>
+                              Credencial: {pendencias.get(a.pessoa_id)?.length} pendência(s)
+                            </span>
+                          )}
                         </span>
                       </Link>
                     </li>

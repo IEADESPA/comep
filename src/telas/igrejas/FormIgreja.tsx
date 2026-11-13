@@ -74,6 +74,7 @@ function Formulario({ id, igreja, denominacoes, bairros }: PropsFormulario) {
     bairro_id: igreja?.bairro_id ?? '',
     telefone: igreja?.telefone ?? '',
     presidente_nome: igreja?.presidente_nome ?? '',
+    sigla: igreja?.sigla ?? '',
   })
   const [enviando, setEnviando] = useState(false)
   const [resultado, setResultado] = useState<{ sucesso?: string; erro?: string }>({ sucesso: mensagemAnterior })
@@ -150,6 +151,10 @@ function Formulario({ id, igreja, denominacoes, bairros }: PropsFormulario) {
           <label>
             CNPJ
             <input inputMode="text" autoCapitalize="characters" placeholder="00.000.000/0000-00" {...campo('cnpj')} />
+          </label>
+          <label>
+            Sigla (vai na credencial)
+            <input maxLength={20} autoCapitalize="characters" placeholder="Ex.: IEADESPA" {...campo('sigla')} />
           </label>
           <label className="largura-total">
             Endereço

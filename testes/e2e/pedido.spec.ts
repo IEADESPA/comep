@@ -1,7 +1,7 @@
 // Fase 1.2 (parte 2): código de primeiro acesso, senha esquecida e pedido de associação completo.
 // Tudo com dados FICTÍCIOS no banco de teste (e-mails @example.com). Os associados criados são arquivados no fim.
 import { expect, test, type Page } from '@playwright/test'
-import { guardarSessao, sufixoUnico, trocarPara } from './ajuda'
+import { cpfAleatorio, guardarSessao, sufixoUnico, trocarPara } from './ajuda'
 
 const mensagem = (page: Page, texto: string | RegExp) => page.getByRole('status').filter({ hasText: texto })
 
@@ -116,6 +116,8 @@ test('pedido de associação: envia, recebe pendência, corrige, a diretoria enc
 
   // 2. Preenche e envia o pedido, com foto e comprovante
   await page.getByLabel(/^Telefone/).fill('(94) 91111-1111')
+  await page.getByLabel(/^CPF/).fill(cpfAleatorio())
+  await page.getByLabel(/^Nome da mãe/).fill('Mãe Fictícia do Candidato')
   await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Evangelista' })
   await page.getByLabel(/^Sua igreja/).selectOption({ label: 'Minha igreja não está na lista' })
   await page.getByLabel(/^Nome da sua igreja/).fill('Igreja Informada E2E')

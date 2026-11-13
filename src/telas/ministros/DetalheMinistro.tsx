@@ -1,3 +1,6 @@
+import { CamposIdentidade } from '../../componentes/CamposIdentidade'
+import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
+import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Aviso, BotaoConfirmar, Mensagem, MostrarCarga } from '../../componentes/Basicos'
@@ -25,7 +28,7 @@ import {
 } from '../../dados/configuracoes'
 import { situacaoDe, type SituacaoContribuicao } from '../../dados/financeiro'
 import { useCarregar } from '../../estado/useCarregar'
-import { formatarData, hojeIso } from '../../utilitarios/formatos'
+import { formatarCpf, formatarData, hojeIso } from '../../utilitarios/formatos'
 
 /** /ministros/:pessoaId — remonta a tela ao trocar de pessoa */
 export function DetalheMinistro() {
@@ -140,6 +143,7 @@ function Conteudo({ ficha, titulos, igrejas, valores, situacao, retorno, conclui
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
 
       <Contato ficha={ficha} concluir={concluir} />
+      <PendenciasCredencial pendencias={ficha.pendencias} />
       <Titulos ficha={ficha} titulos={titulos} concluir={concluir} />
       <Igrejas ficha={ficha} igrejas={igrejas} concluir={concluir} />
       <Contribuicao ficha={ficha} valores={valores} situacao={situacao} concluir={concluir} />
@@ -192,16 +196,19 @@ function Contato({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>)
   const [nome, setNome] = useState(associado.nome)
   const [telefone, setTelefone] = useState(associado.telefone ?? '')
   const [email, setEmail] = useState(associado.email ?? '')
+  const [identidade, setIdentidade] = useState(identidadeInicial(ficha.identidade))
   const [enviando, setEnviando] = useState(false)
 
   async function salvar() {
+    const erro = erroDaIdentidade(identidade, false)
+    if (erro) return concluir({ erro }, '')
     setEnviando(true)
     // Quem já tem login usa o e-mail do próprio login; só se corrige o de quem ainda não tem.
-    const r = await atualizarContato(associado.pessoa_id, {
-      nome,
-      telefone,
-      ...(associado.tem_login ? {} : { email }),
-    })
+    const r = await atualizarContato(
+      associado.pessoa_id,
+      { nome, telefone, ...(associado.tem_login ? {} : { email }) },
+      identidadeParaGravar(identidade, ficha.identidade, true),
+    )
     setEnviando(false)
     if (concluir(r, 'Dados de contato salvos.')) setEditando(false)
   }
@@ -241,6 +248,7 @@ function Contato({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>)
                 onChange={(e) => setEmail(e.target.value)}
               />
             </label>
+            <CamposIdentidade valor={identidade} gravada={ficha.identidade} aoMudar={setIdentidade} livre />
           </div>
           {associado.tem_login && <p className="detalhe">O e-mail é o do login e só a própria pessoa o usa.</p>}
           <div className="acoes">
@@ -255,6 +263,12 @@ function Contato({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>)
       ) : (
         <>
           <dl className="definicoes">
+            <dt>CPF</dt>
+            <dd>{ficha.identidade.cpf ? formatarCpf(ficha.identidade.cpf) : 'Não informado'}</dd>
+            <dt>Filiação</dt>
+            <dd>
+              {[ficha.identidade.nome_mae, ficha.identidade.nome_pai].filter(Boolean).join(' e ') || 'Não informada'}
+            </dd>
             <dt>Telefone</dt>
             <dd>{associado.telefone || 'Não informado'}</dd>
             <dt>E-mail</dt>

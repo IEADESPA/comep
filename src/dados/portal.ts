@@ -1,6 +1,7 @@
 // Portal do ministro: meu perfil (foto, senha), pedido de troca de igreja e painel do presidente de igreja.
 import { cliente, falha, ok, type Resultado } from './cliente'
 import { senhaForte } from './codigos'
+import type { IdentidadeGravada } from './credencial'
 import { enviarArquivo } from './pedidos'
 
 // ---------- Meu perfil ----------
@@ -11,12 +12,12 @@ export type MeusDadosCompletos = {
   email: string | null
   telefone: string | null
   foto_caminho: string | null
-}
+} & IdentidadeGravada
 
 export async function buscarMeusDados(pessoaId: string): Promise<Resultado<MeusDadosCompletos>> {
   const { data, error } = await cliente()
     .from('pessoas')
-    .select('id, nome, email, telefone, foto_caminho')
+    .select('id, nome, email, telefone, foto_caminho, cpf, nome_pai, nome_mae')
     .eq('id', pessoaId)
     .single<MeusDadosCompletos>()
   return error ? falha(error) : ok(data)
@@ -178,10 +179,10 @@ export async function ministrosDaMinhaIgreja(): Promise<Resultado<MinistroDaMinh
   return error ? falha(error) : ok((data ?? []) as MinistroDaMinhaIgreja[])
 }
 
-/** O pastor presidente atualiza só o contato da igreja (o banco recusa o resto). */
+/** O pastor presidente atualiza o contato e a sigla da igreja (o banco recusa o resto: nome, CNPJ…). */
 export async function atualizarContatoIgreja(
   igrejaId: string,
-  dados: { endereco: string; bairro_id: string; telefone: string },
+  dados: { endereco: string; bairro_id: string; telefone: string; sigla: string },
 ): Promise<Resultado<null>> {
   const { error } = await cliente()
     .from('igrejas')
@@ -189,7 +190,8 @@ export async function atualizarContatoIgreja(
       endereco: dados.endereco.trim() || null,
       bairro_id: dados.bairro_id || null,
       telefone: dados.telefone.trim() || null,
+      sigla: dados.sigla.trim() || null,
     })
     .eq('id', igrejaId)
-  return error ? falha(error) : ok(null)
+  return error ? falha(error, 'Já existe outra igreja com essa sigla.') : ok(null)
 }

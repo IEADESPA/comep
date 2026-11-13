@@ -1569,3 +1569,14 @@ fieldset .caixa-marcar + .caixa-marcar {
   color: var(--cor-erro);
   font-weight: 700;
 }
+
+/* ---------- Credencial (Fase 3) ---------- */
+
+.lista-pendencias {
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.lista-pendencias li {
+  margin: 0.15rem 0;
+}

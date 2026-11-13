@@ -39,3 +39,16 @@ describe('montarCsv (planilha)', () => {
     assert.equal(csv, '﻿"\'=HYPERLINK(""http://x"")";\'+ Oferta;\'-Tarifa;\'@conta;-12,50;Normal\r\n')
   })
 })
+
+describe('CPF', () => {
+  it('confere os dígitos verificadores', async () => {
+    const { cpfValido, formatarCpf } = await import('../../src/utilitarios/formatos.ts')
+    assert.equal(cpfValido('529.982.247-25'), true)
+    assert.equal(cpfValido('52998224725'), true)
+    assert.equal(cpfValido('111.444.777-35'), true)
+    assert.equal(cpfValido('123.456.789-00'), false)
+    assert.equal(cpfValido('111.111.111-11'), false)
+    assert.equal(cpfValido('5299822472'), false)
+    assert.equal(formatarCpf('52998224725'), '529.982.247-25')
+  })
+})
