@@ -143,7 +143,7 @@ function Conteudo({ ficha, titulos, igrejas, valores, situacao, retorno, conclui
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
 
       <Contato ficha={ficha} concluir={concluir} />
-      <PendenciasCredencial pendencias={ficha.pendencias} />
+      <PendenciasCredencial pendencias={ficha.pendencias} verEm={`/credenciais/${ficha.associado.pessoa_id}`} />
       <Titulos ficha={ficha} titulos={titulos} concluir={concluir} />
       <Igrejas ficha={ficha} igrejas={igrejas} concluir={concluir} />
       <Contribuicao ficha={ficha} valores={valores} situacao={situacao} concluir={concluir} />

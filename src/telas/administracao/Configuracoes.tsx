@@ -38,6 +38,7 @@ import {
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
+import { buscarConfigCredencial, salvarConfigCredencial } from '../../dados/credencial'
 import { DICA_VALOR, lerValor, PADRAO_VALOR, valorParaCampo } from '../../utilitarios/valores'
 import { cnpjValido, formatarCnpj, formatarData, hojeIso, limparCnpj } from '../../utilitarios/formatos'
 
@@ -71,6 +72,7 @@ export function Configuracoes() {
         <a href="#titulos">Títulos de ministro</a>
         <a href="#valores">Valores da contribuição</a>
         <a href="#inscricao">Taxa de inscrição</a>
+        <a href="#credencial">Credencial</a>
         <a href="#vencimentos">Vencimentos</a>
         {editaValores && <a href="#caixa">Contas e categorias do caixa</a>}
       </nav>
@@ -102,6 +104,7 @@ export function Configuracoes() {
       <Valores key={`valores-${versaoValores}`} podeEditar={editaValores} aoMudar={() => setVersaoTaxa((v) => v + 1)} />
       <TaxaInscricao key={`taxa-${versaoTaxa}`} podeEditar={editaValores} aoMudar={() => setVersaoValores((v) => v + 1)} />
       <Vencimentos podeEditar={editaValores} />
+      <ConfigCredencialSecao podeEditar={perfis.some((p) => p === 'secretaria' || p === 'presidencia')} />
       {editaValores && <ContasECategorias />}
     </>
   )
@@ -956,5 +959,62 @@ function AjustarSaldo({
       </form>
       <p className="detalhe">Depois que o exercício é fechado na prestação de contas, o saldo inicial não muda mais.</p>
     </details>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Credencial: fim do mandato (validade mostrada pelo QR Code) e texto do verso
+// ---------------------------------------------------------------------
+
+function ConfigCredencialSecao({ podeEditar }: { podeEditar: boolean }) {
+  const [carga, recarregar] = useCarregar(buscarConfigCredencial)
+  const [retorno, setRetorno] = useState<Retorno>({})
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <section className="painel" id="credencial" aria-labelledby="titulo-config-credencial">
+      <h2 id="titulo-config-credencial">Credencial</h2>
+      <p className="detalhe">
+        A validade não vai impressa na credencial: o QR Code mostra a situação de agora. Quando a nova diretoria tomar posse,
+        mude o fim do mandato aqui e todas as credenciais acompanham, sem reimprimir.
+      </p>
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {(config) => (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const dados = new FormData(e.currentTarget)
+              void umaVez(async () => {
+                const r = await salvarConfigCredencial({
+                  fim_mandato: String(dados.get('fim_mandato') ?? ''),
+                  texto_verso: String(dados.get('texto_verso') ?? ''),
+                })
+                setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Configuração da credencial salva.' })
+                if (r.erro === null) recarregar()
+              })
+            }}
+          >
+            <div className="grade-form">
+              <label>
+                Fim do mandato da diretoria em curso
+                <input name="fim_mandato" type="date" defaultValue={config.fim_mandato ?? ''} disabled={!podeEditar} />
+              </label>
+              <label className="largura-total">
+                Texto do verso
+                <textarea name="texto_verso" rows={3} maxLength={600} required defaultValue={config.texto_verso} disabled={!podeEditar} />
+              </label>
+            </div>
+            <p className="detalhe">Fim do mandato em branco: a credencial vale enquanto o associado estiver ativo.</p>
+            {podeEditar && (
+              <div className="acoes">
+                <button type="submit" className="botao" disabled={enviando}>
+                  Salvar credencial
+                </button>
+              </div>
+            )}
+          </form>
+        )}
+      </MostrarCarga>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+    </section>
   )
 }

@@ -102,7 +102,7 @@ function Conteudo({ pessoaId, perfis, email }: { pessoaId: string; perfis: Perfi
             {ficha ? (
               <>
                 <NoComep ficha={ficha} valores={valores} />
-                <PendenciasCredencial pendencias={ficha.pendencias} propria />
+                <PendenciasCredencial pendencias={ficha.pendencias} propria verEm="/minha-credencial" />
                 <MinhaIgrejaEHistorico ficha={ficha} trocas={trocas} igrejas={igrejas} concluir={concluir} />
               </>
             ) : (

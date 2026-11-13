@@ -1580,3 +1580,433 @@ fieldset .caixa-marcar + .caixa-marcar {
 .lista-pendencias li {
   margin: 0.15rem 0;
 }
+
+/* ---------- Credencial: cartão CR80 (85,6 × 54 mm), frente e verso ----------
+   Cores fixas (é um documento: igual no tema claro, no escuro e no papel).
+   Os tamanhos internos usam "cqi" (1% da largura do cartão): o desenho é o mesmo em qualquer tamanho. */
+
+.credencial {
+  container-type: inline-size;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 85.6 / 53.98;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  color: #18181b;
+  border: 1px solid #d4d4d8;
+  border-radius: 4% / 6.3%;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.credencial-dupla {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.credencial-dupla .credencial {
+  flex: 1 1 300px;
+}
+
+.cred-topo {
+  display: flex;
+  align-items: center;
+  gap: 2.4cqi;
+  padding: 2.3cqi 3.6cqi;
+  background: linear-gradient(115deg, #7f1d1d 0%, #b91c1c 55%, #dc2626 100%);
+  color: #fff;
+}
+
+.cred-logo {
+  width: 9cqi;
+  height: 9cqi;
+  flex: none;
+  border-radius: 1.8cqi;
+  box-shadow: 0 0 0 0.45cqi rgb(255 255 255 / 0.55);
+}
+
+.cred-org {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.cred-org-nome {
+  font-size: 2.15cqi;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.cred-sigla {
+  font-size: 5.8cqi;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.cred-tipo {
+  flex: none;
+  padding-left: 2.2cqi;
+  border-left: 0.3cqi solid rgb(255 255 255 / 0.6);
+  font-size: 2.1cqi;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.cred-corpo {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 3.6cqi;
+  padding: 3cqi 3.6cqi 1.6cqi;
+}
+
+.cred-foto {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 23cqi;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: #f4f4f5;
+  border: 0.4cqi solid #b91c1c;
+  border-radius: 1.4cqi;
+  color: #71717a;
+  font-size: 2.3cqi;
+}
+
+.cred-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cred-dados {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cred-nome {
+  margin: 0 0 0.6cqi;
+  color: #18181b;
+  font-size: 4.2cqi;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.cred-titulo {
+  margin: 0 0 1.8cqi;
+  color: #b91c1c;
+  font-size: 2.8cqi;
+  font-weight: 700;
+}
+
+.credencial dl {
+  display: grid;
+  gap: 1.3cqi;
+  margin: 0;
+}
+
+.cred-par {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.2cqi;
+}
+
+.credencial dt {
+  color: #71717a;
+  font-size: 1.95cqi;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.credencial dd {
+  margin: 0;
+  font-size: 2.95cqi;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cred-rodape {
+  padding: 1.1cqi 3cqi;
+  background: #f4f4f5;
+  border-top: 0.25cqi solid #e4e4e7;
+  color: #52525b;
+  font-size: 1.9cqi;
+  text-align: center;
+}
+
+.cred-faixa {
+  height: 2.4cqi;
+  background: linear-gradient(90deg, #7f1d1d, #dc2626);
+}
+
+.cred-verso-corpo {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-height: 0;
+  gap: 3.6cqi;
+  padding: 2.6cqi 3.6cqi;
+}
+
+.cred-qr {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9cqi;
+  width: 30cqi;
+  color: #52525b;
+  font-size: 1.85cqi;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.cred-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cred-verso-texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-self: stretch;
+  min-width: 0;
+  gap: 1.5cqi;
+}
+
+.cred-texto-verso {
+  margin: 0;
+  color: #3f3f46;
+  font-size: 2.1cqi;
+  line-height: 1.3;
+}
+
+.cred-assinatura {
+  margin-top: auto;
+  color: #52525b;
+  font-size: 1.9cqi;
+  text-align: center;
+}
+
+.cred-linha-assinatura {
+  display: block;
+  margin: 0 5cqi 0.8cqi;
+  border-top: 0.25cqi solid #52525b;
+}
+
+/* Folhas A4 para imprimir: 5 credenciais por folha, frente e verso lado a lado, com linha de corte */
+.folhas-impressao {
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+.folha-a4 {
+  page: credencial;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto 1.5rem;
+  padding: 8mm 10mm;
+  background: #fff;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 0.25);
+}
+
+.par-impressao {
+  display: flex;
+  justify-content: center;
+  gap: 6mm;
+  break-inside: avoid;
+}
+
+.corte {
+  outline: 0.25mm dashed #888;
+}
+
+.folha-a4 .credencial {
+  width: 85.6mm;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@page credencial {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  .folhas-impressao {
+    overflow: visible;
+    padding: 0;
+  }
+
+  .folha-a4 {
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+  }
+
+  .folha-a4:last-child {
+    break-after: auto;
+  }
+
+  .credencial {
+    box-shadow: none;
+  }
+}
+
+/* Lista de credenciais (secretaria) */
+.linha-credencial .caixa-marcar {
+  font-weight: 400;
+}
+
+/* Página pública de validação (QR Code) */
+.validacao {
+  box-sizing: border-box;
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 1.25rem 16px 2rem;
+}
+
+.validacao-topo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.validacao-topo div {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.validacao-topo strong {
+  color: var(--cor-marca);
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+}
+
+.validacao-topo span {
+  color: var(--cor-texto-suave);
+  font-size: 0.85rem;
+}
+
+.validacao-cartao {
+  padding: 1rem 1.1rem;
+  background: var(--cor-superficie);
+  border: 3px solid var(--cor-borda);
+  border-radius: 14px;
+}
+
+.validacao-situacao {
+  margin: 0 0 0.9rem;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.validacao-valida {
+  border-color: #15803d;
+}
+
+.validacao-valida .validacao-situacao {
+  color: #15803d;
+}
+
+.validacao-atencao {
+  border-color: #d97706;
+}
+
+.validacao-atencao .validacao-situacao {
+  color: #b45309;
+}
+
+.validacao-invalida {
+  border-color: var(--cor-erro);
+}
+
+.validacao-invalida .validacao-situacao {
+  color: var(--cor-erro);
+}
+
+@media (prefers-color-scheme: dark) {
+  .validacao-valida .validacao-situacao {
+    color: #86efac;
+  }
+
+  .validacao-atencao .validacao-situacao {
+    color: #fcd34d;
+  }
+}
+
+.validacao-pessoa {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.validacao-pessoa img,
+.validacao-sem-foto {
+  flex: none;
+  width: 110px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.validacao-sem-foto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cor-fundo);
+  color: var(--cor-texto-suave);
+  font-size: 0.85rem;
+}
+
+.validacao-pessoa dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 0.75rem;
+  margin: 0;
+}
+
+.validacao-pessoa dt {
+  color: var(--cor-texto-suave);
+}
+
+.validacao-pessoa dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.validacao-itens {
+  margin: 1rem 0 0.5rem;
+  padding-left: 1.2rem;
+}
+
+.validacao-nota {
+  margin-top: 1rem;
+}

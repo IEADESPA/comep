@@ -255,7 +255,7 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
           <input type="checkbox" required {...marcar('consente_lgpd')} />
           <span>
             Autorizo o COMEP a guardar e usar meus dados, minha foto e o comprovante somente para a minha associação e a
-            vida do Conselho (cadastro, carteirinha, assembleias e contribuições), sem repassar a terceiros. Posso ver e
+            vida do Conselho (cadastro, credencial, assembleias e contribuições), sem repassar a terceiros. Posso ver e
             corrigir meus dados no Portal do membro. O pedido fica guardado como registro do Conselho, mesmo se for
             recusado (LGPD).
           </span>

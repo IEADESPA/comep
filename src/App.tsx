@@ -9,6 +9,8 @@ import { Acessos } from './telas/administracao/Acessos'
 import { Auditoria } from './telas/administracao/Auditoria'
 import { Configuracoes } from './telas/administracao/Configuracoes'
 import { NovaSenha, PrimeiroAcesso } from './telas/acesso/PrimeiroAcesso'
+import { CredencialDe, ImprimirCredenciais, ImprimirMinhaCredencial, ListaCredenciais, MinhaCredencial } from './telas/credencial/Credenciais'
+import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
 import { Financeiro } from './telas/financeiro/Financeiro'
 import { MinhasMensalidades } from './telas/financeiro/MinhasMensalidades'
@@ -54,6 +56,8 @@ export default function App() {
           <Route path="entrar" element={<Entrar />} />
           <Route path="primeiro-acesso" element={<PrimeiroAcesso />} />
           <Route path="nova-senha" element={<NovaSenha />} />
+          {/* Validação pública da credencial (o QR Code abre aqui, sem login) */}
+          <Route path="validar/:codigo" element={<ValidarCredencial />} />
 
           {/* Portal do membro (exige login) */}
           <Route element={<RotaProtegida />}>
@@ -70,6 +74,15 @@ export default function App() {
                 <Route index element={<Financeiro />} />
               </Route>
 
+              <Route path="minha-credencial" element={<Area caminho="/minha-credencial" />}>
+                <Route index element={<MinhaCredencial />} />
+                <Route path="imprimir" element={<ImprimirMinhaCredencial />} />
+              </Route>
+              <Route path="credenciais" element={<Area caminho="/credenciais" />}>
+                <Route index element={<ListaCredenciais />} />
+                <Route path="imprimir" element={<ImprimirCredenciais />} />
+                <Route path=":pessoaId" element={<CredencialDe />} />
+              </Route>
               <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>
                 <Route index element={<MinhaIgreja />} />
               </Route>
