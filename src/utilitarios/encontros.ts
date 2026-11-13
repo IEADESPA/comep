@@ -159,3 +159,9 @@ export function textoWhatsApp(dados: { tipo: TipoEncontro; titulo: string; inici
     .filter(Boolean)
     .join('\n')
 }
+
+/** Tira o código da credencial de um texto lido no QR Code (o endereço …/validar/<código>). */
+export function codigoDoQr(texto: string): string | null {
+  const achado = texto.match(/\/validar\/([0-9a-f]{32})\b/) ?? texto.trim().match(/^([0-9a-f]{32})$/)
+  return achado ? achado[1] : null
+}

@@ -158,3 +158,138 @@ export async function convocacoesPublicas(): Promise<Resultado<ConvocacaoPublica
   const { data, error } = await cliente().rpc('convocacoes_publicas')
   return error ? falha(error) : ok((data as ConvocacaoPublica[] | null) ?? [])
 }
+
+// ---------- Presença e faltas (Fase 4.2) ----------
+
+export type MinhaParticipacao = {
+  confirmou_em: string | null
+  presente_em: string | null
+  justificativa: { texto: string; situacao: 'pendente' | 'aceita' | 'recusada'; motivo_decisao: string | null } | null
+}
+
+/** A confirmação, a presença e a justificativa do próprio associado neste encontro. */
+export async function minhaParticipacao(encontroId: string, pessoaId: string): Promise<Resultado<MinhaParticipacao>> {
+  const [presenca, justificativa] = await Promise.all([
+    cliente()
+      .from('encontro_presencas')
+      .select('confirmou_em, presente_em')
+      .eq('encontro_id', encontroId)
+      .eq('pessoa_id', pessoaId)
+      .is('arquivado_em', null)
+      .maybeSingle<{ confirmou_em: string | null; presente_em: string | null }>(),
+    cliente()
+      .from('justificativas_falta')
+      .select('texto, situacao, motivo_decisao')
+      .eq('encontro_id', encontroId)
+      .eq('pessoa_id', pessoaId)
+      .is('arquivado_em', null)
+      .maybeSingle<MinhaParticipacao['justificativa']>(),
+  ])
+  if (presenca.error) return falha(presenca.error)
+  if (justificativa.error) return falha(justificativa.error)
+  return ok({
+    confirmou_em: presenca.data?.confirmou_em ?? null,
+    presente_em: presenca.data?.presente_em ?? null,
+    justificativa: justificativa.data ?? null,
+  })
+}
+
+export async function confirmarPresenca(encontroId: string, vou: boolean): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('confirmar_presenca', { p_encontro_id: encontroId, p_vou: vou })
+  return error ? falha(error) : ok(null)
+}
+
+export async function justificarFalta(encontroId: string, texto: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('justificar_falta', { p_encontro_id: encontroId, p_texto: texto })
+  return error ? falha(error) : ok(null)
+}
+
+export type LinhaPresenca = {
+  pessoa_id: string
+  nome: string
+  numero_registro: number
+  em_dia: boolean
+  confirmou_em: string | null
+  presente_em: string | null
+  forma: 'qr_code' | 'lista' | null
+  justificativa: 'pendente' | 'aceita' | 'recusada' | null
+}
+
+/** Lista de presença (secretaria e presidência): associados ativos, confirmação, presença, em dia, justificativa. */
+export async function listaPresenca(encontroId: string): Promise<Resultado<LinhaPresenca[]>> {
+  const { data, error } = await cliente().rpc('lista_presenca', { p_encontro_id: encontroId })
+  return error ? falha(error) : ok((data as LinhaPresenca[] | null) ?? [])
+}
+
+export async function registrarPresenca(encontroId: string, pessoaId: string): Promise<Resultado<'registrada' | 'ja_presente'>> {
+  const { data, error } = await cliente().rpc('registrar_presenca', { p_encontro_id: encontroId, p_pessoa_id: pessoaId, p_forma: 'lista' })
+  return error ? falha(error) : ok(data as 'registrada' | 'ja_presente')
+}
+
+export type PresencaPorCodigo = { resultado: 'registrada' | 'ja_presente'; pessoa_id: string; nome: string; em_dia: boolean }
+
+/** Pelo QR Code da credencial (o código de 32 caracteres). */
+export async function registrarPresencaPorCodigo(encontroId: string, codigo: string): Promise<Resultado<PresencaPorCodigo>> {
+  const { data, error } = await cliente().rpc('registrar_presenca_por_codigo', { p_encontro_id: encontroId, p_codigo: codigo })
+  return error ? falha(error) : ok(data as PresencaPorCodigo)
+}
+
+export async function desfazerPresenca(encontroId: string, pessoaId: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('desfazer_presenca', { p_encontro_id: encontroId, p_pessoa_id: pessoaId })
+  return error ? falha(error) : ok(null)
+}
+
+/** Encerra a lista: o encontro fica "realizado"; quem não esteve tem falta. */
+export async function encerrarPresenca(encontroId: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('encerrar_presenca', { p_encontro_id: encontroId })
+  return error ? falha(error) : ok(null)
+}
+
+export type EncontroAberto = { id: string; titulo: string; inicio: string }
+
+/** Encontros com a lista de presença aberta agora (só a secretaria e a presidência recebem algo). */
+export async function encontrosComPresencaAberta(): Promise<Resultado<EncontroAberto[]>> {
+  const { data, error } = await cliente().rpc('encontros_com_presenca_aberta')
+  return error ? falha(error) : ok((data as EncontroAberto[] | null) ?? [])
+}
+
+export type JustificativaParaDecidir = {
+  id: string
+  texto: string
+  enviada_em: string
+  situacao: 'pendente' | 'aceita' | 'recusada'
+  motivo_decisao: string | null
+  encontro: { id: string; titulo: string; inicio: string } | null
+  pessoa: { nome: string } | null
+}
+
+/** Justificativas de falta (o 1º secretário decide). */
+export async function listarJustificativas(): Promise<Resultado<JustificativaParaDecidir[]>> {
+  const { data, error } = await cliente()
+    .from('justificativas_falta')
+    .select('id, texto, enviada_em, situacao, motivo_decisao, encontro:encontros(id, titulo, inicio), pessoa:pessoas(nome)')
+    .is('arquivado_em', null)
+    .order('enviada_em', { ascending: false })
+    .limit(200)
+    .returns<JustificativaParaDecidir[]>()
+  return error ? falha(error) : ok(data)
+}
+
+export async function decidirJustificativa(id: string, aceita: boolean, motivo: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('decidir_justificativa', { p_id: id, p_aceita: aceita, p_motivo: motivo })
+  return error ? falha(error) : ok(null)
+}
+
+export type MinhasFaltas = { faltas_seguidas: number; faltas_aviso: number; faltas_pauta: number }
+
+export async function minhasFaltas(): Promise<Resultado<MinhasFaltas>> {
+  const { data, error } = await cliente().rpc('minhas_faltas')
+  return error ? falha(error) : ok(data as MinhasFaltas)
+}
+
+export type FaltasDoAssociado = { pessoa_id: string; nome: string; numero_registro: number; faltas_seguidas: number }
+
+export async function faltasDosAssociados(): Promise<Resultado<FaltasDoAssociado[]>> {
+  const { data, error } = await cliente().rpc('faltas_dos_associados')
+  return error ? falha(error) : ok((data as FaltasDoAssociado[] | null) ?? [])
+}

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
   avisosDaData,
+  codigoDoQr,
   doCampoDataHora,
   mesmasDatasNosProximosMeses,
   nomesDosMeses,
@@ -86,5 +87,15 @@ describe('reuniões mensais repetidas', () => {
     // 31/12/2026 é a 5ª quinta de dezembro; fevereiro de 2027 não tem 5ª quinta (usa 25/02)
     const datas = mesmasDatasNosProximosMeses('2026-12-31T19:00:00-03:00', 2)
     assert.deepEqual(datas, ['2027-01-28T19:00:00-03:00', '2027-02-25T19:00:00-03:00'])
+  })
+})
+
+describe('QR Code da credencial (check-in)', () => {
+  it('tira o código do endereço de validação (de qualquer site) ou do código puro', () => {
+    const codigo = '0123456789abcdef0123456789abcdef'
+    assert.equal(codigoDoQr(`https://ieadespa.github.io/comep/teste/validar/${codigo}`), codigo)
+    assert.equal(codigoDoQr(` ${codigo} `), codigo)
+    assert.equal(codigoDoQr('https://exemplo.com/validar/123'), null)
+    assert.equal(codigoDoQr('texto qualquer'), null)
   })
 })

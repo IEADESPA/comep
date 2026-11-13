@@ -1,5 +1,7 @@
 import { Link } from 'react-router'
 import { Aviso, Carregando } from '../componentes/Basicos'
+import { minhasFaltas } from '../dados/encontros'
+import { useCarregar } from '../estado/useCarregar'
 import { itensVisiveis } from '../componentes/menu'
 import { NOME_DO_PERFIL } from '../dados/perfis'
 import { useSessao } from '../estado/contexto'
@@ -46,6 +48,7 @@ export function Inicio() {
       return (
         <>
           <h1>Olá, {primeiroNome}!</h1>
+          {(conta.perfis.includes('ministro') || conta.perfis.includes('presidente_igreja')) && <AvisoDeFaltas />}
 
           {conta.perfis.length > 0 ? (
             <ul className="perfis" aria-label="Seus perfis">
@@ -78,4 +81,23 @@ export function Inicio() {
       )
     }
   }
+}
+
+/** Faltas seguidas às reuniões mensais, sem justificativa aceita (Art. 8º, IV): o aviso ao associado. */
+function AvisoDeFaltas() {
+  const [carga] = useCarregar(minhasFaltas)
+  if (carga.situacao !== 'ok') return null
+  const { faltas_seguidas: faltas, faltas_aviso: aviso, faltas_pauta: pauta } = carga.dados
+  if (faltas < aviso) return null
+  return (
+    <Aviso titulo={`Você tem ${faltas} faltas seguidas nas reuniões mensais`}>
+      <p>
+        {faltas >= pauta
+          ? 'Sem justificativa aceita, o caso vai para a pauta da assembleia (Art. 8º, IV do Estatuto).'
+          : `Com ${pauta} faltas seguidas sem justificativa, o caso vai para a pauta da assembleia (Art. 8º, IV do Estatuto).`}{' '}
+        Se faltou por um motivo, envie a justificativa ao 1º secretário em <Link to="/assembleias">Assembleias</Link> (abra a
+        reunião e use "Justificar a falta").
+      </p>
+    </Aviso>
+  )
 }
