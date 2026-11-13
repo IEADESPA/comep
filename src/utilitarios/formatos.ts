@@ -68,3 +68,26 @@ export function contemTexto(texto: string | null | undefined, busca: string): bo
       .toLowerCase()
   return normalizar(texto ?? '').includes(normalizar(busca.trim()))
 }
+
+/** Só os 11 números do CPF. */
+export function limparCpf(valor: string | null | undefined): string {
+  return (valor ?? '').replace(/\D/g, '')
+}
+
+/** Confere os dígitos verificadores do CPF (com ou sem pontuação). */
+export function cpfValido(valor: string): boolean {
+  const cpf = limparCpf(valor)
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false
+  const digito = (tamanho: number) => {
+    let soma = 0
+    for (let i = 0; i < tamanho; i++) soma += Number(cpf[i]) * (tamanho + 1 - i)
+    return ((soma * 10) % 11) % 10
+  }
+  return digito(9) === Number(cpf[9]) && digito(10) === Number(cpf[10])
+}
+
+/** 52998224725 → 529.982.247-25 */
+export function formatarCpf(valor: string | null | undefined): string {
+  const cpf = limparCpf(valor)
+  return cpf.length === 11 ? `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9)}` : (valor ?? '')
+}

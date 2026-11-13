@@ -1,8 +1,11 @@
+import { CamposIdentidade } from '../../componentes/CamposIdentidade'
+import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
 import { useState } from 'react'
 import { Mensagem } from '../../componentes/Basicos'
 import type { Igreja, Titulo } from '../../dados/cadastros'
 import {
   atualizarMeusDados,
+  type MeusDadosBasicos,
   enviarArquivo,
   enviarPedido,
   reenviarPedido,
@@ -19,7 +22,7 @@ type Props = {
   pessoaId: string
   titulos: Titulo[]
   igrejas: Igreja[]
-  dadosPessoa: { nome: string; telefone: string | null }
+  dadosPessoa: MeusDadosBasicos
   /** Na correção de uma pendência: o pedido atual (os arquivos já enviados continuam valendo) */
   pedido?: Pedido
   aoConcluir: (mensagem: string) => void
@@ -29,6 +32,7 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
   const correcao = Boolean(pedido)
   const [nome, setNome] = useState(dadosPessoa.nome)
   const [telefone, setTelefone] = useState(dadosPessoa.telefone ?? '')
+  const [identidade, setIdentidade] = useState(identidadeInicial(dadosPessoa))
   const [dados, setDados] = useState<DadosPedido>({
     titulo_id: pedido?.titulo_id ?? '',
     titulo_desde: pedido?.titulo_desde ?? '',
@@ -77,9 +81,11 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
     if (comprovante && 'erro' in comprovante) return setErro(comprovante.erro)
     if (!foto && !dados.foto_caminho) return setErro('Escolha uma foto sua.')
     if (!comprovante && !dados.comprovante_caminho) return setErro('Escolha o comprovante do seu título.')
+    const erroIdentidade = erroDaIdentidade(identidade, true)
+    if (erroIdentidade) return setErro(erroIdentidade)
 
     setEnviando('Salvando seus dados…')
-    const pessoa = await atualizarMeusDados(pessoaId, nome, telefone)
+    const pessoa = await atualizarMeusDados(pessoaId, nome, telefone, identidadeParaGravar(identidade, dadosPessoa, false))
     if (pessoa.erro !== null) return falhou(pessoa.erro)
 
     let fotoCaminho = dados.foto_caminho
@@ -134,6 +140,7 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
             Telefone (WhatsApp) *
             <input required type="tel" autoComplete="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
           </label>
+          <CamposIdentidade valor={identidade} gravada={dadosPessoa} aoMudar={setIdentidade} obrigatorio />
         </div>
       </fieldset>
 

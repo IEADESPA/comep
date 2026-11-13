@@ -56,6 +56,18 @@ export function cnpjAleatorio(): string {
   return [...base, d1, d2].join('')
 }
 
+/** CPF numérico válido e aleatório (fictício), para não repetir entre execuções. */
+export function cpfAleatorio(): string {
+  for (;;) {
+    const base = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10))
+    if (base.every((n) => n === base[0])) continue
+    const digito = (numeros: number[]) =>
+      ((numeros.reduce((total, n, i) => total + n * (numeros.length + 1 - i), 0) * 10) % 11) % 10
+    const d1 = digito(base)
+    return [...base, d1, digito([...base, d1])].join('')
+  }
+}
+
 // ---------- Sessões reaproveitadas (ver autenticacao.setup.ts) ----------
 
 export type NomeUsuario = keyof typeof USUARIOS

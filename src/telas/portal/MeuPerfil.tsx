@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { Aviso, BotaoConfirmar, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { CamposIdentidade } from '../../componentes/CamposIdentidade'
+import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
+import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
 import {
   buscarFicha,
   NOME_DA_FORMA_ADMISSAO,
@@ -99,6 +102,7 @@ function Conteudo({ pessoaId, perfis, email }: { pessoaId: string; perfis: Perfi
             {ficha ? (
               <>
                 <NoComep ficha={ficha} valores={valores} />
+                <PendenciasCredencial pendencias={ficha.pendencias} propria />
                 <MinhaIgrejaEHistorico ficha={ficha} trocas={trocas} igrejas={igrejas} concluir={concluir} />
               </>
             ) : (
@@ -132,6 +136,7 @@ function Conteudo({ pessoaId, perfis, email }: { pessoaId: string; perfis: Perfi
 function MeusDados({ dados, email, concluir }: { dados: MeusDadosCompletos; email: string | null; concluir: Concluir }) {
   const [nome, setNome] = useState(dados.nome)
   const [telefone, setTelefone] = useState(dados.telefone ?? '')
+  const [identidade, setIdentidade] = useState(identidadeInicial(dados))
   const [foto, setFoto] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
@@ -144,8 +149,13 @@ function MeusDados({ dados, email, concluir }: { dados: MeusDadosCompletos; emai
   }, [dados.foto_caminho])
 
   async function salvar() {
+    const erro = erroDaIdentidade(identidade, false)
+    if (erro) return concluir({ erro }, '')
     setEnviando(true)
-    concluir(await atualizarMeusDados(dados.id, nome, telefone), 'Seus dados foram salvos.')
+    concluir(
+      await atualizarMeusDados(dados.id, nome, telefone, identidadeParaGravar(identidade, dados, false)),
+      'Seus dados foram salvos.',
+    )
     setEnviando(false)
   }
 
@@ -200,6 +210,7 @@ function MeusDados({ dados, email, concluir }: { dados: MeusDadosCompletos; emai
             E-mail de login
             <input type="email" value={email ?? ''} disabled />
           </label>
+          <CamposIdentidade valor={identidade} gravada={dados} aoMudar={setIdentidade} />
           <div className="acoes">
             <button type="submit" className="botao" disabled={enviando}>
               Salvar meus dados

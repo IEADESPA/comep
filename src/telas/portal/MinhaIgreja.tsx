@@ -92,6 +92,7 @@ function DadosDaIgreja({
   const [endereco, setEndereco] = useState(igreja.endereco ?? '')
   const [bairroId, setBairroId] = useState(igreja.bairro_id ?? '')
   const [telefone, setTelefone] = useState(igreja.telefone ?? '')
+  const [sigla, setSigla] = useState(igreja.sigla ?? '')
   const [enviando, setEnviando] = useState(false)
 
   return (
@@ -107,7 +108,7 @@ function DadosDaIgreja({
         onSubmit={async (e) => {
           e.preventDefault()
           setEnviando(true)
-          aoSalvar(await atualizarContatoIgreja(igreja.id, { endereco, bairro_id: bairroId, telefone }))
+          aoSalvar(await atualizarContatoIgreja(igreja.id, { endereco, bairro_id: bairroId, telefone, sigla }))
           setEnviando(false)
         }}
       >
@@ -133,6 +134,16 @@ function DadosDaIgreja({
           <label>
             Telefone da igreja
             <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+          </label>
+          <label>
+            Sigla (vai na credencial)
+            <input
+              maxLength={20}
+              autoCapitalize="characters"
+              placeholder="Ex.: IEADESPA"
+              value={sigla}
+              onChange={(e) => setSigla(e.target.value)}
+            />
           </label>
         </div>
         <p className="detalhe">Nome, CNPJ e denominação são atualizados pela secretaria.</p>

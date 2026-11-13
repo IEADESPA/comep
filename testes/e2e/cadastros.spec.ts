@@ -24,9 +24,12 @@ test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async 
   await expect(page.getByRole('alert')).toContainText('CNPJ inválido')
 
   await page.getByLabel(/^CNPJ/).fill(cnpjAleatorio())
+  const sigla = `E2E${Date.now().toString(36).slice(-6).toUpperCase()}${info.project.name.slice(0, 1).toUpperCase()}`
+  await page.getByLabel(/^Sigla/).fill(sigla)
   await page.getByRole('button', { name: 'Cadastrar igreja' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Igreja cadastrada.' })).toBeVisible()
   await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
+  await expect(page.getByLabel(/^Sigla/)).toHaveValue(sigla)
 
   await page.getByLabel(/^Bairro/).selectOption({ label: 'Bairro Fictício' })
   await page.getByRole('button', { name: 'Salvar alterações' }).click()
