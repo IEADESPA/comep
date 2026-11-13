@@ -31,7 +31,14 @@ export const ITENS_MENU: readonly ItemMenu[] = [
   { caminho: '/credenciais', titulo: 'Credenciais', descricao: 'Ver, imprimir e conferir as credenciais dos associados', perfis: DIRETORIA_CADASTRO, fase: 3, pronto: true },
   { caminho: '/igrejas', titulo: 'Igrejas', descricao: 'Cadastro de igrejas e denominações', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
   { caminho: '/financeiro', titulo: 'Financeiro', descricao: 'Contribuições, caixa, despesas e prestação de contas', perfis: ['tesouraria', 'presidencia', 'conselho_fiscal'], fase: 2, pronto: true },
-  { caminho: '/assembleias', titulo: 'Assembleias', descricao: 'Convocações, presença e atas', perfis: ['ministro', 'secretaria', 'presidencia'], fase: 4 },
+  {
+    caminho: '/assembleias',
+    titulo: 'Assembleias',
+    descricao: 'Assembleias, reuniões mensais, convocações e pauta',
+    perfis: ['ministro', 'secretaria', 'presidencia'],
+    fase: 4,
+    pronto: true,
+  },
   { caminho: '/projetos', titulo: 'Projetos', descricao: 'Projetos e eventos do Conselho', perfis: ['secretaria', 'tesouraria', 'presidencia'], fase: 5 },
   { caminho: '/avisos', titulo: 'Avisos', descricao: 'Mural de avisos', perfis: 'todos', fase: 5 },
   {

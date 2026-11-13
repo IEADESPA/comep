@@ -1,7 +1,11 @@
-import { Link } from 'react-router'
+import { useState } from 'react'
+import { Link, useParams } from 'react-router'
+import { MostrarCarga } from '../componentes/Basicos'
+import { convocacoesPublicas, NOME_DO_TIPO, type ConvocacaoPublica } from '../dados/encontros'
 import { buscarDadosComep, type DadosComep } from '../dados/site'
 import { useCarregar } from '../estado/useCarregar'
-import { formatarCnpj } from '../utilitarios/formatos'
+import { dataPorExtenso } from '../utilitarios/encontros'
+import { formatarCnpj, formatarDataHora } from '../utilitarios/formatos'
 
 // Site institucional público. Todo o texto vem do Estatuto do COMEP (PROJETO.md, seção 13).
 // Sede, contatos e CNPJ vêm de "Configurações → Dados do COMEP no site" (decisão 14); vazio aparece "—".
@@ -214,13 +218,7 @@ export function PaginaInicial() {
                 Veja como se associar
               </Link>
             </div>
-            <div>
-              <h2>Assembleias</h2>
-              <p>
-                As Assembleias Gerais Ordinárias acontecem na segunda quinzena de abril e de outubro. As convocações
-                oficiais serão publicadas aqui, com pelo menos 30 dias de antecedência.
-              </p>
-            </div>
+            <ProximasAssembleias />
           </div>
         </section>
 
@@ -303,6 +301,110 @@ export function QueroMeAssociar() {
       </main>
       <RodapeSite />
     </div>
+  )
+}
+
+/** Assembleias convocadas que ainda vão acontecer (o edital fica numa página própria). */
+function ProximasAssembleias() {
+  const [carga] = useCarregar(convocacoesPublicas)
+  const [agora] = useState(() => Date.now())
+  const proximas =
+    carga.situacao === 'ok'
+      ? carga.dados.filter((c) => c.situacao !== 'realizado' && new Date(c.inicio).getTime() >= agora).reverse()
+      : []
+  return (
+    <div>
+      <h2>Assembleias</h2>
+      {proximas.length === 0 ? (
+        <p>
+          As Assembleias Gerais Ordinárias acontecem na segunda quinzena de abril e de outubro. As convocações oficiais são
+          publicadas aqui, com pelo menos 30 dias de antecedência.
+        </p>
+      ) : (
+        <ul className="site-convocacoes" aria-label="Convocações">
+          {proximas.map((c) => (
+            <li key={c.id}>
+              <Link to={`/convocacoes/${c.id}`}>{c.titulo}</Link>
+              <span>
+                {c.situacao === 'cancelado' ? 'Cancelada' : dataPorExtenso(c.inicio)} · {c.local}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+/** /convocacoes/:id — edital e pauta de uma assembleia convocada (qualquer pessoa vê). */
+export function ConvocacaoPublicaPagina() {
+  const { id = '' } = useParams()
+  const [carga, recarregar] = useCarregar(convocacoesPublicas)
+  return (
+    <div className="site">
+      <CabecalhoSite />
+      <main className="site-secao">
+        <div className="site-largura site-texto">
+          <MostrarCarga carga={carga} recarregar={recarregar}>
+            {(lista) => {
+              const c = lista.find((x) => x.id === id)
+              return c ? (
+                <Convocacao c={c} />
+              ) : (
+                <>
+                  <h1>Convocação não encontrada</h1>
+                  <p>
+                    Ela pode ter sido retirada. <Link to="/">Ir para a página inicial</Link>
+                  </p>
+                </>
+              )
+            }}
+          </MostrarCarga>
+        </div>
+      </main>
+      <RodapeSite />
+    </div>
+  )
+}
+
+function Convocacao({ c }: { c: ConvocacaoPublica }) {
+  return (
+    <article aria-labelledby="titulo-convocacao">
+      <p className="site-sobretitulo">{NOME_DO_TIPO[c.tipo]}</p>
+      <h1 id="titulo-convocacao">{c.titulo}</h1>
+      {c.situacao === 'cancelado' && (
+        <p className="erro" role="alert">
+          Assembleia cancelada{c.motivo_cancelamento ? `: ${c.motivo_cancelamento}` : ''}.
+        </p>
+      )}
+      <dl className="definicoes">
+        <dt>Quando</dt>
+        <dd>{dataPorExtenso(c.inicio)} (1ª chamada)</dd>
+        <dt>Local</dt>
+        <dd>{c.local}</dd>
+        {c.convocado_em && (
+          <>
+            <dt>Convocada em</dt>
+            <dd>{formatarDataHora(c.convocado_em)}</dd>
+          </>
+        )}
+      </dl>
+      <h2>Pauta</h2>
+      <ol aria-label="Pauta">
+        {c.pauta.map((p) => (
+          <li key={p.ordem}>
+            {p.titulo}
+            {p.descricao && <p className="detalhe">{p.descricao}</p>}
+          </li>
+        ))}
+      </ol>
+      {c.edital && (
+        <>
+          <h2>Edital</h2>
+          <p className="texto-edital">{c.edital}</p>
+        </>
+      )}
+    </article>
   )
 }
 

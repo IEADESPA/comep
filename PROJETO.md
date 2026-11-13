@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.20 — 13 de novembro de 2026 — atualizado com a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.21 — 13 de novembro de 2026 — atualizado com a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -202,6 +202,8 @@ Decisões de 12/11/2026 (administrador técnico, com base na credencial que já 
   - com **2 faltas seguidas** sem justificativa, o sistema avisa o associado e a secretaria;
   - com **3**, o caso vai para a pauta da assembleia (Art. 8º, IV).
 - Histórico de assembleias e reuniões.
+- **Os números do estatuto ficam em Configurações** *(13/11/2026: a diretoria pensa em reformar o estatuto)*: antecedência da convocação (30 dias), meses e dia da AGO (abril e outubro, a partir do dia 16), minutos até a 2ª chamada (60) e faltas seguidas (2 para avisar, 3 para a pauta).
+- **Pergunta 10 (diretoria atual):** por decisão do administrador técnico (13/11/2026), o fim do mandato fica com a data fictícia do teste até a diretoria informar.
 
 ### 4.7 Projetos e comissões
 
@@ -287,7 +289,8 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - `lancamentos` — entradas e saídas (categoria do Art. 17, conta, projeto, comprovante, autorização do presidente)
 - `balancos` — balanço anual: situação, análise da diretoria, parecer do Conselho Fiscal, assembleia que aprovou
 - `orcamentos` — orçamento e plano anual de trabalho
-- `encontros` — assembleias ordinárias, extraordinárias e reuniões mensais (tipo, data, convocação, pauta, edital)
+- `encontros` e `encontro_pauta` — assembleias ordinárias, extraordinárias e reuniões mensais (tipo, data, convocação, pauta, edital) ✅ criadas
+- `config_assembleias` — os números do estatuto (antecedência, meses da AGO, 2ª chamada, faltas) ✅ criada
 - `encontro_presencas` — presença, check-in e justificativa de falta
 - `deliberacoes` — pauta votada, maioria exigida (simples, 3/5, 2/3), votos e resultado
 - `mandatos` — pessoa, cargo, órgão (Conselho Diretor ou Conselho Fiscal), início, fim, assembleia que elegeu
@@ -472,13 +475,31 @@ Decisões na seção 4.5. Revisão: `docs/revisoes/fase-3.md`.
   - desfazer e refazer; conferência antes de salvar (QR pequeno, item fora do cartão, falta o nome, a foto ou a validade);
   - cada vez que se salva nasce uma versão; dá para usar qualquer versão, voltar ao modelo padrão e arquivar as que não servem (nada se apaga)
 
-### Fase 4 — Assembleias, reuniões e diretoria (versão 4.0)
+### Fase 4 — Assembleias, reuniões e diretoria (versão 4.0-teste)
 
-- [ ] Assembleias ordinárias e extraordinárias e reuniões mensais; convocação com 30 dias, pauta e edital publicados no site
+Decisões na seção 4.6. Revisão: `docs/revisoes/fase-4.md`. **O estatuto pode ser reformado** (administrador técnico, 13/11/2026): os números dele ficam em Configurações → Assembleias e reuniões, com o valor do estatuto de 2021 como padrão.
+
+**4.1 — Assembleias e reuniões: convocação, pauta e edital** (versão 4.0-teste.1) — concluída em 13/11/2026
+
+- [x] Assembleias ordinárias e extraordinárias e reuniões mensais; convocação com 30 dias, pauta e edital publicados no site:
+  - a secretaria (ou a presidência) prepara: data, local, pauta (com o que vai a votação e a maioria exigida) e o texto do edital, que o sistema escreve a partir dos dados;
+  - **o presidente convoca** as assembleias (Art. 16, §2º). O banco recusa: menos de 30 dias, AGO fora da 2ª quinzena de abril ou outubro, sem pauta, sem edital, ou AGE sem dizer quem pediu (3/5 dos associados ou o Conselho Diretor);
+  - convocada, a assembleia aparece no **site**, para qualquer pessoa (edital e pauta), e se compartilha pelo WhatsApp;
+  - reunião mensal: a secretaria marca e publica, sem prazo e sem votação; dá para criar as dos próximos meses de uma vez (mesma semana e dia da semana);
+  - cancelar pede motivo (o site mostra "cancelada"); arquivar só tira das listas.
+
+**4.2 — Presença e faltas** (versão 4.0-teste.2)
+
 - [ ] Presença, check-in por QR Code e justificativa de falta (aceita pelo 1º secretário); aviso de faltas seguidas (Art. 8º, IV)
+
+**4.3 — Quórum, votações e ata** (versão 4.0-teste.3)
+
 - [ ] Quórum sobre os associados aptos (Art. 16, §4º), só votantes em dia (Art. 11) e maiorias exigidas (3/5, 2/3)
 - [ ] Deliberações e ata assinada pelo presidente e pelo 1º secretário
 - [ ] Desligamentos decididos em assembleia (Art. 8º)
+
+**4.4 — Diretoria e Conselho Fiscal** (versão 4.0-teste.4)
+
 - [ ] Diretoria e Conselho Fiscal: eleições, mandatos e perfis automáticos pelo cargo
 
 ### Fase 5 — Projetos, comissões e comunicação (versão 5.0)

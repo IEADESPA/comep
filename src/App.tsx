@@ -11,6 +11,7 @@ import { Configuracoes } from './telas/administracao/Configuracoes'
 import { NovaSenha, PrimeiroAcesso } from './telas/acesso/PrimeiroAcesso'
 import { CredencialDe, ImprimirCredenciais, ImprimirMinhaCredencial, ListaCredenciais, MinhaCredencial } from './telas/credencial/Credenciais'
 import { EditorModelo } from './telas/credencial/EditorModelo'
+import { DetalheEncontro, EditarEncontro, ListaEncontros, NovoEncontro } from './telas/assembleias/Assembleias'
 import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
 import { Financeiro } from './telas/financeiro/Financeiro'
@@ -26,7 +27,7 @@ import { CriarAcessoPedido, MeuPedido } from './telas/pedido/MeuPedido'
 import { MeuPerfil } from './telas/portal/MeuPerfil'
 import { MinhaIgreja } from './telas/portal/MinhaIgreja'
 import { ConfiguracaoAusente, EmConstrucao } from './telas/Simples'
-import { PaginaInicial, PaginaNaoEncontrada, QueroMeAssociar } from './telas/Site'
+import { ConvocacaoPublicaPagina, PaginaInicial, PaginaNaoEncontrada, QueroMeAssociar } from './telas/Site'
 
 // "/comep/" vira "/comep"; com VITE_BASE=/ fica sem prefixo
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
@@ -59,6 +60,8 @@ export default function App() {
           <Route path="nova-senha" element={<NovaSenha />} />
           {/* Validação pública da credencial (o QR Code abre aqui, sem login) */}
           <Route path="validar/:codigo" element={<ValidarCredencial />} />
+          {/* Convocações das assembleias (edital e pauta), para qualquer pessoa */}
+          <Route path="convocacoes/:id" element={<ConvocacaoPublicaPagina />} />
 
           {/* Portal do membro (exige login) */}
           <Route element={<RotaProtegida />}>
@@ -84,6 +87,12 @@ export default function App() {
                 <Route path="imprimir" element={<ImprimirCredenciais />} />
                 <Route path="modelo" element={<EditorModelo />} />
                 <Route path=":pessoaId" element={<CredencialDe />} />
+              </Route>
+              <Route path="assembleias" element={<Area caminho="/assembleias" />}>
+                <Route index element={<ListaEncontros />} />
+                <Route path="novo" element={<NovoEncontro />} />
+                <Route path=":id" element={<DetalheEncontro />} />
+                <Route path=":id/editar" element={<EditarEncontro />} />
               </Route>
               <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>
                 <Route index element={<MinhaIgreja />} />

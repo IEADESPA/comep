@@ -40,6 +40,7 @@ import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { buscarConfigCredencial, corrigirFimMandato, registrarNovoMandato, salvarTextoVerso } from '../../dados/credencial'
+import { buscarConfigAssembleias, salvarConfigAssembleias, type ConfigAssembleias } from '../../dados/encontros'
 import { DICA_VALOR, lerValor, PADRAO_VALOR, valorParaCampo } from '../../utilitarios/valores'
 import { cnpjValido, formatarCnpj, formatarData, hojeIso, limparCnpj } from '../../utilitarios/formatos'
 
@@ -74,6 +75,7 @@ export function Configuracoes() {
         <a href="#valores">Valores da contribuição</a>
         <a href="#inscricao">Taxa de inscrição</a>
         <a href="#credencial">Credencial</a>
+        <a href="#assembleias">Assembleias e reuniões</a>
         <a href="#vencimentos">Vencimentos</a>
         {editaValores && <a href="#caixa">Contas e categorias do caixa</a>}
       </nav>
@@ -106,6 +108,7 @@ export function Configuracoes() {
       <TaxaInscricao key={`taxa-${versaoTaxa}`} podeEditar={editaValores} aoMudar={() => setVersaoValores((v) => v + 1)} />
       <Vencimentos podeEditar={editaValores} />
       <ConfigCredencialSecao podeEditar={perfis.some((p) => p === 'secretaria' || p === 'presidencia')} />
+      <RegrasAssembleias podeEditar={perfis.some((p) => p === 'secretaria' || p === 'presidencia')} />
       {editaValores && <ContasECategorias />}
     </>
   )
@@ -1137,5 +1140,117 @@ function NovoMandato({
         )}
       </form>
     </details>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Assembleias e reuniões: os números do estatuto (se o estatuto mudar, muda aqui)
+// ---------------------------------------------------------------------
+
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+function RegrasAssembleias({ podeEditar }: { podeEditar: boolean }) {
+  const [carga, recarregar] = useCarregar(buscarConfigAssembleias)
+  const [retorno, setRetorno] = useState<Retorno>({})
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <section className="painel" id="assembleias" aria-labelledby="titulo-regras-assembleias">
+      <h2 id="titulo-regras-assembleias">Assembleias e reuniões</h2>
+      <p className="detalhe">
+        Os números vêm do estatuto de 2021. Se o estatuto for reformado, a secretaria ou a presidência ajusta aqui, e o
+        sistema passa a seguir os novos.
+      </p>
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {(config) => (
+          <FormRegrasAssembleias
+            key={JSON.stringify(config)}
+            config={config}
+            podeEditar={podeEditar}
+            enviando={enviando}
+            aoSalvar={(nova) =>
+              void umaVez(async () => {
+                const r = await salvarConfigAssembleias(nova)
+                setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Regras das assembleias salvas.' })
+                if (r.erro === null) recarregar()
+              })
+            }
+          />
+        )}
+      </MostrarCarga>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+    </section>
+  )
+}
+
+function FormRegrasAssembleias({
+  config,
+  podeEditar,
+  enviando,
+  aoSalvar,
+}: {
+  config: ConfigAssembleias
+  podeEditar: boolean
+  enviando: boolean
+  aoSalvar: (config: ConfigAssembleias) => void
+}) {
+  const [c, setC] = useState(config)
+  const numero = (campo: keyof Omit<ConfigAssembleias, 'meses_ago'>, rotulo: string, min: number, max: number) => (
+    <label>
+      {rotulo}
+      <input
+        type="number"
+        min={min}
+        max={max}
+        required
+        value={c[campo]}
+        disabled={!podeEditar}
+        onChange={(e) => setC({ ...c, [campo]: Number(e.target.value) })}
+      />
+    </label>
+  )
+  return (
+    <form
+      aria-label="Regras das assembleias"
+      onSubmit={(e) => {
+        e.preventDefault()
+        aoSalvar(c)
+      }}
+    >
+      <div className="grade-form">
+        {numero('antecedencia_dias', 'Antecedência mínima da convocação, em dias (Art. 16, §2º)', 0, 365)}
+        {numero('minutos_segunda_chamada', 'Minutos até a 2ª chamada (Art. 16, §4º)', 0, 600)}
+        {numero('dia_minimo_ago', 'A AGO pode ser a partir do dia (Art. 16, §6º: 2ª quinzena = 16)', 1, 28)}
+        {numero('faltas_aviso', 'Faltas seguidas sem justificativa para avisar o associado', 1, 12)}
+        {numero('faltas_pauta', 'Faltas seguidas para ir à pauta da assembleia (Art. 8º, IV)', 1, 12)}
+      </div>
+      <fieldset className="pauta-campos">
+        <legend>Meses da Assembleia Geral Ordinária (Art. 16, §6º)</legend>
+        <div className="editor-marcas">
+          {MESES_CURTOS.map((nome, i) => (
+            <label key={nome} className="caixa-marcar">
+              <input
+                type="checkbox"
+                disabled={!podeEditar}
+                checked={c.meses_ago.includes(i + 1)}
+                onChange={(e) =>
+                  setC({
+                    ...c,
+                    meses_ago: e.target.checked ? [...c.meses_ago, i + 1].sort((a, b) => a - b) : c.meses_ago.filter((m) => m !== i + 1),
+                  })
+                }
+              />
+              {nome}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      {podeEditar && (
+        <div className="acoes">
+          <button type="submit" className="botao" disabled={enviando || c.meses_ago.length === 0}>
+            Salvar as regras
+          </button>
+        </div>
+      )}
+    </form>
   )
 }
