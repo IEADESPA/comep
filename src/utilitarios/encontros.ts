@@ -165,3 +165,88 @@ export function codigoDoQr(texto: string): string | null {
   const achado = texto.match(/\/validar\/([0-9a-f]{32})\b/) ?? texto.trim().match(/^([0-9a-f]{32})$/)
   return achado ? achado[1] : null
 }
+
+// ---------- Quórum, maiorias e ata (Fase 4.3) ----------
+
+/** Quórum da 1ª chamada: metade mais um dos aptos (Art. 16, §4º). */
+export function quorumPrimeiraChamada(aptos: number): number {
+  return Math.floor(aptos / 2) + 1
+}
+
+/** Votos a favor exigidos (3/5 ou 2/3 dos presentes aptos — pergunta 24); null = maioria simples. */
+export function minimoAFavor(maioria: 'simples' | 'tres_quintos' | 'dois_tercos', votantes: number): number | null {
+  if (maioria === 'simples') return null
+  return maioria === 'tres_quintos' ? Math.ceil((votantes * 3) / 5) : Math.ceil((votantes * 2) / 3)
+}
+
+/** A conta da maioria, em palavras, para mostrar na tela e na ata. */
+export function explicarMaioria(maioria: 'simples' | 'tres_quintos' | 'dois_tercos', votantes: number): string {
+  const minimo = minimoAFavor(maioria, votantes)
+  if (minimo === null) return 'maioria simples (mais votos a favor que contra)'
+  return `${maioria === 'tres_quintos' ? '3/5' : '2/3'} dos ${votantes} presentes aptos = ${minimo} votos a favor`
+}
+
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`
+
+const TIPO_NA_ATA = { ago: 'Assembleia Geral Ordinária', age: 'Assembleia Geral Extraordinária', reuniao_mensal: 'reunião mensal' } as const
+
+type ItemNaAta = { id: string; ordem: number; titulo: string; deliberativo: boolean }
+type VotoNaAta = {
+  pauta_id: string
+  maioria: 'simples' | 'tres_quintos' | 'dois_tercos'
+  votantes: number
+  a_favor: number
+  contra: number
+  abstencoes: number
+  aprovada: boolean
+  desligado?: string | null
+}
+
+/** Texto da ata a partir do que o sistema registrou (o 1º secretário completa e ajusta). */
+export function textoDaAta(d: {
+  tipo: 'ago' | 'age' | 'reuniao_mensal'
+  inicio: string
+  local: string
+  chamada: 'primeira' | 'segunda' | null
+  aptos: number | null
+  presentesAptos: number | null
+  presentes: number
+  pauta: ItemNaAta[]
+  votos: VotoNaAta[]
+}): string {
+  const data = dataPorExtenso(d.inicio).replace(/^[^,]+, /, '')
+  const linhas = [
+    `ATA DA ${TIPO_NA_ATA[d.tipo].toUpperCase()} DO CONSELHO DE MINISTROS EVANGÉLICOS DE PARAUAPEBAS (COMEP)`,
+    '',
+    `Em ${data}, em ${d.local}, reuniram-se os associados do COMEP em ${TIPO_NA_ATA[d.tipo]}, convocada pelo Presidente com a antecedência prevista no Estatuto (Art. 16, §2º). ` +
+      (d.chamada
+        ? `A assembleia foi instalada em ${d.chamada === 'primeira' ? 'primeira' : 'segunda'} chamada, com ${plural(d.presentesAptos ?? 0, 'associado apto presente', 'associados aptos presentes')}, de ${plural(d.aptos ?? 0, 'apto', 'aptos')} (${plural(d.presentes, 'presente', 'presentes')} ao todo), conforme a lista de presença (Art. 16, §1º e §4º).`
+        : `Estiveram presentes ${plural(d.presentes, 'associado', 'associados')}, conforme a lista de presença (Art. 16, §1º).`),
+    '',
+    'Pauta e deliberações:',
+  ]
+  for (const item of d.pauta) {
+    const voto = d.votos.find((v) => v.pauta_id === item.id)
+    if (!item.deliberativo) {
+      linhas.push(`${item.ordem}. ${item.titulo}: (informe — registrar aqui o que foi tratado).`)
+    } else if (!voto) {
+      linhas.push(`${item.ordem}. ${item.titulo}: (votação não registrada).`)
+    } else {
+      linhas.push(
+        `${item.ordem}. ${item.titulo}: ${voto.aprovada ? 'APROVADO' : 'REJEITADO'}, com ${plural(voto.a_favor, 'voto', 'votos')} a favor, ${voto.contra} contra e ${plural(voto.abstencoes, 'abstenção', 'abstenções')} (exigido: ${explicarMaioria(voto.maioria, voto.votantes)}).` +
+          (voto.desligado && voto.aprovada ? ` Fica desligado(a) do COMEP: ${voto.desligado} (Art. 8º).` : ''),
+      )
+    }
+  }
+  linhas.push(
+    '',
+    'Nada mais havendo a tratar, foi encerrada a assembleia, e eu, 1º Secretário, lavrei a presente ata, que vai assinada por mim e pelo Presidente (Art. 12, §2º, IV e §4º).',
+    '',
+    `Parauapebas, ${data.replace(/, às .*$/, '')}.`,
+    '',
+    '1º Secretário',
+    '',
+    'Presidente',
+  )
+  return linhas.join('\n')
+}

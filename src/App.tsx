@@ -13,6 +13,7 @@ import { CredencialDe, ImprimirCredenciais, ImprimirMinhaCredencial, ListaCreden
 import { EditorModelo } from './telas/credencial/EditorModelo'
 import { DetalheEncontro, EditarEncontro, ListaEncontros, NovoEncontro } from './telas/assembleias/Assembleias'
 import { FaltasEJustificativas, ListaDePresenca } from './telas/assembleias/Presenca'
+import { ConducaoAssembleia } from './telas/assembleias/Conducao'
 import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
 import { Financeiro } from './telas/financeiro/Financeiro'
@@ -95,6 +96,7 @@ export default function App() {
                 <Route path="faltas" element={<FaltasEJustificativas />} />
                 <Route path=":id" element={<DetalheEncontro />} />
                 <Route path=":id/presenca" element={<ListaDePresenca />} />
+                <Route path=":id/conducao" element={<ConducaoAssembleia />} />
                 <Route path=":id/editar" element={<EditarEncontro />} />
               </Route>
               <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>

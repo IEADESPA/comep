@@ -30,6 +30,7 @@ import {
 import { ok } from '../../dados/cliente'
 import type { Perfil } from '../../dados/perfis'
 import { useSessao } from '../../estado/contexto'
+import { ResultadoDaAssembleia } from './Conducao'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarDataHora } from '../../utilitarios/formatos'
@@ -568,6 +569,8 @@ function ConteudoDetalhe({ id }: { id: string }) {
                 </section>
               )}
 
+              {e.tipo !== 'reuniao_mensal' && (e.situacao === 'convocado' || e.situacao === 'realizado') && <ResultadoDaAssembleia e={e} />}
+
               {ehAssociado(perfis) && pessoaId && (e.situacao === 'convocado' || e.situacao === 'realizado') && (
                 <Participacao e={e} pessoaId={pessoaId} />
               )}
@@ -577,6 +580,11 @@ function ConteudoDetalhe({ id }: { id: string }) {
                 {(e.situacao === 'convocado' || e.situacao === 'realizado') && prepara(perfis) && (
                   <Link className="botao" to={`/assembleias/${e.id}/presenca`}>
                     Lista de presença
+                  </Link>
+                )}
+                {(e.situacao === 'convocado' || e.situacao === 'realizado') && e.tipo !== 'reuniao_mensal' && prepara(perfis) && (
+                  <Link className="botao" to={`/assembleias/${e.id}/conducao`}>
+                    Conduzir: quórum, votações e ata
                   </Link>
                 )}
                 {e.situacao === 'agendado' && prepara(perfis) && (
