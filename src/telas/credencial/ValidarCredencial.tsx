@@ -1,7 +1,11 @@
 // /validar/:codigo — página pública que o QR Code da credencial abre (sem login).
 // Mostra só o necessário: foto, nome, título, nº de registro, igreja (sigla) e a situação DE AGORA.
+import { useState } from 'react'
 import { useParams } from 'react-router'
-import { MostrarCarga } from '../../componentes/Basicos'
+import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { encontrosComPresencaAberta, registrarPresencaPorCodigo, type EncontroAberto } from '../../dados/encontros'
+import { useSessao } from '../../estado/contexto'
+import { useUmaVez } from '../../estado/useUmaVez'
 import { urlFotoPublica, validarCredencial, type Validacao } from '../../dados/credencial'
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, formatarDataHora } from '../../utilitarios/formatos'
@@ -22,6 +26,7 @@ export function ValidarCredencial() {
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(v) => <Resultado v={v} />}
       </MostrarCarga>
+      <MarcarPresenca codigo={codigo} />
       <p className="detalhe validacao-nota">
         Esta página mostra a situação no momento da consulta. A credencial vale até o fim do mandato da diretoria; a
         impressa precisa ser impressa de novo a cada novo mandato.
@@ -98,6 +103,51 @@ function Resultado({ v }: { v: Validacao }) {
         )}
       </ul>
       <p className="detalhe">Consultado em {formatarDataHora(v.consultado_em)}.</p>
+    </section>
+  )
+}
+
+/**
+ * Check-in (Fase 4.2): a secretaria aponta a câmera do celular para o QR Code da credencial; esta página abre e,
+ * se ela estiver logada e houver encontro com a lista de presença aberta, mostra o botão "Marcar presença".
+ */
+function MarcarPresenca({ codigo }: { codigo: string }) {
+  const { estado } = useSessao()
+  const perfis = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
+  const podeMarcar = perfis.includes('secretaria') || perfis.includes('presidencia')
+  if (!podeMarcar) return null
+  return <BotoesDePresenca codigo={codigo} />
+}
+
+function BotoesDePresenca({ codigo }: { codigo: string }) {
+  const [carga] = useCarregar(encontrosComPresencaAberta)
+  const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
+  const [enviando, umaVez] = useUmaVez()
+  if (carga.situacao !== 'ok' || carga.dados.length === 0) return null
+  const marcar = (e: EncontroAberto) =>
+    void umaVez(async () => {
+      const r = await registrarPresencaPorCodigo(e.id, codigo)
+      if (r.erro !== null) return setRetorno({ erro: r.erro })
+      setRetorno({
+        sucesso:
+          r.dados.resultado === 'ja_presente'
+            ? `${r.dados.nome} já estava presente em "${e.titulo}".`
+            : `Presença registrada em "${e.titulo}": ${r.dados.nome}${r.dados.em_dia ? '' : ' (contribuição em atraso: não vota)'}.`,
+      })
+    })
+  return (
+    <section className="validacao-presenca" aria-label="Lista de presença">
+      <p>
+        <strong>Secretaria:</strong> lista de presença aberta.
+      </p>
+      <div className="acoes">
+        {carga.dados.map((e) => (
+          <button key={e.id} type="button" className="botao" disabled={enviando} onClick={() => marcar(e)}>
+            Marcar presença em {e.titulo}
+          </button>
+        ))}
+      </div>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
     </section>
   )
 }

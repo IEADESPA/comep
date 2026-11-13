@@ -71,6 +71,12 @@ O que entrou:
   - texto do edital;
   - reuniões repetidas, inclusive quando o mês não tem a 5ª semana.
 
+### Trava 1
+
+| Pull request | Resultado | Data |
+|---|---|---|
+| #25 — Fase 4.1: assembleias e reuniões | Aprovado (verificar + ponta a ponta), publicado e conferido no site de teste (39 de 39 nos testes de assembleias, site e portal) | 13/11/2026 |
+
 ### Trava 3
 
 | O que é testado (ponta a ponta) | Resultado |
@@ -93,3 +99,56 @@ O que entrou:
 - **reuniões mensais (1ª terça, 19h30):** dezembro e janeiro publicadas, fevereiro em rascunho.
 
 Tudo com o local "Sede fictícia do COMEP (teste)".
+
+## Entrega 4.2 — Presença e faltas (versão 4.0-teste.2)
+
+**Resultado: aprovada no ambiente de teste em 13/11/2026.**
+
+O que entrou:
+
+- **O associado:**
+  - na página do encontro, em "Minha participação": **"Vou participar"** (e "Não vou mais") e **"Justificar a falta"**, antes do encontro ou até 30 dias depois;
+  - vê a situação da justificativa: em análise, aceita ou recusada (com o motivo);
+  - **no Início**, vê o aviso de faltas seguidas (a partir de 2).
+- **A secretaria (ou a presidência) — lista de presença** de cada encontro convocado:
+  - **abre no dia**, 6 horas antes, e fecha quando é encerrada;
+  - **check-in pelo QR Code** da credencial:
+    - com a **câmera do celular**: o QR abre a página de validação, que, para a secretaria logada, mostra o botão **"Marcar presença em …"**. Funciona em qualquer celular;
+    - **na própria lista**, com o botão "Ler o QR Code das credenciais", nos navegadores com leitor embutido (Chrome e Edge). A mesma credencial não registra de novo por 3 segundos;
+  - **pela busca** do nome ou do nº, com "Marcar presente" e "Desfazer" (para engano);
+  - mostra quantos estão presentes, quantos deles estão em dia (votam) e quem confirmou. Quem está em atraso aparece marcado;
+  - **"Encerrar a lista"** (com confirmação): o encontro fica **realizado** e quem não esteve presente tem **falta**.
+- **Faltas e justificativas** (menu Assembleias, para a secretaria e a presidência):
+  - **justificativas para decidir:** aceitar, ou recusar com motivo. Decide o 1º secretário (diretoria, 11/11/2026); até a 4.4 (cargos), é o perfil Secretaria. Ninguém decide a própria;
+  - **faltas seguidas às reuniões mensais**, sem justificativa aceita: "Avisar o associado" a partir de 2 e "Levar à pauta da assembleia" a partir de 3 (Art. 8º, IV). Os números estão em Configurações;
+  - contam só as reuniões mensais encerradas depois da admissão; a assembleia e a reunião cancelada não contam. Se a regra vale também para as assembleias é a **pergunta 22**.
+
+### Trava 2
+
+- [x] Migração `20261113230000_presencas.sql`, aplicada no `comep-teste`.
+- [x] **12 testes novos do banco** (`presencas.test.ts`):
+  - confirmar "vou participar", e quem não é associado não confirma;
+  - marcar pela lista, no dia; o ministro não marca; e encontro distante ainda não abriu;
+  - pelo QR Code: devolve o nome; a segunda leitura diz "já presente"; código inválido é recusado;
+  - a página do QR sabe qual encontro está aberto (só para a secretaria);
+  - desfazer e encerrar: o encontro fica realizado e a lista fecha;
+  - a lista de presença é só da secretaria e da presidência;
+  - cada um vê só as próprias presenças, e o visitante não vê nada;
+  - quem esteve presente não justifica; quem faltou justifica e pode reescrever;
+  - o 1º secretário decide, recusar pede motivo, e a decidida não muda;
+  - faltas seguidas param na presença ou na justificativa aceita;
+  - a assembleia e a reunião cancelada não contam;
+  - as próprias faltas, e a lista de todos só para a secretaria.
+- [x] **1 teste de unidade:** o código da credencial lido do QR Code.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| Lista de presença: marcar o ministro pela busca e desfazer | ✅ |
+| Check-in pelo QR Code: a presidência abre a página de validação da credencial do ministro e usa "Marcar presença em …"; a lista mostra "(QR Code)"; o ministro vê "Você esteve presente" | ✅ |
+| O ministro confirma "Vou participar", justifica a falta, vê "em análise"; a presidência aceita e o ministro vê "aceita" | ✅ |
+| O ministro não abre as faltas de todos | ✅ |
+
+- **98 testes de ponta a ponta** passando no computador e no celular; **323** do banco e de unidade.
+- Ler o QR Code com a câmera dentro do app não dá para testar automaticamente (precisa de câmera). O caminho pela câmera do celular, que abre a página de validação, foi testado.

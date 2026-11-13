@@ -8,7 +8,10 @@ import {
   buscarConfigAssembleias,
   buscarEncontro,
   cancelarEncontro,
+  confirmarPresenca,
   convocarEncontro,
+  justificarFalta,
+  minhaParticipacao,
   listarEncontros,
   NOME_DA_MAIORIA,
   NOME_DA_SITUACAO_ENCONTRO,
@@ -45,6 +48,14 @@ function usePerfis(): readonly Perfil[] {
   const { estado } = useSessao()
   return estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
 }
+
+function useMinhaPessoa(): string | null {
+  const { estado } = useSessao()
+  return estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.pessoaId : null
+}
+
+/** Associado (ministro ou presidente de igreja): confirma presença e justifica falta. */
+const ehAssociado = (perfis: readonly Perfil[]) => perfis.includes('ministro') || perfis.includes('presidente_igreja')
 
 const prepara = (perfis: readonly Perfil[]) => perfis.includes('secretaria') || perfis.includes('presidencia')
 /** Mesma regra do banco: assembleia, só o presidente; reunião mensal, a secretaria também. */
@@ -88,6 +99,9 @@ export function ListaEncontros() {
         <div className="acoes">
           <Link className="botao" to="/assembleias/novo">
             Preparar assembleia ou reunião
+          </Link>
+          <Link className="botao botao-secundario" to="/assembleias/faltas">
+            Faltas e justificativas
           </Link>
           <Link className="botao botao-secundario" to="/configuracoes#assembleias">
             Regras (prazos do estatuto)
@@ -462,6 +476,7 @@ export function DetalheEncontro() {
 
 function ConteudoDetalhe({ id }: { id: string }) {
   const perfis = usePerfis()
+  const pessoaId = useMinhaPessoa()
   const navegar = useNavigate()
   const local = useLocation()
   const [carga, recarregar] = useCarregar(() => buscarEncontro(id))
@@ -553,8 +568,17 @@ function ConteudoDetalhe({ id }: { id: string }) {
                 </section>
               )}
 
+              {ehAssociado(perfis) && pessoaId && (e.situacao === 'convocado' || e.situacao === 'realizado') && (
+                <Participacao e={e} pessoaId={pessoaId} />
+              )}
+
               {/* Ações de quem prepara e de quem convoca */}
               <div className="acoes nao-imprimir">
+                {(e.situacao === 'convocado' || e.situacao === 'realizado') && prepara(perfis) && (
+                  <Link className="botao" to={`/assembleias/${e.id}/presenca`}>
+                    Lista de presença
+                  </Link>
+                )}
                 {e.situacao === 'agendado' && prepara(perfis) && (
                   <Link className="botao botao-secundario" to={`/assembleias/${e.id}/editar`}>
                     Alterar
@@ -659,5 +683,104 @@ function ConteudoDetalhe({ id }: { id: string }) {
         }}
       </MostrarCarga>
     </>
+  )
+}
+
+// ---------------------------------------------------------------------
+// O associado: "vou participar" e justificar a falta (o 1º secretário decide)
+// ---------------------------------------------------------------------
+
+function Participacao({ e, pessoaId }: { e: EncontroCompleto; pessoaId: string }) {
+  const [carga, recarregar] = useCarregar(() => minhaParticipacao(e.id, pessoaId))
+  const [texto, setTexto] = useState('')
+  const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
+  const [enviando, umaVez] = useUmaVez()
+  const [agora] = useState(() => Date.now())
+  const futuro = e.situacao === 'convocado' && new Date(e.inicio).getTime() > agora
+  const concluir = (r: { erro: string | null }, sucesso: string) => {
+    setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+    if (r.erro === null) recarregar()
+  }
+  return (
+    <section className="painel nao-imprimir" aria-labelledby="titulo-participacao">
+      <h2 id="titulo-participacao">Minha participação</h2>
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {(p) => (
+          <>
+            {p.presente_em ? (
+              <p>
+                <span className="etiqueta etiqueta-ok">Você esteve presente</span> (registrado em {formatarDataHora(p.presente_em)}).
+              </p>
+            ) : (
+              futuro && (
+                <div className="acoes">
+                  {p.confirmou_em ? (
+                    <>
+                      <span className="etiqueta etiqueta-ok">Você confirmou que vai</span>
+                      <button
+                        type="button"
+                        className="botao-texto"
+                        disabled={enviando}
+                        onClick={() => void umaVez(async () => concluir(await confirmarPresenca(e.id, false), 'Confirmação retirada.'))}
+                      >
+                        Não vou mais
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="botao"
+                      disabled={enviando}
+                      onClick={() => void umaVez(async () => concluir(await confirmarPresenca(e.id, true), 'Presença confirmada. No dia, mostre a credencial.'))}
+                    >
+                      Vou participar
+                    </button>
+                  )}
+                </div>
+              )
+            )}
+            {!p.presente_em && p.justificativa && (
+              <p>
+                Justificativa de falta:{' '}
+                {p.justificativa.situacao === 'pendente' ? (
+                  <span className="etiqueta etiqueta-conferencia">em análise pelo 1º secretário</span>
+                ) : p.justificativa.situacao === 'aceita' ? (
+                  <span className="etiqueta etiqueta-ok">aceita</span>
+                ) : (
+                  <span className="etiqueta etiqueta-atraso">recusada: {p.justificativa.motivo_decisao}</span>
+                )}
+                <br />
+                <q>{p.justificativa.texto}</q>
+              </p>
+            )}
+            {!p.presente_em && (!p.justificativa || p.justificativa.situacao === 'pendente') && (
+              <details className="acao-recolhida">
+                <summary>{futuro ? 'Não vou poder ir: justificar a falta' : 'Justificar a falta'}</summary>
+                <form
+                  aria-label="Justificar a falta"
+                  onSubmit={(ev) => {
+                    ev.preventDefault()
+                    void umaVez(async () => {
+                      concluir(await justificarFalta(e.id, texto), 'Justificativa enviada ao 1º secretário.')
+                      setTexto('')
+                    })
+                  }}
+                >
+                  <label>
+                    Justificativa *
+                    <textarea required minLength={3} maxLength={1000} rows={3} value={texto} onChange={(ev) => setTexto(ev.target.value)} />
+                  </label>
+                  <button type="submit" className="botao" disabled={enviando}>
+                    {p.justificativa ? 'Enviar de novo (substitui a anterior)' : 'Enviar justificativa'}
+                  </button>
+                </form>
+                <p className="detalhe">Vale até 30 dias depois do encontro. O 1º secretário aceita ou recusa.</p>
+              </details>
+            )}
+          </>
+        )}
+      </MostrarCarga>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+    </section>
   )
 }
