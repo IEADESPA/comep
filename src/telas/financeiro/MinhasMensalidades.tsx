@@ -17,6 +17,7 @@ import {
 } from '../../dados/financeiro'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
+import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
 import { prepararComprovante } from '../../utilitarios/imagens'
 
@@ -80,7 +81,7 @@ function Conteudo({ pessoaId }: { pessoaId: string }) {
               </Aviso>
             )
           }
-          if (situacao.jubilado) {
+          if (situacao.jubilado && situacao.em_dia) {
             return (
               <Aviso titulo="Você é jubilado">
                 <p>Associado jubilado é isento da contribuição (decisão da diretoria, 11/11/2026).</p>
@@ -90,7 +91,12 @@ function Conteudo({ pessoaId }: { pessoaId: string }) {
           const valor = (tipo: 'mensal' | 'anual') =>
             valores.find((v: ValorContribuicao) => v.categoria === situacao.categoria_contribuicao && v.tipo === tipo)
           const visiveis = cobrancas.filter((c) => c.situacao !== 'cancelada')
-          const algumaPaga = cobrancas.some((c) => c.situacao === 'paga' || c.informes.some((i) => i.situacao === 'pendente'))
+          const algumaPaga = cobrancas.some(
+            (c) =>
+              c.exercicio === exercicio &&
+              (c.tipo === 'mensal' || c.tipo === 'anual') &&
+              (c.situacao === 'paga' || c.informes.some((i) => i.situacao === 'pendente')),
+          )
 
           return (
             <>
@@ -178,7 +184,7 @@ function Plano({
   podeTrocar: boolean
   aoTrocar: (tipo: 'mensal' | 'anual') => Promise<boolean>
 }) {
-  const [enviando, setEnviando] = useState(false)
+  const [enviando, umaVez] = useUmaVez()
   const outro = plano === 'mensal' ? 'anual' : 'mensal'
   return (
     <section className="painel" aria-labelledby="titulo-plano">
@@ -191,11 +197,7 @@ function Plano({
           type="button"
           className="botao botao-secundario"
           disabled={enviando}
-          onClick={async () => {
-            setEnviando(true)
-            await aoTrocar(outro)
-            setEnviando(false)
-          }}
+          onClick={() => void umaVez(() => aoTrocar(outro))}
         >
           {outro === 'anual' ? 'Prefiro pagar o ano inteiro (anuidade)' : 'Prefiro pagar por mês'}
         </button>
@@ -221,7 +223,8 @@ function InformarPagamento({
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [observacao, setObservacao] = useState('')
   const [erro, setErro] = useState<string | null>(null)
-  const [enviando, setEnviando] = useState(false)
+  const [enviando, umaVez] = useUmaVez()
+  const [versaoArquivo, setVersaoArquivo] = useState(0)
 
   if (cobrancas.length === 0) return null
   const total = cobrancas.filter((c) => escolhidas.includes(c.id)).reduce((t, c) => t + Number(c.valor), 0)
@@ -236,12 +239,11 @@ function InformarPagamento({
       if ('erro' in pronto) return setErro(pronto.erro)
       comprovante = pronto
     }
-    setEnviando(true)
     const r = await informarPagamento({ pessoaId, cobrancas: escolhidas, data, forma, comprovante, observacao })
-    setEnviando(false)
     if (r.erro !== null) return setErro(r.erro)
     setEscolhidas([])
     setArquivo(null)
+    setVersaoArquivo((v) => v + 1)
     setObservacao('')
     concluir(r, 'Pagamento informado. A tesouraria vai conferir.')
   }
@@ -252,7 +254,7 @@ function InformarPagamento({
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          void enviar()
+          void umaVez(enviar)
         }}
       >
         <fieldset>
@@ -287,7 +289,12 @@ function InformarPagamento({
           </label>
           <label className="largura-total">
             Comprovante {forma === 'Dinheiro' ? '(opcional)' : '*'}
-            <input type="file" accept="image/*,application/pdf" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
+            <input
+              key={versaoArquivo}
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+            />
           </label>
           <label className="largura-total">
             Observação

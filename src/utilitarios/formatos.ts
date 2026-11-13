@@ -36,6 +36,12 @@ export function formatarData(data: string | null | undefined): string {
   return `${dia}/${mes}/${ano}`
 }
 
+/** Só a data de um instante (ex.: criado_em), no fuso de Parauapebas: 22h30 de 11/11 continua 11/11. */
+export function formatarDataDeInstante(instante: string | null | undefined): string {
+  if (!instante) return ''
+  return new Date(instante).toLocaleDateString('pt-BR', { timeZone: 'America/Belem' })
+}
+
 /** Data e hora no fuso de Parauapebas (America/Belem). */
 export function formatarDataHora(instante: string): string {
   return new Date(instante).toLocaleString('pt-BR', {

@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.15 — 12 de novembro de 2026 — atualizado com a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.16 — 12 de novembro de 2026 — atualizado com as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -140,12 +140,34 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 - Relatórios: mensal, anual, por categoria, por igreja; exportação em PDF e planilha (CSV).
 - Sem gateway de pagamento nesta fase (evita taxas). PIX automático fica para o futuro.
 
-### 4.5 Carteirinha digital
+### 4.5 Credencial do associado (digital e física)
 
-- Frente/verso com foto, nome, título, igreja, nº de registro, validade e situação (o conteúdo final depende da pergunta 8).
-- **Validade de 4 anos, acompanhando o pleito** (diretoria, 11/11/2026): a carteirinha vence junto com o mandato da diretoria (pergunta 21).
-- **QR Code** que abre uma página pública de validação mostrando **apenas** nome, foto, título e se está ativo/em dia — nenhum dado sensível.
-- Download em PDF/imagem para impressão.
+Decisões de 12/11/2026 (administrador técnico, com base na credencial que já usa):
+
+- **Duas formas da mesma credencial:**
+  - **digital:** aparece no sistema ("Minha credencial") e no app instalado no celular;
+  - **física:** impressa em papel. A de PVC fica para depois.
+- **Validade sem data impressa — o QR Code é a validade:**
+  - o QR Code abre a página pública de validação, que mostra a situação **de agora**:
+    - se o associado está ativo;
+    - se está em dia ou em atraso — em atraso fica **inapto para votar** (Art. 11);
+    - até quando a credencial vale: o fim do mandato da diretoria em curso (4 anos, pelo pleito).
+  - Ao renovar, pagando em dia o ano da eleição, a validade passa **sozinha** para o mandato seguinte. **Ninguém precisa reimprimir.**
+  - Vale também para quem entra no meio do mandato (pergunta 21).
+- **O que vai na credencial:**
+  - **cabeçalho do COMEP**, bonito: logo e nome do Conselho;
+  - foto, nome, **CPF**, **filiação** (pai e mãe — é credencial de um conselho municipal, não de igreja);
+  - **nº de registro** (o número do associado) e **data de ingresso** no Conselho;
+  - título;
+  - **função/cargo na igreja**, a que a igreja informa ao Conselho;
+  - **igreja pela sigla** (nome curto, porque há nomes enormes) **e o CNPJ**. Igreja sem CNPJ ou sem sigla aparece como **pendência** para o associado resolver;
+  - no **verso**: QR Code, texto de rodapé configurável e espaço para outros dados que se quiser.
+- **Página pública de validação:** mostra só nome, foto, título, nº de registro, igreja (sigla) e a situação. Não mostra CPF nem filiação.
+- **Física:**
+  - tamanho padrão de cartão (**CR80: 85,6 × 54 mm**, o mesmo do PVC, das capinhas plásticas e dos porta-crachás);
+  - frente e verso;
+  - várias credenciais por folha A4, com marcas de corte.
+- **Editor de credencial:** o desenho fica num **modelo editável** — onde fica cada coisa, fotos, cores e formas. Assim dá para mudar o conceito da credencial no futuro sem programar.
 
 ### 4.6 Assembleias e reuniões
 
@@ -413,11 +435,28 @@ Revisão: `docs/revisoes/fase-2.md`.
 - [x] Orçamento e plano anual de trabalho, com previsto × realizado e o registro da aprovação em assembleia (Art. 15, I)
 - [x] Relatórios: resumo do exercício (saldos, receitas e despesas por categoria, contribuições), mês a mês e contribuições por igreja; impressão/PDF e planilha (CSV)
 
-### Fase 3 — Carteirinha digital (versão 3.0)
+### Fase 3 — Credencial do associado (versão 3.0-teste)
 
-- [ ] Carteirinha com foto e QR Code, válida até o fim do mandato da diretoria
-- [ ] Página pública de validação
-- [ ] Download para impressão
+Decisões na seção 4.5. Revisão: `docs/revisoes/fase-3.md`.
+
+**3.1 — Dados da credencial** (versão 3.0-teste.1)
+
+- [ ] CPF e filiação no cadastro, no pedido de associação e no "Meu perfil"
+- [ ] Sigla da igreja
+- [ ] Lista de pendências da credencial: sem foto, sem CPF, igreja sem sigla ou sem CNPJ
+
+**3.2 — Credencial digital e validação pública** (versão 3.0-teste.2)
+
+- [ ] "Minha credencial" (frente e verso na tela, também no app instalado)
+- [ ] QR Code que se atualiza sozinho: página pública com a situação de agora (ativo, em dia ou inapto a votar, válida até o fim do mandato)
+
+**3.3 — Credencial física** (versão 3.0-teste.3)
+
+- [ ] Impressão no tamanho de cartão (CR80), frente e verso, várias por folha A4 com marcas de corte; uma ou várias de uma vez (secretaria)
+
+**3.4 — Editor do modelo da credencial** (versão 3.0-teste.4)
+
+- [ ] Editar onde fica cada coisa, fotos, cores, formas e textos, com prévia, e voltar ao modelo anterior
 
 ### Fase 4 — Assembleias, reuniões e diretoria (versão 4.0)
 
@@ -494,7 +533,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 | 4. Conselho Fiscal | 3 membros, mandato de 4 anos, com as mesmas datas do Conselho Diretor | Regra fixa no sistema |
 | 6. Quórum | 1ª chamada: 50% + 1 dos associados aptos. 2ª chamada: com os presentes | Quórum calculado sobre os associados em dia na data da assembleia |
 | 7. Reuniões mensais | Não têm efeito de AGO nem de AGE. A justificativa de falta vai ao 1º secretário | Reunião mensal registra presença e faltas, sem votações de assembleia; o 1º secretário aceita ou recusa a justificativa. Continua pendente: têm dia fixo? |
-| 8. Carteirinha | Validade de 4 anos, correspondente ao pleito | Vence junto com o mandato da diretoria (pergunta 21). Continua pendente: o que aparece nela |
+| 8. Carteirinha | Validade de 4 anos, correspondente ao pleito | **Respondida em 12/11/2026** (seção 4.5): o QR Code mostra a validade de agora, sem data impressa e sem reimpressão |
 | 9. Títulos aceitos *(12/11/2026)* | Pastor(a), Evangelista, Presbítero, Apóstolo(a), Bispo(a) | Lista aplicada; "Missionário" e "Líder" (provisórios) arquivados. A lista continua editável em Configurações |
 | 10. Diretoria atual *(12/11/2026)* | A composição completa não está disponível; só se tem o presidente | No lançamento, o presidente é cadastrado e recebe o perfil Presidência. Os demais cargos recebem os perfis em "Perfis de acesso" quando forem informados (e, na Fase 4, pelos mandatos) |
 | 14. Dados para o site *(12/11/2026)* | Ainda não há (CNPJ, sede, contatos) | O site mostra "—"; a diretoria preenche em Configurações → Dados do COMEP no site, e o site atualiza na hora |
@@ -506,7 +545,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 5. **Desligamento:** todos os casos do Art. 8º passam por votação de 3/5 em assembleia, ou só conduta (II) e faltas (IV)? Pedido próprio, transferência e falecimento podem ser registrados direto pela secretaria e só comunicados à assembleia?
 6. **Quórum:** a "metade mais um" conta todos os associados ativos ou só os em dia?
 7. **Reuniões mensais:** têm dia fixo? *(quem aceita a justificativa já foi respondido: o 1º secretário. Quando houver dia fixo, ele é preenchido em Configurações → Dados do COMEP no site)*
-8. **Carteirinha:** o que aparece nela? *(validade já respondida: 4 anos, pelo pleito)*
+8. ~~Carteirinha~~ — *respondida em 12/11/2026 (seção 4.5): foto, nome, CPF, filiação, nº de registro, data de ingresso, título, função na igreja, sigla e CNPJ da igreja; validade pelo QR Code.*
 9. ~~Títulos ministeriais aceitos~~ — *respondida em 12/11/2026 (seção 11.2).*
 10. **Diretoria atual:** quem são hoje o Conselho Diretor e o Conselho Fiscal, e as datas dos mandatos. *Em 12/11/2026: só o presidente é conhecido (seção 11.2); os demais continuam pendentes.*
 11. **Regimento Interno:** existe um aprovado (Art. 10, I e Art. 13)? Se existir, enviar — pode responder várias perguntas acima.
@@ -520,8 +559,9 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 18. **Vencimentos:** a mensalidade vence em que dia do mês? O anual pode ser pago até que dia de abril? A escolha entre mensal e anual vale para o exercício inteiro? Quem entra no meio do exercício paga só os meses que faltam?
 19. **Voto na assembleia de abril:** ela acontece na 2ª quinzena de abril, logo no começo do exercício novo. Para votar, basta estar em dia até março, ou também com abril (ou o anual) pago?
 20. **Jubilado:** sendo isento, ele vota e pode ser votado normalmente? Quem define que o associado é jubilado?
-21. **Validade da carteirinha:** quem se associa no meio do mandato recebe uma carteirinha que vence no fim desse mandato, e não 4 anos depois?
+21. ~~Validade da carteirinha~~ — *respondida em 12/11/2026: sim, vale até o fim do mandato em curso; renovando (em dia no ano da eleição), o QR Code passa sozinho para o mandato seguinte, sem reimprimir.*
 22. **Faltas:** a regra de desligamento por 3 faltas seguidas sem justificativa (Art. 8º, IV) vale para as reuniões mensais?
+23. **Pagamento informado e ainda não conferido:** o associado pagou antes do vencimento e informou o pagamento, mas a tesouraria ainda não conferiu. Até a conferência, ele conta como **em dia** para votar? *(Hoje o sistema só conta como em dia depois que a tesouraria confirma. Revisão geral da Fase 2, 13/11/2026.)*
 
 ### 11.4 Internas (equipe técnica, sem levar à diretoria)
 
@@ -671,3 +711,12 @@ Criar não basta: cada fase precisa ser **testada, corrigida e aprovada no ambie
   - **desde 12/11/2026** o ambiente de teste tem endereço próprio, `ieadespa.github.io/comep/teste/`, sempre no `comep-teste` e com a faixa; os dois saem da mesma publicação;
   - **no lançamento da versão 1.0**, o site oficial (`/comep/`) passa a usar o `comep-producao` (`docs/lancamento.md`).
 - Cada pull request traz a lista das travas para marcar (`.github/pull_request_template.md`), e cada fase tem seu arquivo de revisão em `docs/revisoes/`.
+
+### 14.4 Revisão geral de cada fase
+
+Além das travas de cada entrega, toda fase termina com uma **revisão geral independente**: revisores que não escreveram o código procuram problemas de segurança, de dados e de regras do estatuto em tudo o que a fase fez. Cada achado ganha um teste automático, que falha antes da correção e passa depois.
+
+| Fase | Data | Resultado | Onde está |
+|---|---|---|---|
+| 1 — Cadastros e acessos | 12/11/2026 (entrega 1.4) | 10 correções de segurança, 3 riscos aceitos e registrados | `docs/revisoes/fase-1.md` |
+| 2 — Financeiro | 13/11/2026 | 10 problemas bloqueantes e 12 importantes corrigidos; 13 testes de regressão no banco, 17 de unidade e 1 de ponta a ponta | `docs/revisoes/fase-2.md`, seção "Revisão geral da Fase 2" |

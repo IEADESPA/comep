@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { Carga } from '../estado/useCarregar'
 
 export function Carregando({ texto = 'Carregando…' }: { texto?: string }) {
@@ -96,5 +96,35 @@ export function BotaoConfirmar({
         </button>
       </div>
     </details>
+  )
+}
+
+/** "Arquivar" que pergunta antes, na própria linha: o primeiro clique só pede a confirmação. */
+export function BotaoArquivar({ rotulo, aoConfirmar }: { rotulo: string; aoConfirmar: () => void }) {
+  const [perguntando, setPerguntando] = useState(false)
+  if (!perguntando) {
+    return (
+      <button type="button" className="botao-texto" aria-label={rotulo} onClick={() => setPerguntando(true)}>
+        Arquivar
+      </button>
+    )
+  }
+  return (
+    <span className="confirmar-linha">
+      <button
+        type="button"
+        className="botao-texto texto-perigo"
+        aria-label={`Confirmar — ${rotulo}`}
+        onClick={() => {
+          setPerguntando(false)
+          aoConfirmar()
+        }}
+      >
+        Confirmar arquivamento
+      </button>
+      <button type="button" className="botao-texto" onClick={() => setPerguntando(false)}>
+        Não
+      </button>
+    </span>
   )
 }

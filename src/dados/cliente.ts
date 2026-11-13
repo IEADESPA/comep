@@ -48,7 +48,8 @@ export function mensagemDeErro(erro: ErroDoBanco, duplicado = 'Já existe um cad
   if (codigo === 'P0001' && texto) return texto
   if (codigo === '23505') return duplicado
   if (codigo === '23514') return 'Algum dado está fora do formato esperado. Confira e tente de novo.'
-  if (codigo === '42501') return 'Você não tem permissão para fazer isso.'
+  // As funções do banco explicam a recusa em português; a recusa genérica do Postgres, não
+  if (codigo === '42501') return texto && !/permission denied/i.test(texto) ? texto : 'Você não tem permissão para fazer isso.'
   if (codigo === '22007' || codigo === '22008') return 'Data inválida.'
   if (/fetch|network/i.test(texto)) return 'Sem conexão com o servidor. Verifique a internet e tente de novo.'
   return 'Não foi possível concluir agora. Tente de novo em instantes.'
@@ -60,4 +61,21 @@ export function ok<T>(dados: T): Resultado<T> {
 
 export function falha<T>(erro: ErroDoBanco, duplicado?: string): Resultado<T> {
   return { dados: null, erro: mensagemDeErro(erro, duplicado) }
+}
+
+/**
+ * Busca todas as linhas de uma consulta, de mil em mil: o servidor devolve no máximo mil por vez
+ * e cortaria o resto sem avisar. A consulta precisa ter uma ordem estável (ex.: terminar em .order('id')).
+ */
+export async function todasAsLinhas<T>(
+  pagina: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: ErroDoBanco }>,
+  tamanho = 1000,
+): Promise<Resultado<T[]>> {
+  const linhas: T[] = []
+  for (let de = 0; ; de += tamanho) {
+    const { data, error } = await pagina(de, de + tamanho - 1)
+    if (error) return falha(error)
+    linhas.push(...(data ?? []))
+    if (!data || data.length < tamanho) return ok(linhas)
+  }
 }

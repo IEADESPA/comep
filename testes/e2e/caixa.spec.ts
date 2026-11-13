@@ -113,6 +113,36 @@ test('a tesouraria lança; a despesa só sai do saldo depois que o presidente au
   await expect(page.getByRole('listitem', { name: oferta })).toContainText('Motivo: Teste automático')
 })
 
+test('valor digitado do jeito brasileiro; quem lançou a despesa não vê "Autorizar"', async ({ page }, info) => {
+  const sufixo = sufixoUnico(info.project.name)
+  const entrada = `Entrada milhar E2E ${sufixo}`
+  const despesa = `Despesa própria E2E ${sufixo}`
+
+  await trocarPara(page, 'presidencia')
+  await abrirCaixa(page)
+  const caixaAntes = await saldoEmCentavos(page, CAIXA)
+
+  // "1.234,56" é mil duzentos e trinta e quatro reais e cinquenta e seis centavos
+  await lancar(page, 'entrada', 'Ofertas', '1.234,56', entrada)
+  await expect(mensagemNaTela(page, 'Entrada lançada.')).toBeVisible()
+  await expect(page.getByRole('listitem', { name: entrada })).toContainText('R$ 1.234,56')
+  await esperarSaldo(page, CAIXA, caixaAntes + 123456)
+
+  // A presidência lança uma despesa: na fila, a dela aparece sem o botão de autorizar
+  await lancar(page, 'saida', 'Material e expediente', '2', despesa)
+  await expect(mensagemNaTela(page, /Despesa lançada/)).toBeVisible()
+  await page.getByRole('tab', { name: 'Despesas a autorizar' }).click()
+  const minha = page.getByRole('listitem', { name: `Despesa: ${despesa}` })
+  await expect(minha).toContainText('Você lançou esta despesa: outra pessoa da presidência autoriza.')
+  await expect(minha.getByRole('button', { name: 'Autorizar despesa' })).toHaveCount(0)
+
+  // Desfaz
+  await page.getByRole('tab', { name: 'Caixa', exact: true }).click()
+  await cancelar(page, entrada)
+  await cancelar(page, despesa)
+  await esperarSaldo(page, CAIXA, caixaAntes)
+})
+
 test('o ministro não vê o financeiro', async ({ page }) => {
   await trocarPara(page, 'ministro')
   await page.goto('financeiro')

@@ -40,13 +40,14 @@ export type Lancamento = {
   motivo: string | null
   autorizado_em: string | null
   criado_em: string
+  criado_por: string | null
   categoria: { nome: string } | null
   conta: { nome: string } | null
   autorizado: { nome: string } | null
 }
 
 const CAMPOS_LANCAMENTO = `id, conta_id, tipo, data, valor, descricao, comprovante_caminho, cobranca_id, transferencia_id,
-  situacao, motivo, autorizado_em, criado_em,
+  situacao, motivo, autorizado_em, criado_em, criado_por,
   categoria:categorias_financeiras(nome), conta:contas_financeiras(nome),
   autorizado:pessoas!lancamentos_autorizado_por_fkey(nome)`
 
@@ -69,6 +70,7 @@ export async function listarCategoriasFinanceiras(): Promise<Resultado<Categoria
 
 /** Lançamentos de um mês (AAAA-MM), do mais recente para o mais antigo. */
 export async function lancamentosDoMes(mes: string): Promise<Resultado<Lancamento[]>> {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) return { dados: null, erro: 'Escolha o mês (ex.: 11/2026).' }
   const [ano, m] = mes.split('-').map(Number)
   const inicio = `${mes}-01`
   const fim = new Date(Date.UTC(ano, m, 1)).toISOString().slice(0, 10)
@@ -147,17 +149,23 @@ export async function transferir(origem: string, destino: string, data: string, 
 // ---------- Configuração: contas e categorias ----------
 
 export async function criarConta(nome: string, tipo: 'caixa' | 'banco', saldoInicial: number, desde: string) {
-  const { error } = await cliente()
-    .from('contas_financeiras')
-    .insert({ nome: nome.trim(), tipo, saldo_inicial: saldoInicial, saldo_inicial_em: desde })
+  const { error } = await cliente().rpc('criar_conta', {
+    p_nome: nome,
+    p_tipo: tipo,
+    p_saldo_inicial: saldoInicial,
+    p_saldo_inicial_em: desde,
+  })
   return error ? falha<null>(error, 'Já existe uma conta com esse nome.') : ok(null)
 }
 
+/** O saldo inicial não muda depois que o período dele foi fechado na prestação de contas (o banco recusa). */
 export async function alterarConta(id: string, dados: { nome: string; saldo_inicial: number; saldo_inicial_em: string }) {
-  const { error } = await cliente()
-    .from('contas_financeiras')
-    .update({ ...dados, nome: dados.nome.trim() })
-    .eq('id', id)
+  const { error } = await cliente().rpc('alterar_conta', {
+    p_conta_id: id,
+    p_nome: dados.nome,
+    p_saldo_inicial: dados.saldo_inicial,
+    p_saldo_inicial_em: dados.saldo_inicial_em,
+  })
   return error ? falha<null>(error, 'Já existe uma conta com esse nome.') : ok(null)
 }
 

@@ -4,6 +4,7 @@ import { Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { formatarReais } from '../../dados/configuracoes'
 import {
   analisarInforme,
+  cancelarCobranca,
   cobrancasEmAbertoDe,
   exercicioDe,
   FORMAS_PAGAMENTO,
@@ -20,7 +21,8 @@ import {
 import { linkDoArquivo } from '../../dados/pedidos'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
-import { contemTexto, formatarData, hojeIso } from '../../utilitarios/formatos'
+import { useUmaVez } from '../../estado/useUmaVez'
+import { contemTexto, formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
 import { CaixaAba, DespesasAutorizar } from './Caixa'
 import { PrestacaoContasAba } from './PrestacaoContas'
 
@@ -42,16 +44,16 @@ export function Financeiro() {
   const opera = perfisDaConta.includes('tesouraria') || perfisDaConta.includes('presidencia')
   const [aba, setAba] = useState<Aba>(opera ? 'Pagamentos informados' : 'Prestação de contas')
   const [retorno, setRetorno] = useState<Retorno>({})
-  const [versao, setVersao] = useState(0)
 
+  // Cada aba recarrega os próprios dados depois de uma ação (sem perder a busca, o filtro ou o exercício escolhido)
   function concluir(r: { erro: string | null }, sucesso: string) {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
-    if (r.erro === null) setVersao((v) => v + 1)
     return r.erro === null
   }
 
   if (estado.situacao !== 'logado' || estado.conta?.tipo !== 'ok') return <Carregando />
   const { pessoaId, perfis } = estado.conta.conta
+  const usuarioId = estado.sessao.usuarioId
   // O Conselho Fiscal (Art. 14) vê tudo, sem os pagamentos a conferir e sem botões de ação
   const abas = opera ? ABAS : ABAS.filter((a) => a !== 'Pagamentos informados')
   const somenteLeitura = !opera
@@ -81,16 +83,14 @@ export function Financeiro() {
         ))}
       </div>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-      {aba === 'Pagamentos informados' && <PagamentosInformados key={versao} concluir={concluir} />}
+      {aba === 'Pagamentos informados' && <PagamentosInformados pessoaId={pessoaId} concluir={concluir} />}
       {aba === 'Situação dos associados' && (
-        <SituacaoAssociados key={versao} concluir={concluir} somenteLeitura={somenteLeitura} />
+        <SituacaoAssociados pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />
       )}
-      {aba === 'Cobranças do exercício' && (
-        <CobrancasExercicio key={versao} concluir={concluir} somenteLeitura={somenteLeitura} />
-      )}
+      {aba === 'Cobranças do exercício' && <CobrancasExercicio concluir={concluir} somenteLeitura={somenteLeitura} />}
       {aba === 'Caixa' && <CaixaAba pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />}
       {aba === 'Despesas a autorizar' && (
-        <DespesasAutorizar podeAutorizar={perfis.includes('presidencia')} concluir={concluir} />
+        <DespesasAutorizar podeAutorizar={perfis.includes('presidencia')} usuarioId={usuarioId} concluir={concluir} />
       )}
       {aba === 'Prestação de contas' && <PrestacaoContasAba perfis={perfis} pessoaId={pessoaId} />}
     </>
@@ -101,8 +101,13 @@ type Concluir = (r: { erro: string | null }, sucesso: string) => boolean
 
 // ---------------------------------------------------------------------
 
-function PagamentosInformados({ concluir }: { concluir: Concluir }) {
+function PagamentosInformados({ pessoaId, concluir }: { pessoaId: string; concluir: Concluir }) {
   const [carga, recarregar] = useCarregar(informesPendentes)
+  const concluirERecarregar: Concluir = (r, sucesso) => {
+    const certo = concluir(r, sucesso)
+    if (certo) recarregar()
+    return certo
+  }
   return (
     <MostrarCarga carga={carga} recarregar={recarregar}>
       {(informes) =>
@@ -111,7 +116,7 @@ function PagamentosInformados({ concluir }: { concluir: Concluir }) {
         ) : (
           <ul className="lista" aria-label="Pagamentos informados">
             {informes.map((i) => (
-              <Informe key={i.id} informe={i} concluir={concluir} />
+              <Informe key={i.id} informe={i} meu={i.pessoa_id === pessoaId} concluir={concluirERecarregar} />
             ))}
           </ul>
         )
@@ -120,10 +125,11 @@ function PagamentosInformados({ concluir }: { concluir: Concluir }) {
   )
 }
 
-function Informe({ informe: i, concluir }: { informe: InformePendente; concluir: Concluir }) {
-  const [comprovante, setComprovante] = useState<string | null>(null)
+function Informe({ informe: i, meu, concluir }: { informe: InformePendente; meu: boolean; concluir: Concluir }) {
+  // undefined = carregando; null = não abriu
+  const [comprovante, setComprovante] = useState<string | null | undefined>(undefined)
   const [motivo, setMotivo] = useState('')
-  const [enviando, setEnviando] = useState(false)
+  const [enviando, umaVez] = useUmaVez()
   const nome = i.pessoa?.nome ?? 'Associado'
   const contribuicao = i.cobranca ? nomeDaCobranca(i.cobranca) : 'Contribuição'
 
@@ -135,13 +141,13 @@ function Informe({ informe: i, concluir }: { informe: InformePendente; concluir:
     }
   }, [i.comprovante_caminho])
 
-  async function analisar(confirmar: boolean) {
-    setEnviando(true)
-    concluir(
-      await analisarInforme(i.id, confirmar, motivo),
-      confirmar ? `Pagamento de ${nome} confirmado (${contribuicao}).` : `Pagamento de ${nome} recusado.`,
+  function analisar(confirmar: boolean) {
+    return umaVez(async () =>
+      concluir(
+        await analisarInforme(i.id, confirmar, motivo),
+        confirmar ? `Pagamento de ${nome} confirmado (${contribuicao}).` : `Pagamento de ${nome} recusado.`,
+      ),
     )
-    setEnviando(false)
   }
 
   return (
@@ -150,7 +156,7 @@ function Informe({ informe: i, concluir }: { informe: InformePendente; concluir:
         <Link to={`/ministros/${i.pessoa_id}`}>{nome}</Link> — {contribuicao}: {formatarReais(i.valor)}
       </strong>
       <span>
-        Pago em {formatarData(i.data_pagamento)} por {i.forma} · informado em {formatarData(i.criado_em)}
+        Pago em {formatarData(i.data_pagamento)} por {i.forma} · informado em {formatarDataDeInstante(i.criado_em)}
         {i.observacao && ` · ${i.observacao}`}
       </span>
       <span>
@@ -159,6 +165,8 @@ function Informe({ informe: i, concluir }: { informe: InformePendente; concluir:
             <a href={comprovante} target="_blank" rel="noreferrer">
               Abrir comprovante
             </a>
+          ) : comprovante === null ? (
+            'Não foi possível abrir o comprovante agora. Recarregue a página.'
           ) : (
             'Carregando o comprovante…'
           )
@@ -166,37 +174,72 @@ function Informe({ informe: i, concluir }: { informe: InformePendente; concluir:
           'Sem comprovante (pagamento em dinheiro)'
         )}
       </span>
-      <div className="acoes">
-        <button type="button" className="botao" disabled={enviando} onClick={() => void analisar(true)}>
-          Confirmar pagamento
-        </button>
-      </div>
-      <details className="acao-recolhida">
-        <summary>Recusar</summary>
-        <form
-          className="form-linha form-compacto"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void analisar(false)
-          }}
-        >
-          <label>
-            Motivo *
-            <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: comprovante ilegível" />
-          </label>
-          <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
-            Recusar
-          </button>
-        </form>
-      </details>
+      {meu ? (
+        <p className="detalhe">Este pagamento é seu: outra pessoa da tesouraria ou da presidência confere.</p>
+      ) : (
+        <>
+          <div className="acoes">
+            <button type="button" className="botao" disabled={enviando} onClick={() => void analisar(true)}>
+              Confirmar pagamento
+            </button>
+          </div>
+          <RecusarInforme motivo={motivo} setMotivo={setMotivo} enviando={enviando} aoRecusar={() => void analisar(false)} />
+        </>
+      )}
     </li>
+  )
+}
+
+function RecusarInforme({
+  motivo,
+  setMotivo,
+  enviando,
+  aoRecusar,
+}: {
+  motivo: string
+  setMotivo: (m: string) => void
+  enviando: boolean
+  aoRecusar: () => void
+}) {
+  return (
+    <details className="acao-recolhida">
+      <summary>Recusar</summary>
+      <form
+        className="form-linha form-compacto"
+        onSubmit={(e) => {
+          e.preventDefault()
+          aoRecusar()
+        }}
+      >
+        <label>
+          Motivo *
+          <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: comprovante ilegível" />
+        </label>
+        <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
+          Recusar
+        </button>
+      </form>
+    </details>
   )
 }
 
 // ---------------------------------------------------------------------
 
-function SituacaoAssociados({ concluir, somenteLeitura }: { concluir: Concluir; somenteLeitura: boolean }) {
+function SituacaoAssociados({
+  pessoaId,
+  concluir,
+  somenteLeitura,
+}: {
+  pessoaId: string
+  concluir: Concluir
+  somenteLeitura: boolean
+}) {
   const [carga, recarregar] = useCarregar(situacaoDeTodos)
+  const concluirERecarregar: Concluir = (r, sucesso) => {
+    const certo = concluir(r, sucesso)
+    if (certo) recarregar()
+    return certo
+  }
   const [busca, setBusca] = useState('')
   const [soAtraso, setSoAtraso] = useState(false)
   const [aberta, setAberta] = useState<string | null>(null)
@@ -231,8 +274,9 @@ function SituacaoAssociados({ concluir, somenteLeitura }: { concluir: Concluir; 
                   situacao={s}
                   aberta={aberta === s.pessoa_id}
                   aoAbrir={() => setAberta(aberta === s.pessoa_id ? null : s.pessoa_id)}
-                  concluir={concluir}
+                  concluir={concluirERecarregar}
                   somenteLeitura={somenteLeitura}
+                  minha={s.pessoa_id === pessoaId}
                 />
               ))}
             </ul>
@@ -249,12 +293,14 @@ function LinhaSituacao({
   aoAbrir,
   concluir,
   somenteLeitura,
+  minha,
 }: {
   situacao: SituacaoContribuicao
   aberta: boolean
   aoAbrir: () => void
   concluir: Concluir
   somenteLeitura: boolean
+  minha: boolean
 }) {
   return (
     <li className="lista-item lista-item-estatico" aria-label={s.nome}>
@@ -262,9 +308,8 @@ function LinhaSituacao({
         <span className="numero">Nº {s.numero_registro}</span> {s.nome}
       </strong>
       <span>
-        {s.jubilado ? (
-          <span className="etiqueta etiqueta-ok">Isento (jubilado)</span>
-        ) : s.em_dia ? (
+        {s.jubilado && <span className="etiqueta etiqueta-ok">Isento (jubilado)</span>}{' '}
+        {s.jubilado && s.em_dia ? null : s.em_dia ? (
           <span className="etiqueta etiqueta-ok">Em dia</span>
         ) : (
           <span className="etiqueta etiqueta-atraso">
@@ -273,7 +318,10 @@ function LinhaSituacao({
         )}{' '}
         {s.igreja}
       </span>
-      {!s.jubilado && !somenteLeitura && (
+      {(!s.jubilado || !s.em_dia) && !somenteLeitura && minha && (
+        <span className="detalhe">É você: outra pessoa da tesouraria ou da presidência registra o seu pagamento.</span>
+      )}
+      {(!s.jubilado || !s.em_dia) && !somenteLeitura && !minha && (
         <button type="button" className="botao-texto alinhar-esquerda" onClick={aoAbrir}>
           {aberta ? 'Fechar' : 'Registrar pagamento recebido'}
         </button>
@@ -289,7 +337,8 @@ function RegistrarPagamento({ pessoaId, nome, concluir }: { pessoaId: string; no
   const [data, setData] = useState(hojeIso())
   const [forma, setForma] = useState<string>('Dinheiro')
   const [observacao, setObservacao] = useState('')
-  const [enviando, setEnviando] = useState(false)
+  const [motivo, setMotivo] = useState('')
+  const [enviando, umaVez] = useUmaVez()
 
   return (
     <MostrarCarga carga={carga} recarregar={recarregar}>
@@ -297,54 +346,79 @@ function RegistrarPagamento({ pessoaId, nome, concluir }: { pessoaId: string; no
         cobrancas.length === 0 ? (
           <p className="vazio">Nenhuma contribuição em aberto.</p>
         ) : (
-          <form
-            className="form-linha form-compacto"
-            aria-label={`Registrar pagamento de ${nome}`}
-            onSubmit={async (e) => {
-              e.preventDefault()
-              const c = cobrancas.find((x) => x.id === cobrancaId)
-              if (!c) return
-              setEnviando(true)
-              concluir(
-                await registrarPagamento(c.id, data, Number(c.valor), forma, observacao),
-                `Pagamento de ${nome} registrado (${nomeDaCobranca(c)}).`,
-              )
-              setEnviando(false)
-            }}
-          >
-            <label>
-              Contribuição
-              <select required value={cobrancaId} onChange={(e) => setCobrancaId(e.target.value)}>
-                <option value="">— Escolha —</option>
-                {cobrancas.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {nomeDaCobranca(c)} — {formatarReais(c.valor)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Data
-              <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
-            </label>
-            <label>
-              Forma
-              <select value={forma} onChange={(e) => setForma(e.target.value)}>
-                {FORMAS_PAGAMENTO.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Observação
-              <input value={observacao} onChange={(e) => setObservacao(e.target.value)} />
-            </label>
-            <button type="submit" className="botao" disabled={enviando}>
-              Registrar
-            </button>
-          </form>
+          <>
+            <form
+              className="form-linha form-compacto"
+              aria-label={`Registrar pagamento de ${nome}`}
+              onSubmit={async (e) => {
+                e.preventDefault()
+                const c = cobrancas.find((x) => x.id === cobrancaId)
+                if (!c) return
+                await umaVez(async () =>
+                  concluir(
+                    await registrarPagamento(c.id, data, Number(c.valor), forma, observacao),
+                    `Pagamento de ${nome} registrado (${nomeDaCobranca(c)}).`,
+                  ),
+                )
+              }}
+            >
+              <label>
+                Contribuição
+                <select required value={cobrancaId} onChange={(e) => setCobrancaId(e.target.value)}>
+                  <option value="">— Escolha —</option>
+                  {cobrancas.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {nomeDaCobranca(c)} — {formatarReais(c.valor)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Data
+                <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
+              </label>
+              <label>
+                Forma
+                <select value={forma} onChange={(e) => setForma(e.target.value)}>
+                  {FORMAS_PAGAMENTO.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Observação
+                <input value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+              </label>
+              <button type="submit" className="botao" disabled={enviando}>
+                Registrar
+              </button>
+            </form>
+            <details className="acao-recolhida">
+              <summary>Cancelar uma contribuição (isenção ou lançada por engano)</summary>
+              <form
+                className="form-linha form-compacto"
+                aria-label={`Cancelar contribuição de ${nome}`}
+                onSubmit={async (e) => {
+                  e.preventDefault()
+                  const c = cobrancas.find((x) => x.id === cobrancaId)
+                  if (!c) return concluir({ erro: 'Escolha acima qual contribuição cancelar.' }, '')
+                  await umaVez(async () =>
+                    concluir(await cancelarCobranca(c.id, motivo), `Contribuição cancelada: ${nomeDaCobranca(c)} de ${nome}.`),
+                  )
+                }}
+              >
+                <label>
+                  Motivo *
+                  <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: isenção aprovada pela diretoria" />
+                </label>
+                <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
+                  Cancelar a contribuição escolhida
+                </button>
+              </form>
+            </details>
+          </>
         )
       }
     </MostrarCarga>
@@ -357,7 +431,7 @@ function CobrancasExercicio({ concluir, somenteLeitura }: { concluir: Concluir; 
   const hoje = hojeIso()
   const atual = exercicioDe(hoje)
   const [exercicio, setExercicio] = useState(atual)
-  const [enviando, setEnviando] = useState(false)
+  const [enviando, umaVez] = useUmaVez()
   const [carga, recarregar] = useCarregar(() => resumoDoExercicio(exercicio, hoje))
 
   return (
@@ -385,19 +459,20 @@ function CobrancasExercicio({ concluir, somenteLeitura }: { concluir: Concluir; 
             type="button"
             className="botao"
             disabled={enviando}
-            onClick={async () => {
-              setEnviando(true)
-              const r = await gerarCobrancas(exercicio)
-              setEnviando(false)
-              concluir(
-                r,
-                r.erro === null
-                  ? r.dados === 0
-                    ? `Nenhuma cobrança nova: o exercício ${nomeDoExercicio(exercicio)} já estava gerado para todos.`
-                    : `${r.dados} cobrança(s) gerada(s) para o exercício ${nomeDoExercicio(exercicio)}.`
-                  : '',
-              )
-            }}
+            onClick={() =>
+              void umaVez(async () => {
+                const r = await gerarCobrancas(exercicio)
+                const certo = concluir(
+                  r,
+                  r.erro === null
+                    ? r.dados === 0
+                      ? `Nenhuma cobrança nova: o exercício ${nomeDoExercicio(exercicio)} já estava gerado para todos.`
+                      : `${r.dados} cobrança(s) gerada(s) para o exercício ${nomeDoExercicio(exercicio)}.`
+                    : '',
+                )
+                if (certo) recarregar()
+              })
+            }
           >
             Gerar cobranças do exercício
           </button>

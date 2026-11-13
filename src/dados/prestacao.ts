@@ -1,5 +1,5 @@
 // Financeiro — Fase 2.3: prestação de contas (resumo do exercício, balanço anual, orçamento, relatórios).
-import { cliente, falha, ok, type Resultado } from './cliente'
+import { cliente, falha, ok, todasAsLinhas, type Resultado } from './cliente'
 import type { SituacaoLancamento, TipoLancamento } from './caixa'
 
 // ---------- Resumo do exercício ----------
@@ -59,26 +59,28 @@ export type LancamentoRelatorio = {
   descricao: string
   situacao: SituacaoLancamento
   motivo: string | null
-  conta: { nome: string } | null
+  conta: { nome: string; saldo_inicial_em: string } | null
   categoria: { nome: string; sistema: string | null } | null
   autorizado: { nome: string } | null
 }
 
 export async function lancamentosDoExercicio(exercicio: number): Promise<Resultado<LancamentoRelatorio[]>> {
-  const { data, error } = await cliente()
-    .from('lancamentos')
-    .select(
-      `data, tipo, valor, descricao, situacao, motivo, conta:contas_financeiras(nome),
-       categoria:categorias_financeiras(nome, sistema), autorizado:pessoas!lancamentos_autorizado_por_fkey(nome)`,
-    )
-    .gte('data', `${exercicio}-04-01`)
-    .lte('data', `${exercicio + 1}-03-31`)
-    .is('arquivado_em', null)
-    .order('data')
-    .order('criado_em')
-    .range(0, 9999)
-    .returns<LancamentoRelatorio[]>()
-  return error ? falha(error) : ok(data)
+  return todasAsLinhas((de, ate) =>
+    cliente()
+      .from('lancamentos')
+      .select(
+        `data, tipo, valor, descricao, situacao, motivo, conta:contas_financeiras(nome, saldo_inicial_em),
+         categoria:categorias_financeiras(nome, sistema), autorizado:pessoas!lancamentos_autorizado_por_fkey(nome)`,
+      )
+      .gte('data', `${exercicio}-04-01`)
+      .lte('data', `${exercicio + 1}-03-31`)
+      .is('arquivado_em', null)
+      .order('data')
+      .order('criado_em')
+      .order('id')
+      .range(de, ate)
+      .returns<LancamentoRelatorio[]>(),
+  )
 }
 
 // ---------- Balanço anual ----------
