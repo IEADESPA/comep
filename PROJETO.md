@@ -539,7 +539,7 @@ Roteiro de 14/11/2026: a Fase 5 começa pela igreja como instituição; as respo
 
 - [x] **Antes, a entrega 4.5:** ajustes das respostas de 14/11/2026 nas regras das fases 2 e 4 (seção 11.5) — concluída em 14/11/2026 (versão 4.0-teste.6)
 - [x] **5.1 — A igreja como instituição e o presidente de igreja** (seção 4.3): estatuto, cartão CNPJ e diretoria da igreja; o painel do presidente de igreja; pedidos de correção no cadastro dos ministros — concluída em 14/11/2026 (versão 5.0-teste.1; revisão em `docs/revisoes/fase-5.md`)
-- [ ] **5.2 — Comissões** permanentes e temporárias: só associados; a presidência e a secretaria criam; o coordenador cuida da sua comissão
+- [x] **5.2 — Comissões** permanentes e temporárias: só associados; a presidência e a secretaria criam; o coordenador cuida da sua comissão — concluída em 14/11/2026 (versão 5.0-teste.2)
 - [ ] **5.3 — Eventos e projetos:** orçamento aprovado pela assembleia, lançamentos vinculados, inscrição aberta ao público pelo site e taxa por evento; o secretário executivo é o responsável
 - [ ] **5.4 — Mural de avisos e painel da presidência:** só a secretaria publica e escolhe se o aviso vai ao site; envio pelo WhatsApp; painel com associados, finanças, presença, agenda e projetos
 - [ ] Revisão geral da Fase 5
