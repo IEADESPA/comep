@@ -52,3 +52,15 @@ O novo presidente do COMEP quer um conselho que **represente e apoie as igrejas 
     - o peso, os em dia, os documentos e a diretoria;
     - o ministro não vê.
 - [x] 397 testes do banco e de unidade passando.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| O pastor presidente vê o peso da igreja ("2 ministros associados") em "Minha igreja" | ✅ |
+| Ele envia o estatuto (PDF), que fica "Esperando a conferência" | ✅ |
+| Ele informa a diretoria da igreja | ✅ |
+| Ele pede uma correção no cadastro de um ministro da igreja | ✅ |
+| A presidência vê o documento em "Documentos para conferir" e confere na tela da igreja | ✅ |
+| A presidência atende a correção na lista de Ministros | ✅ |
+| Todos os testes de ponta a ponta, no computador e no celular, na cópia local | ✅ 105 passaram e 2 foram pulados de propósito |
