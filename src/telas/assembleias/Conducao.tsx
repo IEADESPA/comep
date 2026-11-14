@@ -3,9 +3,10 @@
 // Também mostra, para todos com login, o resultado das votações e a ata assinada (ResultadoDaAssembleia).
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { Aviso, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { listarAssociados } from '../../dados/associados'
 import { ok } from '../../dados/cliente'
+import { NOME_DO_CARGO, type Cargo } from '../../dados/diretoria'
 import {
   anexarArquivoAta,
   assinarAta,
@@ -42,12 +43,30 @@ function usePerfis() {
 const horaDe = (instante: string) =>
   new Date(instante).toLocaleTimeString('pt-BR', { timeZone: 'America/Belem', hour: '2-digit', minute: '2-digit' })
 
+/** "Nome (1º Secretário)": o cargo de quem assinou, guardado na assinatura (sem mandato registrado: pelo perfil). */
+function quemAssinou(nome: string | undefined, cargo: string | null): string {
+  const comoAssinou = cargo ? (NOME_DO_CARGO[cargo as Cargo] ?? cargo) : 'pelo perfil de acesso'
+  return `${nome ?? '—'} (${comoAssinou})`
+}
+
 // ---------------------------------------------------------------------
 // /assembleias/:id/conducao
 // ---------------------------------------------------------------------
 
 export function ConducaoAssembleia() {
   const { id = '' } = useParams()
+  const perfis = usePerfis()
+  if (perfis.length === 0) return <Carregando />
+  if (!perfis.includes('secretaria') && !perfis.includes('presidencia')) {
+    return (
+      <Aviso titulo="Sem permissão">
+        <p>A condução da assembleia (quórum, votações e ata) é da secretaria e da presidência.</p>
+        <p>
+          <Link to={`/assembleias/${id}`}>Voltar à assembleia</Link>
+        </p>
+      </Aviso>
+    )
+  }
   return <ConteudoConducao key={id} id={id} />
 }
 
@@ -70,7 +89,6 @@ function ConteudoConducao({ id }: { id: string }) {
       quorum: quorum.dados,
       votos: votos.dados,
       ata: ata.dados,
-      associados: associados.dados.filter((a) => a.situacao === 'ativo').map((a) => ({ pessoa_id: a.pessoa_id, nome: a.nome })),
       todos: associados.dados.map((a) => ({ pessoa_id: a.pessoa_id, nome: a.nome })),
     })
   })
@@ -89,7 +107,7 @@ function ConteudoConducao({ id }: { id: string }) {
       <h1>Condução da assembleia</h1>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ encontro: e, quorum, votos, ata, associados, todos }) => {
+        {({ encontro: e, quorum, votos, ata, todos }) => {
           if (!e || e.tipo === 'reuniao_mensal') {
             return (
               <Aviso titulo="Assembleia não encontrada">
@@ -97,8 +115,10 @@ function ConteudoConducao({ id }: { id: string }) {
               </Aviso>
             )
           }
-          const assinada = Boolean(ata?.assinada_secretario_em && ata.assinada_presidente_em)
+          // depois da primeira assinatura da ata, as votações não mudam mais
+          const algumaAssinatura = Boolean(ata?.assinada_secretario_em || ata?.assinada_presidente_em)
           const minimo = quorumPrimeiraChamada(quorum.aptos)
+          const minutos = e.segunda_chamada_minutos
           return (
             <>
               <p>
@@ -112,7 +132,8 @@ function ConteudoConducao({ id }: { id: string }) {
                   <p>
                     <span className="etiqueta etiqueta-ok">Instalada em {e.chamada === 'primeira' ? '1ª' : '2ª'} chamada</span> às{' '}
                     {horaDe(e.instalada_em)}, com {e.presentes_aptos_na_instalacao} associados aptos presentes, de{' '}
-                    {e.aptos_na_instalacao} aptos.
+                    {e.aptos_na_instalacao} aptos
+                    {e.presentes_na_instalacao !== null && ` (${e.presentes_na_instalacao} presentes ao todo)`}.
                   </p>
                 ) : (
                   <>
@@ -127,7 +148,11 @@ function ConteudoConducao({ id }: { id: string }) {
                       <dd>{minimo} aptos presentes (metade mais um)</dd>
                     </dl>
                     <p className="detalhe">
-                      Sem quórum, a 2ª chamada é com qualquer número, passados os minutos das regras (60). Marque as presenças na{' '}
+                      Sem quórum, a 2ª chamada é com qualquer número
+                      {minutos !== null
+                        ? `, a partir das ${horaDe(new Date(new Date(e.inicio).getTime() + minutos * 60_000).toISOString())} (${minutos} minutos depois do horário marcado)`
+                        : ', passados os minutos das regras'}
+                      . A lista de presença precisa estar aberta. Marque as presenças na{' '}
                       <Link to={`/assembleias/${e.id}/presenca`}>lista de presença</Link>.
                     </p>
                     {e.situacao === 'convocado' && (
@@ -165,12 +190,16 @@ function ConteudoConducao({ id }: { id: string }) {
                   .map((p) => (
                     <Votacao
                       key={p.id}
-                      e={e}
                       item={p}
                       voto={votos.find((v) => v.pauta_id === p.id) ?? null}
-                      associados={associados}
                       todos={todos}
-                      bloqueada={!e.instalada_em || assinada}
+                      bloqueio={
+                        !e.instalada_em
+                          ? 'Instale a assembleia (quórum) antes de registrar as votações.'
+                          : algumaAssinatura
+                            ? 'A ata já começou a ser assinada: as votações não mudam mais.'
+                            : null
+                      }
                       aoConcluir={concluir}
                     />
                   ))}
@@ -187,30 +216,28 @@ function ConteudoConducao({ id }: { id: string }) {
 }
 
 function Votacao({
-  e,
   item,
   voto,
-  associados,
   todos,
-  bloqueada,
+  bloqueio,
   aoConcluir,
 }: {
-  e: EncontroCompleto
   item: ItemDaPauta
   voto: Deliberacao | null
-  associados: { pessoa_id: string; nome: string }[]
   todos: { pessoa_id: string; nome: string }[]
-  bloqueada: boolean
+  /** por que a votação não pode ser registrada agora (null = pode) */
+  bloqueio: string | null
   aoConcluir: (r: { erro: string | null }, sucesso: string) => void
 }) {
   const [aFavor, setAFavor] = useState('')
   const [contra, setContra] = useState('')
   const [abstencoes, setAbstencoes] = useState('0')
-  const [desligar, setDesligar] = useState('')
-  const [inciso, setInciso] = useState<IncisoDesligamento>('II')
+  const [inciso, setInciso] = useState<IncisoDesligamento | ''>('')
   const [observacao, setObservacao] = useState('')
   const [enviando, umaVez] = useUmaVez()
-  const podeDesligar = e.tipo === 'ago' && item.maioria === 'tres_quintos'
+  // o desligamento é o do associado indicado na pauta desde a convocação (Art. 8º)
+  const alvo = item.desligamento_pessoa_id ?? null
+  const nomeDoAlvo = alvo ? (todos.find((a) => a.pessoa_id === alvo)?.nome ?? 'associado indicado na pauta') : null
   const travadaPorDesligamento = Boolean(voto?.desligamento_pessoa_id && voto.aprovada)
   const desligado = voto?.desligamento_pessoa_id ? todos.find((a) => a.pessoa_id === voto.desligamento_pessoa_id)?.nome : null
   return (
@@ -219,6 +246,11 @@ function Votacao({
         {item.ordem}. {item.titulo}
       </h3>
       <p className="detalhe">Maioria exigida: {item.maioria ? NOME_DA_MAIORIA[item.maioria] : '—'}</p>
+      {nomeDoAlvo && (
+        <p className="detalhe">
+          Desligamento de <strong>{nomeDoAlvo}</strong> (Art. 8º): aprovado, o associado sai do COMEP e perde o acesso de ministro.
+        </p>
+      )}
       {voto && (
         <p>
           <span className={voto.aprovada ? 'etiqueta etiqueta-ok' : 'etiqueta etiqueta-atraso'}>{voto.aprovada ? 'Aprovado' : 'Rejeitado'}</span>{' '}
@@ -226,7 +258,8 @@ function Votacao({
           {desligado && voto.aprovada && ` Desligado(a): ${desligado} (Art. 8º, ${voto.desligamento_inciso}).`}
         </p>
       )}
-      {!bloqueada && !travadaPorDesligamento && (
+      {bloqueio && !travadaPorDesligamento && <p className="detalhe">{bloqueio}</p>}
+      {!bloqueio && !travadaPorDesligamento && (
         <form
           className="form-linha"
           aria-label={`Registrar votação: ${item.titulo}`}
@@ -237,8 +270,8 @@ function Votacao({
                 aFavor: Number(aFavor),
                 contra: Number(contra),
                 abstencoes: Number(abstencoes),
-                desligamentoPessoaId: desligar || null,
-                desligamentoInciso: desligar ? inciso : null,
+                desligamentoPessoaId: alvo,
+                desligamentoInciso: alvo && inciso ? inciso : null,
                 observacao,
               })
               aoConcluir(r, r.erro === null ? `Votação registrada: ${r.dados.aprovada ? 'aprovado' : 'rejeitado'}.` : '')
@@ -257,32 +290,18 @@ function Votacao({
             Abstenções
             <input type="number" min={0} required value={abstencoes} onChange={(ev) => setAbstencoes(ev.target.value)} />
           </label>
-          {podeDesligar && (
-            <>
-              <label>
-                Desligamento do associado (Art. 8º)
-                <select value={desligar} onChange={(ev) => setDesligar(ev.target.value)}>
-                  <option value="">Não é desligamento</option>
-                  {associados.map((a) => (
-                    <option key={a.pessoa_id} value={a.pessoa_id}>
-                      {a.nome}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {desligar && (
-                <label>
-                  Motivo (Art. 8º)
-                  <select value={inciso} onChange={(ev) => setInciso(ev.target.value as IncisoDesligamento)}>
-                    {(['I', 'II', 'III', 'IV'] as const).map((i) => (
-                      <option key={i} value={i}>
-                        {NOME_DO_INCISO[i]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-            </>
+          {alvo && (
+            <label>
+              Motivo do desligamento (Art. 8º) *
+              <select required value={inciso} onChange={(ev) => setInciso(ev.target.value as IncisoDesligamento | '')}>
+                <option value="">— escolha —</option>
+                {(['I', 'II', 'III', 'IV'] as const).map((i) => (
+                  <option key={i} value={i}>
+                    {NOME_DO_INCISO[i]}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
           <label>
             Observação
@@ -356,7 +375,8 @@ function SecaoAta({
                     chamada: e.chamada,
                     aptos: e.aptos_na_instalacao,
                     presentesAptos: e.presentes_aptos_na_instalacao,
-                    presentes: quorum.presentes,
+                    // a conta da instalação (a lista pode ter mudado depois)
+                    presentes: e.presentes_na_instalacao ?? quorum.presentes,
                     pauta: e.pauta,
                     votos: votos.map((v) => ({
                       ...v,
@@ -379,11 +399,15 @@ function SecaoAta({
           <ul className="lista-pendencias" aria-label="Assinaturas">
             <li>
               1º secretário:{' '}
-              {ata.assinada_secretario_em ? `${ata.secretario?.nome ?? '—'}, em ${formatarDataHora(ata.assinada_secretario_em)}` : 'falta assinar'}
+              {ata.assinada_secretario_em
+                ? `${quemAssinou(ata.secretario?.nome, ata.assinada_secretario_cargo)}, em ${formatarDataHora(ata.assinada_secretario_em)}`
+                : 'falta assinar'}
             </li>
             <li>
               Presidente:{' '}
-              {ata.assinada_presidente_em ? `${ata.presidente?.nome ?? '—'}, em ${formatarDataHora(ata.assinada_presidente_em)}` : 'falta assinar'}
+              {ata.assinada_presidente_em
+                ? `${quemAssinou(ata.presidente?.nome, ata.assinada_presidente_cargo)}, em ${formatarDataHora(ata.assinada_presidente_em)}`
+                : 'falta assinar'}
             </li>
           </ul>
           <div className="acoes">
@@ -407,9 +431,11 @@ function SecaoAta({
                 Assinar como presidente
               </button>
             )}
-            <ArquivoAta e={e} ata={ata} aoConcluir={aoConcluir} />
+            {ata.arquivo_caminho && <LinkArquivo caminho={ata.arquivo_caminho} />}
+            {/* o arquivo da ata assinada no papel entra uma vez, depois das duas assinaturas */}
+            {assinada && !ata.arquivo_caminho && <ArquivoAta e={e} aoConcluir={aoConcluir} />}
           </div>
-          {!algumaAssinatura && <p className="detalhe">Depois da primeira assinatura, o texto não muda mais.</p>}
+          {!algumaAssinatura && <p className="detalhe">Depois da primeira assinatura, o texto e as votações não mudam mais.</p>}
           {assinada && <p className="etiqueta etiqueta-ok">Ata assinada: todos os associados podem ler.</p>}
         </>
       )}
@@ -417,13 +443,12 @@ function SecaoAta({
   )
 }
 
-function ArquivoAta({ e, ata, aoConcluir }: { e: EncontroCompleto; ata: Ata; aoConcluir: (r: { erro: string | null }, s: string) => void }) {
+function ArquivoAta({ e, aoConcluir }: { e: EncontroCompleto; aoConcluir: (r: { erro: string | null }, s: string) => void }) {
   const [enviando, umaVez] = useUmaVez()
   return (
     <>
-      {ata.arquivo_caminho && <LinkArquivo caminho={ata.arquivo_caminho} />}
       <label className="botao botao-secundario botao-arquivo">
-        {enviando ? 'Enviando…' : ata.arquivo_caminho ? 'Trocar o arquivo da ata assinada' : 'Anexar a ata assinada no papel (PDF ou foto)'}
+        {enviando ? 'Enviando…' : 'Anexar a ata assinada no papel (PDF ou foto)'}
         <input
           type="file"
           accept="application/pdf,image/*"
@@ -500,7 +525,8 @@ export function ResultadoDaAssembleia({ e }: { e: EncontroCompleto }) {
                 <h3>Ata</h3>
                 <p className="texto-edital">{ata.texto}</p>
                 <p className="detalhe">
-                  Assinada pelo 1º secretário ({ata.secretario?.nome}) e pelo presidente ({ata.presidente?.nome}).
+                  Assinada por {quemAssinou(ata.secretario?.nome, ata.assinada_secretario_cargo)} e por{' '}
+                  {quemAssinou(ata.presidente?.nome, ata.assinada_presidente_cargo)}.
                 </p>
                 {ata.arquivo_caminho && <LinkArquivo caminho={ata.arquivo_caminho} />}
               </>

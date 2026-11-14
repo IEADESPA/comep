@@ -1,7 +1,9 @@
 // Fase 4.3: condução da assembleia — instalar (quórum), registrar votação e escrever/assinar a ata.
 // Para ter uma assembleia "acontecendo agora", o teste zera por alguns minutos a antecedência e a 2ª chamada
-// nas Regras (Configurações) e devolve os valores no fim. AGE FICTÍCIA, cancelada e arquivada no fim.
-// O desligamento (sem volta) é testado só no banco (testes/banco/conducao.test.ts).
+// nas Regras (Configurações) e devolve os valores no fim. AGE FICTÍCIA: instalada, ela não se cancela mais (revisão da
+// Fase 4); no fim, a lista de presença é encerrada e ela fica em "Anteriores" do banco de teste, com o título "E2E".
+// Se o teste parar antes de instalar, ela é cancelada e arquivada. O desligamento (sem volta) é testado só no banco
+// (testes/banco/conducao.test.ts).
 import { expect, test, type Page } from '@playwright/test'
 import { arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
 
@@ -89,8 +91,16 @@ test('assembleia: instalar em 2ª chamada, registrar a votação e escrever a at
     await page.getByRole('button', { name: 'Assinar como presidente' }).click()
     await expect(mensagemNaTela(page, 'Ata assinada pelo presidente.')).toBeVisible()
     await expect(page.getByRole('list', { name: 'Assinaturas' })).toContainText('1º secretário: falta assinar')
-    // assinada por alguém, o texto não muda mais
+    // quem assinou e como: a presidência fictícia não tem mandato registrado, assina pelo perfil
+    await expect(page.getByRole('list', { name: 'Assinaturas' })).toContainText('(pelo perfil de acesso)')
+    // assinada por alguém, o texto e as votações não mudam mais
     await expect(page.getByRole('button', { name: 'Salvar a ata' })).toHaveCount(0)
+    await expect(votacao).toHaveCount(0)
+    await expect(page.getByRole('article', { name: 'Votação: Aprovar o relatório (teste)' })).toContainText(
+      'A ata já começou a ser assinada: as votações não mudam mais.',
+    )
+    // o arquivo da ata só entra depois das duas assinaturas
+    await expect(page.getByText('Anexar a ata assinada no papel')).toHaveCount(0)
 
     // a página da assembleia mostra o resultado
     await page.goto(endereco)
@@ -101,14 +111,30 @@ test('assembleia: instalar em 2ª chamada, registrar a votação e escrever a at
       await page.goto(endereco)
       await expect(page.getByRole('heading', { name: titulo })).toBeVisible()
       if (await page.getByText('Cancelar este encontro').count()) {
+        // não chegou a ser instalada: cancela e arquiva
         await page.getByText('Cancelar este encontro').click()
         await page.getByRole('form', { name: 'Cancelar o encontro' }).getByLabel('Motivo *').fill('Teste automático')
         await page.getByRole('button', { name: 'Cancelar o encontro' }).click()
         await expect(mensagemNaTela(page, 'Encontro cancelado.')).toBeVisible()
+        await page.getByRole('button', { name: `Arquivar ${titulo}` }).click()
+        await page.getByRole('button', { name: `Confirmar — Arquivar ${titulo}` }).click()
+        await expect(page).toHaveURL(/\/assembleias$/)
+      } else {
+        // instalada: não se cancela mais; encerra a lista e ela fica registrada como realizada
+        await page.goto(`${endereco}/presenca`)
+        await page.getByRole('button', { name: 'Encerrar a lista de presença' }).click()
+        await page.getByRole('button', { name: /^Confirmar — encerrar/ }).click()
+        await expect(mensagemNaTela(page, 'Lista encerrada: o encontro está registrado como realizado.')).toBeVisible()
       }
-      await page.getByRole('button', { name: `Arquivar ${titulo}` }).click()
-      await page.getByRole('button', { name: `Confirmar — Arquivar ${titulo}` }).click()
-      await expect(page).toHaveURL(/\/assembleias$/)
     }
   }
+})
+
+test('o ministro não abre a condução da assembleia', async ({ browser }) => {
+  const ministro = await browser.newContext({ storageState: arquivoDaSessao('ministro') })
+  const m = await ministro.newPage()
+  await m.goto('assembleias/00000000-0000-0000-0000-000000000000/conducao')
+  await expect(m.getByRole('heading', { name: 'Sem permissão' })).toBeVisible()
+  await expect(m.getByRole('button', { name: 'Instalar a assembleia' })).toHaveCount(0)
+  await ministro.close()
 })

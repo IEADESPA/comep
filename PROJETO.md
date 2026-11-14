@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.24 — 13 de novembro de 2026 — atualizado com a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.25 — 14 de novembro de 2026 — atualizado com a **revisão geral da Fase 4 e a Fase 4 concluída**, a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -477,7 +477,7 @@ Decisões na seção 4.5. Revisão: `docs/revisoes/fase-3.md`.
   - desfazer e refazer; conferência antes de salvar (QR pequeno, item fora do cartão, falta o nome, a foto ou a validade);
   - cada vez que se salva nasce uma versão; dá para usar qualquer versão, voltar ao modelo padrão e arquivar as que não servem (nada se apaga)
 
-### Fase 4 — Assembleias, reuniões e diretoria (versão 4.0-teste)
+### Fase 4 — Assembleias, reuniões e diretoria (versão 4.0-teste) — concluída em 14/11/2026
 
 Decisões na seção 4.6. Revisão: `docs/revisoes/fase-4.md`. **O estatuto pode ser reformado** (administrador técnico, 13/11/2026): os números dele ficam em Configurações → Assembleias e reuniões, com o valor do estatuto de 2021 como padrão.
 
@@ -517,9 +517,16 @@ Decisões na seção 4.6. Revisão: `docs/revisoes/fase-4.md`. **O estatuto pode
 
 - [x] Diretoria e Conselho Fiscal: eleições, mandatos e perfis automáticos pelo cargo:
   - menu **Diretoria**: quem está em exercício e o histórico, para todos com login;
-  - a presidência registra a diretoria eleita (posse, fim — 4 anos — e a assembleia que elegeu). Só associados em dia podem ser votados (Art. 11); um por cargo (3 no Conselho Fiscal); ninguém acumula cargos, nem diretoria e Conselho Fiscal;
+  - a presidência registra a diretoria eleita (posse, fim — até 4 anos — e a assembleia que elegeu). Só associados em dia podem ser votados (Art. 11); um por cargo (3 no Conselho Fiscal); ninguém acumula cargos, nem diretoria e Conselho Fiscal;
+  - *revisão geral (14/11/2026):* o primeiro registro leva a ata ou o documento da eleição; depois, só com a **AGO ou AGE instalada** no sistema. Ninguém registra a si mesmo num cargo que lhe dá poder novo. Tirar alguém de presidente, vice ou do Conselho Fiscal pede a assembleia; a renúncia é a própria pessoa que faz;
   - **o cargo dá o perfil** enquanto o mandato vale; encerrar antes (renúncia, desligamento) tira o perfil; desligado do COMEP perde o perfil do cargo;
   - se o fim do mandato nas credenciais não é o da diretoria em exercício, a tela avisa para registrar o novo mandato
+
+**Revisão geral da Fase 4** (14/11/2026) — `docs/revisoes/fase-4.md`, seção "Revisão geral da Fase 4". Também mudou:
+
+- o **desligamento** (Art. 8º) é indicado na pauta já na convocação: na assembleia, só aquele associado pode ser desligado naquele item;
+- as votações travam na **primeira** assinatura da ata; assembleia instalada não se cancela;
+- só a **presidência** muda as regras das assembleias; a 2ª chamada fica a da regra que valia na convocação
 
 ### Fase 5 — Projetos, comissões e comunicação (versão 5.0)
 
@@ -617,6 +624,7 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 22. **Faltas:** a regra de desligamento por 3 faltas seguidas sem justificativa (Art. 8º, IV) vale para as reuniões mensais?
 23. **Pagamento informado e ainda não conferido:** o associado pagou antes do vencimento e informou o pagamento, mas a tesouraria ainda não conferiu. Até a conferência, ele conta como **em dia** para votar? *(Hoje o sistema só conta como em dia depois que a tesouraria confirma. Revisão geral da Fase 2, 13/11/2026.)*
 24. **Maiorias de 3/5 e 2/3** *(13/11/2026, Fase 4.3)*: a base é o número de **presentes aptos** (em dia) ou os **votos válidos** (a favor + contra)? Ex.: 25 presentes aptos, 3/5 = 15 votos a favor; se fossem só os votos válidos (20 a favor e contra), 3/5 = 12. *Hoje o sistema usa os presentes aptos e mostra a conta.*
+25. **"Metade mais um" com número ímpar** *(14/11/2026, revisão geral da Fase 4)*: com 75 associados aptos, a 1ª chamada pede **38** (mais da metade, como está) ou **39** (37,5 + 1, arredondado para cima)? *Hoje o sistema pede 38.*
 
 ### 11.4 Internas (equipe técnica, sem levar à diretoria)
 
@@ -776,3 +784,4 @@ Além das travas de cada entrega, toda fase termina com uma **revisão geral ind
 | 1 — Cadastros e acessos | 12/11/2026 (entrega 1.4) | 10 correções de segurança, 3 riscos aceitos e registrados | `docs/revisoes/fase-1.md` |
 | 2 — Financeiro | 13/11/2026 | 10 problemas bloqueantes e 12 importantes corrigidos; 13 testes de regressão no banco, 17 de unidade e 1 de ponta a ponta | `docs/revisoes/fase-2.md`, seção "Revisão geral da Fase 2" |
 | 3 — Credencial | 13/11/2026 | 3 problemas bloqueantes, 5 importantes e 6 menores, mais 13 pequenos ajustes; 12 testes de regressão no banco, 3 de unidade e 2 de ponta a ponta | `docs/revisoes/fase-3.md`, seção "Revisão geral da Fase 3" |
+| 4 — Assembleias e diretoria | 14/11/2026 | 9 problemas bloqueantes, 9 importantes e 5 menores, mais 17 pequenos ajustes; 1 risco aceito (assinatura pelo perfil, a rever no lançamento); 20 testes de regressão no banco, 3 de unidade e 4 de ponta a ponta | `docs/revisoes/fase-4.md`, seção "Revisão geral da Fase 4" |

@@ -47,6 +47,17 @@ describe('avisos da data (Art. 16)', () => {
     assert.deepEqual(avisosDaData('ago', '2026-11-01T19:00:00-03:00', CONFIG, '2026-11-13'), ['A data já passou.'])
   })
 
+  it('hoje, mas a hora já passou: avisa (também na reunião mensal)', () => {
+    const agora = new Date('2026-11-13T20:00:00-03:00').getTime()
+    assert.deepEqual(avisosDaData('reuniao_mensal', '2026-11-13T19:00:00-03:00', CONFIG, '2026-11-13', agora), ['O horário já passou.'])
+    assert.deepEqual(avisosDaData('reuniao_mensal', '2026-11-13T21:00:00-03:00', CONFIG, '2026-11-13', agora), [])
+  })
+
+  it('se o estatuto mudar o dia mínimo da AGO, o aviso usa o número novo', () => {
+    const avisos = avisosDaData('ago', '2027-04-05T19:00:00-03:00', { ...CONFIG, dia_minimo_ago: 10 }, '2026-11-13')
+    assert.ok(avisos.some((a) => a.includes('em abril e outubro, a partir do dia 10')), avisos.join(' | '))
+  })
+
   it('nomes dos meses', () => {
     assert.equal(nomesDosMeses([10, 4]), 'abril e outubro')
     assert.equal(nomesDosMeses([3, 6, 9]), 'março, junho e setembro')
@@ -74,6 +85,21 @@ describe('edital', () => {
     assert.match(texto, /a pedido de: Conselho Diretor/)
     assert.match(texto, /Art\. 11/)
     assert.match(texto, /Parauapebas, 13 de novembro de 2026\./)
+  })
+
+  it('reunião mensal: sem quórum de 1ª e 2ª chamada e sem a regra de votação', () => {
+    const texto = textoDoEdital({
+      tipo: 'reuniao_mensal',
+      inicio: '2026-12-01T19:30:00-03:00',
+      local: 'Igreja anfitriã',
+      fundamento: '',
+      pauta: [{ titulo: 'Oração e comunhão', descricao: null, deliberativo: false, maioria: null }],
+      minutosSegundaChamada: 60,
+      hoje: new Date('2026-11-13T15:00:00Z'),
+    })
+    assert.match(texto, /^EDITAL DE CONVOCAÇÃO — REUNIÃO MENSAL/)
+    assert.match(texto, /reunião mensal, que será realizada terça-feira, 1 de dezembro de 2026, às 19h30, em Igreja anfitriã/)
+    assert.doesNotMatch(texto, /chamada|Art\. 11/)
   })
 })
 
@@ -112,6 +138,9 @@ describe('quórum, maiorias e ata (Fase 4.3)', () => {
     assert.equal(minimoAFavor('dois_tercos', 23), 16)
     assert.equal(minimoAFavor('simples', 23), null)
     assert.equal(explicarMaioria('tres_quintos', 23), '3/5 dos 23 presentes aptos = 14 votos a favor')
+    assert.equal(explicarMaioria('dois_tercos', 1), '2/3 do único presente apto = 1 voto a favor')
+    // ninguém em dia presente: a conta não dá zero votos "suficientes"
+    assert.equal(explicarMaioria('tres_quintos', 0), '3/5 dos presentes aptos — sem presentes aptos, não há aprovação')
   })
 
   it('a ata traz a instalação, cada item com o resultado e o desligamento', () => {

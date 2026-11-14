@@ -11,6 +11,7 @@
 - [x] Produção preparada, sem nenhum dado: estrutura do banco e configuração de login (ver "Situação" no fim)
 - [x] **Aceite da presidência:** em 12/11/2026, o presidente do COMEP concordou com tudo o que foi feito (registrado em `docs/revisoes/fase-1.md`). Repetir a conferência das fases 2 a 5 antes do lançamento
 - [ ] **Termo de hospedagem** (`docs/termo-hospedagem.md`) assinado pela presidência do COMEP e pela IEADESPA
+- [ ] **Riscos aceitos nas revisões gerais, revistos com a diretoria verdadeira.** Em especial o F6 da Fase 4: hoje a ata é assinada pelo **perfil** (Secretaria, Presidência), e não só pelo cargo (1º secretário, presidente). A ata guarda o cargo de quem assinou (`docs/revisoes/fase-4.md`)
 - [ ] **Verificação em duas etapas** ligada nas duas contas donas do GitHub (`seta-max` e `presidente-ai`), com os códigos de recuperação guardados
 - [ ] **Dados do presidente do COMEP:**
   - nome completo;
@@ -54,8 +55,9 @@ O sistema começa sem ninguém com perfil. É o "ovo e a galinha": quem dá os p
 A partir daí, tudo é feito pelo sistema:
 
 - cadastrar as igrejas e os associados atuais;
-- gerar os códigos de primeiro acesso, que vão pelo WhatsApp;
-- dar os perfis da diretoria, só a associados ativos;
+- gerar os códigos de primeiro acesso, que vão pelo WhatsApp. Para quem é da diretoria, só a presidência gera;
+- registrar a diretoria em exercício em **Diretoria**. O primeiro registro leva a ata ou o documento da eleição. Daí em diante, cada diretoria eleita é registrada com a assembleia instalada no sistema. O cargo dá o perfil sozinho;
+- se ainda faltar alguém, dar os perfis da diretoria em "Perfis de acesso", só a associados ativos;
 - preencher os dados do site em **Configurações**.
 
 ### 3. Conferência rápida em produção
@@ -82,7 +84,7 @@ O Claude Code faz: cria a marca `v1.0` no GitHub e registra o aceite e a data em
 | Item | Situação |
 |---|---|
 | Estrutura do banco de produção | ✅ 12/11/2026: as 9 migrações aplicadas numa produção vazia, sem erro |
-| Migrações que faltam na produção | A partir de `20261112153856_limite_arquivos.sql`: limite de arquivos, toda a Fase 2 (contribuições, caixa, taxa de inscrição, Conselho Fiscal, prestação de contas e revisão geral) toda a Fase 3 (dados da credencial, credencial digital e impressão, validade por mandato, editor do modelo e revisão geral) e a Fase 4 até aqui (assembleias e reuniões, presença e faltas, quórum, votações, desligamentos e ata, diretoria e mandatos). Já passaram pelas travas no teste e são aplicadas no lançamento, junto com as que vierem até a versão 5.0 |
+| Migrações que faltam na produção | A partir de `20261112153856_limite_arquivos.sql`: limite de arquivos, toda a Fase 2 (contribuições, caixa, taxa de inscrição, Conselho Fiscal, prestação de contas e revisão geral) toda a Fase 3 (dados da credencial, credencial digital e impressão, validade por mandato, editor do modelo e revisão geral) e toda a Fase 4 (assembleias e reuniões, presença e faltas, quórum, votações, desligamentos e ata, diretoria e mandatos e revisão geral). Já passaram pelas travas no teste e são aplicadas no lançamento, junto com as que vierem até a versão 5.0 |
 | Login da produção (`docs/configuracao-login.md`) | ✅ 12/11/2026: sem confirmação por e-mail, senha de 8 caracteres com letras e números, endereço do site |
 | Conferência da produção | ✅ 12/11/2026: mesmas regras do teste. O visitante recebe "sem permissão" em tudo, exceto os dados do site. 0 logins, 0 cadastros. Títulos e valores carregados. Pasta de arquivos privada |
 | Backup da produção | ✅ Entra no backup semanal (banco + arquivos) |

@@ -309,3 +309,109 @@ O que entrou:
 - mandato de 01/01/2026 a 31/12/2029, a mesma data fictícia das credenciais.
 
 A diretoria verdadeira depende da pergunta 10.
+
+## Revisão geral da Fase 4 (14/11/2026)
+
+Como em toda fase, a Fase 4 terminou com uma revisão geral independente (PROJETO.md, seção 14.4).
+
+**Como foi feita:**
+
+- Dois revisores independentes leram todo o código da Fase 4, sem ver o raciocínio de quem escreveu:
+  - **banco e segurança:** as sete migrações da fase, com as permissões, as regras de acesso, as funções, a pasta das atas e o que cada perfil consegue fazer;
+  - **telas e regras:** assembleias, presença, condução (quórum, votações e ata), diretoria, o site, o Início e as Configurações.
+- Os revisores **provaram** cada achado antes de relatar:
+  - o de banco, numa cópia local;
+  - o de telas, no navegador, sem gravar nada no banco de teste.
+- Cada correção do banco ganhou um teste: 20 testes novos (`testes/banco/revisao_fase4.test.ts`). Sem a migração da revisão, **11 falham** e os outros 9 nem começam, porque precisam das colunas novas (conferido).
+
+**O que se conferiu e estava certo:**
+
+- O visitante sem login só vê as convocações publicadas e a validação da credencial.
+- Mais votos que presentes em dia: o banco recusa.
+- A presença pelo QR Code só vale para associado ativo, e só na janela do encontro.
+- A ata assinada pelos dois não muda mais, nem pelo banco.
+
+### Achados e correções
+
+| # | Gravidade | O que acontecia | Correção | Teste |
+|---|---|---|---|---|
+| F1 | Bloqueante | A secretaria podia **gerar código de acesso** para quem tem poder pelo mandato (presidente, vice, tesoureiros, conselheiros) e tomar a conta da pessoa | Para quem tem poder de direção (perfil dado à mão ou cargo com mandato em vigor), só a presidência gera o código | Banco |
+| F2 | Bloqueante | Assinar a ata com o papel **vazio** fazia qualquer pessoa com login assinar como presidente | A assinatura exige "secretário" ou "presidente", com o perfil certo | Banco |
+| F3 | Bloqueante | A presidência podia **se pôr num cargo** que lhe dava poder novo, registrar a diretoria **sem assembleia** e tirar qualquer um do cargo | Ninguém registra a si mesmo num cargo que lhe dá poder novo. Depois do primeiro registro (que leva a ata ou o documento da eleição), a diretoria eleita só entra com a **AGO ou AGE instalada** que a elegeu. Mandato de no máximo 4 anos. Tirar alguém de presidente, vice ou do Conselho Fiscal pede a assembleia instalada; a **renúncia** é a própria pessoa que faz | Banco (2) e ponta a ponta |
+| F4 | Bloqueante | Desligado ou falecido **continuava com o perfil da diretoria** dado à mão | Quem saiu do COMEP perde os perfis da diretoria e do Conselho Fiscal, dados à mão ou pelo cargo | Banco |
+| F7 | Bloqueante | Um perfil retirado voltava a valer ao ser "desarquivado", sem passar pelas regras de concessão | Perfil retirado não se desarquiva: dá-se de novo, e as regras valem | Banco |
+| F12 | Bloqueante | Um desligamento podia ser **ligado a qualquer item de 3/5** da AGO, com qualquer associado, e o inciso IV não conferia as faltas | O associado do desligamento é **indicado na pauta, já na convocação**. Na assembleia, só ele pode ser desligado naquele item. O inciso é obrigatório, e o IV confere as faltas seguidas | Banco |
+| F11 / B2 | Bloqueante | Depois da **primeira assinatura** da ata (texto travado), as votações, inclusive um desligamento, ainda mudavam | As votações travam já na primeira assinatura. A tela mostra o motivo e esconde o formulário | Banco e ponta a ponta |
+| F10 / B3 | Bloqueante | Assembleia **instalada**, com votações e ata, ainda podia ser cancelada e arquivada | Instalada, não se cancela. A tela esconde "Cancelar" | Banco |
+| B1 | Bloqueante | Encerrar a lista de presença de uma AGO ou AGE **antes de instalar** deixava a assembleia impossível de registrar | Assembleia só encerra a lista depois de instalada. A tela explica e leva à condução | Banco |
+| F5 | Importante | A secretaria tirava o poder de quem tem cargo sem votação: arquivava o associado ou registrava o falecimento | Associado com cargo não se arquiva (encerre o mandato antes). Desligado e falecido ficam no histórico. O falecimento de quem tem cargo é registrado pela presidência. A readmissão do desligado é só pela assembleia | Banco (2) |
+| F14 | Importante | Desligado ou falecido **continuava ocupando o cargo**, e a vaga não abria | Ao sair do COMEP, os mandatos da pessoa terminam sozinhos, com o motivo | Banco |
+| F13 / I6 | Importante | Mandato registrado **por engano** não tinha como ser desfeito; mandato futuro não se corrigia | Encerrar no dia da posse corrige o engano: não chega a valer e libera a vaga. Mandato futuro também se encerra | Banco |
+| F8 / F9 | Importante | Qualquer pessoa com login lia o **arquivo da ata ainda não assinada** e os detalhes dos desligamentos (quem, inciso, observação) | Antes da ata assinada, só a diretoria e o Conselho Fiscal leem votações e arquivo. Depois, os associados ativos | Banco |
+| F15 | Importante | A secretaria sozinha mudava os números do estatuto, e a mudança valia para assembleias **já convocadas** | Só a presidência muda as regras. A 2ª chamada fica a da regra que valia na convocação | Banco |
+| F16 | Importante | Contavam-se faltas de reuniões **anteriores à entrada** do associado no sistema | As faltas contam a partir da admissão ou da entrada no sistema, o que for mais tarde | Banco |
+| F17 / I3 | Importante | O arquivo da ata assinada no papel **não entrava** depois das duas assinaturas eletrônicas; antes delas, podia ser trocado | O arquivo entra uma vez, depois das duas assinaturas. A tela só mostra o botão nessa hora | Banco e ponta a ponta |
+| I2 | Importante | O edital podia **contradizer** a data e o local oficiais: gerado antes de mudar a data, ou copiado igual para as reuniões repetidas | A tela avisa quando o edital não traz a data ou o local de agora. Nas reuniões repetidas, cada edital leva a data da sua reunião | — (conferido no código) |
+| I5 | Importante | O motivo do desligamento vinha marcado em **inciso II**, sem ninguém escolher | O motivo começa vazio e é obrigatório | — |
+| F18 | Menor | A assembleia podia ser instalada **dias depois**, com zero presentes | Só se instala com a lista de presença aberta (no dia) | Banco |
+| F19 | Menor | Rascunho cancelado **sem ter sido convocado** aparecia para os associados | Só a diretoria vê | Banco |
+| F20 | Menor | Qualquer pessoa com login via a contagem do quórum | Só a secretaria e a presidência | Banco |
+| I4 | Menor | Os nomes das maiorias não diziam a base da conta | "3/5 dos presentes aptos", "2/3 dos presentes aptos", "maioria simples (mais a favor que contra)" | Unidade |
+| I7 | Menor | Números do estatuto escritos fixos em textos (30 dias, 2ª quinzena, 60 minutos) | Os textos usam as regras de Configurações ou falam de forma geral | Unidade |
+
+**Menores (corrigidos):**
+
+- **Presença:**
+  - a câmera do leitor de QR Code podia ficar ligada depois de fechar a lista;
+  - os botões de marcar apareciam fora da janela do encontro. Agora a tela diz quando a lista abre ou que já fechou;
+  - "Aceitar" a justificativa mandava junto o texto do motivo de recusa.
+- **Condução:**
+  - o ministro chegava à tela pelo endereço. Agora vê "Sem permissão";
+  - a ata misturava contagens de horas diferentes. Agora usa os presentes do momento da instalação;
+  - a 2ª chamada mostrava "(60)" fixo. Agora mostra a hora e os minutos guardados na convocação;
+  - a conta da maioria com zero presentes aptos dizia "0 votos a favor". Agora diz que não há aprovação.
+- **Assembleias:**
+  - "Ver no site" aparecia num rascunho cancelado;
+  - o edital da reunião mensal falava em quórum e votação;
+  - nenhum aviso quando a data é hoje, mas a hora já passou;
+  - item que fala de "estatuto" sem maioria de 2/3: agora a tela avisa (Art. 21).
+- **Outros:**
+  - o edital passava da borda no celular de 320 px;
+  - o Início dizia "1 faltas seguidas";
+  - em Configurações, dava para salvar mais faltas para avisar do que para levar à pauta (o banco também confere agora).
+- **Diretoria:**
+  - quem tem cargo pode **renunciar** pela própria tela;
+  - ao encerrar o mandato de presidente, vice ou conselheiro, a tela pede a assembleia que decidiu;
+  - a ata e as telas mostram o **cargo** de quem assinou, ou "pelo perfil de acesso" quando a pessoa ainda não tem mandato registrado.
+
+**Riscos aceitos e registrados:**
+
+- **F6 / I1 — o perfil, e não só o cargo:**
+  - **O achado:** quem assina a ata, decide as justificativas e convoca é conferido pelo **perfil** (Secretaria, Presidência), não pelo cargo (1º secretário, presidente).
+  - **Por que fica assim:**
+    - a diretoria verdadeira ainda não foi informada (pergunta 10);
+    - a diretoria fictícia do teste não tem login;
+    - exigir o cargo agora travaria tudo.
+  - **O que mudou:** a ata guarda o cargo de quem assinou. Quando a diretoria estiver registrada com login, o cargo dá o perfil sozinho.
+  - **A revisar:** antes do lançamento (`docs/lancamento.md`).
+- **A reforma do estatuto (2/3, Art. 21)** não é imposta pelo banco: a tela avisa, e quem prepara a pauta escolhe a maioria.
+- **Assembleias de teste:** no banco de teste, cada execução do teste de condução deixa uma AGE fictícia "E2E" realizada, porque instalada não se cancela mais. Elas ficam em "Anteriores".
+- **"Metade mais um" com número ímpar:** hoje, com 75 aptos, a 1ª chamada pede 38. Se a diretoria entender 37,5 + 1 = 39, muda-se a regra. Vai à diretoria como **pergunta 25**.
+
+**Migração:** `20261114140000_revisao_fase4.sql`, aplicada no `comep-teste` em 14/11/2026. Verificador do Supabase: só o aviso já conhecido (proteção contra senhas vazadas, do plano pago).
+
+**Dados fictícios:** `testes/dados/semente-eleicao-teste.sql`, aplicada no `comep-teste`. É uma AGO fictícia de eleição, de outubro de 2025, já instalada, para o teste da diretoria escolher a assembleia que elegeu.
+
+### Trava 3 da revisão
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| Registrar a diretoria pede a assembleia instalada que elegeu (só AGO e AGE instaladas na lista) | ✅ |
+| Depois da primeira assinatura da ata, a votação some e a tela diz por quê; o arquivo da ata só entra com as duas assinaturas | ✅ |
+| A ata mostra como cada um assinou ("pelo perfil de acesso", sem mandato registrado) | ✅ |
+| Assembleia instalada não tem "Cancelar": o teste encerra a lista de presença | ✅ |
+| O ministro não abre a condução da assembleia ("Sem permissão") nem encerra mandatos | ✅ |
+| Item sobre o estatuto com maioria simples: a tela avisa que a reforma pede 2/3 | ✅ |
+| Todos os testes de ponta a ponta, no computador e no celular, na cópia local | ✅ 105 passaram e 2 foram pulados de propósito (a condução, no celular, espera 2 minutos) |
+
+**Achado pelo teste de ponta a ponta e corrigido:** o teste das assembleias ainda esperava o nome antigo da maioria e, ao falhar antes da limpeza, deixava um rascunho no banco de teste. Os dois rascunhos foram arquivados, e a conferência passou para dentro do bloco que sempre limpa.

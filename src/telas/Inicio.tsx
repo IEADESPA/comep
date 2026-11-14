@@ -90,7 +90,7 @@ function AvisoDeFaltas() {
   const { faltas_seguidas: faltas, faltas_aviso: aviso, faltas_pauta: pauta } = carga.dados
   if (faltas < aviso) return null
   return (
-    <Aviso titulo={`Você tem ${faltas} faltas seguidas nas reuniões mensais`}>
+    <Aviso titulo={`Você tem ${faltas} ${faltas === 1 ? 'falta' : 'faltas seguidas'} nas reuniões mensais`}>
       <p>
         {faltas >= pauta
           ? 'Sem justificativa aceita, o caso vai para a pauta da assembleia (Art. 8º, IV do Estatuto).'

@@ -48,7 +48,9 @@ export async function listarMandatos(): Promise<Resultado<Mandato[]>> {
 export type NovaDiretoria = {
   inicio: string
   fim: string
+  /** a assembleia (instalada) que elegeu; no primeiro registro, pode ficar vazia e vale o documento */
   encontro_id: string | null
+  documento: string
   membros: { cargo: Cargo; pessoa_id: string }[]
 }
 
@@ -58,8 +60,11 @@ export async function registrarDiretoria(dados: NovaDiretoria): Promise<Resultad
   return error ? falha(error) : ok(data as number)
 }
 
-/** Mandato que acaba antes (renúncia, desligamento, falecimento). */
-export async function encerrarMandato(id: string, data: string, motivo: string): Promise<Resultado<null>> {
-  const { error } = await cliente().rpc('encerrar_mandato', { p_id: id, p_data: data, p_motivo: motivo })
+/**
+ * Mandato que acaba antes. A própria pessoa renuncia; a presidência encerra os outros. Tirar alguém do cargo de
+ * presidente, vice ou do Conselho Fiscal pede a assembleia (instalada) que tratou disso. No dia do início: engano.
+ */
+export async function encerrarMandato(id: string, data: string, motivo: string, encontroId: string | null): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('encerrar_mandato', { p_id: id, p_data: data, p_motivo: motivo, p_encontro_id: encontroId })
   return error ? falha(error) : ok(null)
 }

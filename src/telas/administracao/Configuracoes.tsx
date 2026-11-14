@@ -108,7 +108,8 @@ export function Configuracoes() {
       <TaxaInscricao key={`taxa-${versaoTaxa}`} podeEditar={editaValores} aoMudar={() => setVersaoValores((v) => v + 1)} />
       <Vencimentos podeEditar={editaValores} />
       <ConfigCredencialSecao podeEditar={perfis.some((p) => p === 'secretaria' || p === 'presidencia')} />
-      <RegrasAssembleias podeEditar={perfis.some((p) => p === 'secretaria' || p === 'presidencia')} />
+      {/* as regras (números do estatuto) são da presidência; a secretaria só vê */}
+      <RegrasAssembleias podeEditar={perfis.includes('presidencia')} />
       {editaValores && <ContasECategorias />}
     </>
   )
@@ -1157,8 +1158,8 @@ function RegrasAssembleias({ podeEditar }: { podeEditar: boolean }) {
     <section className="painel" id="assembleias" aria-labelledby="titulo-regras-assembleias">
       <h2 id="titulo-regras-assembleias">Assembleias e reuniões</h2>
       <p className="detalhe">
-        Os números vêm do estatuto de 2021. Se o estatuto for reformado, a secretaria ou a presidência ajusta aqui, e o
-        sistema passa a seguir os novos.
+        Os números vêm do estatuto de 2021. Se o estatuto for reformado, a presidência ajusta aqui, e o sistema passa a
+        seguir os novos. A assembleia já convocada continua com a 2ª chamada da regra que valia na convocação.
       </p>
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(config) => (
@@ -1194,6 +1195,8 @@ function FormRegrasAssembleias({
   aoSalvar: (config: ConfigAssembleias) => void
 }) {
   const [c, setC] = useState(config)
+  // avisar vem antes de levar à pauta (o banco também confere)
+  const faltasInvertidas = c.faltas_aviso > c.faltas_pauta
   const numero = (campo: keyof Omit<ConfigAssembleias, 'meses_ago'>, rotulo: string, min: number, max: number) => (
     <label>
       {rotulo}
@@ -1244,9 +1247,14 @@ function FormRegrasAssembleias({
           ))}
         </div>
       </fieldset>
+      {faltasInvertidas && (
+        <p className="aviso-texto" role="alert">
+          As faltas para avisar o associado não podem ser mais que as faltas para levar à pauta.
+        </p>
+      )}
       {podeEditar && (
         <div className="acoes">
-          <button type="submit" className="botao" disabled={enviando || c.meses_ago.length === 0}>
+          <button type="submit" className="botao" disabled={enviando || c.meses_ago.length === 0 || faltasInvertidas}>
             Salvar as regras
           </button>
         </div>

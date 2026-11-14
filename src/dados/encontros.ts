@@ -22,10 +22,11 @@ export const NOME_DA_SITUACAO_ENCONTRO: Record<SituacaoEncontro, string> = {
   cancelado: 'Cancelado',
 }
 
+/** A base de 3/5 e 2/3 são os presentes aptos (em dia) — pergunta 24 do PROJETO.md. */
 export const NOME_DA_MAIORIA: Record<Maioria, string> = {
-  simples: 'Maioria simples',
-  tres_quintos: '3/5 dos votos (desligamento — Art. 8º)',
-  dois_tercos: '2/3 dos votos (reforma do estatuto — Art. 21)',
+  simples: 'Maioria simples (mais a favor que contra)',
+  tres_quintos: '3/5 dos presentes aptos (desligamento — Art. 8º)',
+  dois_tercos: '2/3 dos presentes aptos (reforma do estatuto — Art. 21)',
 }
 
 export type ItemPauta = {
@@ -33,6 +34,8 @@ export type ItemPauta = {
   descricao: string | null
   deliberativo: boolean
   maioria: Maioria | null
+  /** item de desligamento (Art. 8º): o associado já indicado na convocação */
+  desligamento_pessoa_id?: string | null
 }
 
 export type Encontro = {
@@ -53,6 +56,9 @@ export type Encontro = {
   chamada: 'primeira' | 'segunda' | null
   aptos_na_instalacao: number | null
   presentes_aptos_na_instalacao: number | null
+  presentes_na_instalacao: number | null
+  /** minutos até a 2ª chamada, guardados na convocação */
+  segunda_chamada_minutos: number | null
 }
 
 export type ItemDaPauta = ItemPauta & { id: string; ordem: number }
@@ -60,7 +66,8 @@ export type EncontroCompleto = Encontro & { pauta: ItemDaPauta[] }
 
 const CAMPOS =
   'id, tipo, titulo, inicio, local, edital, fundamento, situacao, convocado_em, cancelado_em, motivo_cancelamento, criado_em, ' +
-  'presenca_encerrada_em, instalada_em, chamada, aptos_na_instalacao, presentes_aptos_na_instalacao'
+  'presenca_encerrada_em, instalada_em, chamada, aptos_na_instalacao, presentes_aptos_na_instalacao, presentes_na_instalacao, ' +
+  'segunda_chamada_minutos'
 
 /** Os encontros que a pessoa vê (rascunhos, só a secretaria e a presidência — o banco garante). */
 export async function listarEncontros(): Promise<Resultado<Encontro[]>> {
@@ -78,7 +85,7 @@ export async function buscarEncontro(id: string): Promise<Resultado<EncontroComp
     cliente().from('encontros').select(CAMPOS).eq('id', id).is('arquivado_em', null).maybeSingle<Encontro>(),
     cliente()
       .from('encontro_pauta')
-      .select('id, ordem, titulo, descricao, deliberativo, maioria')
+      .select('id, ordem, titulo, descricao, deliberativo, maioria, desligamento_pessoa_id')
       .eq('encontro_id', id)
       .is('arquivado_em', null)
       .order('ordem')
@@ -389,6 +396,8 @@ export type Ata = {
   arquivo_caminho: string | null
   assinada_secretario_em: string | null
   assinada_presidente_em: string | null
+  assinada_secretario_cargo: string | null
+  assinada_presidente_cargo: string | null
   secretario: { nome: string } | null
   presidente: { nome: string } | null
 }
@@ -397,7 +406,7 @@ export async function buscarAta(encontroId: string): Promise<Resultado<Ata | nul
   const { data, error } = await cliente()
     .from('atas')
     .select(
-      'id, texto, arquivo_caminho, assinada_secretario_em, assinada_presidente_em, ' +
+      'id, texto, arquivo_caminho, assinada_secretario_em, assinada_presidente_em, assinada_secretario_cargo, assinada_presidente_cargo, ' +
         'secretario:pessoas!atas_assinada_secretario_por_fkey(nome), presidente:pessoas!atas_assinada_presidente_por_fkey(nome)',
     )
     .eq('encontro_id', encontroId)

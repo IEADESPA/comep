@@ -42,25 +42,30 @@ test('assembleia: preparar com pauta e edital, convocar, aparecer no site, cance
     itens: ['Reforma do estatuto (teste)', 'Informes'],
   })
   await page.getByRole('checkbox', { name: 'Vai a votação' }).first().check()
+  // item sobre o estatuto com maioria simples: a tela avisa que a reforma pede 2/3 (Art. 21)
+  const avisoEstatuto = page.getByText('A reforma do estatuto pede 2/3 dos presentes aptos (Art. 21).')
+  await expect(avisoEstatuto).toBeVisible()
   await page.getByRole('combobox', { name: 'Maioria exigida' }).selectOption('dois_tercos')
+  await expect(avisoEstatuto).toHaveCount(0)
   await expect(page.getByRole('list', { name: 'Prazos' })).toContainText('a convocação precisa ser publicada até')
   await page.getByRole('button', { name: 'Gerar o texto do edital' }).click()
   await expect(page.getByLabel(/^Texto do edital/)).toHaveValue(/EDITAL DE CONVOCAÇÃO — ASSEMBLEIA GERAL EXTRAORDINÁRIA/)
   await page.getByRole('button', { name: 'Salvar (ainda sem convocar)' }).click()
   await expect(mensagemNaTela(page, 'Encontro preparado. Confira e convoque.')).toBeVisible()
   await expect(page.getByRole('heading', { name: titulo })).toBeVisible()
-  await expect(page.getByText('Rascunho (não convocado)')).toBeVisible()
-  await expect(page.getByRole('list', { name: 'Pauta' })).toContainText('votação: 2/3 dos votos')
   const endereco = page.url()
-
-  // o ministro não vê o rascunho
   const ministro = await browser.newContext({ storageState: arquivoDaSessao('ministro') })
-  const m = await ministro.newPage()
-  await m.goto('assembleias')
-  await expect(m.getByRole('heading', { name: 'Assembleias e reuniões' })).toBeVisible()
-  await expect(m.getByRole('listitem', { name: titulo })).toHaveCount(0)
 
   try {
+    await expect(page.getByText('Rascunho (não convocado)')).toBeVisible()
+    await expect(page.getByRole('list', { name: 'Pauta' })).toContainText('votação: 2/3 dos presentes aptos (reforma do estatuto — Art. 21)')
+
+    // o ministro não vê o rascunho
+    const m = await ministro.newPage()
+    await m.goto('assembleias')
+    await expect(m.getByRole('heading', { name: 'Assembleias e reuniões' })).toBeVisible()
+    await expect(m.getByRole('listitem', { name: titulo })).toHaveCount(0)
+
     // convocar (o presidente), com confirmação
     await page.getByRole('button', { name: 'Convocar a assembleia' }).click()
     await page.getByRole('button', { name: 'Confirmar — convocar (não muda mais)' }).click()
