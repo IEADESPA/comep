@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.25 — 14 de novembro de 2026 — atualizado com a **revisão geral da Fase 4 e a Fase 4 concluída**, a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.26 — 14 de novembro de 2026 — atualizado com as **respostas de 14/11/2026 (todas as perguntas pendentes e as da Fase 5 e do lançamento)**, a **revisão geral da Fase 4 e a Fase 4 concluída**, a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -530,6 +530,7 @@ Decisões na seção 4.6. Revisão: `docs/revisoes/fase-4.md`. **O estatuto pode
 
 ### Fase 5 — Projetos, comissões e comunicação (versão 5.0)
 
+- [ ] **Antes, a entrega 4.5:** ajustes das respostas de 14/11/2026 nas regras das fases 2 e 4 (seção 11.5)
 - [ ] Comissões permanentes e temporárias
 - [ ] Projetos e eventos com orçamento e lançamentos vinculados
 - [ ] Mural de avisos e envio por WhatsApp
@@ -599,37 +600,88 @@ As perguntas 1 a 14 foram levadas à diretoria em 11/11/2026. As primeiras respo
 | 10. Diretoria atual *(12/11/2026)* | A composição completa não está disponível; só se tem o presidente | No lançamento, o presidente é cadastrado e recebe o perfil Presidência. Os demais cargos recebem os perfis em "Perfis de acesso" quando forem informados (e, na Fase 4, pelos mandatos) |
 | 14. Dados para o site *(12/11/2026)* | Ainda não há (CNPJ, sede, contatos) | O site mostra "—"; a diretoria preenche em Configurações → Dados do COMEP no site, e o site atualiza na hora |
 
-### 11.3 Ainda pendentes
+### 11.3 Perguntas levadas à diretoria — todas respondidas em 14/11/2026
 
-**Levadas à diretoria em 11/11/2026, ainda sem resposta:**
+Em 14/11/2026, o administrador técnico respondeu todas as perguntas pendentes, em questionário. O que cada resposta muda no sistema está na seção 11.5.
 
-5. **Desligamento:** todos os casos do Art. 8º passam por votação de 3/5 em assembleia, ou só conduta (II) e faltas (IV)? Pedido próprio, transferência e falecimento podem ser registrados direto pela secretaria e só comunicados à assembleia? *Previsão (13/11/2026, Fase 4.3): os casos I a IV vão à votação de 3/5 na AGO; o falecimento é registrado direto (não se vota um fato). Muda se a diretoria disser o contrário.*
-6. **Quórum:** a "metade mais um" conta todos os associados ativos ou só os em dia?
-7. **Reuniões mensais:** têm dia fixo? *(quem aceita a justificativa já foi respondido: o 1º secretário. Quando houver dia fixo, ele é preenchido em Configurações → Dados do COMEP no site)*
+**Levadas à diretoria em 11/11/2026:**
+
+5. ~~Desligamento~~ — *respondida em 14/11/2026: **só a conduta contrária à ética (II) vai à votação de 3/5**, depois de um processo disciplinar. O pedido por escrito (I), a transferência (III), as 3 faltas seguidas (IV) e o falecimento (V) são fatos: **a diretoria homologa e registra**, sem votação ("não se vota um fato").*
+6. ~~Quórum~~ — *respondida em 11/11/2026 (seção 11.2): sobre os associados aptos (em dia).*
+7. ~~Reuniões mensais~~ — *respondida em 14/11/2026: **não têm dia fixo**; a secretaria marca cada uma.*
 8. ~~Carteirinha~~ — *respondida em 12/11/2026 (seção 4.5): foto, nome, CPF, filiação, nº de registro, data de ingresso, título, função na igreja, sigla e CNPJ da igreja; validade pelo QR Code. Revista em 13/11/2026: também com "Válida até" impresso (a impressa é renovada a cada mandato).*
 9. ~~Títulos ministeriais aceitos~~ — *respondida em 12/11/2026 (seção 11.2).*
-10. **Diretoria atual:** quem são hoje o Conselho Diretor e o Conselho Fiscal, e as datas dos mandatos. *Em 12/11/2026: só o presidente é conhecido (seção 11.2); os demais continuam pendentes.*
-11. **Regimento Interno:** existe um aprovado (Art. 10, I e Art. 13)? Se existir, enviar — pode responder várias perguntas acima.
-12. **Perfil "presidente de igreja"** (ver os ministros da sua igreja e se estão em dia): não está no estatuto. A diretoria quer manter? *Previsão (11/11/2026): **mantido**, e é o mesmo critério da contribuição: o pastor presidente marcado na ficha recebe o perfil e paga como presidente de igreja. Muda se a diretoria disser o contrário.*
-13. **Cópia completa do estatuto:** na cópia recebida faltam o §2º do Art. 7º e os Artigos 19 e 20 (provavelmente sobre dissolução, citada no título do Capítulo V).
-14. **Dados para o site:** CNPJ, sede atual e contatos oficiais. *Em 12/11/2026: ainda não existem; o site mostra "—" e a diretoria preenche depois em Configurações (seção 11.2).*
+10. ~~Diretoria atual~~ — *respondida em 14/11/2026: a presidência **registra a diretoria no lançamento**, na tela Diretoria, com a ata ou o documento da eleição e as datas do mandato.*
+11. ~~Regimento Interno~~ — *respondida em 14/11/2026: **não existe**.*
+12. ~~Perfil "presidente de igreja"~~ — *respondida em 14/11/2026: **mantido e a melhorar**: vai ser muito importante no futuro. O administrador técnico vai detalhar o que melhorar.*
+13. ~~Cópia completa do estatuto~~ — *respondida em 14/11/2026: **não há outra cópia**. A reforma do estatuto pode levar um ano. Por isso, o sistema tem **configurações do estatuto** que a diretoria muda sem programação (valores, prazos, tempo de mandato e outras), conforme o que a assembleia decidir. Só uma mudança grande pede programação nova.*
+14. ~~Dados para o site~~ — *respondida em 14/11/2026: **a diretoria preenche depois** em Configurações → Dados do COMEP no site.*
 
 **Dúvidas sobre as respostas de 11/11/2026:**
 
 17. ~~Taxa de inscrição~~ — *respondida em 12/11/2026: hoje é **isenta**; a assembleia pode definir um valor no futuro (botão "Personalizar" em Configurações). O jubilado continua isento.*
-18. **Vencimentos:** a mensalidade vence em que dia do mês? O anual pode ser pago até que dia de abril? A escolha entre mensal e anual vale para o exercício inteiro? Quem entra no meio do exercício paga só os meses que faltam?
-19. **Voto na assembleia de abril:** ela acontece na 2ª quinzena de abril, logo no começo do exercício novo. Para votar, basta estar em dia até março, ou também com abril (ou o anual) pago?
-20. **Jubilado:** sendo isento, ele vota e pode ser votado normalmente? Quem define que o associado é jubilado?
+18. ~~Vencimentos~~ — *respondida em 14/11/2026:*
+    - *a mensalidade vence no **dia 10**;*
+    - *o anual vence **na data da AGO** que abre o exercício: a pessoa tem os 30 dias do edital para pagar. Se o estatuto mudar o mês da AGO, o vencimento acompanha;*
+    - *dá para **trocar entre mensal e anual no meio do exercício**;*
+    - *quem é admitido no meio do exercício paga **só os meses que faltam**.*
+19. ~~Voto na assembleia de abril~~ — *respondida em 14/11/2026: para votar e ser votado na AGO, é preciso ter pago **abril (mensalista) ou o anual antes de a assembleia começar**.*
+20. ~~Jubilado~~ — *respondida em 14/11/2026: o jubilado **vota, mas não pode ser votado** para cargo. A jubilação vem da denominação: a secretaria recebe o documento e põe na **pauta da assembleia, que aprova** ou não.*
 21. ~~Validade da carteirinha~~ — *respondida em 12/11/2026: sim, vale até o fim do mandato em curso; renovando (em dia no ano da eleição), o QR Code passa sozinho para o mandato seguinte, sem reimprimir. Revisto em 13/11/2026: isso vale para a digital; a impressa traz a validade e é impressa de novo a cada mandato (seção 4.5).*
-22. **Faltas:** a regra de desligamento por 3 faltas seguidas sem justificativa (Art. 8º, IV) vale para as reuniões mensais?
-23. **Pagamento informado e ainda não conferido:** o associado pagou antes do vencimento e informou o pagamento, mas a tesouraria ainda não conferiu. Até a conferência, ele conta como **em dia** para votar? *(Hoje o sistema só conta como em dia depois que a tesouraria confirma. Revisão geral da Fase 2, 13/11/2026.)*
-24. **Maiorias de 3/5 e 2/3** *(13/11/2026, Fase 4.3)*: a base é o número de **presentes aptos** (em dia) ou os **votos válidos** (a favor + contra)? Ex.: 25 presentes aptos, 3/5 = 15 votos a favor; se fossem só os votos válidos (20 a favor e contra), 3/5 = 12. *Hoje o sistema usa os presentes aptos e mostra a conta.*
-25. **"Metade mais um" com número ímpar** *(14/11/2026, revisão geral da Fase 4)*: com 75 associados aptos, a 1ª chamada pede **38** (mais da metade, como está) ou **39** (37,5 + 1, arredondado para cima)? *Hoje o sistema pede 38.*
+22. ~~Faltas~~ — *respondida em 14/11/2026: as 3 faltas seguidas contam **só nas assembleias (AGO e AGE)**, não nas reuniões mensais. Com 3, a diretoria homologa o desligamento (pergunta 5).*
+23. ~~Pagamento informado e ainda não conferido~~ — *respondida em 14/11/2026: **conta como em dia** se foi informado até o vencimento. Se a tesouraria recusar depois, volta ao atraso.*
+24. ~~Maiorias de 3/5 e 2/3~~ — *respondida em 14/11/2026: a base são os **votos válidos (sim + não)** dos presentes em dia. Abstenção e voto em branco não entram. Ex.: 5 presentes em dia, 1 se abstém: 3/5 é sobre os 4 votos válidos.*
+25. ~~"Metade mais um" com número ímpar~~ — *respondida em 14/11/2026: **37,5 + 1, arredondado para cima: 39** com 75 em dia.*
+
+**Fase 5 e lançamento (perguntas novas, respondidas em 14/11/2026):**
+
+26. **Quem assina a ata, convoca e decide as justificativas, depois do lançamento:** **só quem tem o cargo** (presidente e 1º secretário em exercício; o vice e o 2º secretário quando os substituem). Até lá, vale o perfil (risco F6 da revisão geral da Fase 4).
+27. **Secretário executivo:** as duas coisas — **expediente** (o acesso da secretaria e os lançamentos financeiros) e **responsável pelos eventos** do Conselho (palestras, conferências).
+28. **Comissões — membros:** **só associados**.
+29. **Comissões — quem cria e indica os membros:** **presidência e secretaria**.
+30. **Comissões — coordenador:** **ganha acesso à própria comissão**. O modo das comissões vai ser melhorado depois.
+31. **Orçamento de projetos e eventos:** **a assembleia aprova**.
+32. **Inscrição nos eventos:** **aberta ao público, pelo site**.
+33. **Taxa de inscrição nos eventos:** **às vezes**, com valor definido por evento; a tesouraria registra quem pagou.
+34. **Mural — quem publica:** **só a secretaria**.
+35. **Mural no site:** **a secretaria escolhe**, aviso a aviso, se vai também para o site público.
+36. **Painel da presidência:** **associados**, **finanças**, **presença** e **agenda e projetos**.
+37. **Lançamento — cadastro:** **o sistema recomeça do zero.** Não há lista: todos se cadastram pelo link do site e passam pela aprovação.
+38. **Lançamento — mensalidades antigas:** **não existem.** As cobranças começam só depois que cada um é aprovado.
+39. **Lançamento — aprovação dos que já eram do COMEP:** a **secretaria aprova** como "associado anterior ao sistema", para já usarem o sistema, e a **primeira AGO homologa a lista inteira**.
 
 ### 11.4 Internas (equipe técnica, sem levar à diretoria)
 
 15. Donos das contas e quem guarda os códigos de recuperação — o 2º dono é o presidente da igreja (IEADESPA), pelo login `presidente-ai`: **já é dono** no GitHub (12/11/2026); falta ligar a verificação em duas etapas e guardar os códigos de recuperação.
 16. Arquivo original do logo — pedir depois; as cores já estão aplicadas.
+
+### 11.5 O que as respostas de 14/11/2026 mudam no sistema
+
+Antes da Fase 5, uma entrega de ajustes (**4.5**) acerta as regras das fases 2 e 4. A Fase 5 já nasce com as respostas 26 a 39.
+
+**Entrega 4.5 — ajustes das respostas** (a fazer):
+
+- **Desligamento** (5 e 22):
+  - só o inciso II vai à votação de 3/5 na AGO;
+  - I, III, IV e V são homologados e registrados pela diretoria, com o documento;
+  - as faltas seguidas contam só nas AGO e AGE.
+- **Maiorias e quórum** (24 e 25):
+  - 3/5 e 2/3 sobre os votos válidos (sim + não) dos presentes em dia;
+  - 1ª chamada com a metade dos em dia mais um, arredondada para cima.
+- **Contribuições** (18, 19 e 23):
+  - o anual vence na data da AGO do exercício;
+  - troca entre mensal e anual no meio do exercício;
+  - para a AGO, abril ou o anual pago antes de começar;
+  - o pagamento informado no prazo conta como em dia até a conferência.
+- **Jubilado** (20): vota, mas não é votado. A jubilação vai à pauta da assembleia, com o documento da denominação.
+- **Configurações do estatuto** (13): o tempo de mandato e os demais números do estatuto passam para Configurações.
+- **Secretário executivo** (27): perfil próprio, com o acesso da secretaria e os lançamentos financeiros.
+
+**No lançamento** (26, 37 a 39):
+
+- recomeça do zero, com todos pelo cadastro do site;
+- os antigos são aprovados pela secretaria e homologados na primeira AGO;
+- a ata, a convocação e as justificativas passam a ser só de quem tem o cargo.
 
 ## 12. Convenções de desenvolvimento
 
