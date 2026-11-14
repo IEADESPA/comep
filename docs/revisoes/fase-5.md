@@ -64,6 +64,7 @@ O novo presidente do COMEP quer um conselho que **represente e apoie as igrejas 
 | A presidência vê o documento em "Documentos para conferir" e confere na tela da igreja | ✅ |
 | A presidência atende a correção na lista de Ministros | ✅ |
 | Todos os testes de ponta a ponta, no computador e no celular, na cópia local | ✅ 105 passaram e 2 foram pulados de propósito |
+
 ## Entrega 5.2 — Comissões (versão 5.0-teste.2)
 
 As comissões do Conselho seguem o estatuto (Art. 3º, IV e Art. 9º, III) e as respostas 28 a 30 (14/11/2026).
@@ -99,3 +100,14 @@ As comissões do Conselho seguem o estatuto (Art. 3º, IV e Art. 9º, III) e as 
   - tirar o registro;
   - quem sai do COMEP sai das comissões;
   - encerrar pede o motivo e tira os membros.
+- [x] 405 testes do banco e de unidade passando. Migração aplicada no `comep-teste`; verificador do Supabase: só o aviso já conhecido.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| A presidência cria uma comissão (permanente, área Educação) | ✅ |
+| Indica o ministro fictício como coordenador e registra uma reunião | ✅ |
+| O ministro (coordenador) vê a comissão, a reunião registrada, e registra uma atividade | ✅ |
+| O ministro não altera nem encerra a comissão | ✅ |
+| Encerrar a comissão, com motivo | ✅ |
