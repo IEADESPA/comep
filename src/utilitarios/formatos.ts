@@ -59,6 +59,11 @@ export function hojeIso(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Belem' })
 }
 
+/** O dia (AAAA-MM-DD) de um instante, no fuso de Parauapebas. */
+export function diaIsoDeInstante(instante: string): string {
+  return new Date(instante).toLocaleDateString('sv-SE', { timeZone: 'America/Belem' })
+}
+
 /** Compara textos ignorando maiúsculas e acentos (para as buscas). */
 export function contemTexto(texto: string | null | undefined, busca: string): boolean {
   const normalizar = (s: string) =>

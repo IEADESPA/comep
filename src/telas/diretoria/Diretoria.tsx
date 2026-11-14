@@ -16,15 +16,19 @@ import {
   type Cargo,
   type Mandato,
 } from '../../dados/diretoria'
-import { listarEncontros } from '../../dados/encontros'
+import { listarEncontros, type Encontro } from '../../dados/encontros'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { formatarData, hojeIso } from '../../utilitarios/formatos'
+import { diaIsoDeInstante, formatarData, hojeIso } from '../../utilitarios/formatos'
 
 type Retorno = { sucesso?: string; erro?: string }
+type Concluir = (r: { erro: string | null }, s: string) => void
 
 const ORDEM = Object.fromEntries(CARGOS.map((c, i) => [c.cargo, i])) as Record<Cargo, number>
+
+/** Cargos que só a assembleia tira de alguém (fora a renúncia, que a própria pessoa faz). */
+const SO_PELA_ASSEMBLEIA: Cargo[] = ['presidente', 'vice_presidente', 'conselheiro_fiscal']
 
 /** Fim padrão de um mandato de 4 anos (Art. 12): o dia anterior ao mesmo dia, 4 anos depois. */
 function quatroAnosDepois(inicio: string): string {
@@ -34,17 +38,32 @@ function quatroAnosDepois(inicio: string): string {
   return d.toISOString().slice(0, 10)
 }
 
+/** AGO e AGE já instaladas: só elas elegem ou tiram alguém do cargo. */
+function assembleiasInstaladas(encontros: Encontro[]): Encontro[] {
+  return encontros.filter((e) => e.tipo !== 'reuniao_mensal' && e.instalada_em !== null)
+}
+
+function nomeDaAssembleia(e: Encontro): string {
+  return `${e.titulo} (${formatarData(diaIsoDeInstante(e.inicio))})`
+}
+
 export function Diretoria() {
   const { estado } = useSessao()
-  const perfis = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
-  const presidencia = perfis.includes('presidencia')
+  const conta = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta : null
+  const presidencia = conta?.perfis.includes('presidencia') ?? false
+  const minhaPessoa = conta?.pessoaId ?? null
   const [carga, recarregar] = useCarregar(async () => {
-    const [mandatos, config] = await Promise.all([listarMandatos(), buscarConfigCredencial()])
+    const [mandatos, config, encontros] = await Promise.all([listarMandatos(), buscarConfigCredencial(), listarEncontros()])
     if (mandatos.erro !== null) return mandatos
-    return ok({ mandatos: mandatos.dados, fimCredencial: config.erro === null ? config.dados.fim_mandato : null })
+    return ok({
+      mandatos: mandatos.dados,
+      fimCredencial: config.erro === null ? config.dados.fim_mandato : null,
+      // quem não é da diretoria pode não ver as assembleias; aí a lista fica vazia (só a presidência usa)
+      assembleias: encontros.erro === null ? assembleiasInstaladas(encontros.dados) : [],
+    })
   })
   const [retorno, setRetorno] = useState<Retorno>({})
-  const concluir = (r: { erro: string | null }, sucesso: string) => {
+  const concluir: Concluir = (r, sucesso) => {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
     if (r.erro === null) recarregar()
   }
@@ -58,10 +77,20 @@ export function Diretoria() {
       </p>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ mandatos, fimCredencial }) => {
+        {({ mandatos, fimCredencial, assembleias }) => {
           const vigentes = mandatos.filter((m) => m.vigente).sort((a, b) => ORDEM[a.cargo] - ORDEM[b.cargo])
           const outros = mandatos.filter((m) => !m.vigente)
           const fimDiretoria = vigentes.find((m) => m.cargo === 'presidente')?.fim ?? null
+          const linha = (m: Mandato) => (
+            <LinhaMandato
+              key={m.id}
+              m={m}
+              presidencia={presidencia}
+              meu={m.pessoa_id === minhaPessoa}
+              assembleias={assembleias}
+              aoConcluir={concluir}
+            />
+          )
           return (
             <>
               <section className="painel" aria-labelledby="titulo-atual">
@@ -70,9 +99,7 @@ export function Diretoria() {
                   <p className="vazio">Nenhum mandato registrado em vigor. Os perfis continuam vindo de "Perfis de acesso".</p>
                 ) : (
                   <ul className="lista" aria-label="Em exercício">
-                    {vigentes.map((m) => (
-                      <LinhaMandato key={m.id} m={m} presidencia={presidencia} aoConcluir={concluir} />
-                    ))}
+                    {vigentes.map(linha)}
                   </ul>
                 )}
                 {fimDiretoria && fimCredencial !== fimDiretoria && presidencia && (
@@ -84,7 +111,7 @@ export function Diretoria() {
                 )}
               </section>
 
-              {presidencia && <RegistrarDiretoria aoConcluir={concluir} />}
+              {presidencia && <RegistrarDiretoria primeiro={mandatos.length === 0} assembleias={assembleias} aoConcluir={concluir} />}
 
               <section className="painel" aria-labelledby="titulo-historico">
                 <h2 id="titulo-historico">Histórico e próximos mandatos</h2>
@@ -92,9 +119,7 @@ export function Diretoria() {
                   <p className="vazio">Sem outros mandatos registrados.</p>
                 ) : (
                   <ul className="lista" aria-label="Histórico">
-                    {outros.map((m) => (
-                      <LinhaMandato key={m.id} m={m} presidencia={presidencia} aoConcluir={concluir} />
-                    ))}
+                    {outros.map(linha)}
                   </ul>
                 )}
               </section>
@@ -109,16 +134,26 @@ export function Diretoria() {
 function LinhaMandato({
   m,
   presidencia,
+  meu,
+  assembleias,
   aoConcluir,
 }: {
   m: Mandato
   presidencia: boolean
-  aoConcluir: (r: { erro: string | null }, s: string) => void
+  /** o mandato é de quem está logado: pode renunciar */
+  meu: boolean
+  assembleias: Encontro[]
+  aoConcluir: Concluir
 }) {
   const [data, setData] = useState('')
-  const [motivo, setMotivo] = useState('')
+  const [motivo, setMotivo] = useState(meu && !presidencia ? 'Renúncia' : '')
+  const [assembleia, setAssembleia] = useState('')
   const [enviando, umaVez] = useUmaVez()
   const [hoje] = useState(hojeIso)
+  const aberto = !m.encerrado_em && m.fim >= hoje
+  const podeEncerrar = aberto && (presidencia || meu)
+  // tirar alguém (que já tomou posse) de presidente, vice ou do Conselho Fiscal: só com a assembleia; renúncia não
+  const pedeAssembleia = !meu && SO_PELA_ASSEMBLEIA.includes(m.cargo) && m.inicio < hoje
   return (
     <li className="lista-item lista-item-estatico" aria-label={`${NOME_DO_CARGO[m.cargo]}: ${m.nome}`}>
       <strong>
@@ -128,17 +163,19 @@ function LinhaMandato({
         {formatarData(m.inicio)} a {formatarData(m.fim)}
         {m.encontro_titulo && ` · eleito(a) em ${m.encontro_titulo}`}
         {m.encerrado_em && ` · encerrado em ${formatarData(m.encerrado_em)} (${m.motivo_encerramento})`}
-        {!m.vigente && !m.encerrado_em && m.inicio > hoje && ' · ainda não tomou posse'}
+        {aberto && m.inicio > hoje && ' · ainda não tomou posse'}
       </span>
-      {m.vigente && presidencia && !m.encerrado_em && (
+      {podeEncerrar && (
         <details className="acao-recolhida">
-          <summary>Encerrar antes (renúncia, desligamento…)</summary>
+          <summary>{meu && !presidencia ? 'Renunciar ao cargo' : 'Encerrar antes (renúncia, desligamento, engano…)'}</summary>
           <form
             className="form-linha"
             aria-label={`Encerrar o mandato de ${m.nome}`}
             onSubmit={(e) => {
               e.preventDefault()
-              void umaVez(async () => aoConcluir(await encerrarMandato(m.id, data, motivo), `Mandato de ${m.nome} encerrado.`))
+              void umaVez(async () =>
+                aoConcluir(await encerrarMandato(m.id, data, motivo, assembleia || null), `Mandato de ${m.nome} encerrado.`),
+              )
             }}
           >
             <label className="campo-curto">
@@ -149,9 +186,28 @@ function LinhaMandato({
               Motivo *
               <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: renúncia" />
             </label>
+            {pedeAssembleia && (
+              <label>
+                Assembleia que decidiu *
+                <select required value={assembleia} onChange={(e) => setAssembleia(e.target.value)}>
+                  <option value="">—</option>
+                  {assembleias.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {nomeDaAssembleia(a)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
               Encerrar o mandato
             </button>
+            {pedeAssembleia && (
+              <p className="detalhe largura-total">
+                Tirar alguém do cargo de presidente, vice ou do Conselho Fiscal é da assembleia (instalada no sistema). Na renúncia, a
+                própria pessoa encerra pelo login dela. No dia da posse, encerrar corrige um registro feito por engano.
+              </p>
+            )}
           </form>
         </details>
       )}
@@ -159,37 +215,45 @@ function LinhaMandato({
   )
 }
 
-function RegistrarDiretoria({ aoConcluir }: { aoConcluir: (r: { erro: string | null }, s: string) => void }) {
+function RegistrarDiretoria({
+  primeiro,
+  assembleias,
+  aoConcluir,
+}: {
+  /** nenhum mandato registrado ainda: a diretoria foi eleita antes do sistema e vale o documento */
+  primeiro: boolean
+  assembleias: Encontro[]
+  aoConcluir: Concluir
+}) {
   const [carga, recarregar] = useCarregar(async () => {
-    const [associados, encontros] = await Promise.all([listarAssociados(), listarEncontros()])
+    const associados = await listarAssociados()
     if (associados.erro !== null) return associados
-    if (encontros.erro !== null) return encontros
-    return ok({
-      associados: associados.dados.filter((a) => a.situacao === 'ativo'),
-      assembleias: encontros.dados.filter((e) => e.tipo !== 'reuniao_mensal' && (e.situacao === 'convocado' || e.situacao === 'realizado')),
-    })
+    return ok(associados.dados.filter((a) => a.situacao === 'ativo'))
   })
   const [inicio, setInicio] = useState('')
   const [fim, setFim] = useState('')
   const [encontro, setEncontro] = useState('')
+  const [documento, setDocumento] = useState('')
   const [escolhas, setEscolhas] = useState<Record<string, string>>({})
   const [enviando, umaVez] = useUmaVez()
   const vagas = useMemo(
     () => CARGOS.flatMap((c) => (c.cargo === 'conselheiro_fiscal' ? [1, 2, 3].map((n) => ({ ...c, chave: `${c.cargo}-${n}`, rotulo: `${c.nome} ${n}` })) : [{ ...c, chave: c.cargo, rotulo: c.nome }])),
     [],
   )
+  // a assembleia que elegeu é de antes da posse
+  const possiveis = assembleias.filter((a) => !inicio || diaIsoDeInstante(a.inicio) <= inicio)
   return (
     <details className="painel acao-recolhida-painel">
       <summary>Registrar a diretoria eleita</summary>
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ associados, assembleias }) => (
+        {(associados) => (
           <form
             aria-label="Registrar a diretoria eleita"
             onSubmit={(e) => {
               e.preventDefault()
               const membros = vagas.filter((v) => escolhas[v.chave]).map((v) => ({ cargo: v.cargo, pessoa_id: escolhas[v.chave] }))
               void umaVez(async () => {
-                const r = await registrarDiretoria({ inicio, fim, encontro_id: encontro || null, membros })
+                const r = await registrarDiretoria({ inicio, fim, encontro_id: encontro || null, documento, membros })
                 aoConcluir(r, r.erro === null ? `${r.dados} cargo(s) registrado(s). Os perfis valem a partir da posse.` : '')
                 if (r.erro === null) setEscolhas({})
               })
@@ -197,8 +261,21 @@ function RegistrarDiretoria({ aoConcluir }: { aoConcluir: (r: { erro: string | n
           >
             <p className="detalhe">
               Só associados em dia podem ser votados (Art. 11). Ninguém acumula dois cargos, nem diretoria e Conselho Fiscal. Deixe em
-              branco o cargo que não foi preenchido.
+              branco o cargo que não foi preenchido. O mandato é de no máximo 4 anos.
             </p>
+            {primeiro ? (
+              <p className="detalhe">
+                Primeiro registro: se a diretoria foi eleita antes do sistema, informe a ata ou o documento da eleição. Daqui em diante,
+                cada diretoria eleita é registrada com a assembleia (AGO ou AGE) instalada no sistema.
+              </p>
+            ) : (
+              assembleias.length === 0 && (
+                <p className="aviso-texto">
+                  Nenhuma AGO ou AGE instalada no sistema. A diretoria eleita é registrada com a assembleia que a elegeu — instale a
+                  assembleia em Assembleias → Condução.
+                </p>
+              )
+            )}
             <div className="grade-form">
               <label>
                 Posse (início) *
@@ -214,19 +291,30 @@ function RegistrarDiretoria({ aoConcluir }: { aoConcluir: (r: { erro: string | n
               </label>
               <label>
                 Fim do mandato *
-                <input type="date" required min={inicio} value={fim} onChange={(e) => setFim(e.target.value)} />
+                <input type="date" required min={inicio} max={inicio ? quatroAnosDepois(inicio) : undefined} value={fim} onChange={(e) => setFim(e.target.value)} />
               </label>
               <label className="largura-total">
-                Assembleia que elegeu
-                <select value={encontro} onChange={(e) => setEncontro(e.target.value)}>
-                  <option value="">(não informar)</option>
-                  {assembleias.map((a) => (
+                Assembleia que elegeu {primeiro ? '' : '*'}
+                <select required={!primeiro} value={encontro} onChange={(e) => setEncontro(e.target.value)}>
+                  <option value="">{primeiro ? '(eleita antes do sistema)' : '—'}</option>
+                  {possiveis.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.titulo}
+                      {nomeDaAssembleia(a)}
                     </option>
                   ))}
                 </select>
               </label>
+              {primeiro && !encontro && (
+                <label className="largura-total">
+                  Ata ou documento da eleição *
+                  <input
+                    required
+                    value={documento}
+                    onChange={(e) => setDocumento(e.target.value)}
+                    placeholder="Ex.: Ata da AGO de 20/10/2025, livro 2, folhas 15 a 17"
+                  />
+                </label>
+              )}
               {vagas.map((v) => (
                 <label key={v.chave}>
                   {v.rotulo}

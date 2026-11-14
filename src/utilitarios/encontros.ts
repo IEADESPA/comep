@@ -43,14 +43,23 @@ function somarDias(dia: string, dias: number): string {
 
 const formatarDia = (dia: string) => `${dia.slice(8, 10)}/${dia.slice(5, 7)}/${dia.slice(0, 4)}`
 
+/** "na 2ª quinzena de abril e outubro" ou, se o estatuto mudar, "em abril e outubro, a partir do dia 10". */
+export function periodoDaAgo(config: Pick<ConfigAssembleias, 'meses_ago' | 'dia_minimo_ago'>): string {
+  const meses = nomesDosMeses(config.meses_ago)
+  if (config.dia_minimo_ago === 16) return `na 2ª quinzena de ${meses}`
+  if (config.dia_minimo_ago <= 1) return `em ${meses}`
+  return `em ${meses}, a partir do dia ${config.dia_minimo_ago}`
+}
+
 /**
  * O que impede (ou impedirá) a convocação, para avisar já no formulário. As mesmas regras do banco
- * (Art. 16, §2º e §6º), com os números da configuração.
+ * (Art. 16, §2º e §6º), com os números da configuração. `agora` (ms) avisa a hora que já passou, no dia de hoje.
  */
-export function avisosDaData(tipo: TipoEncontro, inicio: string, config: ConfigAssembleias, hoje: string): string[] {
+export function avisosDaData(tipo: TipoEncontro, inicio: string, config: ConfigAssembleias, hoje: string, agora?: number): string[] {
   const avisos: string[] = []
   const dia = diaEmParauapebas(inicio)
   if (dia < hoje) return ['A data já passou.']
+  if (agora !== undefined && new Date(inicio).getTime() < agora) return ['O horário já passou.']
   if (tipo === 'reuniao_mensal') return avisos
   const minimo = somarDias(hoje, config.antecedencia_dias)
   if (dia < minimo) {
@@ -64,7 +73,7 @@ export function avisosDaData(tipo: TipoEncontro, inicio: string, config: ConfigA
     const mes = Number(dia.slice(5, 7))
     const diaDoMes = Number(dia.slice(8, 10))
     if (!config.meses_ago.includes(mes) || diaDoMes < config.dia_minimo_ago) {
-      avisos.push(`A Assembleia Ordinária acontece na 2ª quinzena de ${nomesDosMeses(config.meses_ago)} (Art. 16, §6º).`)
+      avisos.push(`A Assembleia Ordinária acontece ${periodoDaAgo(config)} (Art. 16, §6º).`)
     }
   }
   return avisos
@@ -103,10 +112,15 @@ export function textoDoEdital(dados: {
   hoje: Date
 }): string {
   const itens = dados.pauta.filter((p) => p.titulo.trim())
+  const mensal = dados.tipo === 'reuniao_mensal'
+  const quando = `${dataPorExtenso(dados.inicio)}, em ${dados.local.trim() || '(local)'}`
   const linhas = [
-    `EDITAL DE CONVOCAÇÃO — ${(dados.tipo === 'reuniao_mensal' ? 'Reunião mensal' : ARTIGO[dados.tipo].slice(2)).toUpperCase()}`,
+    `EDITAL DE CONVOCAÇÃO — ${(mensal ? 'Reunião mensal' : ARTIGO[dados.tipo].slice(2)).toUpperCase()}`,
     '',
-    `O Presidente do Conselho de Ministros Evangélicos de Parauapebas (COMEP), no uso das atribuições que lhe confere o Estatuto (Art. 16, §2º), convoca os associados para ${ARTIGO[dados.tipo]}, que será realizada ${dataPorExtenso(dados.inicio)}, em ${dados.local.trim() || '(local)'}, em primeira chamada com a presença de metade mais um dos associados aptos e, em segunda chamada, ${dados.minutosSegundaChamada} minutos depois, com qualquer número de presentes (Art. 16, §4º), para tratar da seguinte pauta:`,
+    mensal
+      ? // reunião mensal: sem quórum de instalação nem votação de assembleia
+        `O Conselho de Ministros Evangélicos de Parauapebas (COMEP) convoca os associados para a reunião mensal, que será realizada ${quando}, para tratar da seguinte pauta:`
+      : `O Presidente do Conselho de Ministros Evangélicos de Parauapebas (COMEP), no uso das atribuições que lhe confere o Estatuto (Art. 16, §2º), convoca os associados para ${ARTIGO[dados.tipo]}, que será realizada ${quando}, em primeira chamada com a presença de metade mais um dos associados aptos e, em segunda chamada, ${dados.minutosSegundaChamada} minutos depois, com qualquer número de presentes (Art. 16, §4º), para tratar da seguinte pauta:`,
     '',
     ...(itens.length ? itens.map((p, i) => `${i + 1}. ${p.titulo.trim()}`) : ['1. (pauta)']),
     '',
@@ -114,12 +128,11 @@ export function textoDoEdital(dados: {
   if (dados.tipo === 'age') {
     linhas.push(`Esta Assembleia Extraordinária é convocada a pedido de: ${dados.fundamento.trim() || '(quem pediu)'} (Art. 16, §3º).`, '')
   }
+  if (!mensal) linhas.push('Só votam e são votados os associados em dia com os seus compromissos (Art. 11).', '')
   linhas.push(
-    'Só votam e são votados os associados em dia com os seus compromissos (Art. 11).',
-    '',
     `Parauapebas, ${dataPorExtenso(dados.hoje.toISOString(), false).replace(/^[^,]+, /, '')}.`,
     '',
-    'Presidente do COMEP',
+    mensal ? 'Secretaria do COMEP' : 'Presidente do COMEP',
   )
   return linhas.join('\n')
 }
@@ -183,7 +196,9 @@ export function minimoAFavor(maioria: 'simples' | 'tres_quintos' | 'dois_tercos'
 export function explicarMaioria(maioria: 'simples' | 'tres_quintos' | 'dois_tercos', votantes: number): string {
   const minimo = minimoAFavor(maioria, votantes)
   if (minimo === null) return 'maioria simples (mais votos a favor que contra)'
-  return `${maioria === 'tres_quintos' ? '3/5' : '2/3'} dos ${votantes} presentes aptos = ${minimo} votos a favor`
+  const fracao = maioria === 'tres_quintos' ? '3/5' : '2/3'
+  if (votantes === 0) return `${fracao} dos presentes aptos — sem presentes aptos, não há aprovação`
+  return `${fracao} ${votantes === 1 ? 'do único presente apto' : `dos ${votantes} presentes aptos`} = ${minimo} ${minimo === 1 ? 'voto' : 'votos'} a favor`
 }
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`

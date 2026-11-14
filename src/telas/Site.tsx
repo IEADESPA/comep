@@ -317,8 +317,8 @@ function ProximasAssembleias() {
       <h2>Assembleias</h2>
       {proximas.length === 0 ? (
         <p>
-          As Assembleias Gerais Ordinárias acontecem na segunda quinzena de abril e de outubro. As convocações oficiais são
-          publicadas aqui, com pelo menos 30 dias de antecedência.
+          As Assembleias Gerais Ordinárias acontecem duas vezes por ano, nos meses previstos no Estatuto. As convocações
+          oficiais são publicadas aqui, com a antecedência que o Estatuto pede.
         </p>
       ) : (
         <ul className="site-convocacoes" aria-label="Convocações">

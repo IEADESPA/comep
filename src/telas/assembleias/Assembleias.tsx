@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Aviso, BotaoArquivar, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { listarAssociados } from '../../dados/associados'
 import {
   arquivarEncontro,
   buscarConfigAssembleias,
@@ -74,11 +75,18 @@ function Situacao({ situacao }: { situacao: SituacaoEncontro }) {
   return <span className={CLASSE_SITUACAO[situacao]}>{NOME_DA_SITUACAO_ENCONTRO[situacao]}</span>
 }
 
-/** Link da convocação no site (só assembleias convocadas aparecem lá). */
-function linkPublico(e: Pick<Encontro, 'id' | 'tipo' | 'situacao'>): string | null {
-  if (e.tipo === 'reuniao_mensal' || e.situacao === 'agendado') return null
+/** Link da convocação no site (só assembleias convocadas aparecem lá; cancelada antes de convocar, não). */
+function linkPublico(e: Pick<Encontro, 'id' | 'tipo' | 'convocado_em'>): string | null {
+  if (e.tipo === 'reuniao_mensal' || !e.convocado_em) return null
   return `${window.location.origin}${import.meta.env.BASE_URL}convocacoes/${e.id}`
 }
+
+/** Item que pode desligar um associado (Art. 8º): AGO, votação de 3/5. */
+const itemDeDesligamento = (tipo: TipoEncontro, p: ItemPauta) => tipo === 'ago' && p.deliberativo && p.maioria === 'tres_quintos'
+
+/** Reforma do estatuto pede 2/3 (Art. 21): avisa se o item fala de estatuto e a maioria é outra. */
+const estatutoSemDoisTercos = (tipo: TipoEncontro, p: ItemPauta) =>
+  tipo !== 'reuniao_mensal' && /estatut/i.test(p.titulo) && p.deliberativo && p.maioria !== 'dois_tercos'
 
 // ---------------------------------------------------------------------
 // /assembleias — lista
@@ -93,8 +101,9 @@ export function ListaEncontros() {
     <>
       <h1>Assembleias e reuniões</h1>
       <p className="detalhe">
-        Assembleias Gerais Ordinárias (2ª quinzena de abril e de outubro), Extraordinárias e reuniões mensais. A convocação
-        das assembleias é do presidente, com 30 dias de antecedência, e fica publicada no site.
+        Assembleias Gerais Ordinárias (nos meses do Art. 16, §6º), Extraordinárias e reuniões mensais. A convocação das
+        assembleias é do presidente, com a antecedência do estatuto (Art. 16, §2º — os números estão nas regras), e fica
+        publicada no site.
       </p>
       {prepara(perfis) && (
         <div className="acoes">
@@ -173,10 +182,20 @@ export function EditarEncontro() {
 function TelaFormulario({ id }: { id: string | null }) {
   const perfis = usePerfis()
   const [carga, recarregar] = useCarregar(async () => {
-    const [config, encontro] = await Promise.all([buscarConfigAssembleias(), id ? buscarEncontro(id) : Promise.resolve(ok(null))])
+    const [config, encontro, associados] = await Promise.all([
+      buscarConfigAssembleias(),
+      id ? buscarEncontro(id) : Promise.resolve(ok(null)),
+      listarAssociados(),
+    ])
     if (config.erro !== null) return config
     if (encontro.erro !== null) return encontro
-    return ok({ config: config.dados, encontro: encontro.dados })
+    if (associados.erro !== null) return associados
+    return ok({
+      config: config.dados,
+      encontro: encontro.dados,
+      // quem pode ser desligado: associado ativo
+      associados: associados.dados.filter((a) => a.situacao === 'ativo').map((a) => ({ pessoa_id: a.pessoa_id, nome: a.nome })),
+    })
   })
   if (perfis.length === 0) return <Carregando />
   if (!prepara(perfis)) {
@@ -193,13 +212,13 @@ function TelaFormulario({ id }: { id: string | null }) {
       </p>
       <h1>{id ? 'Alterar o encontro' : 'Preparar assembleia ou reunião'}</h1>
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ config, encontro }) =>
+        {({ config, encontro, associados }) =>
           id && (!encontro || encontro.situacao !== 'agendado') ? (
             <Aviso titulo="Não dá para alterar">
               <p>Depois de convocado, o encontro não muda. Para mudar, cancele e convoque de novo.</p>
             </Aviso>
           ) : (
-            <FormEncontro config={config} encontro={encontro} />
+            <FormEncontro config={config} encontro={encontro} associados={associados} />
           )
         }
       </MostrarCarga>
@@ -227,7 +246,15 @@ function tituloSugerido(tipo: TipoEncontro, inicio: string): string {
   return `${NOME_DO_TIPO[tipo]} — ${mesAno}`
 }
 
-function FormEncontro({ config, encontro }: { config: ConfigAssembleias; encontro: EncontroCompleto | null }) {
+function FormEncontro({
+  config,
+  encontro,
+  associados,
+}: {
+  config: ConfigAssembleias
+  encontro: EncontroCompleto | null
+  associados: { pessoa_id: string; nome: string }[]
+}) {
   const navegar = useNavigate()
   const [r, setR] = useState<Rascunho>(() =>
     encontro
@@ -238,15 +265,30 @@ function FormEncontro({ config, encontro }: { config: ConfigAssembleias; encontr
           local: encontro.local,
           edital: encontro.edital ?? '',
           fundamento: encontro.fundamento ?? '',
-          pauta: encontro.pauta.map(({ titulo, descricao, deliberativo, maioria }) => ({ titulo, descricao, deliberativo, maioria })),
+          pauta: encontro.pauta.map(({ titulo, descricao, deliberativo, maioria, desligamento_pessoa_id }) => ({
+            titulo,
+            descricao,
+            deliberativo,
+            maioria,
+            desligamento_pessoa_id,
+          })),
         }
       : { tipo: 'ago', titulo: '', inicio: '', local: '', edital: '', fundamento: '', pauta: [{ ...ITEM_VAZIO }] },
   )
   const [repetir, setRepetir] = useState(0)
   const [retorno, setRetorno] = useState<{ erro?: string }>({})
   const [enviando, umaVez] = useUmaVez()
-  const [hoje] = useState(() => diaEmParauapebas(new Date()))
-  const avisos = useMemo(() => (r.inicio ? avisosDaData(r.tipo, doCampoDataHora(r.inicio), config, hoje) : []), [r.tipo, r.inicio, config, hoje])
+  const [agora] = useState(() => Date.now())
+  const hoje = diaEmParauapebas(new Date(agora))
+  const avisos = useMemo(
+    () => (r.inicio ? avisosDaData(r.tipo, doCampoDataHora(r.inicio), config, hoje, agora) : []),
+    [r.tipo, r.inicio, config, hoje, agora],
+  )
+  // o edital foi gerado antes e não traz a data ou o local de agora
+  const editalDesatualizado =
+    r.edital.trim() !== '' &&
+    r.inicio !== '' &&
+    (!r.edital.includes(dataPorExtenso(doCampoDataHora(r.inicio))) || (r.local.trim() !== '' && !r.edital.includes(r.local.trim())))
   const mudar = (parte: Partial<Rascunho>) => setR((atual) => ({ ...atual, ...parte }))
   const mudarItem = (i: number, parte: Partial<ItemPauta>) =>
     setR((atual) => ({ ...atual, pauta: atual.pauta.map((p, j) => (j === i ? { ...p, ...parte } : p)) }))
@@ -274,6 +316,7 @@ function FormEncontro({ config, encontro }: { config: ConfigAssembleias; encontr
           descricao: p.descricao?.trim() || null,
           deliberativo: r.tipo !== 'reuniao_mensal' && p.deliberativo,
           maioria: r.tipo !== 'reuniao_mensal' && p.deliberativo ? (p.maioria ?? 'simples') : null,
+          desligamento_pessoa_id: itemDeDesligamento(r.tipo, p) ? p.desligamento_pessoa_id || null : null,
         })),
     }
   }
@@ -289,11 +332,14 @@ function FormEncontro({ config, encontro }: { config: ConfigAssembleias; encontr
           if (res.erro !== null) return setRetorno({ erro: res.erro })
           // reunião mensal: cria também as dos próximos meses (mesma semana e dia da semana)
           if (!encontro && r.tipo === 'reuniao_mensal' && repetir > 0) {
+            const dataDaPrimeira = dataPorExtenso(inicio)
             for (const data of mesmasDatasNosProximosMeses(inicio, repetir)) {
               // o título escolhido continua, com o mês de cada uma
               const mes = tituloSugerido('reuniao_mensal', paraCampoDataHora(data))
               const titulo = r.titulo.trim() ? `${r.titulo.trim()} — ${mes.split(' — ')[1]}` : mes
-              const outra = await salvarEncontro(null, { ...dados(data), titulo })
+              // o edital de cada uma leva a data dela; se o texto não traz a data da primeira, fica em branco
+              const edital = r.edital.includes(dataDaPrimeira) ? r.edital.replaceAll(dataDaPrimeira, dataPorExtenso(data)) : ''
+              const outra = await salvarEncontro(null, { ...dados(data), titulo, edital })
               if (outra.erro !== null) return setRetorno({ erro: `A primeira foi criada, mas não as seguintes: ${outra.erro}` })
             }
           }
@@ -385,7 +431,32 @@ function FormEncontro({ config, encontro }: { config: ConfigAssembleias; encontr
                       </select>
                     </label>
                   )}
+                  {itemDeDesligamento(r.tipo, p) && (
+                    <label>
+                      Desligamento de (Art. 8º)
+                      <select
+                        aria-label={`Desligamento de (item ${i + 1})`}
+                        value={p.desligamento_pessoa_id ?? ''}
+                        onChange={(e) => mudarItem(i, { desligamento_pessoa_id: e.target.value || null })}
+                      >
+                        <option value="">Não é desligamento</option>
+                        {associados.map((a) => (
+                          <option key={a.pessoa_id} value={a.pessoa_id}>
+                            {a.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </div>
+              )}
+              {estatutoSemDoisTercos(r.tipo, p) && (
+                <p className="aviso-texto">A reforma do estatuto pede 2/3 dos presentes aptos (Art. 21). Confira a maioria exigida.</p>
+              )}
+              {itemDeDesligamento(r.tipo, p) && !p.desligamento_pessoa_id && (
+                <p className="detalhe">
+                  Desligamento (Art. 8º) só na AGO, por 3/5: indique já na convocação quem será votado — na assembleia não muda.
+                </p>
               )}
               <span className="acoes-linha">
                 <button type="button" className="botao-texto" disabled={i === 0} onClick={() => moverItem(i, -1)}>
@@ -419,6 +490,11 @@ function FormEncontro({ config, encontro }: { config: ConfigAssembleias; encontr
         Texto do edital {r.tipo !== 'reuniao_mensal' && '* (obrigatório para convocar)'}
         <textarea rows={12} maxLength={6000} value={r.edital} onChange={(e) => mudar({ edital: e.target.value })} />
       </label>
+      {editalDesatualizado && (
+        <p className="aviso-texto" role="status">
+          O texto do edital não traz a data ou o local de agora. Gere o texto de novo ou ajuste antes de convocar.
+        </p>
+      )}
       <div className="acoes">
         <button
           type="button"
@@ -657,7 +733,7 @@ function ConteudoDetalhe({ id }: { id: string }) {
                 )}
               </div>
 
-              {(e.situacao === 'agendado' || e.situacao === 'convocado') && podeConduzir && (
+              {(e.situacao === 'agendado' || e.situacao === 'convocado') && podeConduzir && !e.instalada_em && (
                 <details className="acao-recolhida nao-imprimir">
                   <summary>Cancelar este encontro</summary>
                   <form

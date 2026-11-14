@@ -30,6 +30,11 @@ type Retorno = { sucesso?: string; erro?: string }
 const horaDe = (instante: string) =>
   new Date(instante).toLocaleTimeString('pt-BR', { timeZone: 'America/Belem', hour: '2-digit', minute: '2-digit' })
 
+/** A lista fica aberta de 6 horas antes a 18 horas depois do horário marcado (a mesma regra do banco). */
+const HORA = 3_600_000
+const ABRE_ANTES = 6 * HORA
+const FECHA_DEPOIS = 18 * HORA
+
 // ---------------------------------------------------------------------
 // Leitor de QR Code com a câmera (quando o navegador tem o leitor embutido)
 // ---------------------------------------------------------------------
@@ -60,7 +65,12 @@ function LeitorQr({ aoLer }: { aoLer: (codigo: string) => void }) {
       .getUserMedia({ video: { facingMode: 'environment' }, audio: false })
       .then((f) => {
         fluxo = f
-        if (!ativo || !video.current) return
+        // a câmera foi desligada (ou a tela fechada) antes de o navegador liberar: solta a câmera
+        if (!ativo) {
+          f.getTracks().forEach((t) => t.stop())
+          return
+        }
+        if (!video.current) return
         video.current.srcObject = f
         void video.current.play()
         const ler = async () => {
@@ -173,7 +183,15 @@ function ConteudoPresenca({ id }: { id: string }) {
           const presentes = lista.filter((l) => l.presente_em)
           const aptos = presentes.filter((l) => l.em_dia).length
           const ativos = lista.length
-          const aberta = encontro.situacao === 'convocado'
+          const inicio = new Date(encontro.inicio).getTime()
+          const convocado = encontro.situacao === 'convocado' && !encontro.presenca_encerrada_em
+          const cedo = agora < inicio - ABRE_ANTES
+          const tarde = agora > inicio + FECHA_DEPOIS
+          // marcar e desfazer: só na janela do encontro
+          const aberta = convocado && !cedo && !tarde
+          const assembleia = encontro.tipo !== 'reuniao_mensal'
+          // encerrar: depois do horário marcado; assembleia, só depois de instalada (quórum)
+          const podeEncerrar = convocado && inicio <= agora + 60_000 && (!assembleia || encontro.instalada_em !== null)
           const visiveis = lista.filter((l) => contemTexto(l.nome, busca) || String(l.numero_registro) === busca.trim().replace(/^0+/, ''))
           return (
             <>
@@ -193,6 +211,19 @@ function ConteudoPresenca({ id }: { id: string }) {
               {encontro.situacao === 'realizado' && (
                 <p className="etiqueta etiqueta-marca">Lista encerrada: quem não esteve presente tem falta.</p>
               )}
+              {convocado && cedo && (
+                <p className="aviso-texto" role="status">
+                  A lista abre 6 horas antes do encontro, a partir de {formatarDataHora(new Date(inicio - ABRE_ANTES).toISOString())}.
+                </p>
+              )}
+              {convocado && tarde && (
+                <p className="aviso-texto" role="status">
+                  A lista fechou para novas marcações (18 horas depois do horário marcado).
+                  {assembleia && !encontro.instalada_em
+                    ? ' A assembleia não foi instalada: se não aconteceu, cancele o encontro na página dele, com o motivo.'
+                    : ''}
+                </p>
+              )}
               {aberta && <LeitorQr aoLer={aoLer} />}
               <label>
                 Buscar associado
@@ -210,7 +241,13 @@ function ConteudoPresenca({ id }: { id: string }) {
                   />
                 ))}
               </ul>
-              {aberta && new Date(encontro.inicio).getTime() <= agora + 60_000 && (
+              {convocado && assembleia && !encontro.instalada_em && inicio <= agora + 60_000 && !tarde && (
+                <p className="detalhe">
+                  Para encerrar a lista, primeiro instale a assembleia (quórum) na{' '}
+                  <Link to={`/assembleias/${encontro.id}/conducao`}>condução</Link>.
+                </p>
+              )}
+              {podeEncerrar && (
                 <div className="acoes">
                   {perguntando ? (
                     <span className="confirmar-linha">
@@ -422,7 +459,7 @@ function Justificativa({
           type="button"
           className="botao"
           disabled={enviando}
-          onClick={() => void umaVez(async () => aoDecidir(await decidirJustificativa(j.id, true, motivo), `Justificativa de ${j.pessoa?.nome} aceita.`))}
+          onClick={() => void umaVez(async () => aoDecidir(await decidirJustificativa(j.id, true, ''), `Justificativa de ${j.pessoa?.nome} aceita.`))}
         >
           Aceitar
         </button>

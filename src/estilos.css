@@ -2142,6 +2142,8 @@ fieldset .caixa-marcar + .caixa-marcar {
 .texto-edital {
   white-space: pre-line;
   line-height: 1.55;
+  /* endereços e links longos não alargam a página no celular (320px) */
+  overflow-wrap: anywhere;
 }
 
 .pauta-campos {
