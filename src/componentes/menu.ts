@@ -47,6 +47,14 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     fase: 4,
     pronto: true,
   },
+  {
+    caminho: '/comissoes',
+    titulo: 'Comissões',
+    descricao: 'Comissões do Conselho, membros e o que cada uma faz',
+    perfis: ['ministro', 'secretaria', 'tesouraria', 'presidencia', 'conselho_fiscal'],
+    fase: 5,
+    pronto: true,
+  },
   { caminho: '/projetos', titulo: 'Projetos', descricao: 'Projetos e eventos do Conselho', perfis: ['secretaria', 'tesouraria', 'presidencia'], fase: 5 },
   { caminho: '/avisos', titulo: 'Avisos', descricao: 'Mural de avisos', perfis: 'todos', fase: 5 },
   {

@@ -64,3 +64,38 @@ O novo presidente do COMEP quer um conselho que **represente e apoie as igrejas 
 | A presidência vê o documento em "Documentos para conferir" e confere na tela da igreja | ✅ |
 | A presidência atende a correção na lista de Ministros | ✅ |
 | Todos os testes de ponta a ponta, no computador e no celular, na cópia local | ✅ 105 passaram e 2 foram pulados de propósito |
+## Entrega 5.2 — Comissões (versão 5.0-teste.2)
+
+As comissões do Conselho seguem o estatuto (Art. 3º, IV e Art. 9º, III) e as respostas 28 a 30 (14/11/2026).
+
+**O que entrou:**
+
+- **Menu Comissões**, para todos com login. Mostra:
+  - as comissões em atividade, com o tipo, a área, o número de membros e quem coordena;
+  - as encerradas, à parte.
+- **A presidência e a secretaria criam e alteram as comissões:**
+  - nome, permanente ou temporária (a temporária com término), área (educação, segurança, saúde, política, cidadania…) e finalidade;
+  - o nome não se repete entre as comissões em atividade.
+- **Membros:**
+  - **só associados ativos**, indicados pela presidência ou pela secretaria;
+  - **um coordenador por vez**: escolher outro tira o anterior da coordenação, mas ele continua membro;
+  - tirar um membro guarda a data de saída;
+  - quem sai do COMEP sai das comissões sozinho.
+- **O coordenador cuida da sua comissão:**
+  - registra as reuniões, as atividades e os avisos;
+  - tira um registro feito por engano (fica guardado);
+  - os registros, só os membros da comissão e a diretoria veem.
+- **Encerrar** pede a data e o motivo. Os membros saem junto e nada se apaga.
+
+### Trava 2
+
+- [x] Migração `20261114200000_comissoes.sql`.
+- [x] **8 testes novos do banco** (`testes/banco/comissoes.test.ts`):
+  - quem cria; a temporária precisa de término; o nome não se repete;
+  - só associados ativos e sem repetir;
+  - um coordenador por vez;
+  - todos veem os membros, com o nome;
+  - o coordenador registra, o membro comum não, e quem é de fora não lê;
+  - tirar o registro;
+  - quem sai do COMEP sai das comissões;
+  - encerrar pede o motivo e tira os membros.
