@@ -15,6 +15,7 @@ import { DetalheEncontro, EditarEncontro, ListaEncontros, NovoEncontro } from '.
 import { FaltasEJustificativas, ListaDePresenca } from './telas/assembleias/Presenca'
 import { ConducaoAssembleia } from './telas/assembleias/Conducao'
 import { DetalheComissao, EditarComissao, ListaComissoes, NovaComissao } from './telas/comissoes/Comissoes'
+import { DetalheEvento, EditarEvento, ListaEventos, NovoEvento } from './telas/eventos/Eventos'
 import { Diretoria } from './telas/diretoria/Diretoria'
 import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
@@ -31,7 +32,7 @@ import { CriarAcessoPedido, MeuPedido } from './telas/pedido/MeuPedido'
 import { MeuPerfil } from './telas/portal/MeuPerfil'
 import { MinhaIgreja } from './telas/portal/MinhaIgreja'
 import { ConfiguracaoAusente, EmConstrucao } from './telas/Simples'
-import { ConvocacaoPublicaPagina, PaginaInicial, PaginaNaoEncontrada, QueroMeAssociar } from './telas/Site'
+import { AgendaPagina, ConvocacaoPublicaPagina, EventoPublicoPagina, PaginaInicial, PaginaNaoEncontrada, QueroMeAssociar } from './telas/Site'
 
 // "/comep/" vira "/comep"; com VITE_BASE=/ fica sem prefixo
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
@@ -66,6 +67,8 @@ export default function App() {
           <Route path="validar/:codigo" element={<ValidarCredencial />} />
           {/* Convocações das assembleias (edital e pauta), para qualquer pessoa */}
           <Route path="convocacoes/:id" element={<ConvocacaoPublicaPagina />} />
+          <Route path="agenda" element={<AgendaPagina />} />
+          <Route path="agenda/:id" element={<EventoPublicoPagina />} />
 
           {/* Portal do membro (exige login) */}
           <Route element={<RotaProtegida />}>
@@ -103,6 +106,12 @@ export default function App() {
               </Route>
               <Route path="diretoria" element={<Area caminho="/diretoria" />}>
                 <Route index element={<Diretoria />} />
+              </Route>
+              <Route path="eventos" element={<Area caminho="/eventos" />}>
+                <Route index element={<ListaEventos />} />
+                <Route path="novo" element={<NovoEvento />} />
+                <Route path=":id" element={<DetalheEvento />} />
+                <Route path=":id/editar" element={<EditarEvento />} />
               </Route>
               <Route path="comissoes" element={<Area caminho="/comissoes" />}>
                 <Route index element={<ListaComissoes />} />

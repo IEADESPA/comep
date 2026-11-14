@@ -516,6 +516,17 @@ fieldset + fieldset {
   border-bottom: 1px solid var(--cor-borda);
 }
 
+.site-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.site-menu a:not(.botao) {
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
 .site-topo-conteudo {
   display: flex;
   align-items: center;

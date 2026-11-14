@@ -111,3 +111,77 @@ As comissões do Conselho seguem o estatuto (Art. 3º, IV e Art. 9º, III) e as 
 | O ministro (coordenador) vê a comissão, a reunião registrada, e registra uma atividade | ✅ |
 | O ministro não altera nem encerra a comissão | ✅ |
 | Encerrar a comissão, com motivo | ✅ |
+
+## Entrega 5.3 — Eventos e projetos, e a Agenda no site (versão 5.0-teste.3)
+
+Eventos e projetos do Conselho (Art. 3º, VII), pelas respostas 27, 31, 32 e 33 (14/11/2026). É também o primeiro passo do **site vivo**: o que se publica no sistema aparece no site, e a inscrição feita no site entra no sistema.
+
+**O que entrou:**
+
+- **Menu "Eventos e projetos"**, para todos com login: os próximos e os anteriores.
+- **A secretaria e a presidência preparam:**
+  - o secretário executivo, responsável pelos eventos, tem o perfil da secretaria;
+  - o que se registra: tipo (evento ou projeto), título, datas, local, descrição, responsável e orçamento;
+  - a inscrição pode ser só para os associados ou **aberta ao público pelo site**, com vagas, taxa e prazo.
+- **Publicar** leva o evento ao site e à lista dos associados. Depois do evento, ele é registrado como realizado. **Cancelar** pede o motivo, e o site mostra "cancelado". Um rascunho ou um evento cancelado se arquiva.
+- **Orçamento aprovado pela assembleia:**
+  - registra-se a AGO ou AGE instalada que aprovou;
+  - despesa ligada ao evento só depois disso;
+  - mudar o valor pede nova aprovação.
+- **Inscrições:**
+  - **pelo site, sem login**, com nome, telefone (com DDD) e igreja, mais o aceite da LGPD;
+  - pelo sistema, o associado se inscreve em "Minha inscrição";
+  - o mesmo telefone não se inscreve duas vezes;
+  - as vagas acabam;
+  - muitas inscrições em pouco tempo esperam, para evitar abuso;
+  - a lista fica com a diretoria e a tesouraria; cada inscrito vê só a dele.
+- **Taxa:**
+  - com taxa, a inscrição espera o pagamento;
+  - a tesouraria registra o pagamento, a inscrição confirma e o valor **entra no caixa**, ligado ao evento, na categoria nova "Inscrições em eventos";
+  - a taxa não muda depois de haver inscritos.
+- **Finanças do evento:**
+  - receitas, despesas e saldo, frente ao orçamento, para a tesouraria, a presidência e o Conselho Fiscal;
+  - a tesouraria liga ao evento os lançamentos do caixa.
+- **No site:**
+  - o cabeçalho ganhou **Agenda**;
+  - a página `/agenda` lista os eventos;
+  - cada evento tem a sua página, com a inscrição;
+  - a página inicial mostra os **próximos eventos**;
+  - o compartilhamento pelo WhatsApp leva à página do evento no site.
+
+### Trava 2
+
+- [x] Migração `20261114220000_eventos.sql`, aplicada no `comep-teste`. Verificador do Supabase: só o aviso já conhecido.
+- [x] **12 testes novos do banco** (`testes/banco/eventos.test.ts`):
+  - **preparar e publicar:**
+    - quem prepara;
+    - o rascunho não vai ao site;
+    - publicado, todos veem;
+  - **inscrição:**
+    - pelo site, com o aceite e o telefone;
+    - as vagas acabam;
+    - o evento só para associados não aceita visitante;
+    - quem vê as inscrições;
+  - **taxa:**
+    - a inscrição espera o pagamento, e a taxa não muda;
+    - o pagamento entra no caixa, ligado ao evento;
+  - **orçamento:**
+    - despesa só com o orçamento aprovado numa assembleia instalada;
+    - as finanças do evento;
+    - mudar o orçamento pede nova aprovação;
+  - **cancelar e arquivar.**
+- [x] 417 testes do banco e de unidade passando.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| A presidência prepara e publica um evento com inscrição aberta ao público | ✅ |
+| O visitante, sem login, vê o evento na Agenda do site, com as vagas | ✅ |
+| Ele se inscreve pelo site (nome, telefone, aceite) e recebe o número | ✅ |
+| A inscrição feita no site aparece no sistema ("Inscrições (1 de 5)") | ✅ |
+| O ministro vê os eventos, mas não prepara | ✅ |
+| Nenhuma página pública fica mais larga que a tela (com a Agenda no cabeçalho) | ✅ |
+
+**Achado pelo teste de ponta a ponta e corrigido:** a limpeza dos testes de eventos e de comissões olhava a página antes de ela carregar, e o evento ficava sem arquivar. Agora a limpeza espera o título da página.
+
