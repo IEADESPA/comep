@@ -22,11 +22,11 @@ export const NOME_DA_SITUACAO_ENCONTRO: Record<SituacaoEncontro, string> = {
   cancelado: 'Cancelado',
 }
 
-/** A base de 3/5 e 2/3 são os presentes aptos (em dia) — pergunta 24 do PROJETO.md. */
+/** A base de 3/5 e 2/3 são os votos válidos (sim + não) dos presentes em dia — pergunta 24 (14/11/2026). */
 export const NOME_DA_MAIORIA: Record<Maioria, string> = {
   simples: 'Maioria simples (mais a favor que contra)',
-  tres_quintos: '3/5 dos presentes aptos (desligamento — Art. 8º)',
-  dois_tercos: '2/3 dos presentes aptos (reforma do estatuto — Art. 21)',
+  tres_quintos: '3/5 dos votos válidos (desligamento por conduta — Art. 8º, II)',
+  dois_tercos: '2/3 dos votos válidos (reforma do estatuto — Art. 21)',
 }
 
 export type ItemPauta = {
@@ -34,8 +34,10 @@ export type ItemPauta = {
   descricao: string | null
   deliberativo: boolean
   maioria: Maioria | null
-  /** item de desligamento (Art. 8º): o associado já indicado na convocação */
+  /** item de desligamento por conduta (Art. 8º, II): o associado já indicado na convocação */
   desligamento_pessoa_id?: string | null
+  /** item de jubilação: o associado (o documento da denominação vai na descrição) */
+  jubilacao_pessoa_id?: string | null
 }
 
 export type Encontro = {
@@ -85,7 +87,7 @@ export async function buscarEncontro(id: string): Promise<Resultado<EncontroComp
     cliente().from('encontros').select(CAMPOS).eq('id', id).is('arquivado_em', null).maybeSingle<Encontro>(),
     cliente()
       .from('encontro_pauta')
-      .select('id, ordem, titulo, descricao, deliberativo, maioria, desligamento_pessoa_id')
+      .select('id, ordem, titulo, descricao, deliberativo, maioria, desligamento_pessoa_id, jubilacao_pessoa_id')
       .eq('encontro_id', id)
       .is('arquivado_em', null)
       .order('ordem')
@@ -138,10 +140,15 @@ export type ConfigAssembleias = {
   dia_minimo_ago: number
   minutos_segunda_chamada: number
   faltas_aviso: number
+  /** faltas seguidas às assembleias para a diretoria homologar o desligamento (Art. 8º, IV) */
   faltas_pauta: number
+  /** mandato do Conselho Diretor e do Conselho Fiscal, em anos (Art. 12) */
+  anos_mandato: number
+  membros_conselho_fiscal: number
 }
 
-const CAMPOS_CONFIG = 'antecedencia_dias, meses_ago, dia_minimo_ago, minutos_segunda_chamada, faltas_aviso, faltas_pauta'
+const CAMPOS_CONFIG =
+  'antecedencia_dias, meses_ago, dia_minimo_ago, minutos_segunda_chamada, faltas_aviso, faltas_pauta, anos_mandato, membros_conselho_fiscal'
 
 export async function buscarConfigAssembleias(): Promise<Resultado<ConfigAssembleias>> {
   const { data, error } = await cliente().from('config_assembleias').select(CAMPOS_CONFIG).single<ConfigAssembleias>()
@@ -385,8 +392,22 @@ export async function registrarVotacao(pautaId: string, v: NovaVotacao): Promise
 }
 
 /** Falecimento (Art. 8º, V): a secretaria registra, sem votação. */
-export async function registrarFalecimento(pessoaId: string, data: string, observacao: string): Promise<Resultado<null>> {
-  const { error } = await cliente().rpc('registrar_falecimento', { p_pessoa_id: pessoaId, p_data: data, p_observacao: observacao })
+/**
+ * Desligamento homologado pela diretoria, sem votação (14/11/2026): I a pedido, III transferência, IV faltas seguidas
+ * às assembleias, V falecimento. A conduta (II) vai à votação da AGO.
+ */
+export async function registrarDesligamento(
+  pessoaId: string,
+  inciso: Exclude<IncisoDesligamento, 'II'>,
+  data: string,
+  observacao: string,
+): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('registrar_desligamento', {
+    p_pessoa_id: pessoaId,
+    p_inciso: inciso,
+    p_data: data,
+    p_observacao: observacao,
+  })
   return error ? falha(error) : ok(null)
 }
 

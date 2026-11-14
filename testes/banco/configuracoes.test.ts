@@ -217,10 +217,13 @@ describe('Fase 1.2 — configurações e categorias', () => {
       assert.deepEqual(await perfisDe(auxiliar), ['ministro', 'presidente_igreja'])
     })
 
-    it('jubilado é isento, mesmo sendo presidente', async () => {
-      await como(db, secretaria, () =>
-        db.query('update public.associados set jubilado = true where pessoa_id = $1', [auxiliar]),
+    it('jubilado é isento, mesmo sendo presidente; a secretaria não marca na ficha (é a assembleia — 14/11/2026)', async () => {
+      await assert.rejects(
+        como(db, secretaria, () => db.query('update public.associados set jubilado = true where pessoa_id = $1', [auxiliar])),
+        erroComCodigo('42501'),
       )
+      // aprovado pela assembleia (registrar_votacao), fica jubilado
+      await db.query('update public.associados set jubilado = true where pessoa_id = $1', [auxiliar])
       assert.equal(await categoriaDe(auxiliar), 'jubilado')
     })
 
@@ -229,8 +232,7 @@ describe('Fase 1.2 — configurações e categorias', () => {
         db.query('update public.vinculos_igreja set pastor_presidente = true'),
       )
       assert.equal(r.affectedRows, 0)
-      const j = await como(db, ministro, () => db.query('update public.associados set jubilado = true'))
-      assert.equal(j.affectedRows, 0)
+      await assert.rejects(como(db, ministro, () => db.query('update public.associados set jubilado = true')), erroComCodigo('42501'))
     })
 
     it('arquivar o cadastro tira os dois perfis automáticos e arquiva a pessoa sem login', async () => {

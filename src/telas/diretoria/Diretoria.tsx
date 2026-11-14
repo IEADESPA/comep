@@ -16,7 +16,7 @@ import {
   type Cargo,
   type Mandato,
 } from '../../dados/diretoria'
-import { listarEncontros, type Encontro } from '../../dados/encontros'
+import { buscarConfigAssembleias, listarEncontros, type Encontro } from '../../dados/encontros'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
@@ -30,11 +30,18 @@ const ORDEM = Object.fromEntries(CARGOS.map((c, i) => [c.cargo, i])) as Record<C
 /** Cargos que só a assembleia tira de alguém (fora a renúncia, que a própria pessoa faz). */
 const SO_PELA_ASSEMBLEIA: Cargo[] = ['presidente', 'vice_presidente', 'conselheiro_fiscal']
 
-/** Fim padrão de um mandato de 4 anos (Art. 12): o dia anterior ao mesmo dia, 4 anos depois. */
-function quatroAnosDepois(inicio: string): string {
+/** Fim padrão do mandato (Art. 12; anos nas Configurações): o dia anterior ao mesmo dia, N anos depois. */
+function anosDepois(inicio: string, anos: number): string {
   const d = new Date(`${inicio}T12:00:00Z`)
-  d.setUTCFullYear(d.getUTCFullYear() + 4)
+  d.setUTCFullYear(d.getUTCFullYear() + anos)
   d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
+/** O último dia permitido: N anos depois do início (o banco confere o mesmo). */
+function limiteDoMandato(inicio: string, anos: number): string {
+  const d = new Date(`${inicio}T12:00:00Z`)
+  d.setUTCFullYear(d.getUTCFullYear() + anos)
   return d.toISOString().slice(0, 10)
 }
 
@@ -53,11 +60,19 @@ export function Diretoria() {
   const presidencia = conta?.perfis.includes('presidencia') ?? false
   const minhaPessoa = conta?.pessoaId ?? null
   const [carga, recarregar] = useCarregar(async () => {
-    const [mandatos, config, encontros] = await Promise.all([listarMandatos(), buscarConfigCredencial(), listarEncontros()])
+    const [mandatos, config, encontros, regras] = await Promise.all([
+      listarMandatos(),
+      buscarConfigCredencial(),
+      listarEncontros(),
+      buscarConfigAssembleias(),
+    ])
     if (mandatos.erro !== null) return mandatos
     return ok({
       mandatos: mandatos.dados,
       fimCredencial: config.erro === null ? config.dados.fim_mandato : null,
+      // números do estatuto (Configurações): anos de mandato e membros do Conselho Fiscal
+      anos: regras.erro === null ? regras.dados.anos_mandato : 4,
+      conselheiros: regras.erro === null ? regras.dados.membros_conselho_fiscal : 3,
       // quem não é da diretoria pode não ver as assembleias; aí a lista fica vazia (só a presidência usa)
       assembleias: encontros.erro === null ? assembleiasInstaladas(encontros.dados) : [],
     })
@@ -72,12 +87,13 @@ export function Diretoria() {
     <>
       <h1>Diretoria e Conselho Fiscal</h1>
       <p className="detalhe">
-        Conselho Diretor (Art. 12) e Conselho Fiscal (3 membros — Art. 14), com mandato de 4 anos. O cargo dá o perfil de acesso
-        enquanto o mandato vale: na posse começa sozinho e, no fim do mandato, termina sozinho.
+        Conselho Diretor (Art. 12) e Conselho Fiscal (Art. 14). O mandato e o número de conselheiros estão em Configurações → regras
+        do estatuto. O cargo dá o perfil de acesso enquanto o mandato vale: na posse começa sozinho e, no fim do mandato, termina
+        sozinho. O secretário executivo tem o acesso da secretaria e da tesouraria.
       </p>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ mandatos, fimCredencial, assembleias }) => {
+        {({ mandatos, fimCredencial, assembleias, anos, conselheiros }) => {
           const vigentes = mandatos.filter((m) => m.vigente).sort((a, b) => ORDEM[a.cargo] - ORDEM[b.cargo])
           const outros = mandatos.filter((m) => !m.vigente)
           const fimDiretoria = vigentes.find((m) => m.cargo === 'presidente')?.fim ?? null
@@ -111,7 +127,15 @@ export function Diretoria() {
                 )}
               </section>
 
-              {presidencia && <RegistrarDiretoria primeiro={mandatos.length === 0} assembleias={assembleias} aoConcluir={concluir} />}
+              {presidencia && (
+                <RegistrarDiretoria
+                  primeiro={mandatos.length === 0}
+                  assembleias={assembleias}
+                  anos={anos}
+                  conselheiros={conselheiros}
+                  aoConcluir={concluir}
+                />
+              )}
 
               <section className="painel" aria-labelledby="titulo-historico">
                 <h2 id="titulo-historico">Histórico e próximos mandatos</h2>
@@ -218,17 +242,22 @@ function LinhaMandato({
 function RegistrarDiretoria({
   primeiro,
   assembleias,
+  anos,
+  conselheiros,
   aoConcluir,
 }: {
   /** nenhum mandato registrado ainda: a diretoria foi eleita antes do sistema e vale o documento */
   primeiro: boolean
   assembleias: Encontro[]
+  anos: number
+  conselheiros: number
   aoConcluir: Concluir
 }) {
   const [carga, recarregar] = useCarregar(async () => {
     const associados = await listarAssociados()
     if (associados.erro !== null) return associados
-    return ok(associados.dados.filter((a) => a.situacao === 'ativo'))
+    // o jubilado vota, mas não é votado (14/11/2026)
+    return ok(associados.dados.filter((a) => a.situacao === 'ativo' && !a.jubilado))
   })
   const [inicio, setInicio] = useState('')
   const [fim, setFim] = useState('')
@@ -237,8 +266,13 @@ function RegistrarDiretoria({
   const [escolhas, setEscolhas] = useState<Record<string, string>>({})
   const [enviando, umaVez] = useUmaVez()
   const vagas = useMemo(
-    () => CARGOS.flatMap((c) => (c.cargo === 'conselheiro_fiscal' ? [1, 2, 3].map((n) => ({ ...c, chave: `${c.cargo}-${n}`, rotulo: `${c.nome} ${n}` })) : [{ ...c, chave: c.cargo, rotulo: c.nome }])),
-    [],
+    () =>
+      CARGOS.flatMap((c) =>
+        c.cargo === 'conselheiro_fiscal'
+          ? Array.from({ length: conselheiros }, (_, i) => ({ ...c, chave: `${c.cargo}-${i + 1}`, rotulo: `${c.nome} ${i + 1}` }))
+          : [{ ...c, chave: c.cargo, rotulo: c.nome }],
+      ),
+    [conselheiros],
   )
   // a assembleia que elegeu é de antes da posse
   const possiveis = assembleias.filter((a) => !inicio || diaIsoDeInstante(a.inicio) <= inicio)
@@ -260,8 +294,8 @@ function RegistrarDiretoria({
             }}
           >
             <p className="detalhe">
-              Só associados em dia podem ser votados (Art. 11). Ninguém acumula dois cargos, nem diretoria e Conselho Fiscal. Deixe em
-              branco o cargo que não foi preenchido. O mandato é de no máximo 4 anos.
+              Só associados em dia podem ser votados (Art. 11); o jubilado vota, mas não é votado. Ninguém acumula dois cargos, nem
+              diretoria e Conselho Fiscal. Deixe em branco o cargo que não foi preenchido. O mandato é de no máximo {anos} anos.
             </p>
             {primeiro ? (
               <p className="detalhe">
@@ -285,13 +319,20 @@ function RegistrarDiretoria({
                   value={inicio}
                   onChange={(e) => {
                     setInicio(e.target.value)
-                    if (e.target.value) setFim(quatroAnosDepois(e.target.value))
+                    if (e.target.value) setFim(anosDepois(e.target.value, anos))
                   }}
                 />
               </label>
               <label>
                 Fim do mandato *
-                <input type="date" required min={inicio} max={inicio ? quatroAnosDepois(inicio) : undefined} value={fim} onChange={(e) => setFim(e.target.value)} />
+                <input
+                  type="date"
+                  required
+                  min={inicio}
+                  max={inicio ? limiteDoMandato(inicio, anos) : undefined}
+                  value={fim}
+                  onChange={(e) => setFim(e.target.value)}
+                />
               </label>
               <label className="largura-total">
                 Assembleia que elegeu {primeiro ? '' : '*'}

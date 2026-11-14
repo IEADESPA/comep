@@ -415,3 +415,90 @@ Como em toda fase, a Fase 4 terminou com uma revisão geral independente (PROJET
 | Todos os testes de ponta a ponta, no computador e no celular, na cópia local | ✅ 105 passaram e 2 foram pulados de propósito (a condução, no celular, espera 2 minutos) |
 
 **Achado pelo teste de ponta a ponta e corrigido:** o teste das assembleias ainda esperava o nome antigo da maioria e, ao falhar antes da limpeza, deixava um rascunho no banco de teste. Os dois rascunhos foram arquivados, e a conferência passou para dentro do bloco que sempre limpa.
+
+## Entrega 4.5 — As regras das respostas de 14/11/2026 (versão 4.0-teste.6)
+
+Em 14/11/2026, o administrador técnico respondeu todas as perguntas pendentes (PROJETO.md, seção 11.3). Esta entrega põe no sistema as que mudam regras já feitas nas fases 2 e 4 (seção 11.5).
+
+**O que mudou:**
+
+- **Desligamento (Art. 8º — perguntas 5 e 22):**
+  - só a **conduta contrária à ética (II)** vai à votação de 3/5 na AGO. Na pauta, o item se chama "Desligamento por conduta de" e o motivo já vem como II;
+  - **a pedido (I), transferência (III), três faltas seguidas (IV) e falecimento (V)** a diretoria homologa e registra na ficha do associado, em "Registrar desligamento homologado". I e III pedem o documento (a carta, o ofício da denominação). IV confere as faltas;
+  - as **faltas seguidas contam só nas assembleias** (AGO e AGE), não nas reuniões mensais. O Início e a tela de faltas dizem "assembleias", e o caso vai a "Homologar o desligamento".
+- **Maiorias e quórum (perguntas 24 e 25):**
+  - 3/5 e 2/3 sobre os **votos válidos** (a favor + contra). Abstenção e branco não entram; sem nenhum voto válido, não há aprovação. A tela e a ata mostram a conta;
+  - 1ª chamada com **metade dos em dia mais um, arredondado para cima**: 74 → 38; 75 → 39.
+- **Em dia (perguntas 19 e 23):**
+  - o **pagamento informado até o vencimento** conta como em dia até a tesouraria conferir. Recusado, volta ao atraso;
+  - **na assembleia**, o que vence no dia dela também precisa estar pago. Como o anual vence no dia da AGO, quem escolheu o anual só vota nela se pagar (ou informar) antes.
+- **Contribuições (pergunta 18):**
+  - o **anual vence na data da AGO** que abre o exercício. Enquanto ela não é convocada, vale o dia de abril das Configurações. Convocar, mudar ou cancelar a AGO acerta sozinho o vencimento dos anuais em aberto;
+  - **troca no meio do exercício:**
+    - do mensal para o anual, as mensalidades em aberto deste mês até março viram uma **anuidade proporcional**;
+    - se nada foi pago no exercício, vira a anuidade inteira;
+    - do anual para o mensal, enquanto a anuidade não foi paga nem informada;
+  - quem é **admitido no meio do exercício** e escolhe o anual paga a anuidade proporcional aos meses que faltam.
+- **Jubilado (pergunta 20):**
+  - vota, mas **não pode ser votado**: não aparece na lista ao registrar a diretoria, e o banco recusa;
+  - a **jubilação é aprovada pela assembleia**. Na pauta da AGO ou AGE, o item "Jubilação de" leva o documento da denominação. Aprovado, o associado fica jubilado e isento das cobranças do mês em diante;
+  - a secretaria não marca mais o jubilado na ficha. No cadastro de quem já era jubilado antes do sistema, continua marcando.
+- **Configurações do estatuto (pergunta 13):** o **tempo de mandato** e o número de **membros do Conselho Fiscal** entram em Configurações → Assembleias e reuniões, só a presidência muda. A tela Diretoria segue esses números.
+- **Secretário executivo (pergunta 27):** o cargo dá o acesso da **secretaria e da tesouraria**.
+
+**Decisões tomadas sem nova pergunta** (o administrador técnico pediu para não perguntar mais na Fase 5):
+
+- **Anuidade proporcional:** é o valor anual × meses que faltam ÷ 12, para manter o desconto do anual. Ela vence no dia da primeira mensalidade que substitui.
+- **"Informado no prazo":** o informe foi enviado até o dia do vencimento, no horário de Parauapebas.
+- **A AGO que abre o exercício:** a primeira AGO convocada ou realizada entre abril e setembro do exercício.
+- **Item de jubilação:** a maioria é a escolhida na pauta (o padrão é a simples). Aprovada, a jubilação não se refaz pela votação, como o desligamento.
+- **A ata, a convocação e as justificativas só pelo cargo** (pergunta 26) entram no lançamento, quando a diretoria tiver login. Até lá, vale o perfil (risco F6, acima).
+
+### Trava 2
+
+- [x] Migração `20261114160000_respostas_diretoria.sql`, aplicada no `comep-teste` em 14/11/2026. Verificador do Supabase: só o aviso já conhecido.
+- [x] **12 testes novos do banco** (`testes/banco/respostas_diretoria.test.ts`):
+  - secretário executivo;
+  - mandato e Conselho Fiscal pelas configurações;
+  - quórum;
+  - maioria por votos válidos;
+  - informe no prazo;
+  - vencimento no dia da assembleia;
+  - anual na data da AGO;
+  - troca no meio do exercício;
+  - desligamento homologado (I e IV);
+  - jubilação pela assembleia;
+  - o jubilado não é votado.
+
+  **Sem a migração, os 12 falham** (conferido).
+- [x] **Testes antigos ajustados às regras novas:**
+  - quórum de 3 em 3 aptos;
+  - 2/3 sobre os votos válidos;
+  - só o inciso II na votação;
+  - faltas só nas assembleias;
+  - anual para quem entrou no meio;
+  - a secretaria não marca o jubilado.
+- [x] **Unidade:** quórum (75 → 39), conta da maioria por votos válidos e a ata com os votos válidos.
+- [x] 387 testes do banco e de unidade passando.
+- [x] **Revisão independente da migração:** um revisor leu a migração e comparou cada função com a versão de antes. Os achados foram provados num banco de teste local e corrigidos na migração `20261114163000_respostas_diretoria_revisao.sql`, aplicada no `comep-teste`. Cada correção ganhou um teste, e os 3 testes **falham sem a correção** (conferido).
+
+| Gravidade | O que acontecia | Correção | Teste |
+|---|---|---|---|
+| Importante | Diminuir o Conselho Fiscal nas configurações travava a renúncia, o desligamento e o falecimento de quem já estava no cargo | Encerrar um mandato não reconta as vagas | Banco |
+| Importante | O jubilado podia ser marcado (ou desmarcado) sem a assembleia: arquivando o cadastro e cadastrando de novo | Cadastrar de novo não muda a jubilação. O cadastro inicial de uma pessoa nova, que já era jubilada antes do sistema, continua | Banco |
+| Menor | Na assembleia, o pagamento informado durante a própria reunião contava | O informe precisa ter sido enviado antes de a assembleia começar | Banco |
+| Menor | A troca de plano e um pagamento (ou a geração das cobranças) ao mesmo tempo podiam cobrar duas vezes | A troca prende as cobranças do exercício até terminar; gerar usa a mesma trava | — (conferido no código) |
+| Menor | A troca de plano olhava também informes arquivados | Só os informes em vigor contam | — |
+
+- **Riscos aceitos:**
+  - **Desligamento homologado de quem tem cargo:** a presidência pode registrar o desligamento a pedido (I) ou por transferência (III) do presidente, do vice ou de um conselheiro, com o documento, sem assembleia. É a regra da pergunta 5: esses casos são fatos. O falecimento já era assim.
+  - **Migração e desligamentos antigos:** a regra nova dos desligamentos não aceita votação nos incisos I, III e IV. O teste e a produção não têm nenhum desligamento assim, por isso a migração passa.
+
+### Trava 3
+
+| O que é testado (ponta a ponta) | Resultado |
+|---|---|
+| A ficha do associado não tem mais "Marcar como jubilado" e explica que a jubilação é da assembleia | ✅ |
+| A pauta mostra a maioria "2/3 dos votos válidos" e avisa quando o item de estatuto não está em 2/3 | ✅ |
+| Condução, diretoria, presença e assembleias continuam funcionando com as regras novas | ✅ |
+| Todos os testes de ponta a ponta, no computador e no celular, na cópia local | ✅ 105 passaram e 2 foram pulados de propósito |

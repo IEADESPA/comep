@@ -83,20 +83,20 @@ export function Inicio() {
   }
 }
 
-/** Faltas seguidas às reuniões mensais, sem justificativa aceita (Art. 8º, IV): o aviso ao associado. */
+/** Faltas seguidas às assembleias, sem justificativa aceita (Art. 8º, IV): o aviso ao associado. */
 function AvisoDeFaltas() {
   const [carga] = useCarregar(minhasFaltas)
   if (carga.situacao !== 'ok') return null
   const { faltas_seguidas: faltas, faltas_aviso: aviso, faltas_pauta: pauta } = carga.dados
   if (faltas < aviso) return null
   return (
-    <Aviso titulo={`Você tem ${faltas} ${faltas === 1 ? 'falta' : 'faltas seguidas'} nas reuniões mensais`}>
+    <Aviso titulo={`Você tem ${faltas} ${faltas === 1 ? 'falta' : 'faltas seguidas'} nas assembleias`}>
       <p>
         {faltas >= pauta
-          ? 'Sem justificativa aceita, o caso vai para a pauta da assembleia (Art. 8º, IV do Estatuto).'
-          : `Com ${pauta} faltas seguidas sem justificativa, o caso vai para a pauta da assembleia (Art. 8º, IV do Estatuto).`}{' '}
+          ? 'Sem justificativa aceita, a diretoria pode homologar o desligamento (Art. 8º, IV do Estatuto).'
+          : `Com ${pauta} faltas seguidas às assembleias sem justificativa, a diretoria homologa o desligamento (Art. 8º, IV do Estatuto).`}{' '}
         Se faltou por um motivo, envie a justificativa ao 1º secretário em <Link to="/assembleias">Assembleias</Link> (abra a
-        reunião e use "Justificar a falta").
+        assembleia e use "Justificar a falta").
       </p>
     </Aviso>
   )

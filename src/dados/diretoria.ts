@@ -19,7 +19,8 @@ export const CARGOS: readonly { cargo: Cargo; nome: string; perfil: string }[] =
   { cargo: 'segundo_secretario', nome: '2º secretário', perfil: 'Secretaria' },
   { cargo: 'primeiro_tesoureiro', nome: '1º tesoureiro', perfil: 'Tesouraria' },
   { cargo: 'segundo_tesoureiro', nome: '2º tesoureiro', perfil: 'Tesouraria' },
-  { cargo: 'secretario_executivo', nome: 'Secretário executivo', perfil: '—' },
+  // expediente (secretaria e lançamentos financeiros) e os eventos do Conselho (14/11/2026)
+  { cargo: 'secretario_executivo', nome: 'Secretário executivo', perfil: 'Secretaria e Tesouraria' },
   { cargo: 'conselheiro_fiscal', nome: 'Conselheiro fiscal', perfil: 'Conselho Fiscal' },
 ]
 

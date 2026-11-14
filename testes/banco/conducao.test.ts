@@ -73,7 +73,7 @@ describe('Fase 4.3 — quórum, votações e ata', () => {
   })
 
   describe('quórum de instalação (Art. 16, §4º)', () => {
-    it('conta só os aptos (ativos e em dia): 3 aptos, metade mais um = 2', async () => {
+    it('conta só os aptos (ativos e em dia): 3 aptos, metade mais um = 1,5 + 1 → 3 (pergunta 25)', async () => {
       await presente(ago, pessoa[3]) // em atraso: presente, mas não conta no quórum
       await presente(ago, pessoa[0])
       const r = await chamar(secretaria, 'select public.contagem_quorum($1) as c', [ago])
@@ -87,8 +87,11 @@ describe('Fase 4.3 — quórum, votações e ata', () => {
 
     it('com quórum: instalada em 1ª chamada, com a conta guardada; não se instala duas vezes', async () => {
       await presente(ago, pessoa[1])
+      // 2 de 3 ainda não bastam
+      await assert.rejects(chamar(secretaria, 'select public.instalar_assembleia($1)', [ago]), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      await presente(ago, pessoa[2])
       const r = await chamar(secretaria, 'select public.instalar_assembleia($1) as i', [ago])
-      assert.deepEqual((r.rows[0] as { i: unknown }).i, { chamada: 'primeira', aptos: 3, presentes_aptos: 2, minimo: 2 })
+      assert.deepEqual((r.rows[0] as { i: unknown }).i, { chamada: 'primeira', aptos: 3, presentes_aptos: 3, minimo: 3 })
       await assert.rejects(chamar(secretaria, 'select public.instalar_assembleia($1)', [ago]), erroComCodigo(BLOQUEADO_PELO_BANCO))
     })
 
@@ -102,26 +105,34 @@ describe('Fase 4.3 — quórum, votações e ata', () => {
   describe('votações (Art. 11, 8º e 21)', () => {
     it('item sem votação, ou mais votos que presentes em dia: recusado', async () => {
       await assert.rejects(votar(item.informes, 1, 0, 0), erroComCodigo(BLOQUEADO_PELO_BANCO))
-      await assert.rejects(votar(item.simples, 2, 1, 0), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      await assert.rejects(votar(item.simples, 3, 1, 0), erroComCodigo(BLOQUEADO_PELO_BANCO))
     })
 
     it('maioria simples: mais a favor que contra; corrigir guarda a anterior', async () => {
       assert.equal((await votar(item.simples, 1, 1, 0)).aprovada, false)
       const r = await votar(item.simples, 2, 0, 0)
       assert.equal(r.aprovada, true)
-      assert.equal(r.votantes, 2)
+      assert.equal(r.votantes, 3)
       const n = await db.query<{ n: number }>('select count(*)::int as n from public.deliberacoes where pauta_id = $1', [item.simples])
       assert.equal(n.rows[0].n, 2)
     })
 
-    it('2/3 dos presentes aptos: 1 de 2 não basta; 2 de 2 aprova', async () => {
-      assert.equal((await votar(item.estatuto, 1, 0, 1)).aprovada, false)
-      assert.equal((await votar(item.estatuto, 2, 0, 0)).aprovada, true)
+    it('2/3 dos votos válidos (pergunta 24): a abstenção não entra na conta', async () => {
+      // 1 sim e 1 não: 1 de 2 válidos não chega a 2/3
+      assert.equal((await votar(item.estatuto, 1, 1, 1)).aprovada, false)
+      // 1 sim e 2 abstenções: 1 de 1 válido aprova (antes, sobre os 3 presentes, não aprovava)
+      assert.equal((await votar(item.estatuto, 1, 0, 2)).aprovada, true)
+      // ninguém votou sim nem não: não há aprovação
+      assert.equal((await votar(item.estatuto, 0, 0, 3)).aprovada, false)
     })
 
-    it('desligamento só em item de 3/5 da AGO; aprovado, o associado sai e perde o perfil de ministro', async () => {
+    it('desligamento só em item de 3/5 da AGO, e só pela conduta (II); aprovado, o associado sai e perde o perfil de ministro', async () => {
       await assert.rejects(votar(item.simples, 2, 0, 0, pessoa[2], 'II'), erroComCodigo(BLOQUEADO_PELO_BANCO))
       await assert.rejects(votar(item.desligamento, 2, 0, 0, pessoa[2], 'V'), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      // I, III e IV a diretoria homologa na ficha (pergunta 5): não vão à votação
+      for (const inciso of ['I', 'III', 'IV']) {
+        await assert.rejects(votar(item.desligamento, 2, 0, 0, pessoa[2], inciso), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      }
       const r = await votar(item.desligamento, 2, 0, 0, pessoa[2], 'II')
       assert.equal(r.aprovada, true)
       const a = await db.query<{ situacao: string }>('select situacao from public.associados where pessoa_id = $1', [pessoa[2]])

@@ -73,7 +73,7 @@ function SituacaoAgora({ c }: { c: DadosCredencial }) {
           <span className="etiqueta etiqueta-ok">Credencial ativa</span>
         )}{' '}
         {c.em_dia ? (
-          <span className="etiqueta etiqueta-ok">{c.jubilado ? 'Isento (jubilado)' : 'Em dia: apto a votar e ser votado'}</span>
+          <span className="etiqueta etiqueta-ok">{c.jubilado ? 'Isento (jubilado): vota, não é votado' : 'Em dia: apto a votar e ser votado'}</span>
         ) : (
           <span className="etiqueta etiqueta-atraso">Em atraso: inapto para votar até regularizar</span>
         )}

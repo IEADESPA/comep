@@ -193,12 +193,6 @@ export async function definirPastorPresidente(vinculoId: string, presidente: boo
   return error ? falha(error, MENSAGEM_PRESIDENTE_REPETIDO) : ok(null)
 }
 
-/** Jubilado é isento da contribuição (diretoria, 11/11/2026). */
-export async function definirJubilado(associadoId: string, jubilado: boolean): Promise<Resultado<null>> {
-  const { error } = await cliente().from('associados').update({ jubilado }).eq('id', associadoId)
-  return error ? falha(error) : ok(null)
-}
-
 /** Para cadastro feito por engano (duplicado, pessoa errada). Desligamento é outra coisa (Fase 4). */
 export async function arquivarAssociado(associadoId: string): Promise<Resultado<null>> {
   const { error } = await cliente()

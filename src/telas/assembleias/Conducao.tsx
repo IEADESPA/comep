@@ -23,7 +23,6 @@ import {
   type Ata,
   type Deliberacao,
   type EncontroCompleto,
-  type IncisoDesligamento,
   type ItemDaPauta,
 } from '../../dados/encontros'
 import { useSessao } from '../../estado/contexto'
@@ -182,7 +181,7 @@ function ConteudoConducao({ id }: { id: string }) {
                 <h2 id="titulo-votacoes">2. Votações</h2>
                 <p className="detalhe">
                   Votam só os presentes em dia (Art. 11): hoje, {quorum.presentes_aptos}. Nas maiorias de 3/5 e 2/3, a conta é sobre os
-                  presentes aptos (pergunta 24 do PROJETO.md).
+                  votos válidos (a favor + contra); abstenções e brancos não entram (14/11/2026).
                 </p>
                 {e.pauta.filter((p) => p.deliberativo).length === 0 && <p className="vazio">Nenhum item desta pauta vai a votação.</p>}
                 {e.pauta
@@ -232,13 +231,15 @@ function Votacao({
   const [aFavor, setAFavor] = useState('')
   const [contra, setContra] = useState('')
   const [abstencoes, setAbstencoes] = useState('0')
-  const [inciso, setInciso] = useState<IncisoDesligamento | ''>('')
   const [observacao, setObservacao] = useState('')
   const [enviando, umaVez] = useUmaVez()
-  // o desligamento é o do associado indicado na pauta desde a convocação (Art. 8º)
+  const nomeDe = (id: string) => todos.find((a) => a.pessoa_id === id)?.nome ?? 'associado indicado na pauta'
+  // o desligamento (só por conduta — Art. 8º, II) é o do associado indicado na pauta desde a convocação
   const alvo = item.desligamento_pessoa_id ?? null
-  const nomeDoAlvo = alvo ? (todos.find((a) => a.pessoa_id === alvo)?.nome ?? 'associado indicado na pauta') : null
-  const travadaPorDesligamento = Boolean(voto?.desligamento_pessoa_id && voto.aprovada)
+  const nomeDoAlvo = alvo ? nomeDe(alvo) : null
+  const jubilando = item.jubilacao_pessoa_id ? nomeDe(item.jubilacao_pessoa_id) : null
+  // aprovado, o desligamento ou a jubilação não se refazem aqui
+  const travadaPorDesligamento = Boolean(voto?.aprovada && (voto.desligamento_pessoa_id || item.jubilacao_pessoa_id))
   const desligado = voto?.desligamento_pessoa_id ? todos.find((a) => a.pessoa_id === voto.desligamento_pessoa_id)?.nome : null
   return (
     <article className="votacao" aria-label={`Votação: ${item.titulo}`}>
@@ -248,14 +249,23 @@ function Votacao({
       <p className="detalhe">Maioria exigida: {item.maioria ? NOME_DA_MAIORIA[item.maioria] : '—'}</p>
       {nomeDoAlvo && (
         <p className="detalhe">
-          Desligamento de <strong>{nomeDoAlvo}</strong> (Art. 8º): aprovado, o associado sai do COMEP e perde o acesso de ministro.
+          Desligamento de <strong>{nomeDoAlvo}</strong> — {NOME_DO_INCISO.II} (Art. 8º): aprovado, o associado sai do COMEP e perde o
+          acesso de ministro.
+        </p>
+      )}
+      {jubilando && (
+        <p className="detalhe">
+          Jubilação de <strong>{jubilando}</strong>: aprovada, o associado fica jubilado — isento da contribuição; vota, mas não pode ser
+          votado (14/11/2026).
         </p>
       )}
       {voto && (
         <p>
           <span className={voto.aprovada ? 'etiqueta etiqueta-ok' : 'etiqueta etiqueta-atraso'}>{voto.aprovada ? 'Aprovado' : 'Rejeitado'}</span>{' '}
-          {voto.a_favor} a favor, {voto.contra} contra, {voto.abstencoes} abstenções — exigido: {explicarMaioria(voto.maioria, voto.votantes)}.
+          {voto.a_favor} a favor, {voto.contra} contra, {voto.abstencoes} abstenções — exigido:{' '}
+          {explicarMaioria(voto.maioria, voto.a_favor + voto.contra)}.
           {desligado && voto.aprovada && ` Desligado(a): ${desligado} (Art. 8º, ${voto.desligamento_inciso}).`}
+          {jubilando && voto.aprovada && ` Jubilado(a): ${jubilando}.`}
         </p>
       )}
       {bloqueio && !travadaPorDesligamento && <p className="detalhe">{bloqueio}</p>}
@@ -271,7 +281,8 @@ function Votacao({
                 contra: Number(contra),
                 abstencoes: Number(abstencoes),
                 desligamentoPessoaId: alvo,
-                desligamentoInciso: alvo && inciso ? inciso : null,
+                // só a conduta vai à votação (14/11/2026)
+                desligamentoInciso: alvo ? 'II' : null,
                 observacao,
               })
               aoConcluir(r, r.erro === null ? `Votação registrada: ${r.dados.aprovada ? 'aprovado' : 'rejeitado'}.` : '')
@@ -290,19 +301,6 @@ function Votacao({
             Abstenções
             <input type="number" min={0} required value={abstencoes} onChange={(ev) => setAbstencoes(ev.target.value)} />
           </label>
-          {alvo && (
-            <label>
-              Motivo do desligamento (Art. 8º) *
-              <select required value={inciso} onChange={(ev) => setInciso(ev.target.value as IncisoDesligamento | '')}>
-                <option value="">— escolha —</option>
-                {(['I', 'II', 'III', 'IV'] as const).map((i) => (
-                  <option key={i} value={i}>
-                    {NOME_DO_INCISO[i]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
           <label>
             Observação
             <input maxLength={1000} value={observacao} onChange={(ev) => setObservacao(ev.target.value)} />
@@ -312,7 +310,9 @@ function Votacao({
           </button>
         </form>
       )}
-      {travadaPorDesligamento && <p className="detalhe">Esta votação desligou um associado e não muda mais.</p>}
+      {travadaPorDesligamento && (
+        <p className="detalhe">Esta votação {jubilando ? 'jubilou' : 'desligou'} um associado e não muda mais.</p>
+      )}
     </article>
   )
 }

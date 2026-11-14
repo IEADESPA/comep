@@ -81,8 +81,12 @@ function linkPublico(e: Pick<Encontro, 'id' | 'tipo' | 'convocado_em'>): string 
   return `${window.location.origin}${import.meta.env.BASE_URL}convocacoes/${e.id}`
 }
 
-/** Item que pode desligar um associado (Art. 8º): AGO, votação de 3/5. */
-const itemDeDesligamento = (tipo: TipoEncontro, p: ItemPauta) => tipo === 'ago' && p.deliberativo && p.maioria === 'tres_quintos'
+/** Item que pode desligar um associado por conduta (Art. 8º, II): AGO, votação de 3/5. Os outros casos a diretoria homologa. */
+const itemDeDesligamento = (tipo: TipoEncontro, p: ItemPauta) =>
+  tipo === 'ago' && p.deliberativo && p.maioria === 'tres_quintos' && !p.jubilacao_pessoa_id
+
+/** Item que pode jubilar um associado (14/11/2026): votação de assembleia (AGO ou AGE), que não seja de desligamento. */
+const itemDeJubilacao = (tipo: TipoEncontro, p: ItemPauta) => tipo !== 'reuniao_mensal' && p.deliberativo && !p.desligamento_pessoa_id
 
 /** Reforma do estatuto pede 2/3 (Art. 21): avisa se o item fala de estatuto e a maioria é outra. */
 const estatutoSemDoisTercos = (tipo: TipoEncontro, p: ItemPauta) =>
@@ -194,7 +198,9 @@ function TelaFormulario({ id }: { id: string | null }) {
       config: config.dados,
       encontro: encontro.dados,
       // quem pode ser desligado: associado ativo
-      associados: associados.dados.filter((a) => a.situacao === 'ativo').map((a) => ({ pessoa_id: a.pessoa_id, nome: a.nome })),
+      associados: associados.dados
+        .filter((a) => a.situacao === 'ativo')
+        .map((a) => ({ pessoa_id: a.pessoa_id, nome: a.nome, jubilado: a.jubilado })),
     })
   })
   if (perfis.length === 0) return <Carregando />
@@ -253,7 +259,7 @@ function FormEncontro({
 }: {
   config: ConfigAssembleias
   encontro: EncontroCompleto | null
-  associados: { pessoa_id: string; nome: string }[]
+  associados: { pessoa_id: string; nome: string; jubilado: boolean }[]
 }) {
   const navegar = useNavigate()
   const [r, setR] = useState<Rascunho>(() =>
@@ -265,12 +271,13 @@ function FormEncontro({
           local: encontro.local,
           edital: encontro.edital ?? '',
           fundamento: encontro.fundamento ?? '',
-          pauta: encontro.pauta.map(({ titulo, descricao, deliberativo, maioria, desligamento_pessoa_id }) => ({
+          pauta: encontro.pauta.map(({ titulo, descricao, deliberativo, maioria, desligamento_pessoa_id, jubilacao_pessoa_id }) => ({
             titulo,
             descricao,
             deliberativo,
             maioria,
             desligamento_pessoa_id,
+            jubilacao_pessoa_id,
           })),
         }
       : { tipo: 'ago', titulo: '', inicio: '', local: '', edital: '', fundamento: '', pauta: [{ ...ITEM_VAZIO }] },
@@ -317,6 +324,7 @@ function FormEncontro({
           deliberativo: r.tipo !== 'reuniao_mensal' && p.deliberativo,
           maioria: r.tipo !== 'reuniao_mensal' && p.deliberativo ? (p.maioria ?? 'simples') : null,
           desligamento_pessoa_id: itemDeDesligamento(r.tipo, p) ? p.desligamento_pessoa_id || null : null,
+          jubilacao_pessoa_id: itemDeJubilacao(r.tipo, p) ? p.jubilacao_pessoa_id || null : null,
         })),
     }
   }
@@ -433,7 +441,7 @@ function FormEncontro({
                   )}
                   {itemDeDesligamento(r.tipo, p) && (
                     <label>
-                      Desligamento de (Art. 8º)
+                      Desligamento por conduta de (Art. 8º, II)
                       <select
                         aria-label={`Desligamento de (item ${i + 1})`}
                         value={p.desligamento_pessoa_id ?? ''}
@@ -448,14 +456,47 @@ function FormEncontro({
                       </select>
                     </label>
                   )}
+                  {itemDeJubilacao(r.tipo, p) && (
+                    <label>
+                      Jubilação de
+                      <select
+                        aria-label={`Jubilação de (item ${i + 1})`}
+                        value={p.jubilacao_pessoa_id ?? ''}
+                        onChange={(e) => mudarItem(i, { jubilacao_pessoa_id: e.target.value || null })}
+                      >
+                        <option value="">Não é jubilação</option>
+                        {associados
+                          .filter((a) => !a.jubilado)
+                          .map((a) => (
+                            <option key={a.pessoa_id} value={a.pessoa_id}>
+                              {a.nome}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  )}
                 </div>
               )}
+              {p.jubilacao_pessoa_id && itemDeJubilacao(r.tipo, p) && (
+                <label>
+                  Documento da denominação (jubilação) *
+                  <input
+                    aria-label={`Documento da jubilação (item ${i + 1})`}
+                    required
+                    maxLength={1000}
+                    value={p.descricao ?? ''}
+                    onChange={(e) => mudarItem(i, { descricao: e.target.value })}
+                    placeholder="Ex.: Ofício nº 12/2026 da Convenção, de 05/11/2026"
+                  />
+                </label>
+              )}
               {estatutoSemDoisTercos(r.tipo, p) && (
-                <p className="aviso-texto">A reforma do estatuto pede 2/3 dos presentes aptos (Art. 21). Confira a maioria exigida.</p>
+                <p className="aviso-texto">A reforma do estatuto pede 2/3 dos votos válidos (Art. 21). Confira a maioria exigida.</p>
               )}
               {itemDeDesligamento(r.tipo, p) && !p.desligamento_pessoa_id && (
                 <p className="detalhe">
-                  Desligamento (Art. 8º) só na AGO, por 3/5: indique já na convocação quem será votado — na assembleia não muda.
+                  Desligamento por conduta (Art. 8º, II) só na AGO, por 3/5: indique já na convocação quem será votado — na assembleia
+                  não muda. Os outros casos (a pedido, transferência, faltas, falecimento) a diretoria homologa na ficha do associado.
                 </p>
               )}
               <span className="acoes-linha">

@@ -597,9 +597,12 @@ function Vencimentos({ podeEditar }: { podeEditar: boolean }) {
               <input name="mensal" type="number" min={1} max={28} required defaultValue={config.dia_vencimento_mensal} disabled={!podeEditar} />
             </label>
             <label className="campo-curto">
-              Dia de abril (anuidade)
+              Anuidade: dia de abril enquanto a AGO não é convocada
               <input name="anual" type="number" min={1} max={30} required defaultValue={config.dia_vencimento_anual} disabled={!podeEditar} />
             </label>
+            <p className="detalhe largura-total">
+              Convocada a AGO de abril, a anuidade vence na data dela (14/11/2026): o associado tem os dias do edital para pagar.
+            </p>
             {podeEditar && (
               <button type="submit" className="botao">
                 Salvar vencimentos
@@ -1223,8 +1226,10 @@ function FormRegrasAssembleias({
         {numero('antecedencia_dias', 'Antecedência mínima da convocação, em dias (Art. 16, §2º)', 0, 365)}
         {numero('minutos_segunda_chamada', 'Minutos até a 2ª chamada (Art. 16, §4º)', 0, 600)}
         {numero('dia_minimo_ago', 'A AGO pode ser a partir do dia (Art. 16, §6º: 2ª quinzena = 16)', 1, 28)}
-        {numero('faltas_aviso', 'Faltas seguidas sem justificativa para avisar o associado', 1, 12)}
-        {numero('faltas_pauta', 'Faltas seguidas para ir à pauta da assembleia (Art. 8º, IV)', 1, 12)}
+        {numero('faltas_aviso', 'Faltas seguidas às assembleias, sem justificativa, para avisar o associado', 1, 12)}
+        {numero('faltas_pauta', 'Faltas seguidas às assembleias para homologar o desligamento (Art. 8º, IV)', 1, 12)}
+        {numero('anos_mandato', 'Mandato da diretoria e do Conselho Fiscal, em anos (Art. 12)', 1, 10)}
+        {numero('membros_conselho_fiscal', 'Membros do Conselho Fiscal (Art. 14)', 1, 9)}
       </div>
       <fieldset className="pauta-campos">
         <legend>Meses da Assembleia Geral Ordinária (Art. 16, §6º)</legend>

@@ -131,16 +131,17 @@ describe('QR Code da credencial (check-in)', () => {
 })
 
 describe('quórum, maiorias e ata (Fase 4.3)', () => {
-  it('metade mais um; 3/5 e 2/3 arredondam para cima', () => {
-    assert.equal(quorumPrimeiraChamada(3), 2)
+  it('metade mais um, arredondado para cima (pergunta 25); 3/5 e 2/3 dos votos válidos arredondam para cima', () => {
+    assert.equal(quorumPrimeiraChamada(3), 3)
     assert.equal(quorumPrimeiraChamada(74), 38)
+    assert.equal(quorumPrimeiraChamada(75), 39)
     assert.equal(minimoAFavor('tres_quintos', 23), 14)
     assert.equal(minimoAFavor('dois_tercos', 23), 16)
     assert.equal(minimoAFavor('simples', 23), null)
-    assert.equal(explicarMaioria('tres_quintos', 23), '3/5 dos 23 presentes aptos = 14 votos a favor')
-    assert.equal(explicarMaioria('dois_tercos', 1), '2/3 do único presente apto = 1 voto a favor')
-    // ninguém em dia presente: a conta não dá zero votos "suficientes"
-    assert.equal(explicarMaioria('tres_quintos', 0), '3/5 dos presentes aptos — sem presentes aptos, não há aprovação')
+    assert.equal(explicarMaioria('tres_quintos', 23), '3/5 dos 23 votos válidos = 14 votos a favor')
+    assert.equal(explicarMaioria('dois_tercos', 1), '2/3 do único voto válido = 1 voto a favor')
+    // só abstenções: a conta não dá zero votos "suficientes"
+    assert.equal(explicarMaioria('tres_quintos', 0), '3/5 dos votos válidos — sem votos a favor ou contra, não há aprovação')
   })
 
   it('a ata traz a instalação, cada item com o resultado e o desligamento', () => {
@@ -166,7 +167,8 @@ describe('quórum, maiorias e ata (Fase 4.3)', () => {
     assert.match(texto, /Em 22 de abril de 2027, às 19h00, em Sede/)
     assert.match(texto, /instalada em primeira chamada, com 25 associados aptos presentes, de 40 aptos \(28 presentes ao todo\)/)
     assert.match(texto, /1\. Balanço: APROVADO, com 20 votos a favor, 2 contra e 3 abstenções/)
-    assert.match(texto, /3\/5 dos 25 presentes aptos = 15 votos a favor\)\. Fica desligado\(a\) do COMEP: Fulano de Tal/)
+    // 16 a favor e 5 contra: 21 votos válidos (as 4 abstenções não entram — pergunta 24)
+    assert.match(texto, /3\/5 dos 21 votos válidos = 13 votos a favor\)\. Fica desligado\(a\) do COMEP: Fulano de Tal/)
     assert.match(texto, /3\. Informes: \(informe/)
     assert.match(texto, /Parauapebas, 22 de abril de 2027\./)
   })
