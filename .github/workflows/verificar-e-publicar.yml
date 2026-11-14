@@ -71,6 +71,11 @@ jobs:
     name: Testes de ponta a ponta (banco de teste)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Um de cada vez: todos usam o mesmo banco de teste e os mesmos usuários fictícios
+    # (duas execuções ao mesmo tempo mexem no mesmo caixa, no mesmo balanço e nos mesmos perfis).
+    concurrency:
+      group: ponta-a-ponta-banco-de-teste
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v5
 

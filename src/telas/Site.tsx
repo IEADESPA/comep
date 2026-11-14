@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { MostrarCarga } from '../componentes/Basicos'
+import { Mensagem, MostrarCarga } from '../componentes/Basicos'
+import { avisosPublicos } from '../dados/avisos'
+import { formatarReais } from '../dados/configuracoes'
 import { convocacoesPublicas, NOME_DO_TIPO, type ConvocacaoPublica } from '../dados/encontros'
+import { eventosPublicos, inscricaoAberta, inscrever, NOME_DO_TIPO_EVENTO, type EventoPublico, type InscricaoFeita } from '../dados/eventos'
+import { useUmaVez } from '../estado/useUmaVez'
 import { buscarDadosComep, type DadosComep } from '../dados/site'
 import { useCarregar } from '../estado/useCarregar'
 import { dataPorExtenso } from '../utilitarios/encontros'
@@ -75,9 +79,12 @@ function CabecalhoSite() {
           <Simbolo />
           <span>COMEP</span>
         </Link>
-        <Link to="/painel" className="botao botao-pequeno">
-          Portal do membro
-        </Link>
+        <nav className="site-menu" aria-label="Site">
+          <Link to="/agenda">Agenda</Link>
+          <Link to="/painel" className="botao botao-pequeno">
+            Portal do membro
+          </Link>
+        </nav>
       </div>
     </header>
   )
@@ -221,6 +228,9 @@ export function PaginaInicial() {
             <ProximasAssembleias />
           </div>
         </section>
+
+        <ProximosEventos />
+        <AvisosDoSite />
 
         <ContatoComep />
       </main>
@@ -422,5 +432,266 @@ export function PaginaNaoEncontrada() {
       </main>
       <RodapeSite />
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Fase 5.3 — o site vivo: os eventos publicados no sistema aparecem aqui, e a inscrição feita aqui entra no sistema
+// ---------------------------------------------------------------------
+
+function quandoDoEvento(e: Pick<EventoPublico, 'inicio' | 'fim'>): string {
+  return e.fim ? `${dataPorExtenso(e.inicio)} a ${dataPorExtenso(e.fim)}` : dataPorExtenso(e.inicio)
+}
+
+/** Na página inicial: os próximos eventos (só aparece se houver). */
+function ProximosEventos() {
+  const [carga] = useCarregar(eventosPublicos)
+  const [agora] = useState(() => Date.now())
+  const proximos =
+    carga.situacao === 'ok'
+      ? carga.dados.filter((e) => e.situacao === 'publicado' && new Date(e.fim ?? e.inicio).getTime() >= agora).slice(0, 4)
+      : []
+  if (proximos.length === 0) return null
+  return (
+    <section className="site-secao" aria-labelledby="titulo-proximos-eventos">
+      <div className="site-largura">
+        <h2 id="titulo-proximos-eventos">Próximos eventos</h2>
+        <ul className="site-convocacoes" aria-label="Próximos eventos">
+          {proximos.map((e) => (
+            <li key={e.id}>
+              <Link to={`/agenda/${e.id}`}>{e.titulo}</Link>
+              <span>
+                {dataPorExtenso(e.inicio)}
+                {e.local && ` · ${e.local}`}
+                {inscricaoAberta(e, agora) && e.inscricao_publica && ' · inscrições abertas'}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <Link to="/agenda">Ver a agenda completa</Link>
+      </div>
+    </section>
+  )
+}
+
+/** /agenda — os eventos e projetos publicados (qualquer pessoa vê). */
+export function AgendaPagina() {
+  const [carga, recarregar] = useCarregar(eventosPublicos)
+  const [agora] = useState(() => Date.now())
+  return (
+    <div className="site">
+      <CabecalhoSite />
+      <main className="site-secao">
+        <div className="site-largura site-texto">
+          <h1>Agenda do COMEP</h1>
+          <p>Eventos, encontros e projetos do Conselho. Quando a inscrição é aberta ao público, ela é feita aqui mesmo.</p>
+          <MostrarCarga carga={carga} recarregar={recarregar}>
+            {(eventos) => {
+              const proximos = eventos.filter((e) => new Date(e.fim ?? e.inicio).getTime() >= agora)
+              const passados = eventos.filter((e) => new Date(e.fim ?? e.inicio).getTime() < agora).reverse()
+              const lista = (itens: EventoPublico[], rotulo: string) => (
+                <ul className="site-convocacoes" aria-label={rotulo}>
+                  {itens.map((e) => (
+                    <li key={e.id}>
+                      <Link to={`/agenda/${e.id}`}>{e.titulo}</Link>
+                      <span>
+                        {e.situacao === 'cancelado' ? 'Cancelado' : quandoDoEvento(e)}
+                        {e.local && ` · ${e.local}`}
+                        {inscricaoAberta(e, agora) && e.inscricao_publica && ' · inscrições abertas'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )
+              return (
+                <>
+                  {proximos.length === 0 ? <p className="vazio">Nenhum evento marcado no momento.</p> : lista(proximos, 'Próximos eventos')}
+                  {passados.length > 0 && (
+                    <>
+                      <h2>Eventos recentes</h2>
+                      {lista(passados, 'Eventos recentes')}
+                    </>
+                  )}
+                </>
+              )
+            }}
+          </MostrarCarga>
+        </div>
+      </main>
+      <RodapeSite />
+    </div>
+  )
+}
+
+/** /agenda/:id — o evento, com a inscrição pelo site quando é aberta ao público. */
+export function EventoPublicoPagina() {
+  const { id = '' } = useParams()
+  const [carga, recarregar] = useCarregar(eventosPublicos)
+  return (
+    <div className="site">
+      <CabecalhoSite />
+      <main className="site-secao">
+        <div className="site-largura site-texto">
+          <MostrarCarga carga={carga} recarregar={recarregar}>
+            {(lista) => {
+              const e = lista.find((x) => x.id === id)
+              return e ? (
+                <EventoPublico key={e.id} e={e} aoInscrever={recarregar} />
+              ) : (
+                <>
+                  <h1>Evento não encontrado</h1>
+                  <p>
+                    Ele pode ter sido retirado. <Link to="/agenda">Ver a agenda</Link>
+                  </p>
+                </>
+              )
+            }}
+          </MostrarCarga>
+        </div>
+      </main>
+      <RodapeSite />
+    </div>
+  )
+}
+
+function EventoPublico({ e, aoInscrever }: { e: EventoPublico; aoInscrever: () => void }) {
+  const [agora] = useState(() => Date.now())
+  const aberta = inscricaoAberta(e, agora)
+  // fica aqui (e não no formulário): quem pega a última vaga ainda vê o número depois que a página recarrega
+  const [feita, setFeita] = useState<InscricaoFeita | null>(null)
+  return (
+    <article aria-labelledby="titulo-evento-publico">
+      <p className="site-sobretitulo">{NOME_DO_TIPO_EVENTO[e.tipo]}</p>
+      <h1 id="titulo-evento-publico">{e.titulo}</h1>
+      {e.situacao === 'cancelado' && (
+        <p className="erro" role="alert">
+          Evento cancelado{e.motivo_cancelamento ? `: ${e.motivo_cancelamento}` : ''}.
+        </p>
+      )}
+      <dl className="definicoes">
+        <dt>Quando</dt>
+        <dd>{quandoDoEvento(e)}</dd>
+        {e.local && (
+          <>
+            <dt>Local</dt>
+            <dd>{e.local}</dd>
+          </>
+        )}
+        {e.inscricao && (
+          <>
+            <dt>Inscrição</dt>
+            <dd>
+              {e.taxa > 0 ? `taxa de ${formatarReais(e.taxa)}` : 'gratuita'}
+              {e.vagas_restantes !== null && ` · ${e.vagas_restantes} ${e.vagas_restantes === 1 ? 'vaga restante' : 'vagas restantes'}`}
+              {` · até ${formatarDataHora(e.inscricao_ate)}`}
+            </dd>
+          </>
+        )}
+      </dl>
+      {e.descricao && <p className="texto-edital">{e.descricao}</p>}
+      {e.inscricao && !e.inscricao_publica && e.situacao === 'publicado' && (
+        <p>
+          A inscrição neste evento é para os associados, pelo <Link to="/painel">Portal do membro</Link>.
+        </p>
+      )}
+      {e.inscricao &&
+        e.inscricao_publica &&
+        (feita ? (
+          <InscricaoConfirmada feita={feita} />
+        ) : aberta ? (
+          <FormInscricao
+            e={e}
+            aoInscrever={(f) => {
+              setFeita(f)
+              aoInscrever()
+            }}
+          />
+        ) : (
+          <p>As inscrições estão encerradas.</p>
+        ))}
+    </article>
+  )
+}
+
+function InscricaoConfirmada({ feita }: { feita: InscricaoFeita }) {
+  return (
+    <section className="painel" aria-labelledby="titulo-inscricao-feita">
+      <h2 id="titulo-inscricao-feita">Inscrição feita!</h2>
+      <p>
+        Sua inscrição é a <strong>nº {feita.numero}</strong>.
+        {feita.situacao === 'aguardando_pagamento'
+          ? ` Ela fica confirmada quando a tesouraria do COMEP receber a taxa de ${formatarReais(feita.valor)}.`
+          : ' Ela está confirmada.'}
+      </p>
+      <p className="detalhe">Guarde o número. Se precisar cancelar, fale com o COMEP pelos contatos da página inicial.</p>
+    </section>
+  )
+}
+
+function FormInscricao({ e, aoInscrever }: { e: EventoPublico; aoInscrever: (f: InscricaoFeita) => void }) {
+  const [nome, setNome] = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [igreja, setIgreja] = useState('')
+  const [aceite, setAceite] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <section className="painel" aria-labelledby="titulo-inscricao">
+      <h2 id="titulo-inscricao">Inscreva-se</h2>
+      <form
+        aria-label="Inscrição no evento"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          void umaVez(async () => {
+            const r = await inscrever(e.id, { nome, telefone, igreja, aceite })
+            if (r.erro !== null) return setErro(r.erro)
+            setErro(null)
+            aoInscrever(r.dados)
+          })
+        }}
+      >
+        <label>
+          Nome completo *
+          <input required minLength={3} maxLength={120} autoComplete="name" value={nome} onChange={(ev) => setNome(ev.target.value)} />
+        </label>
+        <label>
+          Telefone (WhatsApp, com DDD) *
+          <input type="tel" required autoComplete="tel" value={telefone} onChange={(ev) => setTelefone(ev.target.value)} placeholder="(94) 9xxxx-xxxx" />
+        </label>
+        <label>
+          Igreja
+          <input maxLength={200} value={igreja} onChange={(ev) => setIgreja(ev.target.value)} />
+        </label>
+        <label className="caixa-marcar">
+          <input type="checkbox" required checked={aceite} onChange={(ev) => setAceite(ev.target.checked)} />
+          Aceito que o COMEP use o meu nome, telefone e igreja só para este evento (LGPD)
+        </label>
+        <Mensagem erro={erro} />
+        <button type="submit" className="botao" disabled={enviando}>
+          {e.taxa > 0 ? `Inscrever-me (${formatarReais(e.taxa)})` : 'Inscrever-me'}
+        </button>
+      </form>
+    </section>
+  )
+}
+
+/** Na página inicial: os avisos que a secretaria mandou para o site (só aparece se houver). */
+function AvisosDoSite() {
+  const [carga] = useCarregar(avisosPublicos)
+  if (carga.situacao !== 'ok' || carga.dados.length === 0) return null
+  return (
+    <section className="site-secao site-secao-alt" aria-labelledby="titulo-avisos-site">
+      <div className="site-largura">
+        <h2 id="titulo-avisos-site">Avisos</h2>
+        <div className="site-cartoes">
+          {carga.dados.slice(0, 6).map((a) => (
+            <article key={a.id} className="site-cartao">
+              <h3>{a.titulo}</h3>
+              <p className="texto-edital">{a.texto}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }

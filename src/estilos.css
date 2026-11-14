@@ -516,6 +516,33 @@ fieldset + fieldset {
   border-bottom: 1px solid var(--cor-borda);
 }
 
+.lista-pendencias li,
+.site-cartao h3,
+.site-cartao p {
+  overflow-wrap: anywhere;
+}
+
+.painel-grade {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+}
+
+.painel-grade > .painel {
+  min-width: 0;
+}
+
+.site-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.site-menu a:not(.botao) {
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
 .site-topo-conteudo {
   display: flex;
   align-items: center;

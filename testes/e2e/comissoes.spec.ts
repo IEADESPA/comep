@@ -52,6 +52,8 @@ test('comissão: criar, indicar o coordenador, registrar e encerrar', async ({ p
     await contexto.close()
   } finally {
     await page.goto(endereco)
+    // espera a página carregar antes de ver o que dá para fazer
+    await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
     if (await page.getByText('Encerrar a comissão').count()) {
       await page.getByText('Encerrar a comissão').click()
       await page.getByRole('form', { name: 'Encerrar a comissão' }).getByLabel('Motivo *').fill('Teste automático')

@@ -11,6 +11,8 @@
 - [x] Produção preparada, sem nenhum dado: estrutura do banco e configuração de login (ver "Situação" no fim)
 - [x] **Aceite da presidência:** em 12/11/2026, o presidente do COMEP concordou com tudo o que foi feito (registrado em `docs/revisoes/fase-1.md`). Repetir a conferência das fases 2 a 5 antes do lançamento
 - [ ] **Termo de hospedagem** (`docs/termo-hospedagem.md`) assinado pela presidência do COMEP e pela IEADESPA
+- [ ] **Inscrição pública nos eventos protegida antes do link ir para o público** (revisão geral da Fase 5): captcha (Cloudflare Turnstile, gratuito, por uma Edge Function) na inscrição do site, além do limite por origem que já existe
+- [ ] **Prazo de guarda das inscrições públicas** (LGPD): definir com a diretoria por quanto tempo o nome e o telefone de quem não é associado ficam guardados (sugestão: 12 meses depois do evento) e como se anonimizam
 - [ ] **Riscos aceitos nas revisões gerais, revistos com a diretoria verdadeira.** Em especial o F6 da Fase 4: hoje a ata é assinada pelo **perfil** (Secretaria, Presidência), e não só pelo cargo (1º secretário, presidente). A ata guarda o cargo de quem assinou (`docs/revisoes/fase-4.md`)
 - [ ] **Verificação em duas etapas** ligada nas duas contas donas do GitHub (`seta-max` e `presidente-ai`), com os códigos de recuperação guardados
 - [ ] **Dados do presidente do COMEP:**
@@ -84,7 +86,7 @@ O Claude Code faz: cria a marca `v1.0` no GitHub e registra o aceite e a data em
 | Item | Situação |
 |---|---|
 | Estrutura do banco de produção | ✅ 12/11/2026: as 9 migrações aplicadas numa produção vazia, sem erro |
-| Migrações que faltam na produção | A partir de `20261112153856_limite_arquivos.sql`: limite de arquivos, toda a Fase 2 (contribuições, caixa, taxa de inscrição, Conselho Fiscal, prestação de contas e revisão geral) toda a Fase 3 (dados da credencial, credencial digital e impressão, validade por mandato, editor do modelo e revisão geral) e toda a Fase 4 (assembleias e reuniões, presença e faltas, quórum, votações, desligamentos e ata, diretoria e mandatos, revisão geral e a entrega 4.5 com as respostas de 14/11/2026) e a Fase 5 até aqui (a igreja como instituição e as comissões). Já passaram pelas travas no teste e são aplicadas no lançamento, junto com as que vierem até o fim da Fase 5.5 |
+| Migrações que faltam na produção | A partir de `20261112153856_limite_arquivos.sql`: limite de arquivos, toda a Fase 2 (contribuições, caixa, taxa de inscrição, Conselho Fiscal, prestação de contas e revisão geral) toda a Fase 3 (dados da credencial, credencial digital e impressão, validade por mandato, editor do modelo e revisão geral) e toda a Fase 4 (assembleias e reuniões, presença e faltas, quórum, votações, desligamentos e ata, diretoria e mandatos, revisão geral e a entrega 4.5 com as respostas de 14/11/2026) e a Fase 5 até aqui (a igreja como instituição, as comissões, os eventos, o mural e o painel da presidência). Já passaram pelas travas no teste e são aplicadas no lançamento, junto com as que vierem até o fim da Fase 5.5 |
 | Login da produção (`docs/configuracao-login.md`) | ✅ 12/11/2026: sem confirmação por e-mail, senha de 8 caracteres com letras e números, endereço do site |
 | Conferência da produção | ✅ 12/11/2026: mesmas regras do teste. O visitante recebe "sem permissão" em tudo, exceto os dados do site. 0 logins, 0 cadastros. Títulos e valores carregados. Pasta de arquivos privada |
 | Backup da produção | ✅ Entra no backup semanal (banco + arquivos) |
