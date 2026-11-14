@@ -63,7 +63,22 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     fase: 5,
     pronto: true,
   },
-  { caminho: '/avisos', titulo: 'Avisos', descricao: 'Mural de avisos', perfis: 'todos', fase: 5 },
+  {
+    caminho: '/avisos',
+    titulo: 'Mural de avisos',
+    descricao: 'Os avisos do Conselho (a secretaria publica)',
+    perfis: ['ministro', 'presidente_igreja', 'secretaria', 'tesouraria', 'presidencia', 'conselho_fiscal', 'admin_tecnico'],
+    fase: 5,
+    pronto: true,
+  },
+  {
+    caminho: '/painel-presidencia',
+    titulo: 'Painel da presidência',
+    descricao: 'Associados, finanças, presença e agenda num lugar só',
+    perfis: ['presidencia'],
+    fase: 5,
+    pronto: true,
+  },
   {
     caminho: '/configuracoes',
     titulo: 'Configurações',

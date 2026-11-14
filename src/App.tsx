@@ -16,6 +16,7 @@ import { FaltasEJustificativas, ListaDePresenca } from './telas/assembleias/Pres
 import { ConducaoAssembleia } from './telas/assembleias/Conducao'
 import { DetalheComissao, EditarComissao, ListaComissoes, NovaComissao } from './telas/comissoes/Comissoes'
 import { DetalheEvento, EditarEvento, ListaEventos, NovoEvento } from './telas/eventos/Eventos'
+import { MuralDeAvisos, PainelDaPresidencia } from './telas/avisos/Avisos'
 import { Diretoria } from './telas/diretoria/Diretoria'
 import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
@@ -106,6 +107,12 @@ export default function App() {
               </Route>
               <Route path="diretoria" element={<Area caminho="/diretoria" />}>
                 <Route index element={<Diretoria />} />
+              </Route>
+              <Route path="avisos" element={<Area caminho="/avisos" />}>
+                <Route index element={<MuralDeAvisos />} />
+              </Route>
+              <Route path="painel-presidencia" element={<Area caminho="/painel-presidencia" />}>
+                <Route index element={<PainelDaPresidencia />} />
               </Route>
               <Route path="eventos" element={<Area caminho="/eventos" />}>
                 <Route index element={<ListaEventos />} />

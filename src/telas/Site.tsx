@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { Mensagem, MostrarCarga } from '../componentes/Basicos'
+import { avisosPublicos } from '../dados/avisos'
 import { formatarReais } from '../dados/configuracoes'
 import { convocacoesPublicas, NOME_DO_TIPO, type ConvocacaoPublica } from '../dados/encontros'
 import { eventosPublicos, inscricaoAberta, inscrever, NOME_DO_TIPO_EVENTO, type EventoPublico, type InscricaoFeita } from '../dados/eventos'
@@ -229,6 +230,7 @@ export function PaginaInicial() {
         </section>
 
         <ProximosEventos />
+        <AvisosDoSite />
 
         <ContatoComep />
       </main>
@@ -654,6 +656,27 @@ function FormInscricao({ e, aoInscrever }: { e: EventoPublico; aoInscrever: () =
           {e.taxa > 0 ? `Inscrever-me (${formatarReais(e.taxa)})` : 'Inscrever-me'}
         </button>
       </form>
+    </section>
+  )
+}
+
+/** Na página inicial: os avisos que a secretaria mandou para o site (só aparece se houver). */
+function AvisosDoSite() {
+  const [carga] = useCarregar(avisosPublicos)
+  if (carga.situacao !== 'ok' || carga.dados.length === 0) return null
+  return (
+    <section className="site-secao site-secao-alt" aria-labelledby="titulo-avisos-site">
+      <div className="site-largura">
+        <h2 id="titulo-avisos-site">Avisos</h2>
+        <div className="site-cartoes">
+          {carga.dados.slice(0, 6).map((a) => (
+            <article key={a.id} className="site-cartao">
+              <h3>{a.titulo}</h3>
+              <p className="texto-edital">{a.texto}</p>
+            </article>
+          ))}
+        </div>
+      </div>
     </section>
   )
 }

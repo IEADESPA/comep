@@ -185,3 +185,40 @@ Eventos e projetos do Conselho (Art. 3º, VII), pelas respostas 27, 31, 32 e 33 
 
 **Achado pelo teste de ponta a ponta e corrigido:** a limpeza dos testes de eventos e de comissões olhava a página antes de ela carregar, e o evento ficava sem arquivar. Agora a limpeza espera o título da página.
 
+## Entrega 5.4 — Mural de avisos e painel da presidência (versão 5.0-teste.4)
+
+Pelas respostas 34 a 36 (14/11/2026).
+
+**O que entrou:**
+
+- **Mural de avisos**, para todos com login:
+  - **só a secretaria publica** (Art. 12, §5º). O secretário executivo tem o perfil;
+  - o aviso tem título, texto, validade (vencido sai do mural) e pode ficar fixado no alto;
+  - a secretaria escolhe, aviso a aviso, se ele vai **também para o site**;
+  - cada aviso tem **"Enviar pelo WhatsApp"**, que monta o texto para o grupo, sem custo;
+  - tirar do mural guarda o aviso.
+- **Início:** os três avisos mais recentes, com o link para o mural.
+- **No site:** a página inicial mostra os avisos que a secretaria mandou para o site. É mais um pedaço do site vivo.
+- **Painel da presidência** (menu próprio, só a presidência):
+  - **associados:** ativos, em dia (com a porcentagem), jubilados, igrejas e pedidos de associação em andamento;
+  - **finanças:**
+    - saldo do caixa, entradas e saídas do mês e contribuições vencidas;
+    - as despesas esperando a autorização dela;
+    - os pagamentos esperando a tesouraria;
+  - **presença:** os últimos encontros com os presentes, quem tem faltas seguidas às assembleias e as justificativas pendentes;
+  - **agenda e projetos:** as próximas assembleias e reuniões, os eventos com os inscritos (e o orçamento que espera a assembleia) e as comissões em atividade.
+
+### Trava 2
+
+- [x] Migração `20261114230000_mural_painel.sql`, aplicada no `comep-teste`. Verificador do Supabase: só o aviso já conhecido.
+- [x] **4 testes novos do banco** (`testes/banco/mural_painel.test.ts`):
+  - só a secretaria publica;
+  - todos leem, e o site só vê o que foi mandado para ele;
+  - vencido sai do mural e do site, e tirar arquiva;
+  - o painel é só da presidência e tem as quatro partes.
+- [x] 421 testes do banco e de unidade passando.
+
+### Dados fictícios
+
+`testes/dados/semente-mural-teste.sql`, aplicada no `comep-teste`: um aviso fictício, fixado e também no site. Os usuários fictícios dos testes não têm o perfil da secretaria; a publicação é testada no banco.
+

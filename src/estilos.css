@@ -516,6 +516,16 @@ fieldset + fieldset {
   border-bottom: 1px solid var(--cor-borda);
 }
 
+.painel-grade {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+}
+
+.painel-grade > .painel {
+  min-width: 0;
+}
+
 .site-menu {
   display: flex;
   align-items: center;
