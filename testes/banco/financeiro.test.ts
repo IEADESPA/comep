@@ -130,10 +130,12 @@ describe('Fase 2.1 — contribuições', () => {
       assert.equal((await cobrancas(ministroA, 'cancelada')).length, 12)
     })
 
-    it('quem entrou depois de abril não escolhe anual', async () => {
-      await assert.rejects(
-        como(db, novoD, async () => db.query("select public.escolher_plano($1, $2, 'anual')", [await pessoaDe(novoD), exercicio])),
-        erroComCodigo(BLOQUEADO_PELO_BANCO),
+    it('quem entrou no meio do exercício pode escolher o anual, proporcional aos meses que faltam (14/11/2026)', async () => {
+      await como(db, novoD, async () => db.query("select public.escolher_plano($1, $2, 'anual')", [await pessoaDe(novoD), exercicio]))
+      // admitido em agosto: 8 meses (agosto a março) → 200 × 8/12, vence no dia da primeira mensalidade
+      assert.deepEqual(
+        (await cobrancas(novoD)).map((c) => [c.tipo, c.valor, c.competencia, c.vencimento]),
+        [['anual', '133.33', `${exercicio}-08-01`, `${exercicio}-08-10`]],
       )
     })
 
@@ -189,7 +191,7 @@ describe('Fase 2.1 — contribuições', () => {
       )
     })
 
-    it('com pagamento informado, o plano não muda mais', async () => {
+    it('com o pagamento do anual informado, não volta para o mensal (espera a tesouraria)', async () => {
       await assert.rejects(
         como(db, ministroA, async () =>
           db.query("select public.escolher_plano($1, $2, 'mensal')", [await pessoaDe(ministroA), exercicio]),

@@ -159,19 +159,30 @@ describe('Fase 4.2 — presença e faltas', () => {
   })
 
   describe('faltas seguidas (Art. 8º, IV)', () => {
-    it('contam da mais recente para trás, até uma presença ou uma falta justificada', async () => {
-      // "hoje" (realizada): o ministro esteve; o outro faltou, com justificativa aceita
+    it('contam só as assembleias (pergunta 22), da mais recente para trás, até uma presença ou uma falta justificada', async () => {
+      // a reunião mensal de "hoje" (realizada) não conta
+      assert.equal(await faltas(pessoaMinistro), 0)
+      // uma AGE realizada: o ministro esteve; o outro faltou, com justificativa aceita
+      const age = await encontro('age', "now() - interval '40 minutes'", 'realizado')
+      await db.query("insert into public.encontro_presencas (encontro_id, pessoa_id, presente_em, forma) values ($1, $2, now(), 'lista')", [
+        age,
+        pessoaMinistro,
+      ])
+      await db.query("insert into public.justificativas_falta (encontro_id, pessoa_id, texto, situacao) values ($1, $2, 'Viagem', 'aceita')", [
+        age,
+        pessoaOutro,
+      ])
       assert.equal(await faltas(pessoaMinistro), 0)
       assert.equal(await faltas(pessoaOutro), 0)
-      // mais três reuniões depois dela (mais recentes), sem ninguém
-      for (const minutos of [30, 20, 10]) await encontro('reuniao_mensal', `now() - interval '${minutos} minutes'`, 'realizado')
+      // mais três assembleias depois dela (mais recentes), sem ninguém
+      for (const minutos of [30, 20, 10]) await encontro(minutos === 20 ? 'ago' : 'age', `now() - interval '${minutos} minutes'`, 'realizado')
       assert.equal(await faltas(pessoaMinistro), 3)
       assert.equal(await faltas(pessoaOutro), 3)
     })
 
-    it('a assembleia não conta (pergunta 22); a reunião cancelada também não', async () => {
-      await encontro('ago', "now() - interval '5 minutes'", 'realizado')
-      await encontro('reuniao_mensal', "now() - interval '2 minutes'", 'cancelado')
+    it('a reunião mensal não conta (pergunta 22, 14/11/2026); a assembleia cancelada também não', async () => {
+      await encontro('reuniao_mensal', "now() - interval '5 minutes'", 'realizado')
+      await encontro('ago', "now() - interval '2 minutes'", 'cancelado')
       assert.equal(await faltas(pessoaMinistro), 3)
     })
 

@@ -43,7 +43,7 @@ test('assembleia: preparar com pauta e edital, convocar, aparecer no site, cance
   })
   await page.getByRole('checkbox', { name: 'Vai a votação' }).first().check()
   // item sobre o estatuto com maioria simples: a tela avisa que a reforma pede 2/3 (Art. 21)
-  const avisoEstatuto = page.getByText('A reforma do estatuto pede 2/3 dos presentes aptos (Art. 21).')
+  const avisoEstatuto = page.getByText('A reforma do estatuto pede 2/3 dos votos válidos (Art. 21).')
   await expect(avisoEstatuto).toBeVisible()
   await page.getByRole('combobox', { name: 'Maioria exigida' }).selectOption('dois_tercos')
   await expect(avisoEstatuto).toHaveCount(0)
@@ -58,7 +58,7 @@ test('assembleia: preparar com pauta e edital, convocar, aparecer no site, cance
 
   try {
     await expect(page.getByText('Rascunho (não convocado)')).toBeVisible()
-    await expect(page.getByRole('list', { name: 'Pauta' })).toContainText('votação: 2/3 dos presentes aptos (reforma do estatuto — Art. 21)')
+    await expect(page.getByRole('list', { name: 'Pauta' })).toContainText('votação: 2/3 dos votos válidos (reforma do estatuto — Art. 21)')
 
     // o ministro não vê o rascunho
     const m = await ministro.newPage()

@@ -176,7 +176,8 @@ describe('Revisão geral da Fase 4 — correções', () => {
       await chamar(secret, 'select public.instalar_assembleia($1)', [ago])
     })
 
-    it('F12 — o desligamento é o do associado indicado na pauta; inciso IV confere as faltas', async () => {
+    // desde 14/11/2026 (entrega 4.5) só a conduta (II) vai à votação; o inciso IV é homologado na ficha
+    it('F12 — o desligamento é o do associado indicado na pauta; o inciso IV não vai à votação', async () => {
       await assert.rejects(
         chamar(secret, "select public.registrar_votacao($1, 3, 0, 0, $2, 'II', null)", [itemDesligar, p[3]]),
         erroComCodigo(BLOQUEADO_PELO_BANCO),

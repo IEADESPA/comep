@@ -186,7 +186,8 @@ describe('Revisão geral da Fase 2', () => {
     it('jubilado: as cobranças em aberto do mês em diante são canceladas sozinhas', async () => {
       const jubilado = await novoAssociado('Futuro Jubilado')
       await chamar(tesoureiro, 'select public.gerar_cobrancas($1)', [exercicio])
-      await chamar(secretaria, 'update public.associados set jubilado = true where pessoa_id = $1', [jubilado])
+      // a jubilação é aprovada pela assembleia (registrar_votacao grava como o sistema)
+      await db.query('update public.associados set jubilado = true where pessoa_id = $1', [jubilado])
       const r = await db.query<{ abertas_futuras: number; canceladas: number }>(
         `select count(*) filter (where situacao = 'aberta' and competencia >= date_trunc('month', current_date))::int as abertas_futuras,
                 count(*) filter (where cancelada_como = 'jubilado')::int as canceladas

@@ -9,7 +9,6 @@ import {
   arquivarAssociado,
   atualizarContato,
   buscarFicha,
-  definirJubilado,
   definirPastorPresidente,
   mudarIgreja,
   NOME_DA_FORMA_ADMISSAO,
@@ -29,7 +28,7 @@ import {
 import { situacaoDe, type SituacaoContribuicao } from '../../dados/financeiro'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { registrarFalecimento } from '../../dados/encontros'
+import { registrarDesligamento } from '../../dados/encontros'
 import { formatarCpf, formatarData, hojeIso } from '../../utilitarios/formatos'
 
 /** /ministros/:pessoaId — remonta a tela ao trocar de pessoa */
@@ -148,7 +147,7 @@ function Conteudo({ ficha, titulos, igrejas, valores, situacao, retorno, conclui
       <PendenciasCredencial pendencias={ficha.pendencias} verEm={`/credenciais/${ficha.associado.pessoa_id}`} />
       <Titulos ficha={ficha} titulos={titulos} concluir={concluir} />
       <Igrejas ficha={ficha} igrejas={igrejas} concluir={concluir} />
-      <Contribuicao ficha={ficha} valores={valores} situacao={situacao} concluir={concluir} />
+      <Contribuicao ficha={ficha} valores={valores} situacao={situacao} />
 
       <section className="painel" aria-labelledby="titulo-admissao">
         <h2 id="titulo-admissao">Admissão no COMEP</h2>
@@ -483,19 +482,11 @@ function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'ig
   )
 }
 
-function Contribuicao({ ficha, valores, situacao, concluir }: Pick<PropsConteudo, 'ficha' | 'valores' | 'situacao' | 'concluir'>) {
+function Contribuicao({ ficha, valores, situacao }: Pick<PropsConteudo, 'ficha' | 'valores' | 'situacao'>) {
   const { associado } = ficha
-  const [enviando, setEnviando] = useState(false)
   const categoria = associado.categoria_contribuicao
   const valor = (tipo: ValorContribuicao['tipo']) =>
     valores.find((v) => v.categoria === categoria && v.tipo === tipo)
-
-  async function alternarJubilado() {
-    setEnviando(true)
-    const r = await definirJubilado(associado.id, !associado.jubilado)
-    setEnviando(false)
-    concluir(r, associado.jubilado ? 'Desmarcado como jubilado.' : 'Marcado como jubilado (isento da contribuição).')
-  }
 
   const mensal = valor('mensal')
   const anual = valor('anual')
@@ -528,22 +519,34 @@ function Contribuicao({ ficha, valores, situacao, concluir }: Pick<PropsConteudo
         A categoria é automática: jubilado é isento; quem está marcado como pastor presidente da igreja atual paga como
         presidente de igreja; os demais, como não presidente. Os valores ficam em Configurações.
       </p>
-      <button type="button" className="botao botao-secundario" disabled={enviando} onClick={() => void alternarJubilado()}>
-        {associado.jubilado ? 'Desmarcar jubilado' : 'Marcar como jubilado'}
-      </button>
+      <p className="detalhe">
+        <strong>Jubilação:</strong> o documento vem da denominação, a secretaria põe na pauta da assembleia (item "Jubilação de")
+        e a assembleia aprova. O jubilado é isento, vota, mas não pode ser votado (14/11/2026).
+      </p>
     </section>
   )
 }
 
+/** Os casos do Art. 8º que são fatos: a diretoria homologa e registra, sem votação (pergunta 5, 14/11/2026). */
+const HOMOLOGADOS = [
+  { inciso: 'I', nome: 'I — a pedido, por escrito', documento: 'A carta do associado (data e o que pede) *' },
+  { inciso: 'III', nome: 'III — transferência pela denominação para outra cidade', documento: 'O ofício da denominação *' },
+  { inciso: 'IV', nome: 'IV — três faltas seguidas às assembleias, sem justificativa', documento: 'Observação' },
+  { inciso: 'V', nome: 'V — falecimento', documento: 'Observação' },
+] as const
+type Homologado = (typeof HOMOLOGADOS)[number]['inciso']
+
 /**
- * Desligamento (Art. 8º): os casos I a IV são votados em Assembleia Ordinária, por 3/5 (Assembleias → condução);
- * o falecimento (V) é registrado aqui, sem votação (pergunta 5 do PROJETO.md).
+ * Desligamento (Art. 8º): a conduta (II) vai à votação da Assembleia Ordinária, por 3/5 dos votos válidos
+ * (Assembleias → condução); I, III, IV e V são homologados e registrados aqui pela diretoria.
  */
 function Desligamento({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>) {
   const { associado } = ficha
+  const [inciso, setInciso] = useState<Homologado | ''>('')
   const [data, setData] = useState('')
   const [observacao, setObservacao] = useState('')
   const [enviando, umaVez] = useUmaVez()
+  const escolhido = HOMOLOGADOS.find((h) => h.inciso === inciso)
   return (
     <section className="painel" aria-labelledby="titulo-desligamento">
       <h2 id="titulo-desligamento">Desligamento (Art. 8º)</h2>
@@ -554,31 +557,58 @@ function Desligamento({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'conclu
       ) : (
         <>
           <p className="detalhe">
-            A pedido, por conduta, por transferência ou por três faltas seguidas: decide a Assembleia Ordinária, por 3/5. Ponha o caso
-            na pauta da assembleia (item com maioria de 3/5) e registre a votação na condução da assembleia.
+            <strong>Por conduta contrária à ética (II):</strong> depois do processo disciplinar, decide a Assembleia Ordinária, por 3/5
+            dos votos válidos. Ponha o associado na pauta da AGO (item de 3/5, "Desligamento por conduta de") e registre a votação na
+            condução. <strong>A pedido (I), transferência (III), três faltas seguidas às assembleias (IV) e falecimento (V)</strong> são
+            fatos: a diretoria homologa e registra aqui.
           </p>
           <details className="acao-recolhida">
-            <summary>Registrar falecimento (Art. 8º, V)</summary>
+            <summary>Registrar desligamento homologado (I, III, IV ou V)</summary>
             <form
               className="form-linha"
-              aria-label="Registrar falecimento"
+              aria-label="Registrar desligamento"
               onSubmit={(e) => {
                 e.preventDefault()
-                void umaVez(async () => concluir(await registrarFalecimento(associado.pessoa_id, data, observacao), 'Falecimento registrado.'))
+                if (!inciso) return
+                void umaVez(async () =>
+                  concluir(
+                    await registrarDesligamento(associado.pessoa_id, inciso, data, observacao),
+                    inciso === 'V' ? 'Falecimento registrado.' : 'Desligamento registrado.',
+                  ),
+                )
               }}
             >
+              <label>
+                Motivo (Art. 8º) *
+                <select required value={inciso} onChange={(e) => setInciso(e.target.value as Homologado | '')}>
+                  <option value="">— escolha —</option>
+                  {HOMOLOGADOS.map((h) => (
+                    <option key={h.inciso} value={h.inciso}>
+                      {h.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="campo-curto">
                 Data *
                 <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
               </label>
               <label>
-                Observação
-                <input maxLength={1000} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+                {escolhido?.documento ?? 'Documento ou observação'}
+                <input
+                  required={inciso === 'I' || inciso === 'III'}
+                  maxLength={1000}
+                  value={observacao}
+                  onChange={(e) => setObservacao(e.target.value)}
+                />
               </label>
               <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
-                Registrar falecimento
+                {inciso === 'V' ? 'Registrar falecimento' : 'Registrar o desligamento'}
               </button>
             </form>
+            {inciso === 'IV' && (
+              <p className="detalhe">O sistema confere as faltas seguidas às assembleias (o número está em Configurações).</p>
+            )}
           </details>
         </>
       )}

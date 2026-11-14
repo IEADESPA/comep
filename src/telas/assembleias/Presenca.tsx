@@ -400,10 +400,10 @@ export function FaltasEJustificativas() {
               </section>
 
               <section className="painel" aria-labelledby="titulo-faltas-seguidas">
-                <h2 id="titulo-faltas-seguidas">Faltas seguidas às reuniões mensais</h2>
+                <h2 id="titulo-faltas-seguidas">Faltas seguidas às assembleias</h2>
                 <p className="detalhe">
-                  Sem justificativa aceita. Com {config.faltas_aviso}, avise o associado; com {config.faltas_pauta}, o caso vai
-                  para a pauta da assembleia (Art. 8º, IV). Se a regra vale também para as assembleias é a pergunta 22.
+                  Contam só as assembleias (AGO e AGE), sem justificativa aceita (14/11/2026). Com {config.faltas_aviso}, avise o
+                  associado; com {config.faltas_pauta}, a diretoria homologa o desligamento (Art. 8º, IV), na ficha do associado.
                 </p>
                 {faltas.length === 0 ? (
                   <p className="vazio">Ninguém com falta seguida.</p>
@@ -417,7 +417,7 @@ export function FaltasEJustificativas() {
                         <span>
                           {f.faltas_seguidas} falta{f.faltas_seguidas === 1 ? '' : 's'} seguida{f.faltas_seguidas === 1 ? '' : 's'}{' '}
                           {f.faltas_seguidas >= config.faltas_pauta ? (
-                            <span className="etiqueta etiqueta-atraso">Levar à pauta da assembleia</span>
+                            <span className="etiqueta etiqueta-atraso">Homologar o desligamento (Art. 8º, IV)</span>
                           ) : f.faltas_seguidas >= config.faltas_aviso ? (
                             <span className="etiqueta etiqueta-conferencia">Avisar o associado</span>
                           ) : null}

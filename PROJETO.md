@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.26 — 14 de novembro de 2026 — atualizado com as **respostas de 14/11/2026 (todas as perguntas pendentes e as da Fase 5 e do lançamento)**, a **revisão geral da Fase 4 e a Fase 4 concluída**, a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.27 — 14 de novembro de 2026 — atualizado com a **entrega 4.5 (as regras das respostas de 14/11/2026)**, as **respostas de 14/11/2026 (todas as perguntas pendentes e as da Fase 5 e do lançamento)**, a **revisão geral da Fase 4 e a Fase 4 concluída**, a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -530,7 +530,7 @@ Decisões na seção 4.6. Revisão: `docs/revisoes/fase-4.md`. **O estatuto pode
 
 ### Fase 5 — Projetos, comissões e comunicação (versão 5.0)
 
-- [ ] **Antes, a entrega 4.5:** ajustes das respostas de 14/11/2026 nas regras das fases 2 e 4 (seção 11.5)
+- [x] **Antes, a entrega 4.5:** ajustes das respostas de 14/11/2026 nas regras das fases 2 e 4 (seção 11.5) — concluída em 14/11/2026 (versão 4.0-teste.6)
 - [ ] Comissões permanentes e temporárias
 - [ ] Projetos e eventos com orçamento e lançamentos vinculados
 - [ ] Mural de avisos e envio por WhatsApp
@@ -659,7 +659,7 @@ Em 14/11/2026, o administrador técnico respondeu todas as perguntas pendentes, 
 
 Antes da Fase 5, uma entrega de ajustes (**4.5**) acerta as regras das fases 2 e 4. A Fase 5 já nasce com as respostas 26 a 39.
 
-**Entrega 4.5 — ajustes das respostas** (a fazer):
+**Entrega 4.5 — ajustes das respostas** (versão 4.0-teste.6) — concluída em 14/11/2026. Revisão: `docs/revisoes/fase-4.md`, seção "Entrega 4.5":
 
 - **Desligamento** (5 e 22):
   - só o inciso II vai à votação de 3/5 na AGO;
@@ -674,8 +674,8 @@ Antes da Fase 5, uma entrega de ajustes (**4.5**) acerta as regras das fases 2 e
   - para a AGO, abril ou o anual pago antes de começar;
   - o pagamento informado no prazo conta como em dia até a conferência.
 - **Jubilado** (20): vota, mas não é votado. A jubilação vai à pauta da assembleia, com o documento da denominação.
-- **Configurações do estatuto** (13): o tempo de mandato e os demais números do estatuto passam para Configurações.
-- **Secretário executivo** (27): perfil próprio, com o acesso da secretaria e os lançamentos financeiros.
+- **Configurações do estatuto** (13): o tempo de mandato e o número de membros do Conselho Fiscal entram em Configurações → Assembleias e reuniões, junto com os números que já estavam lá (antecedência, meses e dia da AGO, 2ª chamada, faltas). Os valores e vencimentos continuam em Configurações → Financeiro.
+- **Secretário executivo** (27): o cargo dá os perfis da secretaria e da tesouraria. Os eventos ficam com ele na Fase 5.
 
 **No lançamento** (26, 37 a 39):
 

@@ -106,7 +106,7 @@ test('a taxa de inscrição hoje é isenta; a presidência programa um valor fut
   await expect(taxa.getByRole('list', { name: 'Taxa de inscrição programada' })).toHaveCount(0)
 })
 
-test('pastor presidente paga como presidente de igreja; jubilado é isento', async ({ page }, info) => {
+test('pastor presidente paga como presidente de igreja; a jubilação é da assembleia', async ({ page }, info) => {
   const sufixo = sufixoUnico(info.project.name)
   const igreja = `Igreja E2E ${sufixo}`
   const nome = `Pastor E2E ${sufixo}`
@@ -133,9 +133,9 @@ test('pastor presidente paga como presidente de igreja; jubilado é isento', asy
   await expect(mensagem(page, 'Desmarcado como pastor presidente.')).toBeVisible()
   await expect(contribuicao).toContainText('Categoria: Não presidente de igreja — R$ 20,00 por mês')
 
-  await page.getByRole('button', { name: 'Marcar como jubilado' }).click()
-  await expect(mensagem(page, 'Marcado como jubilado')).toBeVisible()
-  await expect(contribuicao).toContainText('Categoria: Jubilado — R$ 0,00 por mês')
+  // a secretaria não marca o jubilado na ficha: a jubilação é aprovada pela assembleia (14/11/2026)
+  await expect(page.getByRole('button', { name: 'Marcar como jubilado' })).toHaveCount(0)
+  await expect(contribuicao).toContainText('a assembleia aprova')
 
   // Limpeza: arquiva o associado e a igreja de teste
   await page.getByText('Arquivar cadastro', { exact: true }).last().click()

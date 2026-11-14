@@ -181,24 +181,24 @@ export function codigoDoQr(texto: string): string | null {
 
 // ---------- Quórum, maiorias e ata (Fase 4.3) ----------
 
-/** Quórum da 1ª chamada: metade mais um dos aptos (Art. 16, §4º). */
+/** Quórum da 1ª chamada: metade dos aptos mais um, arredondado para cima (Art. 16, §4º; pergunta 25): 75 → 39. */
 export function quorumPrimeiraChamada(aptos: number): number {
-  return Math.floor(aptos / 2) + 1
+  return Math.floor((aptos + 3) / 2)
 }
 
-/** Votos a favor exigidos (3/5 ou 2/3 dos presentes aptos — pergunta 24); null = maioria simples. */
-export function minimoAFavor(maioria: 'simples' | 'tres_quintos' | 'dois_tercos', votantes: number): number | null {
+/** Votos a favor exigidos: 3/5 ou 2/3 dos votos válidos, sim + não (pergunta 24); null = maioria simples. */
+export function minimoAFavor(maioria: 'simples' | 'tres_quintos' | 'dois_tercos', validos: number): number | null {
   if (maioria === 'simples') return null
-  return maioria === 'tres_quintos' ? Math.ceil((votantes * 3) / 5) : Math.ceil((votantes * 2) / 3)
+  return maioria === 'tres_quintos' ? Math.ceil((validos * 3) / 5) : Math.ceil((validos * 2) / 3)
 }
 
-/** A conta da maioria, em palavras, para mostrar na tela e na ata. */
-export function explicarMaioria(maioria: 'simples' | 'tres_quintos' | 'dois_tercos', votantes: number): string {
-  const minimo = minimoAFavor(maioria, votantes)
+/** A conta da maioria, em palavras, para mostrar na tela e na ata. `validos` = votos a favor + contra. */
+export function explicarMaioria(maioria: 'simples' | 'tres_quintos' | 'dois_tercos', validos: number): string {
+  const minimo = minimoAFavor(maioria, validos)
   if (minimo === null) return 'maioria simples (mais votos a favor que contra)'
   const fracao = maioria === 'tres_quintos' ? '3/5' : '2/3'
-  if (votantes === 0) return `${fracao} dos presentes aptos — sem presentes aptos, não há aprovação`
-  return `${fracao} ${votantes === 1 ? 'do único presente apto' : `dos ${votantes} presentes aptos`} = ${minimo} ${minimo === 1 ? 'voto' : 'votos'} a favor`
+  if (validos === 0) return `${fracao} dos votos válidos — sem votos a favor ou contra, não há aprovação`
+  return `${fracao} ${validos === 1 ? 'do único voto válido' : `dos ${validos} votos válidos`} = ${minimo} ${minimo === 1 ? 'voto' : 'votos'} a favor`
 }
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`
@@ -248,7 +248,7 @@ export function textoDaAta(d: {
       linhas.push(`${item.ordem}. ${item.titulo}: (votação não registrada).`)
     } else {
       linhas.push(
-        `${item.ordem}. ${item.titulo}: ${voto.aprovada ? 'APROVADO' : 'REJEITADO'}, com ${plural(voto.a_favor, 'voto', 'votos')} a favor, ${voto.contra} contra e ${plural(voto.abstencoes, 'abstenção', 'abstenções')} (exigido: ${explicarMaioria(voto.maioria, voto.votantes)}).` +
+        `${item.ordem}. ${item.titulo}: ${voto.aprovada ? 'APROVADO' : 'REJEITADO'}, com ${plural(voto.a_favor, 'voto', 'votos')} a favor, ${voto.contra} contra e ${plural(voto.abstencoes, 'abstenção', 'abstenções')} (exigido: ${explicarMaioria(voto.maioria, voto.a_favor + voto.contra)}).` +
           (voto.desligado && voto.aprovada ? ` Fica desligado(a) do COMEP: ${voto.desligado} (Art. 8º).` : ''),
       )
     }

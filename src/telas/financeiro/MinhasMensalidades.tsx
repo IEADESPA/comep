@@ -91,12 +91,18 @@ function Conteudo({ pessoaId }: { pessoaId: string }) {
           const valor = (tipo: 'mensal' | 'anual') =>
             valores.find((v: ValorContribuicao) => v.categoria === situacao.categoria_contribuicao && v.tipo === tipo)
           const visiveis = cobrancas.filter((c) => c.situacao !== 'cancelada')
-          const algumaPaga = cobrancas.some(
-            (c) =>
-              c.exercicio === exercicio &&
-              (c.tipo === 'mensal' || c.tipo === 'anual') &&
-              (c.situacao === 'paga' || c.informes.some((i) => i.situacao === 'pendente')),
-          )
+          // troca no meio do exercício (14/11/2026): o banco confere; aqui só se esconde o que não tem como trocar
+          const doExercicio = cobrancas.filter((c) => c.exercicio === exercicio && (c.tipo === 'mensal' || c.tipo === 'anual'))
+          const informada = (c: (typeof cobrancas)[number]) => c.informes.some((i) => i.situacao === 'pendente')
+          const algumaPaga = doExercicio.some((c) => c.situacao === 'paga' || informada(c))
+          const mesAtual = `${hoje.slice(0, 7)}-01`
+          const podeTrocar =
+            doExercicio.length === 0 ||
+            (plano === 'mensal'
+              ? doExercicio.some(
+                  (c) => c.tipo === 'mensal' && c.situacao === 'aberta' && !informada(c) && (!algumaPaga || c.competencia >= mesAtual),
+                )
+              : !doExercicio.some((c) => c.tipo === 'anual' && (c.situacao === 'paga' || informada(c))))
 
           return (
             <>
@@ -121,11 +127,16 @@ function Conteudo({ pessoaId }: { pessoaId: string }) {
 
               <Plano
                 plano={plano}
-                podeTrocar={!algumaPaga}
+                podeTrocar={podeTrocar}
+                proporcional={algumaPaga}
                 aoTrocar={async (tipo) =>
                   concluir(
                     await escolherPlano(pessoaId, exercicio, tipo),
-                    tipo === 'anual' ? 'Plano anual escolhido: uma anuidade, que vence em abril.' : 'Plano mensal escolhido.',
+                    tipo === 'anual'
+                      ? algumaPaga
+                        ? 'Plano anual escolhido: as mensalidades deste mês até março viraram uma anuidade proporcional.'
+                        : 'Plano anual escolhido: uma anuidade, que vence na data da AGO de abril.'
+                      : 'Plano mensal escolhido.',
                   )
                 }
               />
@@ -178,10 +189,13 @@ function LinhaCobranca({ cobranca: c, hoje }: { cobranca: Cobranca; hoje: string
 function Plano({
   plano,
   podeTrocar,
+  proporcional,
   aoTrocar,
 }: {
   plano: 'mensal' | 'anual'
   podeTrocar: boolean
+  /** já há pagamento no exercício: o anual vale deste mês até março */
+  proporcional: boolean
   aoTrocar: (tipo: 'mensal' | 'anual') => Promise<boolean>
 }) {
   const [enviando, umaVez] = useUmaVez()
@@ -190,7 +204,12 @@ function Plano({
     <section className="painel" aria-labelledby="titulo-plano">
       <h2 id="titulo-plano">Plano</h2>
       <p>
-        Você paga <strong>{plano === 'mensal' ? 'por mês' : 'o ano inteiro em abril (anuidade)'}</strong>.
+        Você paga <strong>{plano === 'mensal' ? 'por mês' : 'de uma vez (anuidade)'}</strong>.
+      </p>
+      <p className="detalhe">
+        Dá para trocar no meio do exercício (14/11/2026). Do mensal para o anual: as mensalidades em aberto deste mês até março
+        viram uma anuidade proporcional (sem nada pago no exercício, a anuidade inteira, que vence na data da AGO de abril). Do
+        anual para o mensal: enquanto a anuidade não foi paga.
       </p>
       {podeTrocar ? (
         <button
@@ -199,10 +218,18 @@ function Plano({
           disabled={enviando}
           onClick={() => void umaVez(() => aoTrocar(outro))}
         >
-          {outro === 'anual' ? 'Prefiro pagar o ano inteiro (anuidade)' : 'Prefiro pagar por mês'}
+          {outro === 'anual'
+            ? proporcional
+              ? 'Prefiro pagar o restante do exercício de uma vez'
+              : 'Prefiro pagar o ano inteiro (anuidade)'
+            : 'Prefiro pagar por mês'}
         </button>
       ) : (
-        <p className="detalhe">Já há pagamento neste exercício: o plano só muda no próximo (abril).</p>
+        <p className="detalhe">
+          {plano === 'anual'
+            ? 'A anuidade já foi paga (ou informada): o plano só muda no próximo exercício.'
+            : 'Não há mensalidades em aberto deste mês até março para trocar.'}
+        </p>
       )}
     </section>
   )
