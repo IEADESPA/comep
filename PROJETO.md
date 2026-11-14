@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.27 — 14 de novembro de 2026 — atualizado com a **entrega 4.5 (as regras das respostas de 14/11/2026)**, as **respostas de 14/11/2026 (todas as perguntas pendentes e as da Fase 5 e do lançamento)**, a **revisão geral da Fase 4 e a Fase 4 concluída**, a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.29 — 14 de novembro de 2026 — atualizado com o **lançamento depois das telas novas e do site vivo (Fase 5.5)**, o **novo roteiro (a igreja como instituição na Fase 5; a Fase 5.5 com patrimônio, assembleia on-line e telas novas)**, a **entrega 4.5 (as regras das respostas de 14/11/2026)**, as **respostas de 14/11/2026 (todas as perguntas pendentes e as da Fase 5 e do lançamento)**, a **revisão geral da Fase 4 e a Fase 4 concluída**, a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -39,16 +39,16 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 |---|---|---|
 | **Visitante** | Qualquer pessoa | Ver o site institucional e as convocações públicas; pedir associação; validar uma carteirinha pelo QR Code |
 | **Ministro** | Pastor ou líder evangélico associado (Art. 7º) | Ver/atualizar o próprio perfil e foto; ver a carteirinha; ver suas contribuições e informar pagamento com comprovante; pedir troca de igreja; confirmar presença em reuniões e assembleias; justificar falta |
-| **Presidente de igreja** | Pastor presidente de uma igreja cadastrada, marcado na ficha do ministro: o perfil vem **automaticamente** e define a categoria de contribuição de R$ 40 (seção 4.4). **Não previsto no estatuto** (decisão 12 — previsão de 11/11/2026: mantido) | Tudo do ministro + ver os ministros vinculados à sua igreja e se estão em dia; atualizar dados da igreja; confirmar vínculos com a sua igreja |
+| **Presidente de igreja** | Pastor presidente de uma igreja cadastrada, marcado na ficha do ministro: o perfil vem **automaticamente** e define a categoria de contribuição de R$ 40 (seção 4.4). **Não previsto no estatuto**; mantido e a melhorar (14/11/2026): ele **representa a igreja** diante do COMEP | Tudo do ministro + ver os ministros vinculados à sua igreja e se estão em dia; manter os dados, os documentos e a diretoria da igreja (Fase 5); pedir correções no cadastro dos ministros dela; na Fase 5.5, pedir itens do patrimônio emprestados |
 | **Secretaria** | 1º e 2º secretários (Art. 12, §4º e §5º) | Receber os pedidos de associação e levá-los à assembleia; cadastros de ministros e igrejas; preparar convocações; registrar presença; aceitar ou recusar justificativas de falta (1º secretário); redigir atas (1º secretário); comunicação e avisos (2º secretário) |
 | **Tesouraria** | 1º e 2º tesoureiros (Art. 12, §6º e §7º) | Conferir/confirmar pagamentos; lançar entradas e saídas; preparar o balanço anual e os relatórios |
 | **Presidência** | Presidente e vice-presidente (Art. 12, §2º e §3º) | Visualizar tudo; convocar assembleias; **autorizar despesas** (Art. 12, §2º, VI); assinar atas com o 1º secretário; gerenciar perfis de acesso |
-| **Secretário Executivo** | Art. 12, §8º | Apoiar a presidência, a diretoria e o Conselho Fiscal: ver cadastros, financeiro e assembleias, sem aprovar nada |
+| **Secretário Executivo** | Art. 12, §8º | Expediente: o acesso da secretaria e da tesouraria (14/11/2026); responsável pelos eventos do Conselho (Fase 5) |
 | **Conselho Fiscal** | Membros eleitos (Art. 12 e 14) | Ver todo o financeiro (só leitura) e registrar o **parecer anual sobre as contas** (Art. 14). ✅ Fase 2.3 |
 | **Administrador técnico** | 1–2 pessoas de confiança (da IEADESPA nesta fase) | Configurações, backups e manutenção (sem poder apagar histórico) |
 
 > Uma pessoa pode ter mais de um perfil (ex.: um presidente de igreja que também é tesoureiro do Conselho).
-> Desde a Fase 4.4, os perfis da diretoria e do Conselho Fiscal vêm também do **cargo e do mandato** registrados no sistema (menu Diretoria): presidente e vice → Presidência; 1º e 2º secretários → Secretaria; 1º e 2º tesoureiros → Tesouraria; conselheiros → Conselho Fiscal. Na posse o acesso começa sozinho; quando o mandato termina, termina sozinho. Os perfis dados à mão em "Perfis de acesso" continuam valendo. O secretário executivo fica registrado; o perfil próprio dele fica para depois.
+> Desde a Fase 4.4, os perfis da diretoria e do Conselho Fiscal vêm também do **cargo e do mandato** registrados no sistema (menu Diretoria): presidente e vice → Presidência; 1º e 2º secretários → Secretaria; 1º e 2º tesoureiros → Tesouraria; conselheiros → Conselho Fiscal. Na posse o acesso começa sozinho; quando o mandato termina, termina sozinho. Os perfis dados à mão em "Perfis de acesso" continuam valendo. O secretário executivo recebe Secretaria e Tesouraria (entrega 4.5).
 
 ## 4. Módulos
 
@@ -102,7 +102,10 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
 - Cadastro: nome, CNPJ, denominação e bairro (das listas de Configurações), endereço, telefone e nome do pastor presidente.
 - O **pastor presidente** associado é marcado na ficha do ministro (uma igreja tem um só por vez) e recebe o perfil Presidente de igreja.
 - Perfil da igreja com a lista de ministros vinculados.
-- Painel do presidente da igreja, se a diretoria mantiver esse perfil (decisão 12).
+- **A igreja como instituição** (14/11/2026 — o novo presidente quer um COMEP que represente e apoie as igrejas da cidade, não só os ministros):
+  - a igreja guarda o **estatuto**, o **cartão CNPJ** e a **diretoria dela**, com os mandatos; a secretaria do COMEP confere;
+  - o **presidente da igreja** a representa diante do COMEP: mantém os dados e os documentos, acompanha os ministros dela (em dia ou não) e pede correções no cadastro deles;
+  - o **peso da igreja** é o número de ministros associados: uma igreja com 50 ministros tem mais voz que uma com 5. Isso serve de base para as regras de apoio (Fase 5.5).
 
 ### 4.4 Financeiro
 
@@ -239,9 +242,11 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - Arquivar um item tira ele das opções, mas não apaga nada: o que já usava esse item continua guardado.
 - Novas listas entram aqui conforme forem surgindo (ex.: tipos de projeto, motivos de desligamento).
 
-### 4.12 Patrimônio (futuro)
+### 4.12 Patrimônio e apoio às igrejas (Fase 5.5)
 
-- Registro de bens móveis e imóveis em nome do COMEP (Art. 18).
+- Registro de bens móveis e imóveis em nome do COMEP (Art. 18), comprados com as contribuições (pelo caixa): som, palcos, cadeiras (300 a 400)…
+- **Empréstimo às igrejas:** o presidente da igreja pede os itens para uma data; a **agenda** mostra o que está livre (também frente aos eventos do COMEP); ele assina um **termo de compromisso** de zelar pelo patrimônio; o sistema registra a retirada e a devolução.
+- **Regras de apoio** a definir pela diretoria: por exemplo, igrejas já estabelecidas podem precisar só de cadeiras; o peso da igreja (ministros associados) conta. A ideia é que o associado veja o benefício do que paga.
 
 ## 5. Arquitetura (100% gratuita)
 
@@ -356,8 +361,8 @@ Cada fase só é considerada entregue depois de passar pelas **4 travas de revis
 > **Calendário (decisão de 12/11/2026):**
 >
 > - o presidente do COMEP concordou com tudo o que foi feito e quer as 6 fases prontas;
-> - o sistema fica **no ambiente de teste, com dados fictícios, até a Fase 5**;
-> - o **lançamento com dados reais** (produção) acontece **depois da versão 5.0**, pelo roteiro `docs/lancamento.md`;
+> - o sistema fica **no ambiente de teste, com dados fictícios**, até o lançamento;
+> - o **lançamento com dados reais** (produção) acontece **depois das telas novas e do site vivo, no fim da Fase 5.5** (decisão de 14/11/2026: uma mudança só na produção, de uma vez), pelo roteiro `docs/lancamento.md`;
 > - até lá, cada fase fecha com as travas 1 a 3 e o aceite da presidência, e a versão fica `N.0-teste`;
 > - a produção já está preparada e vazia.
 
@@ -528,22 +533,38 @@ Decisões na seção 4.6. Revisão: `docs/revisoes/fase-4.md`. **O estatuto pode
 - as votações travam na **primeira** assinatura da ata; assembleia instalada não se cancela;
 - só a **presidência** muda as regras das assembleias; a 2ª chamada fica a da regra que valia na convocação
 
-### Fase 5 — Projetos, comissões e comunicação (versão 5.0)
+### Fase 5 — Igrejas, comissões, eventos e comunicação (versão 5.0)
+
+Roteiro de 14/11/2026: a Fase 5 começa pela igreja como instituição; as respostas 26 a 39 (seção 11.3) valem para toda a fase, sem novas perguntas.
 
 - [x] **Antes, a entrega 4.5:** ajustes das respostas de 14/11/2026 nas regras das fases 2 e 4 (seção 11.5) — concluída em 14/11/2026 (versão 4.0-teste.6)
-- [ ] Comissões permanentes e temporárias
-- [ ] Projetos e eventos com orçamento e lançamentos vinculados
-- [ ] Mural de avisos e envio por WhatsApp
-- [ ] Painel geral da presidência (indicadores)
-- [ ] **Lançamento em produção, com dados reais** (`docs/lancamento.md`): verificação em duas etapas dos donos, termo assinado, dados do presidente, site oficial no banco de produção
+- [x] **5.1 — A igreja como instituição e o presidente de igreja** (seção 4.3): estatuto, cartão CNPJ e diretoria da igreja; o painel do presidente de igreja; pedidos de correção no cadastro dos ministros — concluída em 14/11/2026 (versão 5.0-teste.1; revisão em `docs/revisoes/fase-5.md`)
+- [ ] **5.2 — Comissões** permanentes e temporárias: só associados; a presidência e a secretaria criam; o coordenador cuida da sua comissão
+- [ ] **5.3 — Eventos e projetos:** orçamento aprovado pela assembleia, lançamentos vinculados, inscrição aberta ao público pelo site e taxa por evento; o secretário executivo é o responsável
+- [ ] **5.4 — Mural de avisos e painel da presidência:** só a secretaria publica e escolhe se o aviso vai ao site; envio pelo WhatsApp; painel com associados, finanças, presença, agenda e projetos
+- [ ] Revisão geral da Fase 5
+
+O lançamento em produção passou para o fim da Fase 5.5 (14/11/2026).
+
+### Fase 5.5 — Patrimônio, assembleia on-line, telas novas, site vivo e lançamento
+
+Decidida em 14/11/2026: o que o sistema consegue fazer sozinho, entre a Fase 5 e a 6. **A produção só entra no fim desta fase**, já com as telas novas e o site: uma mudança só, de uma vez.
+
+- [ ] **Patrimônio e empréstimo às igrejas** (seção 4.12): itens comprados pelo caixa, agenda, pedido do presidente de igreja, termo de compromisso, retirada e devolução; regras de apoio da diretoria
+- [ ] Votação on-line em assembleia (o estatuto atual só fala em assembleia presencial com registro de presença — exige reforma do estatuto ou regimento)
+- [ ] Pedido de assembleia extraordinária assinado on-line pelos associados (Art. 16, §3º)
+- [ ] **Telas novas:** design moderno, cores e uso no celular e no notebook, com o sistema já completo. Referência: dois artefatos de telas feitos no Claude (um para uma igreja, outro para outra associação)
+- [ ] **Site vivo** (14/11/2026): o site institucional, hoje de uma página, ganha as páginas úteis, e o que se lança no sistema aparece no site (e vice-versa):
+  - **do sistema para o site:** convocações, eventos, avisos públicos do mural, diretoria e igrejas do COMEP;
+  - **do site para o sistema:** pedido de associação e inscrição nos eventos;
+  - o GitHub Pages publica o próprio sistema: as páginas novas são telas do mesmo aplicativo, com os dados do banco.
+  - Revisto e conferido antes da produção.
+- [ ] **Lançamento em produção, com dados reais** (`docs/lancamento.md`): verificação em duas etapas dos donos, termo assinado, dados do presidente, site oficial no banco de produção. O sistema recomeça do zero (respostas 37 a 39)
 
 ### Fase 6 — Melhorias futuras
 
 - [ ] APK para Android
 - [ ] Notificações no celular
-- [ ] Votação online em assembleia (o estatuto atual só fala em assembleia presencial com registro de presença — exigiria reforma do estatuto ou regimento)
-- [ ] Pedido de assembleia extraordinária assinado on-line pelos associados (Art. 16, §3º)
-- [ ] Patrimônio (Art. 18)
 - [ ] PIX automático / conciliação bancária
 - [ ] Avaliar migração para servidor próprio ou plano pago, se o Conselho crescer
 

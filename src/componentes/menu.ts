@@ -25,7 +25,7 @@ export const ITENS_MENU: readonly ItemMenu[] = [
   { caminho: '/meu-perfil', titulo: 'Meu perfil', descricao: 'Seus dados, foto, igreja e senha', perfis: 'todos', fase: 1, pronto: true },
   { caminho: '/minhas-mensalidades', titulo: 'Minhas mensalidades', descricao: 'Situação, plano e envio de comprovantes', perfis: MINISTRO, fase: 2, pronto: true },
   { caminho: '/minha-credencial', titulo: 'Minha credencial', descricao: 'Credencial digital com QR Code e impressão', perfis: MINISTRO, fase: 3, pronto: true },
-  { caminho: '/minha-igreja', titulo: 'Minha igreja', descricao: 'Ministros da sua igreja e contato da igreja', perfis: ['presidente_igreja'], fase: 1, pronto: true },
+  { caminho: '/minha-igreja', titulo: 'Minha igreja', descricao: 'A sua igreja no COMEP: ministros, documentos e diretoria', perfis: ['presidente_igreja'], fase: 1, pronto: true },
   { caminho: '/inscricoes', titulo: 'Inscrições', descricao: 'Pedidos de associação para análise', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
   { caminho: '/ministros', titulo: 'Ministros', descricao: 'Cadastro de ministros', perfis: DIRETORIA_CADASTRO, fase: 1, pronto: true },
   { caminho: '/credenciais', titulo: 'Credenciais', descricao: 'Ver, imprimir e conferir as credenciais dos associados', perfis: DIRETORIA_CADASTRO, fase: 3, pronto: true },

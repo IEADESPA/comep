@@ -40,7 +40,7 @@ export async function prepararComprovante(arquivo: File): Promise<ArquivoPronto>
     if (arquivo.size > LIMITE_PDF) return { erro: 'O PDF passa de 4 MB. Envie uma foto do documento ou um PDF menor.' }
     return { blob: arquivo, extensao: 'pdf' }
   }
-  if (!arquivo.type.startsWith('image/')) return { erro: 'O comprovante precisa ser uma imagem ou um PDF.' }
+  if (!arquivo.type.startsWith('image/')) return { erro: 'O arquivo precisa ser uma imagem ou um PDF.' }
   try {
     return { blob: await comprimirImagem(arquivo, 1600, 0.85), extensao: 'jpg' }
   } catch {
