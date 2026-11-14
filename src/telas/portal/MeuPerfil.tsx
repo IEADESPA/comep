@@ -29,6 +29,8 @@ import {
   type PedidoTroca,
 } from '../../dados/portal'
 import { atualizarMeusDados } from '../../dados/pedidos'
+import { listarPedidosCorrecao } from '../../dados/igrejas'
+import { ListaDePedidos, PedirCorrecao } from './PedidosCorrecao'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
@@ -105,6 +107,7 @@ function Conteudo({ pessoaId, perfis, email }: { pessoaId: string; perfis: Perfi
                 <NoComep ficha={ficha} valores={valores} />
                 <PendenciasCredencial pendencias={ficha.pendencias} propria verEm="/minha-credencial" />
                 <MinhaIgrejaEHistorico ficha={ficha} trocas={trocas} igrejas={igrejas} concluir={concluir} />
+                <MinhasCorrecoes pessoaId={pessoaId} />
               </>
             ) : (
               <Aviso titulo="Você ainda não é associado">
@@ -510,6 +513,30 @@ function TrocarSenha({ email, concluir }: { email: string | null; concluir: Conc
       </form>
       <p className="detalhe">Pelo menos 8 caracteres, com letras e números.</p>
       <Mensagem erro={erro} />
+    </section>
+  )
+}
+
+/** Pedir à secretaria que corrija algo no próprio cadastro (o nome, por exemplo, só a secretaria corrige). */
+function MinhasCorrecoes({ pessoaId }: { pessoaId: string }) {
+  const [carga, recarregar] = useCarregar(() => listarPedidosCorrecao({ pessoaId }))
+  const [retorno, setRetorno] = useState<Retorno>({})
+  return (
+    <section className="painel" aria-labelledby="titulo-minhas-correcoes">
+      <h2 id="titulo-minhas-correcoes">Correções no meu cadastro</h2>
+      <p className="detalhe">Algo errado que você não consegue mudar aqui (o nome, o título, a data de ingresso)? Peça à secretaria.</p>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+      <PedirCorrecao
+        pessoaId={pessoaId}
+        rotulo="Pedir uma correção à secretaria"
+        aoConcluir={(r, s) => {
+          setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: s })
+          if (r.erro === null) recarregar()
+        }}
+      />
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {(pedidos) => (pedidos.length > 0 ? <ListaDePedidos pedidos={pedidos} /> : null)}
+      </MostrarCarga>
     </section>
   )
 }

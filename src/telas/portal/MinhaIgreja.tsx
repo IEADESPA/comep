@@ -3,30 +3,43 @@ import { Aviso, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { buscarIgreja, type Igreja } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import { listarItens, type ItemLista } from '../../dados/configuracoes'
+import { listarPedidosCorrecao, type PedidoCorrecao } from '../../dados/igrejas'
 import { atualizarContatoIgreja, ministrosDaMinhaIgreja, type MinistroDaMinhaIgreja } from '../../dados/portal'
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarCnpj } from '../../utilitarios/formatos'
+import { DiretoriaDaIgreja, DocumentosDaIgreja } from '../igrejas/InstituicaoIgreja'
+import { ListaDePedidos, PedirCorrecao } from './PedidosCorrecao'
 
-/** /minha-igreja — painel do pastor presidente: a igreja e os ministros dela (decisão 12 — previsão: mantido). */
+/**
+ * /minha-igreja — o pastor presidente representa a igreja diante do COMEP (14/11/2026): os dados, os documentos e a
+ * diretoria da igreja, os ministros dela (em dia ou não) e os pedidos de correção no cadastro deles.
+ */
 export function MinhaIgreja() {
   const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
   const [carga, recarregar] = useCarregar(async () => {
     const ministros = await ministrosDaMinhaIgreja()
     if (ministros.erro !== null) return ministros
     const igrejaId = ministros.dados[0]?.igreja_id
-    if (!igrejaId) return ok({ ministros: [] as MinistroDaMinhaIgreja[], igreja: null, bairros: [] as ItemLista[] })
-    const [igreja, bairros] = await Promise.all([buscarIgreja(igrejaId), listarItens('bairros')])
+    if (!igrejaId) {
+      return ok({ ministros: [] as MinistroDaMinhaIgreja[], igreja: null, bairros: [] as ItemLista[], pedidos: [] as PedidoCorrecao[] })
+    }
+    const [igreja, bairros, pedidos] = await Promise.all([buscarIgreja(igrejaId), listarItens('bairros'), listarPedidosCorrecao()])
     if (igreja.erro !== null) return igreja
     if (bairros.erro !== null) return bairros
-    return ok({ ministros: ministros.dados, igreja: igreja.dados, bairros: bairros.dados })
+    if (pedidos.erro !== null) return pedidos
+    return ok({ ministros: ministros.dados, igreja: igreja.dados, bairros: bairros.dados, pedidos: pedidos.dados })
   })
+  const concluir = (r: { erro: string | null }, sucesso: string) => {
+    setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+    if (r.erro === null) recarregar()
+  }
 
   return (
     <>
       <h1>Minha igreja</h1>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ ministros, igreja, bairros }) =>
+        {({ ministros, igreja, bairros, pedidos }) =>
           !igreja ? (
             <Aviso titulo="Nenhuma igreja encontrada">
               <p>
@@ -44,6 +57,22 @@ export function MinhaIgreja() {
                   if (r.erro === null) recarregar()
                 }}
               />
+              <section className="painel" aria-labelledby="titulo-peso-igreja">
+                <h2 id="titulo-peso-igreja">A igreja no COMEP</h2>
+                <p>
+                  <strong>
+                    {ministros.length} {ministros.length === 1 ? 'ministro associado' : 'ministros associados'}
+                  </strong>{' '}
+                  ({ministros.filter((m) => m.em_dia).length} em dia). Quanto mais ministros associados e em dia, mais a igreja é
+                  representada no Conselho.
+                </p>
+                <p className="detalhe">
+                  O COMEP representa e apoia as igrejas da cidade. Mantenha os documentos e a diretoria da igreja em dia: eles
+                  mostram ao Conselho quem é a igreja e quem responde por ela.
+                </p>
+              </section>
+              <DocumentosDaIgreja igrejaId={igreja.id} podeConferir={false} />
+              <DiretoriaDaIgreja igrejaId={igreja.id} />
               <section className="painel" aria-labelledby="titulo-ministros-minha-igreja">
                 <h2 id="titulo-ministros-minha-igreja">Ministros da igreja ({ministros.length})</h2>
                 <ul className="lista" aria-label="Ministros da igreja">
@@ -65,12 +94,17 @@ export function MinhaIgreja() {
                           <a href={`tel:${m.telefone.replace(/[^\d+]/g, '')}`}>{m.telefone}</a>
                         </span>
                       )}
+                      <PedirCorrecao pessoaId={m.pessoa_id} rotulo={`Pedir correção no cadastro de ${m.nome}`} aoConcluir={concluir} />
                     </li>
                   ))}
                 </ul>
                 <p className="detalhe">
                   Em atraso = alguma contribuição vencida e não paga. Quem está em atraso não vota nem é votado (Art. 11).
                 </p>
+              </section>
+              <section className="painel" aria-labelledby="titulo-correcoes-igreja">
+                <h2 id="titulo-correcoes-igreja">Pedidos de correção</h2>
+                <ListaDePedidos pedidos={pedidos} nomes={new Map(ministros.map((m) => [m.pessoa_id, m.nome]))} />
               </section>
             </>
           )

@@ -6,6 +6,7 @@ import { ok } from '../../dados/cliente'
 import { listarPendencias } from '../../dados/credencial'
 import { useCarregar } from '../../estado/useCarregar'
 import { contemTexto } from '../../utilitarios/formatos'
+import { CorrecoesPendentes } from '../portal/PedidosCorrecao'
 import { TrocasPendentes } from './TrocasPendentes'
 
 export function ListaMinistros() {
@@ -30,6 +31,7 @@ export function ListaMinistros() {
       </div>
       <Mensagem sucesso={mensagem} />
       <TrocasPendentes />
+      <CorrecoesPendentes />
 
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {({ associados, pendencias }) => {

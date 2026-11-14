@@ -1,6 +1,6 @@
 # Roteiro do lançamento da versão 1.0
 
-> **Adiado para depois da versão 5.0** (decisão de 12/11/2026, PROJETO.md, seção 9). Até lá o sistema fica no ambiente de teste, com dados fictícios. A produção está preparada e vazia.
+> **No fim da Fase 5.5, depois das telas novas e do site vivo** (decisão de 14/11/2026, PROJETO.md, seção 9: uma mudança só na produção, de uma vez). Até lá o sistema fica no ambiente de teste, com dados fictícios. A produção está preparada e vazia.
 > Este roteiro é a trava 4 (seção 14): só se começa com todos os pré-requisitos marcados.
 
 ## Pré-requisitos (ninguém lança sem eles)
@@ -84,7 +84,7 @@ O Claude Code faz: cria a marca `v1.0` no GitHub e registra o aceite e a data em
 | Item | Situação |
 |---|---|
 | Estrutura do banco de produção | ✅ 12/11/2026: as 9 migrações aplicadas numa produção vazia, sem erro |
-| Migrações que faltam na produção | A partir de `20261112153856_limite_arquivos.sql`: limite de arquivos, toda a Fase 2 (contribuições, caixa, taxa de inscrição, Conselho Fiscal, prestação de contas e revisão geral) toda a Fase 3 (dados da credencial, credencial digital e impressão, validade por mandato, editor do modelo e revisão geral) e toda a Fase 4 (assembleias e reuniões, presença e faltas, quórum, votações, desligamentos e ata, diretoria e mandatos, revisão geral e a entrega 4.5 com as respostas de 14/11/2026). Já passaram pelas travas no teste e são aplicadas no lançamento, junto com as que vierem até a versão 5.0 |
+| Migrações que faltam na produção | A partir de `20261112153856_limite_arquivos.sql`: limite de arquivos, toda a Fase 2 (contribuições, caixa, taxa de inscrição, Conselho Fiscal, prestação de contas e revisão geral) toda a Fase 3 (dados da credencial, credencial digital e impressão, validade por mandato, editor do modelo e revisão geral) e toda a Fase 4 (assembleias e reuniões, presença e faltas, quórum, votações, desligamentos e ata, diretoria e mandatos, revisão geral e a entrega 4.5 com as respostas de 14/11/2026) e a Fase 5 até aqui (a igreja como instituição). Já passaram pelas travas no teste e são aplicadas no lançamento, junto com as que vierem até o fim da Fase 5.5 |
 | Login da produção (`docs/configuracao-login.md`) | ✅ 12/11/2026: sem confirmação por e-mail, senha de 8 caracteres com letras e números, endereço do site |
 | Conferência da produção | ✅ 12/11/2026: mesmas regras do teste. O visitante recebe "sem permissão" em tudo, exceto os dados do site. 0 logins, 0 cadastros. Títulos e valores carregados. Pasta de arquivos privada |
 | Backup da produção | ✅ Entra no backup semanal (banco + arquivos) |

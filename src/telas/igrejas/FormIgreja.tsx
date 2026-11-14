@@ -13,8 +13,10 @@ import {
 } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import { listarItens, type ItemLista } from '../../dados/configuracoes'
+import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { cnpjValido, formatarCnpj, limparCnpj } from '../../utilitarios/formatos'
+import { DiretoriaDaIgreja, DocumentosDaIgreja } from './InstituicaoIgreja'
 
 /** /igrejas/nova */
 export function NovaIgreja() {
@@ -63,6 +65,10 @@ function FormIgreja({ id }: { id?: string }) {
 type PropsFormulario = { id?: string; igreja: Igreja | null; denominacoes: Denominacao[]; bairros: ItemLista[] }
 
 function Formulario({ id, igreja, denominacoes, bairros }: PropsFormulario) {
+  const { estado } = useSessao()
+  const perfis = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
+  // a secretaria e a presidência conferem os documentos da igreja
+  const podeConferir = perfis.includes('secretaria') || perfis.includes('presidencia')
   const navigate = useNavigate()
   const location = useLocation()
   const mensagemAnterior = (location.state as { mensagem?: string } | null)?.mensagem
@@ -197,6 +203,8 @@ function Formulario({ id, igreja, denominacoes, bairros }: PropsFormulario) {
       {id && (
         <>
           <MinistrosDaIgreja igrejaId={id} />
+          <DocumentosDaIgreja igrejaId={id} podeConferir={podeConferir} />
+          <DiretoriaDaIgreja igrejaId={id} />
           <section className="painel painel-perigo">
             <h2>Arquivar igreja</h2>
             <p className="detalhe">

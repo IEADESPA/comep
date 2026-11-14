@@ -140,6 +140,45 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   await page.getByRole('button', { name: 'Salvar contato da igreja' }).click()
   await expect(mensagemNaTela(page, 'Contato da igreja atualizado.')).toBeVisible()
 
+  // Fase 5.1: a igreja como instituição — o pastor presidente envia o estatuto, informa a diretoria e pede uma correção
+  await expect(page.getByText(/2 ministros associados/)).toBeVisible()
+  await page.getByText('Enviar um documento').click()
+  await page.getByRole('combobox', { name: 'Documento' }).selectOption({ label: 'Estatuto da igreja' })
+  await page.locator('input[type=file][accept^="application/pdf"]').setInputFiles({
+    name: 'estatuto.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4 documento fictício do teste automático'),
+  })
+  await expect(mensagemNaTela(page, 'Estatuto da igreja enviado: a secretaria vai conferir.')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Documentos da igreja' })).toContainText('Esperando a conferência')
+
+  await page.getByText('Informar a diretoria da igreja').click()
+  await page.getByLabel('Nome 1').fill(presidente)
+  await page.getByRole('button', { name: 'Salvar a diretoria' }).click()
+  await expect(mensagemNaTela(page, 'Diretoria da igreja salva. A anterior fica no histórico.')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Diretoria da igreja' })).toContainText(`Presidente: ${presidente}`)
+
+  await page.getByText(`Pedir correção no cadastro de ${auxiliar}`).click()
+  await page.getByRole('form', { name: `Pedir correção no cadastro de ${auxiliar}` }).getByLabel(/^O que precisa ser corrigido/).fill(
+    'O título é Presbítero (teste automático).',
+  )
+  await page.getByRole('button', { name: 'Enviar à secretaria' }).click()
+  await expect(mensagemNaTela(page, 'Pedido de correção enviado à secretaria.')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Pedidos de correção' })).toContainText('Esperando a secretaria')
+
+  // A presidência confere o estatuto e atende a correção
+  await trocarPara(page, 'presidencia')
+  await page.goto('igrejas')
+  await expect(page.getByRole('list', { name: 'Documentos para conferir' })).toContainText(igreja)
+  await page.goto(enderecoIgreja)
+  await page.getByRole('list', { name: 'Documentos da igreja' }).getByRole('button', { name: 'Conferido' }).click()
+  await expect(mensagemNaTela(page, 'Estatuto da igreja: conferido.')).toBeVisible()
+  await page.goto('ministros')
+  const correcao = page.getByRole('listitem', { name: `Correção: ${auxiliar}` })
+  await expect(correcao).toContainText('O título é Presbítero')
+  await correcao.getByRole('button', { name: 'Atendido' }).click()
+  await expect(mensagemNaTela(page, `Correção de ${auxiliar}: atendida.`)).toBeVisible()
+
   // Limpeza: arquiva os dois associados e a igreja de teste
   await arquivarAssociadoDeTeste(page, auxiliar)
   await arquivarAssociadoDeTeste(page, presidente)
