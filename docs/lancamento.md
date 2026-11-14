@@ -11,6 +11,8 @@
 - [x] Produção preparada, sem nenhum dado: estrutura do banco e configuração de login (ver "Situação" no fim)
 - [x] **Aceite da presidência:** em 12/11/2026, o presidente do COMEP concordou com tudo o que foi feito (registrado em `docs/revisoes/fase-1.md`). Repetir a conferência das fases 2 a 5 antes do lançamento
 - [ ] **Termo de hospedagem** (`docs/termo-hospedagem.md`) assinado pela presidência do COMEP e pela IEADESPA
+- [ ] **Inscrição pública nos eventos protegida antes do link ir para o público** (revisão geral da Fase 5): captcha (Cloudflare Turnstile, gratuito, por uma Edge Function) na inscrição do site, além do limite por origem que já existe
+- [ ] **Prazo de guarda das inscrições públicas** (LGPD): definir com a diretoria por quanto tempo o nome e o telefone de quem não é associado ficam guardados (sugestão: 12 meses depois do evento) e como se anonimizam
 - [ ] **Riscos aceitos nas revisões gerais, revistos com a diretoria verdadeira.** Em especial o F6 da Fase 4: hoje a ata é assinada pelo **perfil** (Secretaria, Presidência), e não só pelo cargo (1º secretário, presidente). A ata guarda o cargo de quem assinou (`docs/revisoes/fase-4.md`)
 - [ ] **Verificação em duas etapas** ligada nas duas contas donas do GitHub (`seta-max` e `presidente-ai`), com os códigos de recuperação guardados
 - [ ] **Dados do presidente do COMEP:**

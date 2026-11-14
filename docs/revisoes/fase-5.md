@@ -222,3 +222,69 @@ Pelas respostas 34 a 36 (14/11/2026).
 
 `testes/dados/semente-mural-teste.sql`, aplicada no `comep-teste`: um aviso fictício, fixado e também no site. Os usuários fictícios dos testes não têm o perfil da secretaria; a publicação é testada no banco.
 
+## Revisão geral da Fase 5 (14/11/2026)
+
+Como em toda fase, a Fase 5 terminou com uma revisão geral independente (PROJETO.md, seção 14.4).
+
+**Como foi feita:**
+
+- Dois revisores independentes leram tudo o que a fase fez, sem ver o raciocínio de quem escreveu:
+  - **banco e segurança:** as quatro migrações, com as regras de acesso, a pasta dos documentos das igrejas, a inscrição pública e o caixa;
+  - **telas e regras:** a igreja, as comissões, os eventos, a agenda do site, o mural e o painel, comparando cada botão com o que o banco permite.
+- O revisor do banco provou cada achado numa cópia local. O de telas leu o código e rodou os testes locais, sem gravar nada no banco de teste.
+- Cada correção do banco ganhou um teste (`testes/banco/revisao_fase5.test.ts`). **Os 8 falham sem a migração da revisão** (conferido).
+
+**O que se conferiu e estava certo:**
+
+- O visitante sem login só chega à agenda, à inscrição e aos avisos do site, e nunca aos dados de quem se inscreveu.
+- A pasta dos documentos das igrejas é privada.
+- Só a secretaria publica no mural, e o painel é só da presidência.
+- Um coordenador por comissão.
+- O mesmo pagamento não entra duas vezes no caixa.
+- As datas usam o fuso de Parauapebas, e as vagas e os prazos batem com o banco.
+
+### Achados e correções
+
+| Gravidade | O que acontecia | Correção | Teste |
+|---|---|---|---|
+| Bloqueante | O orçamento e a taxa digitados do jeito brasileiro viravam outro valor: **"1.500" virava R$ 1,50** | Os campos de valor usam o mesmo leitor do resto do sistema ("1.500", "1.500,00", "R$ 25,90") e avisam quando não entendem | — (conferido no código) |
+| Importante | **Qualquer pessoa na internet podia lotar ou travar a inscrição pública**: um só freio para o evento todo, e a inscrição não paga segurava a vaga para sempre | Limite por origem (5 por hora; o endereço fica guardado só como resumo). A inscrição não paga deixa de segurar a vaga depois de 72 horas, e a secretaria cancela as vencidas de uma vez. **Falta o captcha antes do link ir para o público** (lançamento) | Banco (2) |
+| Importante | **Cancelar o lançamento do pagamento** deixava a inscrição "paga" para sempre (sem consertar nem devolver) | Cancelar o lançamento devolve a inscrição para "aguardando o pagamento" | Banco |
+| Importante | **Quem só criou uma conta no site** (sem ser do COMEP) lia os avisos internos, os membros das comissões e os eventos com o orçamento | Só quem é do COMEP (tem algum perfil) lê; quem só tem a conta usa o site | Banco |
+| Importante | Quem pegava a **última vaga** não via o número da inscrição | A confirmação fica na tela mesmo quando as vagas acabam | — |
+| Importante | O coordenador via "Tirar" em registros que não eram dele (e o banco recusava) | Só aparece nos registros dele; a diretoria tira qualquer um | — |
+| Importante | O **aceite da LGPD** era pedido, mas não ficava guardado, e o texto não falava da igreja | Guarda quando e qual texto foi aceito, e o texto fala do nome, do telefone e da igreja. **O prazo de guarda vai à diretoria** (lançamento) | Banco |
+| Importante | Ações sem volta com um toque só: cancelar a inscrição, tirar aviso do mural, tirar registro e membro da comissão | Pedem confirmação na própria linha | — |
+| Menor | O orçamento podia ser aprovado por uma **assembleia antiga** | Só por uma assembleia do dia em que o orçamento foi definido ou depois | Banco |
+| Menor | O painel contava as **transferências entre contas** como entradas e saídas | Ficam de fora, como na prestação de contas | Banco |
+| Menor | **Cancelar o evento** não mexia nas inscrições, e a tesouraria ainda podia receber pagamento | As não pagas são canceladas junto, e evento cancelado não recebe pagamento | Banco |
+| Menor | A mensagem **"este telefone já está inscrito"** confirmava a um desconhecido quem estava inscrito | Mensagem neutra | Banco |
+| Menor | Duas gravações da diretoria da igreja ao mesmo tempo deixavam duas diretorias | Uma gravação de cada vez | — (conferido no código) |
+| Menor | A categoria "Inscrições em eventos" podia não ser criada (se já existisse uma igual) e o pagamento falhava sem explicação | A categoria do sistema existe sempre. A forma de pagamento é aparada, e falta de conta no caixa tem mensagem clara | — |
+| Menor | Mensagens longe do que se clicou (no celular, no alto da página) | Inscrições, minha inscrição e finanças do evento mostram a mensagem na própria seção | — |
+| Menor | Lista de "Indicar um membro" desatualizada depois de incluir ou tirar | Atualiza na hora | — |
+| Menor | Aviso vencido aparecia para a secretaria sem marca, e alterá-lo dava erro | Marcado como vencido; ao alterar, a validade fica em branco | — |
+| Menor | "Alterar" um aviso não mostrava o formulário no celular | A tela rola até ele | — |
+| Menor | Textos enganosos ("aguardando a assembleia (14/11/2026)", "o secretário executivo, se houver") e o responsável que não aparecia | Textos corrigidos; o responsável aparece na página do evento | — |
+| Menor | O ministro não conseguia cancelar a própria inscrição não paga; o pagamento era sempre "hoje"; o formulário de aprovação aparecia com orçamento zero; "inscrições até" podia passar do início | Corrigido nas telas | — |
+| Menor | O link do documento da igreja vencia em 10 minutos sem aviso | Renova sozinho | — |
+| Menor | Textos longos nos avisos alargavam a página no celular | Quebram a linha | — |
+
+**Pendências para antes de o link público ir para as pessoas** (no roteiro do lançamento, `docs/lancamento.md`):
+
+- **Captcha na inscrição do site.** O limite por origem já segura o abuso comum; o captcha (Cloudflare Turnstile, gratuito) precisa de uma função no servidor e de uma chave.
+- **Prazo de guarda das inscrições públicas** (LGPD). A auditoria também guarda uma cópia. A diretoria decide o prazo; a sugestão é 12 meses depois do evento.
+
+**Riscos aceitos e registrados:**
+
+- **Despesa acima do orçamento:** a tela avisa, mas o banco não bloqueia. A despesa já passa pela autorização da presidência (Art. 12, §2º, VI).
+- **O teste do mural** conta com o aviso fictício fixado entre os primeiros. Se alguém fixar outros três no banco de teste, o teste precisa de ajuste.
+
+**Ponta a ponta, na cópia local, depois das correções:**
+
+- Todos os testes passaram no computador e no celular, com 2 pulados de propósito.
+- O teste do menu da presidência foi atualizado: "Projetos" não está mais "em construção", e o menu mostra eventos, comissões, mural e painel.
+- O teste do mural confere o mural, o painel, o Início e o site.
+
+**Migração:** `20261114233000_revisao_fase5.sql`, aplicada no `comep-teste`. Verificador do Supabase: só o aviso já conhecido.
+

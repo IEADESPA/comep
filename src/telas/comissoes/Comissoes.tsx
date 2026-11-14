@@ -2,7 +2,7 @@
 // e os registros do coordenador (reuniões, atividades e avisos da comissão).
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Aviso, BotaoConfirmarNaLinha, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { listarAssociados } from '../../dados/associados'
 import { ok } from '../../dados/cliente'
 import {
@@ -314,7 +314,13 @@ function ConteudoDetalhe({ id }: { id: string }) {
 
               {/* os registros: os membros da comissão e a diretoria */}
               {(cuida(perfis) || atuais.some((m) => m.pessoa_id === minhaPessoa)) && (
-                <Registros c={c} podeRegistrar={podeRegistrar} podeTirar={cuida(perfis) || c.coordeno} aoConcluir={concluir} />
+                <Registros
+                  c={c}
+                  podeRegistrar={podeRegistrar}
+                  // o coordenador tira só o que ele registrou; a diretoria, qualquer um (a mesma regra do banco)
+                  podeTirar={(autor) => cuida(perfis) || (c.coordeno && autor === minhaPessoa)}
+                  aoConcluir={concluir}
+                />
               )}
 
               {cuida(perfis) && !c.encerrada_em && (
@@ -364,14 +370,12 @@ function LinhaMembro({
               Tornar coordenador
             </button>
           )}
-          <button
-            type="button"
-            className="botao-texto"
-            disabled={enviando}
-            onClick={() => void umaVez(async () => aoConcluir(await retirarMembro(m.id, hojeIso()), `${nome} saiu da comissão.`))}
-          >
-            Tirar da comissão
-          </button>
+          <BotaoConfirmarNaLinha
+            texto="Tirar da comissão"
+            confirmar={`Confirmar — tirar ${nome}`}
+            desabilitado={enviando}
+            aoConfirmar={() => void umaVez(async () => aoConcluir(await retirarMembro(m.id, hojeIso()), `${nome} saiu da comissão.`))}
+          />
         </span>
       )}
     </li>
@@ -382,10 +386,11 @@ function IncluirMembro({ comissao, aoConcluir }: { comissao: ComissaoCompleta; a
   const [carga, recarregar] = useCarregar(async () => {
     const a = await listarAssociados()
     if (a.erro !== null) return a
-    // só associados ativos (resposta 28), que ainda não estão na comissão
-    const dentro = new Set(comissao.membros.filter((m) => !m.ate).map((m) => m.pessoa_id))
-    return ok(a.dados.filter((x) => x.situacao === 'ativo' && !dentro.has(x.pessoa_id)))
+    // só associados ativos (resposta 28)
+    return ok(a.dados.filter((x) => x.situacao === 'ativo'))
   })
+  // quem já está na comissão sai da lista na hora (a comissão recarrega depois de cada mudança)
+  const dentro = new Set(comissao.membros.filter((m) => !m.ate).map((m) => m.pessoa_id))
   const [pessoa, setPessoa] = useState('')
   const [coordenador, setCoordenador] = useState(false)
   const [enviando, umaVez] = useUmaVez()
@@ -413,11 +418,13 @@ function IncluirMembro({ comissao, aoConcluir }: { comissao: ComissaoCompleta; a
               Associado *
               <select required value={pessoa} onChange={(e) => setPessoa(e.target.value)}>
                 <option value="">—</option>
-                {associados.map((a) => (
-                  <option key={a.pessoa_id} value={a.pessoa_id}>
-                    {a.nome}
-                  </option>
-                ))}
+                {associados
+                  .filter((a) => !dentro.has(a.pessoa_id))
+                  .map((a) => (
+                    <option key={a.pessoa_id} value={a.pessoa_id}>
+                      {a.nome}
+                    </option>
+                  ))}
               </select>
             </label>
             <label className="caixa-marcar">
@@ -442,7 +449,7 @@ function Registros({
 }: {
   c: ComissaoCompleta
   podeRegistrar: boolean
-  podeTirar: boolean
+  podeTirar: (autor: string | null) => boolean
   aoConcluir: (r: { erro: string | null }, s: string) => void
 }) {
   const [tipo, setTipo] = useState<TipoRegistroComissao>('reuniao')
@@ -465,15 +472,15 @@ function Registros({
               </strong>
               <span>{formatarData(r.data)}</span>
               {r.texto && <span className="texto-edital">{r.texto}</span>}
-              {podeTirar && (
-                <button
-                  type="button"
-                  className="botao-texto alinhar-esquerda"
-                  disabled={enviando}
-                  onClick={() => void umaVez(async () => aoConcluir(await arquivarRegistro(r.id), 'Registro tirado (fica guardado).'))}
-                >
-                  Tirar (registrado por engano)
-                </button>
+              {podeTirar(r.autor_id) && (
+                <span>
+                  <BotaoConfirmarNaLinha
+                    texto="Tirar (registrado por engano)"
+                    confirmar="Confirmar — tirar o registro"
+                    desabilitado={enviando}
+                    aoConfirmar={() => void umaVez(async () => aoConcluir(await arquivarRegistro(r.id), 'Registro tirado (fica guardado).'))}
+                  />
+                </span>
               )}
             </li>
           ))}

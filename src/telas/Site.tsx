@@ -557,6 +557,8 @@ export function EventoPublicoPagina() {
 function EventoPublico({ e, aoInscrever }: { e: EventoPublico; aoInscrever: () => void }) {
   const [agora] = useState(() => Date.now())
   const aberta = inscricaoAberta(e, agora)
+  // fica aqui (e não no formulário): quem pega a última vaga ainda vê o número depois que a página recarrega
+  const [feita, setFeita] = useState<InscricaoFeita | null>(null)
   return (
     <article aria-labelledby="titulo-evento-publico">
       <p className="site-sobretitulo">{NOME_DO_TIPO_EVENTO[e.tipo]}</p>
@@ -592,33 +594,47 @@ function EventoPublico({ e, aoInscrever }: { e: EventoPublico; aoInscrever: () =
           A inscrição neste evento é para os associados, pelo <Link to="/painel">Portal do membro</Link>.
         </p>
       )}
-      {e.inscricao && e.inscricao_publica && (aberta ? <FormInscricao e={e} aoInscrever={aoInscrever} /> : <p>As inscrições estão encerradas.</p>)}
+      {e.inscricao &&
+        e.inscricao_publica &&
+        (feita ? (
+          <InscricaoConfirmada feita={feita} />
+        ) : aberta ? (
+          <FormInscricao
+            e={e}
+            aoInscrever={(f) => {
+              setFeita(f)
+              aoInscrever()
+            }}
+          />
+        ) : (
+          <p>As inscrições estão encerradas.</p>
+        ))}
     </article>
   )
 }
 
-function FormInscricao({ e, aoInscrever }: { e: EventoPublico; aoInscrever: () => void }) {
+function InscricaoConfirmada({ feita }: { feita: InscricaoFeita }) {
+  return (
+    <section className="painel" aria-labelledby="titulo-inscricao-feita">
+      <h2 id="titulo-inscricao-feita">Inscrição feita!</h2>
+      <p>
+        Sua inscrição é a <strong>nº {feita.numero}</strong>.
+        {feita.situacao === 'aguardando_pagamento'
+          ? ` Ela fica confirmada quando a tesouraria do COMEP receber a taxa de ${formatarReais(feita.valor)}.`
+          : ' Ela está confirmada.'}
+      </p>
+      <p className="detalhe">Guarde o número. Se precisar cancelar, fale com o COMEP pelos contatos da página inicial.</p>
+    </section>
+  )
+}
+
+function FormInscricao({ e, aoInscrever }: { e: EventoPublico; aoInscrever: (f: InscricaoFeita) => void }) {
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
   const [igreja, setIgreja] = useState('')
   const [aceite, setAceite] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [feita, setFeita] = useState<InscricaoFeita | null>(null)
   const [enviando, umaVez] = useUmaVez()
-  if (feita) {
-    return (
-      <section className="painel" aria-labelledby="titulo-inscricao-feita">
-        <h2 id="titulo-inscricao-feita">Inscrição feita!</h2>
-        <p>
-          Sua inscrição é a <strong>nº {feita.numero}</strong>.
-          {feita.situacao === 'aguardando_pagamento'
-            ? ` Ela fica confirmada quando a tesouraria do COMEP receber a taxa de ${formatarReais(feita.valor)}.`
-            : ' Ela está confirmada.'}
-        </p>
-        <p className="detalhe">Guarde o número. Se precisar cancelar, fale com o COMEP pelos contatos da página inicial.</p>
-      </section>
-    )
-  }
   return (
     <section className="painel" aria-labelledby="titulo-inscricao">
       <h2 id="titulo-inscricao">Inscreva-se</h2>
@@ -630,8 +646,7 @@ function FormInscricao({ e, aoInscrever }: { e: EventoPublico; aoInscrever: () =
             const r = await inscrever(e.id, { nome, telefone, igreja, aceite })
             if (r.erro !== null) return setErro(r.erro)
             setErro(null)
-            setFeita(r.dados)
-            aoInscrever()
+            aoInscrever(r.dados)
           })
         }}
       >
@@ -649,7 +664,7 @@ function FormInscricao({ e, aoInscrever }: { e: EventoPublico; aoInscrever: () =
         </label>
         <label className="caixa-marcar">
           <input type="checkbox" required checked={aceite} onChange={(ev) => setAceite(ev.target.checked)} />
-          Aceito que o COMEP use o meu nome e telefone só para este evento (LGPD)
+          Aceito que o COMEP use o meu nome, telefone e igreja só para este evento (LGPD)
         </label>
         <Mensagem erro={erro} />
         <button type="submit" className="botao" disabled={enviando}>

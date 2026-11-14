@@ -29,9 +29,13 @@ export function LinkDocumento({ caminho, rotulo = 'Abrir' }: { caminho: string; 
   const [link, setLink] = useState<string | null>(null)
   useEffect(() => {
     let ativo = true
-    void linkDocumentoIgreja(caminho).then((l) => ativo && setLink(l))
+    const buscar = () => void linkDocumentoIgreja(caminho).then((l) => ativo && setLink(l))
+    buscar()
+    // o link vale 10 minutos: renova antes de vencer (a página pode ficar aberta)
+    const relogio = window.setInterval(buscar, 8 * 60_000)
     return () => {
       ativo = false
+      window.clearInterval(relogio)
     }
   }, [caminho])
   return link ? (

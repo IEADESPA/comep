@@ -516,6 +516,12 @@ fieldset + fieldset {
   border-bottom: 1px solid var(--cor-borda);
 }
 
+.lista-pendencias li,
+.site-cartao h3,
+.site-cartao p {
+  overflow-wrap: anywhere;
+}
+
 .painel-grade {
   display: grid;
   gap: 1rem;

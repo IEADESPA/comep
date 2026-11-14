@@ -40,6 +40,8 @@ export type Evento = {
   publicado_em: string | null
   cancelado_em: string | null
   motivo_cancelamento: string | null
+  /** o nome só vem para quem lê o cadastro (a diretoria) */
+  responsavel?: { nome: string } | null
 }
 
 const CAMPOS =
@@ -52,7 +54,11 @@ export async function listarEventos(): Promise<Resultado<Evento[]>> {
 }
 
 export async function buscarEvento(id: string): Promise<Resultado<Evento | null>> {
-  const { data, error } = await cliente().from('eventos').select(CAMPOS).eq('id', id).maybeSingle<Evento>()
+  const { data, error } = await cliente()
+    .from('eventos')
+    .select(`${CAMPOS}, responsavel:pessoas!eventos_responsavel_id_fkey(nome)`)
+    .eq('id', id)
+    .maybeSingle<Evento>()
   return error ? falha(error) : ok(data)
 }
 
@@ -88,6 +94,8 @@ export const concluirEvento = (id: string) => acao('concluir_evento', { p_id: id
 export const arquivarEvento = (id: string) => acao('arquivar_evento', { p_id: id })
 export const aprovarOrcamento = (id: string, encontroId: string) => acao('aprovar_orcamento_evento', { p_id: id, p_encontro_id: encontroId })
 export const cancelarInscricao = (id: string, motivo: string) => acao('cancelar_inscricao', { p_id: id, p_motivo: motivo })
+/** A secretaria libera as vagas das inscrições que esperam pagamento há mais de 72 horas. */
+export const cancelarInscricoesSemPagamento = (eventoId: string) => acao('cancelar_inscricoes_sem_pagamento', { p_evento_id: eventoId })
 export const registrarPagamentoInscricao = (id: string, data: string, forma: string) =>
   acao('registrar_pagamento_inscricao', { p_id: id, p_data: data, p_forma: forma })
 export const ligarLancamentoEvento = (lancamentoId: string, eventoId: string | null) =>

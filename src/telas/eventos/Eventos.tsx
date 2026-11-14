@@ -2,7 +2,7 @@
 // responsável pelos eventos — e presidência), orçamento aprovado pela assembleia, inscrições (com a taxa) e as finanças.
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { Aviso, BotaoArquivar, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Aviso, BotaoArquivar, BotaoConfirmarNaLinha, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { listarAssociados } from '../../dados/associados'
 import { ok } from '../../dados/cliente'
 import { formatarReais } from '../../dados/configuracoes'
@@ -13,6 +13,7 @@ import {
   buscarEvento,
   cancelarEvento,
   cancelarInscricao,
+  cancelarInscricoesSemPagamento,
   concluirEvento,
   financasDoEvento,
   inscrever,
@@ -37,6 +38,7 @@ import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { doCampoDataHora, paraCampoDataHora } from '../../utilitarios/encontros'
 import { formatarDataHora, hojeIso } from '../../utilitarios/formatos'
+import { DICA_VALOR, lerValor, PADRAO_VALOR, valorParaCampo } from '../../utilitarios/valores'
 
 type Retorno = { sucesso?: string; erro?: string }
 
@@ -187,12 +189,12 @@ function FormEvento({ evento, associados }: { evento: Evento | null; associados:
     inicio: evento ? paraCampoDataHora(evento.inicio) : '',
     fim: evento?.fim ? paraCampoDataHora(evento.fim) : '',
     responsavel_id: evento?.responsavel_id ?? '',
-    orcamento: evento?.orcamento != null ? String(evento.orcamento) : '',
+    orcamento: evento?.orcamento != null ? valorParaCampo(evento.orcamento) : '',
     inscricao: evento?.inscricao ?? false,
     inscricao_publica: evento?.inscricao_publica ?? false,
     inscricao_ate: evento?.inscricao_ate ? paraCampoDataHora(evento.inscricao_ate) : '',
     vagas: evento?.vagas != null ? String(evento.vagas) : '',
-    taxa: evento ? String(evento.taxa) : '0',
+    taxa: evento ? valorParaCampo(evento.taxa) : '0,00',
   })
   const [retorno, setRetorno] = useState<Retorno>({})
   const [enviando, umaVez] = useUmaVez()
@@ -202,14 +204,20 @@ function FormEvento({ evento, associados }: { evento: Evento | null; associados:
       aria-label="Evento"
       onSubmit={(e) => {
         e.preventDefault()
+        // valores do jeito brasileiro ("1.500" é mil e quinhentos), com o mesmo leitor das outras telas
+        const orcamento = d.orcamento.trim() ? lerValor(d.orcamento) : null
+        if (d.orcamento.trim() && (orcamento === null || orcamento < 0)) return setRetorno({ erro: `Orçamento inválido. ${DICA_VALOR}.` })
+        const taxa = d.taxa.trim() ? lerValor(d.taxa) : 0
+        if (taxa === null || taxa < 0) return setRetorno({ erro: `Taxa inválida. ${DICA_VALOR}.` })
         const dados: DadosEvento = {
           ...d,
           inicio: doCampoDataHora(d.inicio),
           fim: d.fim ? doCampoDataHora(d.fim) : '',
           inscricao_ate: d.inscricao && d.inscricao_ate ? doCampoDataHora(d.inscricao_ate) : '',
           inscricao_publica: d.inscricao && d.inscricao_publica,
-          taxa: d.inscricao ? d.taxa.replace(',', '.') || '0' : '0',
-          orcamento: d.orcamento.replace(',', '.'),
+          // a taxa vai como está, mesmo sem inscrição: assim o aviso certo aparece se já houver inscritos
+          taxa: String(taxa),
+          orcamento: orcamento === null ? '' : String(orcamento),
           vagas: d.inscricao ? d.vagas : '',
         }
         void umaVez(async () => {
@@ -230,7 +238,7 @@ function FormEvento({ evento, associados }: { evento: Evento | null; associados:
         <label>
           Responsável
           <select value={d.responsavel_id} onChange={(e) => mudar({ responsavel_id: e.target.value })}>
-            <option value="">— (o secretário executivo, se houver)</option>
+            <option value="">— (sem responsável definido)</option>
             {associados.map((a) => (
               <option key={a.pessoa_id} value={a.pessoa_id}>
                 {a.nome}
@@ -260,7 +268,14 @@ function FormEvento({ evento, associados }: { evento: Evento | null; associados:
         </label>
         <label>
           Orçamento (R$) — aprovado pela assembleia
-          <input inputMode="decimal" value={d.orcamento} onChange={(e) => mudar({ orcamento: e.target.value })} placeholder="Ex.: 1500,00" />
+          <input
+            inputMode="decimal"
+            pattern={PADRAO_VALOR}
+            title={DICA_VALOR}
+            value={d.orcamento}
+            onChange={(e) => mudar({ orcamento: e.target.value })}
+            placeholder="Ex.: 1.500,00"
+          />
         </label>
       </div>
       <fieldset className="pauta-campos">
@@ -281,11 +296,11 @@ function FormEvento({ evento, associados }: { evento: Evento | null; associados:
             </label>
             <label>
               Taxa de inscrição (R$)
-              <input inputMode="decimal" value={d.taxa} onChange={(e) => mudar({ taxa: e.target.value })} />
+              <input inputMode="decimal" pattern={PADRAO_VALOR} title={DICA_VALOR} value={d.taxa} onChange={(e) => mudar({ taxa: e.target.value })} />
             </label>
             <label>
               Inscrições até
-              <input type="datetime-local" value={d.inscricao_ate} onChange={(e) => mudar({ inscricao_ate: e.target.value })} />
+              <input type="datetime-local" max={d.inicio || undefined} value={d.inscricao_ate} onChange={(e) => mudar({ inscricao_ate: e.target.value })} />
             </label>
           </div>
         )}
@@ -322,7 +337,9 @@ function ConteudoDetalhe({ id }: { id: string }) {
   const [enviando, umaVez] = useUmaVez()
   const [agora] = useState(() => Date.now())
   const concluir = (r: { erro: string | null }, sucesso: string) => {
-    setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+    // as seções de inscrição e finanças mostram a própria mensagem e mandam sucesso vazio
+    if (r.erro !== null) setRetorno({ erro: r.erro })
+    else setRetorno(sucesso ? { sucesso } : {})
     if (r.erro === null) recarregar()
   }
   return (
@@ -357,6 +374,12 @@ function ConteudoDetalhe({ id }: { id: string }) {
                   <>
                     <dt>Local</dt>
                     <dd>{e.local}</dd>
+                  </>
+                )}
+                {e.responsavel?.nome && (
+                  <>
+                    <dt>Responsável</dt>
+                    <dd>{e.responsavel.nome}</dd>
                   </>
                 )}
                 {e.inscricao && (
@@ -478,21 +501,41 @@ function MinhaInscricao({ e, agora, aoConcluir }: { e: Evento; agora: number; ao
   const [carga, recarregar] = useCarregar(() => listarInscricoes(e.id))
   const [telefone, setTelefone] = useState('')
   const [aceite, setAceite] = useState(false)
+  const [retorno, setRetorno] = useState<Retorno>({})
   const [enviando, umaVez] = useUmaVez()
   if (!perfis.includes('ministro')) return null
   const aberta = e.situacao === 'publicado' && new Date(e.inscricao_ate ?? e.inicio).getTime() > agora
+  // a mensagem fica aqui, perto do que foi feito (no celular, o alto da página fica longe)
+  const local = (r: { erro: string | null }, sucesso: string) => {
+    setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+    if (r.erro === null) {
+      recarregar()
+      aoConcluir(r, '')
+    }
+  }
   return (
     <section className="painel" aria-labelledby="titulo-minha-inscricao">
       <h2 id="titulo-minha-inscricao">Minha inscrição</h2>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(inscricoes) => {
           const minha = inscricoes.find((i) => i.pessoa_id === pessoaId && i.situacao !== 'cancelada')
           if (minha) {
             return (
-              <p>
-                Inscrição nº {minha.numero}: <strong>{NOME_DA_SITUACAO_INSCRICAO[minha.situacao]}</strong>
-                {minha.situacao === 'aguardando_pagamento' && ` — pague a taxa de ${formatarReais(minha.valor)} à tesouraria.`}
-              </p>
+              <>
+                <p>
+                  Inscrição nº {minha.numero}: <strong>{NOME_DA_SITUACAO_INSCRICAO[minha.situacao]}</strong>
+                  {minha.situacao === 'aguardando_pagamento' && ` — pague a taxa de ${formatarReais(minha.valor)} à tesouraria.`}
+                </p>
+                {!minha.pago_em && e.situacao === 'publicado' && (
+                  <BotaoConfirmarNaLinha
+                    texto="Cancelar a minha inscrição"
+                    confirmar="Confirmar — cancelar (a vaga fica livre)"
+                    desabilitado={enviando}
+                    aoConfirmar={() => void umaVez(async () => local(await cancelarInscricao(minha.id, 'Cancelada pelo inscrito'), 'Inscrição cancelada.'))}
+                  />
+                )}
+              </>
             )
           }
           if (!aberta) return <p className="vazio">As inscrições não estão abertas.</p>
@@ -504,8 +547,7 @@ function MinhaInscricao({ e, agora, aoConcluir }: { e: Evento; agora: number; ao
                 ev.preventDefault()
                 void umaVez(async () => {
                   const r = await inscrever(e.id, { nome, telefone, igreja: '', aceite })
-                  aoConcluir(r, r.erro === null ? `Inscrição nº ${r.dados.numero} feita.` : '')
-                  if (r.erro === null) recarregar()
+                  local(r, r.erro === null ? `Inscrição nº ${r.dados.numero} feita.` : '')
                 })
               }}
             >
@@ -515,7 +557,7 @@ function MinhaInscricao({ e, agora, aoConcluir }: { e: Evento; agora: number; ao
               </label>
               <label className="caixa-marcar">
                 <input type="checkbox" required checked={aceite} onChange={(ev) => setAceite(ev.target.checked)} />
-                Aceito o uso do meu nome e telefone para este evento
+                Aceito o uso do meu nome e telefone só para este evento (LGPD)
               </label>
               <button type="submit" className="botao" disabled={enviando}>
                 Quero me inscrever{e.taxa > 0 ? ` (${formatarReais(e.taxa)})` : ''}
@@ -536,7 +578,7 @@ function Orcamento({ e, aoConcluir }: { e: Evento; aoConcluir: (r: { erro: strin
   })
   const [encontro, setEncontro] = useState('')
   const [enviando, umaVez] = useUmaVez()
-  if (e.orcamento == null) return null
+  if (e.orcamento == null || e.orcamento <= 0) return null
   return (
     <section className="painel" aria-labelledby="titulo-orcamento">
       <h2 id="titulo-orcamento">Orçamento: {formatarReais(e.orcamento)}</h2>
@@ -547,7 +589,7 @@ function Orcamento({ e, aoConcluir }: { e: Evento; aoConcluir: (r: { erro: strin
       ) : (
         <>
           <p className="aviso-texto">
-            Aguardando a aprovação da assembleia (14/11/2026). Despesas só se ligam ao evento depois da aprovação.
+            Aguardando a aprovação da assembleia. Despesas só se ligam ao evento depois da aprovação.
           </p>
           {e.situacao !== 'realizado' && e.situacao !== 'cancelado' && (
             <MostrarCarga carga={carga} recarregar={recarregar}>
@@ -600,12 +642,18 @@ function Inscricoes({
   aoConcluir: (r: { erro: string | null }, s: string) => void
 }) {
   const [carga, recarregar] = useCarregar(() => listarInscricoes(e.id))
+  const [retorno, setRetorno] = useState<Retorno>({})
+  // a mensagem fica nesta seção, perto da linha em que se clicou
   const concluir = (r: { erro: string | null }, s: string) => {
-    aoConcluir(r, s)
-    if (r.erro === null) recarregar()
+    setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: s })
+    if (r.erro === null) {
+      recarregar()
+      aoConcluir(r, '')
+    }
   }
   return (
     <section className="painel" aria-labelledby="titulo-inscricoes">
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(inscricoes) => {
           const validas = inscricoes.filter((i) => i.situacao !== 'cancelada')
@@ -615,7 +663,17 @@ function Inscricoes({
                 Inscrições ({validas.length}
                 {e.vagas ? ` de ${e.vagas}` : ''})
               </h2>
-              <p className="detalhe">Nome e telefone só para este evento (LGPD). Quem pagou e quem falta, a tesouraria registra aqui.</p>
+              <p className="detalhe">
+                Nome e telefone só para este evento (LGPD). Quem pagou e quem falta, a tesouraria registra aqui. Inscrição com taxa que
+                espera o pagamento há mais de 72 horas deixa de segurar a vaga.
+              </p>
+              {podeCancelar && validas.some((i) => i.situacao === 'aguardando_pagamento' && Date.now() - new Date(i.criado_em).getTime() > 72 * 3_600_000) && (
+                <BotaoConfirmarNaLinha
+                  texto="Cancelar as inscrições sem pagamento há mais de 72 horas"
+                  confirmar="Confirmar — cancelar as que não pagaram"
+                  aoConfirmar={() => void cancelarInscricoesSemPagamento(e.id).then((r) => concluir(r, 'Inscrições sem pagamento canceladas: as vagas ficaram livres.'))}
+                />
+              )}
               {inscricoes.length === 0 ? (
                 <p className="vazio">Ninguém inscrito ainda.</p>
               ) : (
@@ -645,6 +703,7 @@ function LinhaInscricao({
   aoConcluir: (r: { erro: string | null }, s: string) => void
 }) {
   const [forma, setForma] = useState('PIX')
+  const [data, setData] = useState(hojeIso)
   const [enviando, umaVez] = useUmaVez()
   const telefone = i.telefone.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3')
   return (
@@ -666,6 +725,10 @@ function LinhaInscricao({
         <span className="form-linha">
           {podeReceber && (
             <>
+              <label className="campo-curto">
+                Pago em
+                <input type="date" max={hojeIso()} value={data} onChange={(ev) => setData(ev.target.value)} />
+              </label>
               <label>
                 Forma
                 <select value={forma} onChange={(ev) => setForma(ev.target.value)}>
@@ -679,7 +742,7 @@ function LinhaInscricao({
                 className="botao"
                 disabled={enviando}
                 onClick={() =>
-                  void umaVez(async () => aoConcluir(await registrarPagamentoInscricao(i.id, hojeIso(), forma), `Pagamento da inscrição nº ${i.numero} registrado.`))
+                  void umaVez(async () => aoConcluir(await registrarPagamentoInscricao(i.id, data, forma), `Pagamento da inscrição nº ${i.numero} registrado.`))
                 }
               >
                 Registrar o pagamento
@@ -687,26 +750,24 @@ function LinhaInscricao({
             </>
           )}
           {podeCancelar && (
-            <button
-              type="button"
-              className="botao-texto"
-              disabled={enviando}
-              onClick={() => void umaVez(async () => aoConcluir(await cancelarInscricao(i.id, 'Cancelada pela secretaria'), `Inscrição nº ${i.numero} cancelada.`))}
-            >
-              Cancelar a inscrição
-            </button>
+            <BotaoConfirmarNaLinha
+              texto="Cancelar a inscrição"
+              confirmar="Confirmar — cancelar (a vaga fica livre)"
+              desabilitado={enviando}
+              aoConfirmar={() => void umaVez(async () => aoConcluir(await cancelarInscricao(i.id, 'Cancelada pela secretaria'), `Inscrição nº ${i.numero} cancelada.`))}
+            />
           )}
         </span>
       )}
       {i.situacao === 'confirmada' && !i.pago_em && podeCancelar && (
-        <button
-          type="button"
-          className="botao-texto alinhar-esquerda"
-          disabled={enviando}
-          onClick={() => void umaVez(async () => aoConcluir(await cancelarInscricao(i.id, 'Cancelada pela secretaria'), `Inscrição nº ${i.numero} cancelada.`))}
-        >
-          Cancelar a inscrição
-        </button>
+        <span>
+          <BotaoConfirmarNaLinha
+            texto="Cancelar a inscrição"
+            confirmar="Confirmar — cancelar (a vaga fica livre)"
+            desabilitado={enviando}
+            aoConfirmar={() => void umaVez(async () => aoConcluir(await cancelarInscricao(i.id, 'Cancelada pela secretaria'), `Inscrição nº ${i.numero} cancelada.`))}
+          />
+        </span>
       )}
     </li>
   )
@@ -720,10 +781,12 @@ function Financas({ e, podeLigar, aoConcluir }: { e: Evento; podeLigar: boolean;
     return ok({ financas: financas.dados, lancamentos: lancamentos.dados })
   })
   const [lancamento, setLancamento] = useState('')
+  const [retorno, setRetorno] = useState<Retorno>({})
   const [enviando, umaVez] = useUmaVez()
   return (
     <section className="painel" aria-labelledby="titulo-financas-evento">
       <h2 id="titulo-financas-evento">Finanças do evento</h2>
+      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {({ financas, lancamentos }) => {
           const ligados = lancamentos.filter((l) => l.evento_id === e.id)
@@ -766,10 +829,11 @@ function Financas({ e, podeLigar, aoConcluir }: { e: Evento; podeLigar: boolean;
                     ev.preventDefault()
                     void umaVez(async () => {
                       const r = await ligarLancamentoEvento(lancamento, e.id)
-                      aoConcluir(r, 'Lançamento ligado ao evento.')
+                      setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Lançamento ligado ao evento.' })
                       if (r.erro === null) {
                         setLancamento('')
                         recarregar()
+                        aoConcluir(r, '')
                       }
                     })
                   }}

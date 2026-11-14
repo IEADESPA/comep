@@ -1,8 +1,8 @@
 // Fase 5.4 — Mural de avisos (todos com login leem; só a secretaria publica, e escolhe se vai para o site)
 // e o painel da presidência.
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { Aviso as Caixa, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Aviso as Caixa, BotaoConfirmarNaLinha, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { arquivarAviso, listarAvisos, painelPresidencia, salvarAviso, type Aviso, type DadosAviso } from '../../dados/avisos'
 import { formatarReais } from '../../dados/configuracoes'
 import { NOME_DO_TIPO_EVENTO, type TipoEvento } from '../../dados/eventos'
@@ -10,7 +10,7 @@ import type { Perfil } from '../../dados/perfis'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { formatarData, formatarDataDeInstante, formatarDataHora } from '../../utilitarios/formatos'
+import { formatarData, formatarDataDeInstante, formatarDataHora, hojeIso } from '../../utilitarios/formatos'
 
 function usePerfis(): readonly Perfil[] {
   const { estado } = useSessao()
@@ -18,6 +18,9 @@ function usePerfis(): readonly Perfil[] {
 }
 
 const textoWhatsApp = (a: Pick<Aviso, 'titulo' | 'texto'>) => `*${a.titulo}*\n${a.texto}\n— COMEP`
+
+/** Vencido: a validade passou (só a secretaria ainda o vê). */
+const vencido = (a: Pick<Aviso, 'valido_ate'>) => a.valido_ate !== null && a.valido_ate < hojeIso()
 
 // ---------------------------------------------------------------------
 // /avisos
@@ -76,7 +79,8 @@ function LinhaAviso({
   return (
     <li className="lista-item lista-item-estatico" aria-label={a.titulo}>
       <strong>
-        {a.fixado && <span className="etiqueta etiqueta-marca">Fixado</span>} {a.titulo}
+        {a.fixado && <span className="etiqueta etiqueta-marca">Fixado</span>}{' '}
+        {vencido(a) && <span className="etiqueta etiqueta-cancelada">Vencido (só a secretaria vê)</span>} {a.titulo}
       </strong>
       <span className="texto-edital">{a.texto}</span>
       <span className="detalhe">
@@ -93,14 +97,12 @@ function LinhaAviso({
             <button type="button" className="botao-texto" onClick={aoEditar}>
               Alterar
             </button>
-            <button
-              type="button"
-              className="botao-texto"
-              disabled={enviando}
-              onClick={() => void umaVez(async () => aoConcluir(await arquivarAviso(a.id), 'Aviso tirado do mural (fica guardado).'))}
-            >
-              Tirar do mural
-            </button>
+            <BotaoConfirmarNaLinha
+              texto="Tirar do mural"
+              confirmar="Confirmar — tirar do mural"
+              desabilitado={enviando}
+              aoConfirmar={() => void umaVez(async () => aoConcluir(await arquivarAviso(a.id), 'Aviso tirado do mural (fica guardado).'))}
+            />
           </>
         )}
       </span>
@@ -122,12 +124,18 @@ function FormAviso({
     texto: aviso?.texto ?? '',
     no_site: aviso?.no_site ?? false,
     fixado: aviso?.fixado ?? false,
-    valido_ate: aviso?.valido_ate ?? '',
+    // validade que já passou não volta (o banco recusa): fica em branco para escolher outra
+    valido_ate: aviso?.valido_ate && !vencido(aviso) ? aviso.valido_ate : '',
   })
   const [enviando, umaVez] = useUmaVez()
+  const caixa = useRef<HTMLDetailsElement>(null)
+  // ao clicar em "Alterar", o formulário (no alto) aparece na tela
+  useEffect(() => {
+    if (aviso) caixa.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [aviso])
   const mudar = (parte: Partial<DadosAviso>) => setD((atual) => ({ ...atual, ...parte }))
   return (
-    <details className="painel acao-recolhida-painel" open={aviso !== null}>
+    <details ref={caixa} className="painel acao-recolhida-painel" open={aviso !== null}>
       <summary>{aviso ? `Alterar: ${aviso.titulo}` : 'Publicar um aviso'}</summary>
       <form
         aria-label="Aviso"
@@ -180,8 +188,9 @@ function FormAviso({
 /** No Início: os avisos mais recentes (os fixados primeiro). */
 export function AvisosNoInicio() {
   const [carga] = useCarregar(listarAvisos)
-  if (carga.situacao !== 'ok' || carga.dados.length === 0) return null
-  const avisos = carga.dados.slice(0, 3)
+  if (carga.situacao !== 'ok') return null
+  const avisos = carga.dados.filter((a) => !vencido(a)).slice(0, 3)
+  if (avisos.length === 0) return null
   return (
     <section className="painel" aria-labelledby="titulo-avisos-inicio">
       <h2 id="titulo-avisos-inicio">Mural de avisos</h2>

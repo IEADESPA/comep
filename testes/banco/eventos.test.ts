@@ -136,9 +136,16 @@ describe('Fase 5.3 — eventos e projetos', () => {
         await um<{ id: string }>("insert into public.encontros (tipo, titulo, inicio, local) values ('age', 'AGE', now() + interval '40 days', 'Sede') returning id")
       ).id
       await assert.rejects(chamar(presidencia, 'select public.aprovar_orcamento_evento($1, $2)', [pago, naoInstalada]), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      // uma assembleia de antes do orçamento não serve (revisão geral da Fase 5)
+      const antiga = (
+        await um<{ id: string }>(
+          "insert into public.encontros (tipo, titulo, inicio, local, situacao, convocado_em, instalada_em) values ('ago', 'AGO antiga', now() - interval '400 days', 'Sede', 'realizado', now(), now()) returning id",
+        )
+      ).id
+      await assert.rejects(chamar(presidencia, 'select public.aprovar_orcamento_evento($1, $2)', [pago, antiga]), erroComCodigo(BLOQUEADO_PELO_BANCO))
       const instalada = (
         await um<{ id: string }>(
-          "insert into public.encontros (tipo, titulo, inicio, local, situacao, convocado_em, instalada_em) values ('ago', 'AGO', now() - interval '1 day', 'Sede', 'realizado', now(), now()) returning id",
+          "insert into public.encontros (tipo, titulo, inicio, local, situacao, convocado_em, instalada_em) values ('ago', 'AGO', now(), 'Sede', 'realizado', now(), now()) returning id",
         )
       ).id
       await chamar(presidencia, 'select public.aprovar_orcamento_evento($1, $2)', [pago, instalada])

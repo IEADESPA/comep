@@ -542,7 +542,7 @@ Roteiro de 14/11/2026: a Fase 5 começa pela igreja como instituição; as respo
 - [x] **5.2 — Comissões** permanentes e temporárias: só associados; a presidência e a secretaria criam; o coordenador cuida da sua comissão — concluída em 14/11/2026 (versão 5.0-teste.2)
 - [x] **5.3 — Eventos e projetos:** orçamento aprovado pela assembleia, lançamentos vinculados, inscrição aberta ao público pelo site e taxa por evento; o secretário executivo é o responsável — concluída em 14/11/2026 (versão 5.0-teste.3). O site ganhou a **Agenda** (primeiro passo do site vivo)
 - [x] **5.4 — Mural de avisos e painel da presidência:** só a secretaria publica e escolhe se o aviso vai ao site; envio pelo WhatsApp; painel com associados, finanças, presença, agenda e projetos — concluída em 14/11/2026 (versão 5.0-teste.4)
-- [ ] Revisão geral da Fase 5
+- [x] Revisão geral da Fase 5 — 14/11/2026 (versão 5.0-teste.5; `docs/revisoes/fase-5.md`)
 
 O lançamento em produção passou para o fim da Fase 5.5 (14/11/2026).
 
@@ -857,4 +857,5 @@ Além das travas de cada entrega, toda fase termina com uma **revisão geral ind
 | 1 — Cadastros e acessos | 12/11/2026 (entrega 1.4) | 10 correções de segurança, 3 riscos aceitos e registrados | `docs/revisoes/fase-1.md` |
 | 2 — Financeiro | 13/11/2026 | 10 problemas bloqueantes e 12 importantes corrigidos; 13 testes de regressão no banco, 17 de unidade e 1 de ponta a ponta | `docs/revisoes/fase-2.md`, seção "Revisão geral da Fase 2" |
 | 3 — Credencial | 13/11/2026 | 3 problemas bloqueantes, 5 importantes e 6 menores, mais 13 pequenos ajustes; 12 testes de regressão no banco, 3 de unidade e 2 de ponta a ponta | `docs/revisoes/fase-3.md`, seção "Revisão geral da Fase 3" |
+| 5 — Igrejas, comissões, eventos e comunicação | 14/11/2026 | 1 problema bloqueante, 7 importantes e 14 menores; 2 pendências para antes do link público (captcha e prazo de guarda das inscrições); 8 testes de regressão no banco | `docs/revisoes/fase-5.md`, seção "Revisão geral da Fase 5" |
 | 4 — Assembleias e diretoria | 14/11/2026 | 9 problemas bloqueantes, 9 importantes e 5 menores, mais 17 pequenos ajustes; 1 risco aceito (assinatura pelo perfil, a rever no lançamento); 20 testes de regressão no banco, 3 de unidade e 4 de ponta a ponta | `docs/revisoes/fase-4.md`, seção "Revisão geral da Fase 4" |

@@ -99,6 +99,46 @@ export function BotaoConfirmar({
   )
 }
 
+/** Ação sem volta, na própria linha: o primeiro clique só pergunta ("Confirmar — …" ou "Não"). */
+export function BotaoConfirmarNaLinha({
+  texto,
+  confirmar,
+  aoConfirmar,
+  desabilitado,
+}: {
+  texto: string
+  confirmar: string
+  aoConfirmar: () => void
+  desabilitado?: boolean
+}) {
+  const [perguntando, setPerguntando] = useState(false)
+  if (!perguntando) {
+    return (
+      <button type="button" className="botao-texto" disabled={desabilitado} onClick={() => setPerguntando(true)}>
+        {texto}
+      </button>
+    )
+  }
+  return (
+    <span className="confirmar-linha">
+      <button
+        type="button"
+        className="botao-texto texto-perigo"
+        disabled={desabilitado}
+        onClick={() => {
+          setPerguntando(false)
+          aoConfirmar()
+        }}
+      >
+        {confirmar}
+      </button>
+      <button type="button" className="botao-texto" onClick={() => setPerguntando(false)}>
+        Não
+      </button>
+    </span>
+  )
+}
+
 /** "Arquivar" que pergunta antes, na própria linha: o primeiro clique só pede a confirmação. */
 export function BotaoArquivar({ rotulo, aoConfirmar }: { rotulo: string; aoConfirmar: () => void }) {
   const [perguntando, setPerguntando] = useState(false)

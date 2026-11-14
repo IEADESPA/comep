@@ -25,9 +25,13 @@ test.describe('presidência', () => {
     await expect(page.getByRole('heading', { name: 'Ministros', level: 1 })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Cadastrar associado' })).toBeVisible()
 
-    // Telas das próximas fases avisam que estão em construção
-    await (await abrirMenu(page)).getByRole('link', { name: 'Projetos', exact: true }).click()
-    await expect(page.getByText('Em construção — prevista para a Fase 5')).toBeVisible()
+    // A Fase 5 completou o menu: eventos, comissões, mural e o painel da presidência
+    const completo = await abrirMenu(page)
+    for (const item of ['Eventos e projetos', 'Comissões', 'Mural de avisos', 'Painel da presidência']) {
+      await expect(completo.getByRole('link', { name: item, exact: true })).toBeVisible()
+    }
+    await completo.getByRole('link', { name: 'Eventos e projetos', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Eventos e projetos', level: 1 })).toBeVisible()
 
     await page.getByRole('button', { name: 'Sair' }).click()
     await expect(page).toHaveURL(/\/entrar$/)
