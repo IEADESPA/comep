@@ -161,10 +161,10 @@ O usuário pediu em 14/11/2026 um "site vivo": o que se lança no sistema aparec
 
 **O que entrou:**
 
-- **Página "Diretoria"** (`/diretoria`):
+- **Página "Diretoria"** (`/diretoria-do-comep`; `/diretoria` é a tela interna do sistema):
   - o Conselho Diretor e o Conselho Fiscal com mandato valendo hoje, com o cargo, o nome e o período do mandato;
   - vem do registro da diretoria no sistema: um mandato encerrado (renúncia, desligamento) sai do site na hora.
-- **Página "Igrejas"** (`/igrejas`):
+- **Página "Igrejas"** (`/igrejas-do-comep`):
   - as igrejas que têm ministros associados ativos, com o nome, a sigla, a denominação, o bairro e quantos ministros;
   - uma busca por nome, denominação ou bairro.
 - **"O COMEP hoje"** na página inicial: ministros associados, igrejas e denominações. Aparece só quando já há associados cadastrados.

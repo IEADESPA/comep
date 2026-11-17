@@ -82,8 +82,8 @@ function CabecalhoSite() {
         </Link>
         <nav className="site-menu" aria-label="Site">
           <Link to="/agenda">Agenda</Link>
-          <Link to="/diretoria">Diretoria</Link>
-          <Link to="/igrejas">Igrejas</Link>
+          <Link to="/diretoria-do-comep">Diretoria</Link>
+          <Link to="/igrejas-do-comep">Igrejas</Link>
           <Link to="/painel" className="botao botao-pequeno">
             Portal do membro
           </Link>
@@ -705,7 +705,7 @@ function AvisosDoSite() {
 // Site vivo (Fase 5.5.4): a diretoria e as igrejas, a partir do sistema (sem dados pessoais)
 // ---------------------------------------------------------------------
 
-/** /diretoria — o Conselho Diretor e o Conselho Fiscal com mandato valendo hoje. */
+/** /diretoria-do-comep — o Conselho Diretor e o Conselho Fiscal com mandato valendo hoje. */
 export function DiretoriaPagina() {
   const [carga, recarregar] = useCarregar(diretoriaPublica)
   return (
@@ -763,7 +763,7 @@ export function DiretoriaPagina() {
   )
 }
 
-/** /igrejas — as igrejas que têm ministros associados ao COMEP. */
+/** /igrejas-do-comep — as igrejas que têm ministros associados ao COMEP. */
 export function IgrejasPagina() {
   const [carga, recarregar] = useCarregar(igrejasPublicas)
   const [busca, setBusca] = useState('')
@@ -834,7 +834,7 @@ function NumerosDoComep() {
           <div>
             <dt>Igrejas</dt>
             <dd>
-              <Link to="/igrejas">{n.igrejas}</Link>
+              <Link to="/igrejas-do-comep">{n.igrejas}</Link>
             </dd>
           </div>
           <div>

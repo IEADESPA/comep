@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test'
 test('a diretoria no site: Conselho Diretor e Conselho Fiscal, sem login', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('navigation', { name: 'Site' }).getByRole('link', { name: 'Diretoria' }).click()
-  await expect(page).toHaveURL(/\/diretoria$/)
+  await expect(page).toHaveURL(/\/diretoria-do-comep$/)
   await expect(page.getByRole('heading', { name: 'Diretoria', level: 1 })).toBeVisible()
   const diretor = page.getByRole('list', { name: 'Conselho Diretor' })
   await expect(diretor).toContainText('Presidente')

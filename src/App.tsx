@@ -82,8 +82,8 @@ export default function App() {
           <Route path="convocacoes/:id" element={<ConvocacaoPublicaPagina />} />
           <Route path="agenda" element={<AgendaPagina />} />
           <Route path="agenda/:id" element={<EventoPublicoPagina />} />
-          <Route path="diretoria" element={<DiretoriaPagina />} />
-          <Route path="igrejas" element={<IgrejasPagina />} />
+          <Route path="diretoria-do-comep" element={<DiretoriaPagina />} />
+          <Route path="igrejas-do-comep" element={<IgrejasPagina />} />
 
           {/* Portal do membro (exige login) */}
           <Route element={<RotaProtegida />}>
