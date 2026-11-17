@@ -310,6 +310,11 @@ function Votacao({
           </button>
         </form>
       )}
+      {!bloqueio && !travadaPorDesligamento && (
+        <p className="detalhe">
+          Ou <Link to={`/votacoes/nova?pauta=${item.id}`}>vote pelo celular dos presentes</Link>: ao encerrar, o resultado vem para cá.
+        </p>
+      )}
       {travadaPorDesligamento && (
         <p className="detalhe">Esta votação {jubilando ? 'jubilou' : 'desligou'} um associado e não muda mais.</p>
       )}

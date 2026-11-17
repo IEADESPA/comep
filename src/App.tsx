@@ -18,6 +18,7 @@ import { DetalheComissao, EditarComissao, ListaComissoes, NovaComissao } from '.
 import { DetalheEvento, EditarEvento, ListaEventos, NovoEvento } from './telas/eventos/Eventos'
 import { MuralDeAvisos, PainelDaPresidencia } from './telas/avisos/Avisos'
 import { DetalheEmprestimo, Patrimonio } from './telas/patrimonio/Patrimonio'
+import { DetalheVotacao, EditarVotacao, ListaVotacoes, NovaVotacao } from './telas/votacoes/Votacoes'
 import { Diretoria } from './telas/diretoria/Diretoria'
 import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
@@ -126,6 +127,12 @@ export default function App() {
                 <Route path="nova" element={<NovaComissao />} />
                 <Route path=":id" element={<DetalheComissao />} />
                 <Route path=":id/editar" element={<EditarComissao />} />
+              </Route>
+              <Route path="votacoes" element={<Area caminho="/votacoes" />}>
+                <Route index element={<ListaVotacoes />} />
+                <Route path="nova" element={<NovaVotacao />} />
+                <Route path=":id" element={<DetalheVotacao />} />
+                <Route path=":id/editar" element={<EditarVotacao />} />
               </Route>
               <Route path="patrimonio" element={<Area caminho="/patrimonio" />}>
                 <Route index element={<Patrimonio />} />

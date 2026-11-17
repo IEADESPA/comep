@@ -60,3 +60,53 @@ O presidente do COMEP quer que o associado veja o benefício do que paga (14/11/
   - quem vê;
   - a retirada, a devolução com falta e a baixa;
 - ponta a ponta: `testes/e2e/patrimonio.spec.ts`. A presidência fictícia faz o caminho todo com um bem fictício fixo ("Cadeira de teste (E2E)"); o Conselho Fiscal acompanha; o ministro não vê.
+
+## Entrega 5.5.2 — Votações e enquetes on-line (versão 5.5.0-teste.2)
+
+O usuário pediu em 17/11/2026: "pode fazer as votações, enquetes", sem se preocupar com o estatuto (que só prevê a assembleia presencial). Votar pelo celular serve para ouvir os associados em alguns assuntos e para votar os itens da assembleia.
+
+**O que entrou** (menu "Votações e enquetes"):
+
+- **Enquete:**
+  - uma pergunta com opções, de 2 a 20;
+  - pode deixar escolher mais de uma ("cada um escolhe até…").
+- **Votação:**
+  - a favor, contra ou abstenção, com a maioria exigida (simples, 3/5 ou 2/3);
+  - a conta é a mesma da assembleia: sobre os votos válidos, e a abstenção não entra.
+- **Quem vota:** todos os associados, só os em dia, ou só os presentes (e em dia) numa assembleia.
+- **Voto secreto (o padrão):**
+  - o banco guarda **quem** votou (a participação), mas não **o que** votou;
+  - o voto vai direto para uma contagem por opção, numa tabela sem auditoria, sem carimbo de hora e sem ligação com a pessoa;
+  - ninguém vê a contagem antes do fim, nem quem organiza. Senão daria para descobrir o voto de quem acabou de votar;
+  - um teste confere que nem a auditoria guarda a escolha.
+- **Voto aberto:** no fim, todos veem quem votou em quê. Ele pode mostrar a parcial enquanto está aberto.
+- **Prazo (opcional):** passado o prazo, ninguém mais vota e o resultado já aparece.
+- **Na assembleia:**
+  - na condução, cada item da pauta tem o atalho "vote pelo celular dos presentes";
+  - a votação do item usa a maioria do item, e só os presentes em dia votam;
+  - só abre com a assembleia instalada, e só uma votação aberta por item;
+  - ao encerrar, o resultado vai para a votação do item (a deliberação que entra na ata) pela mesma regra da contagem à mão, inclusive o desligamento por conduta e a jubilação.
+- **O voto:** um por pessoa, sem volta. A tela pede para confirmar antes.
+- **A tela aberta se atualiza sozinha** a cada 10 segundos (a participação e, se houver, a parcial). Isso serve para o telão da assembleia.
+- **No Início:** "Vote agora", com as votações abertas em que a pessoa ainda não votou.
+
+**Decisões tomadas sem perguntar:**
+
+- **Quem organiza:** a secretaria e a presidência. Preparam, abrem, encerram e cancelam, e veem a participação (quem já votou, sem o voto).
+- **Quem vota:** só o associado ativo (o jubilado vota). A conta só de equipe, sem ser associado, não vota.
+- **Depois de aberta, a votação não se altera.** Se for preciso, cancela-se com o motivo e faz-se outra.
+- **Risco que fica:** quem tem acesso direto ao banco (o administrador técnico, pelo SQL) poderia, com muito trabalho, ligar o último voto de cada opção à última pessoa que votou, pelos registros internos do PostgreSQL. Pelo sistema, ninguém consegue.
+
+**Verificação:**
+
+- testes do banco: `testes/banco/votacoes.test.ts` (12 testes). Cobrem:
+  - quem prepara;
+  - as opções;
+  - o voto secreto, inclusive a auditoria;
+  - a parcial;
+  - o voto aberto;
+  - as maiorias;
+  - o prazo;
+  - o cancelamento;
+  - o item da pauta, com o resultado indo para a deliberação;
+- ponta a ponta: `testes/e2e/votacoes.spec.ts`. A presidência fictícia abre uma enquete secreta, o ministro fictício vota pelo Início, a presidência encerra e o ministro vê o resultado.
