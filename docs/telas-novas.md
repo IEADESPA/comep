@@ -28,7 +28,7 @@ Combinado com o usuário em 17/11/2026, para não precisar perguntar de novo.
 O site fica por **último**: ele já funciona e está aceitável.
 
 | Nº | Tela ou módulo | O que entra |
-|----|----------------|-------------|
+| --- | --- | --- |
 | 1 | **Entrar no sistema** | Entrar (e-mail e senha), primeiro acesso (código da secretaria), nova senha |
 | 2 | **Início do sistema** (logo depois de entrar) | Início da diretoria (presidência e secretaria), do ministro e do pastor presidente, e de quem ainda não tem perfil (candidato) |
 | 3 | **Meu perfil** | Dados, foto, igreja, senha, pedido de correção |
@@ -53,5 +53,9 @@ O site fica por **último**: ele já funciona e está aceitável.
 
 ## Andamento
 
-- 17/11/2026: lista combinada. **Próxima: rodada 1, Entrar no sistema.**
+- 17/11/2026: lista combinada.
+- 17/11/2026: **tela 1, Entrar no sistema — aprovada a Opção 3, "Vermelho forte"**, sem observação.
+  - Notebook: metade esquerda no vermelho do COMEP, com o símbolo grande, o nome do Conselho e a frase; o formulário fica à direita.
+  - Celular: o vermelho no alto e o formulário numa folha branca que sobe.
+- 17/11/2026: **tela 2, Início do sistema — 3 opções na página de propostas**, esperando a aprovação. As opções são mostradas para a diretoria, para o ministro e para quem ainda não tem perfil.
 - Antes disso, por engano, foi feito um quadro de design com as telas iniciais todas de uma vez ("COMEP — Telas novas"). Ele está fora do modelo combinado e não vale como proposta.
