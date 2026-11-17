@@ -1,5 +1,6 @@
 // Dados públicos do COMEP mostrados no site (PROJETO.md, decisão 14): editáveis pela diretoria.
 import { cliente, falha, ok, type Resultado } from './cliente'
+import type { Cargo } from './diretoria'
 
 export type DadosComep = {
   cnpj: string | null
@@ -50,4 +51,28 @@ export async function salvarDadosComep(dados: DadosComep): Promise<Resultado<nul
   emMemoria = null
   if (error?.code === '23514') return { dados: null, erro: 'CNPJ inválido. Confira os números ou deixe em branco.' }
   return error ? falha(error) : ok(null)
+}
+
+// ---------- Site vivo (Fase 5.5.4): a diretoria e as igrejas, a partir do sistema ----------
+
+
+export type MembroDaDiretoriaPublica = { cargo: Cargo; nome: string; inicio: string; fim: string }
+
+export async function diretoriaPublica(): Promise<Resultado<MembroDaDiretoriaPublica[]>> {
+  const { data, error } = await cliente().rpc('diretoria_publica')
+  return error ? falha(error) : ok((data ?? []) as MembroDaDiretoriaPublica[])
+}
+
+export type IgrejaPublica = { id: string; nome: string; sigla: string | null; denominacao: string | null; bairro: string | null; ministros: number }
+
+export async function igrejasPublicas(): Promise<Resultado<IgrejaPublica[]>> {
+  const { data, error } = await cliente().rpc('igrejas_publicas')
+  return error ? falha(error) : ok((data ?? []) as IgrejaPublica[])
+}
+
+export type NumerosPublicos = { ministros: number; igrejas: number; denominacoes: number }
+
+export async function numerosPublicos(): Promise<Resultado<NumerosPublicos>> {
+  const { data, error } = await cliente().rpc('numeros_publicos')
+  return error ? falha(error) : ok(data as NumerosPublicos)
 }

@@ -6,10 +6,11 @@ import { formatarReais } from '../dados/configuracoes'
 import { convocacoesPublicas, NOME_DO_TIPO, type ConvocacaoPublica } from '../dados/encontros'
 import { eventosPublicos, inscricaoAberta, inscrever, NOME_DO_TIPO_EVENTO, type EventoPublico, type InscricaoFeita } from '../dados/eventos'
 import { useUmaVez } from '../estado/useUmaVez'
-import { buscarDadosComep, type DadosComep } from '../dados/site'
+import { NOME_DO_CARGO } from '../dados/diretoria'
+import { buscarDadosComep, diretoriaPublica, igrejasPublicas, numerosPublicos, type DadosComep, type MembroDaDiretoriaPublica } from '../dados/site'
 import { useCarregar } from '../estado/useCarregar'
 import { dataPorExtenso } from '../utilitarios/encontros'
-import { formatarCnpj, formatarDataHora } from '../utilitarios/formatos'
+import { contemTexto, formatarCnpj, formatarData, formatarDataHora } from '../utilitarios/formatos'
 
 // Site institucional público. Todo o texto vem do Estatuto do COMEP (PROJETO.md, seção 13).
 // Sede, contatos e CNPJ vêm de "Configurações → Dados do COMEP no site" (decisão 14); vazio aparece "—".
@@ -81,6 +82,8 @@ function CabecalhoSite() {
         </Link>
         <nav className="site-menu" aria-label="Site">
           <Link to="/agenda">Agenda</Link>
+          <Link to="/diretoria">Diretoria</Link>
+          <Link to="/igrejas">Igrejas</Link>
           <Link to="/painel" className="botao botao-pequeno">
             Portal do membro
           </Link>
@@ -198,6 +201,8 @@ export function PaginaInicial() {
             </p>
           </div>
         </section>
+
+        <NumerosDoComep />
 
         <section className="site-secao site-secao-alt" aria-labelledby="o-que-fazemos">
           <div className="site-largura">
@@ -691,6 +696,152 @@ function AvisosDoSite() {
             </article>
           ))}
         </div>
+      </div>
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Site vivo (Fase 5.5.4): a diretoria e as igrejas, a partir do sistema (sem dados pessoais)
+// ---------------------------------------------------------------------
+
+/** /diretoria — o Conselho Diretor e o Conselho Fiscal com mandato valendo hoje. */
+export function DiretoriaPagina() {
+  const [carga, recarregar] = useCarregar(diretoriaPublica)
+  return (
+    <div className="site">
+      <CabecalhoSite />
+      <main className="site-secao">
+        <div className="site-largura site-texto">
+          <h1>Diretoria</h1>
+          <p>
+            O COMEP é dirigido pelo Conselho Diretor, eleito em Assembleia Geral, e as contas são acompanhadas pelo Conselho
+            Fiscal (Art. 12 e 14 do Estatuto).
+          </p>
+          <MostrarCarga carga={carga} recarregar={recarregar}>
+            {(membros) => {
+              if (membros.length === 0) return <p className="vazio">A diretoria ainda não foi registrada no sistema.</p>
+              const diretor = membros.filter((m) => m.cargo !== 'conselheiro_fiscal')
+              const fiscal = membros.filter((m) => m.cargo === 'conselheiro_fiscal')
+              const lista = (itens: MembroDaDiretoriaPublica[], rotulo: string) => (
+                <ul className="site-lista-pessoas" aria-label={rotulo}>
+                  {itens.map((m) => (
+                    <li key={`${m.cargo}-${m.nome}`}>
+                      <span className="site-cargo">{NOME_DO_CARGO[m.cargo]}</span>
+                      <strong>{m.nome}</strong>
+                    </li>
+                  ))}
+                </ul>
+              )
+              const inicio = membros.reduce((a, m) => (m.inicio < a ? m.inicio : a), membros[0].inicio)
+              const fim = membros.reduce((a, m) => (m.fim > a ? m.fim : a), membros[0].fim)
+              return (
+                <>
+                  {diretor.length > 0 && (
+                    <>
+                      <h2>Conselho Diretor</h2>
+                      {lista(diretor, 'Conselho Diretor')}
+                    </>
+                  )}
+                  {fiscal.length > 0 && (
+                    <>
+                      <h2>Conselho Fiscal</h2>
+                      {lista(fiscal, 'Conselho Fiscal')}
+                    </>
+                  )}
+                  <p className="detalhe">
+                    Mandato de {formatarData(inicio)} a {formatarData(fim)}.
+                  </p>
+                </>
+              )
+            }}
+          </MostrarCarga>
+        </div>
+      </main>
+      <RodapeSite />
+    </div>
+  )
+}
+
+/** /igrejas — as igrejas que têm ministros associados ao COMEP. */
+export function IgrejasPagina() {
+  const [carga, recarregar] = useCarregar(igrejasPublicas)
+  const [busca, setBusca] = useState('')
+  return (
+    <div className="site">
+      <CabecalhoSite />
+      <main className="site-secao">
+        <div className="site-largura site-texto">
+          <h1>Igrejas do COMEP</h1>
+          <p>
+            As igrejas de Parauapebas que têm pastores e líderes associados ao Conselho. Cada igreja mantém a sua autonomia; o
+            COMEP as representa e apoia.
+          </p>
+          <MostrarCarga carga={carga} recarregar={recarregar}>
+            {(igrejas) => {
+              if (igrejas.length === 0) return <p className="vazio">As igrejas aparecem aqui assim que os associados forem cadastrados.</p>
+              const filtradas = igrejas.filter((g) => contemTexto(`${g.nome} ${g.sigla ?? ''} ${g.denominacao ?? ''} ${g.bairro ?? ''}`, busca))
+              return (
+                <>
+                  <label className="busca">
+                    Procurar igreja, denominação ou bairro
+                    <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} />
+                  </label>
+                  {filtradas.length === 0 ? (
+                    <p className="vazio">Nenhuma igreja encontrada.</p>
+                  ) : (
+                    <ul className="site-lista-pessoas" aria-label="Igrejas">
+                      {filtradas.map((g) => (
+                        <li key={g.id}>
+                          <strong>
+                            {g.nome}
+                            {g.sigla && ` (${g.sigla})`}
+                          </strong>
+                          <span>
+                            {[g.denominacao, g.bairro, g.ministros === 1 ? '1 ministro associado' : `${g.ministros} ministros associados`]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )
+            }}
+          </MostrarCarga>
+        </div>
+      </main>
+      <RodapeSite />
+    </div>
+  )
+}
+
+/** Na página inicial: o tamanho do COMEP (só aparece quando já há associados cadastrados). */
+function NumerosDoComep() {
+  const [carga] = useCarregar(numerosPublicos)
+  if (carga.situacao !== 'ok' || carga.dados.ministros === 0) return null
+  const n = carga.dados
+  return (
+    <section className="site-secao" aria-labelledby="titulo-numeros">
+      <div className="site-largura">
+        <h2 id="titulo-numeros">O COMEP hoje</h2>
+        <dl className="site-numeros">
+          <div>
+            <dt>Ministros associados</dt>
+            <dd>{n.ministros}</dd>
+          </div>
+          <div>
+            <dt>Igrejas</dt>
+            <dd>
+              <Link to="/igrejas">{n.igrejas}</Link>
+            </dd>
+          </div>
+          <div>
+            <dt>Denominações</dt>
+            <dd>{n.denominacoes}</dd>
+          </div>
+        </dl>
       </div>
     </section>
   )
