@@ -18,7 +18,11 @@ Combinado com o usuário em 17/11/2026, para não precisar perguntar de novo.
 
 ## Regras que valem para todas as telas
 
-- **Colunas separadas:** o menu da esquerda é uma coluna própria e a tela da direita é outra. Cada uma rola sozinha; nunca uma tela única que rola junta. No celular, o menu vira a barra de baixo ou uma gaveta.
+- **Colunas separadas:** o menu da esquerda é uma coluna própria e a tela da direita é outra. Cada uma rola sozinha; nunca uma tela única que rola junta.
+- **Celular: a navegação fica EM CIMA, nunca numa barra embaixo** (observação geral do usuário, 17/11/2026).
+  - Por quê: embaixo ficam os botões do próprio aparelho (voltar, início, apps abertos), e a pessoa toca no errado. Vale também para o aplicativo (APK).
+  - Os botões da tela ficam na parte de cima: o cabeçalho com o sino e o botão "Menu", e as abas logo abaixo dele.
+  - "Votar" não é botão principal: o aviso de votação chega pelo sino (notificação) e pelos módulos.
 - **Cores do COMEP:** vermelho (principal), branco e cinza.
 - **Modos:** claro e escuro.
 - **Telas:** notebook e celular.
@@ -57,5 +61,11 @@ O site fica por **último**: ele já funciona e está aceitável.
 - 17/11/2026: **tela 1, Entrar no sistema — aprovada a Opção 3, "Vermelho forte"**, sem observação.
   - Notebook: metade esquerda no vermelho do COMEP, com o símbolo grande, o nome do Conselho e a frase; o formulário fica à direita.
   - Celular: o vermelho no alto e o formulário numa folha branca que sobe.
-- 17/11/2026: **tela 2, Início do sistema — 3 opções na página de propostas**, esperando a aprovação. As opções são mostradas para a diretoria, para o ministro e para quem ainda não tem perfil.
+- 17/11/2026: **tela 2, Início do sistema — aprovada a Opção 2, "Menu vermelho e blocos por assunto"**. Ela vira a **moldura do sistema**:
+  - menu da esquerda no vermelho do COMEP, com o item aberto marcado;
+  - em cima, a barra branca com busca, claro/escuro e o sino;
+  - o conteúdo em blocos: o que precisa de você, a agenda dos próximos dias e os módulos agrupados por assunto;
+  - no celular: barra vermelha em cima, com o sino, o Menu e as abas.
+  - Na observação, o usuário disse que essa tela do celular vale para todos os tipos de tela.
+- 17/11/2026: **tela 3, Meu perfil — 3 opções** (ficha com abas, tudo em blocos, lista de ajustes), esperando a aprovação.
 - Antes disso, por engano, foi feito um quadro de design com as telas iniciais todas de uma vez ("COMEP — Telas novas"). Ele está fora do modelo combinado e não vale como proposta.
