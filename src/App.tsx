@@ -17,6 +17,7 @@ import { ConducaoAssembleia } from './telas/assembleias/Conducao'
 import { DetalheComissao, EditarComissao, ListaComissoes, NovaComissao } from './telas/comissoes/Comissoes'
 import { DetalheEvento, EditarEvento, ListaEventos, NovoEvento } from './telas/eventos/Eventos'
 import { MuralDeAvisos, PainelDaPresidencia } from './telas/avisos/Avisos'
+import { DetalheEmprestimo, Patrimonio } from './telas/patrimonio/Patrimonio'
 import { Diretoria } from './telas/diretoria/Diretoria'
 import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
@@ -125,6 +126,10 @@ export default function App() {
                 <Route path="nova" element={<NovaComissao />} />
                 <Route path=":id" element={<DetalheComissao />} />
                 <Route path=":id/editar" element={<EditarComissao />} />
+              </Route>
+              <Route path="patrimonio" element={<Area caminho="/patrimonio" />}>
+                <Route index element={<Patrimonio />} />
+                <Route path="emprestimos/:id" element={<DetalheEmprestimo />} />
               </Route>
               <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>
                 <Route index element={<MinhaIgreja />} />
