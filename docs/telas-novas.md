@@ -23,6 +23,12 @@ Combinado com o usuário em 17/11/2026, para não precisar perguntar de novo.
   - Por quê: embaixo ficam os botões do próprio aparelho (voltar, início, apps abertos), e a pessoa toca no errado. Vale também para o aplicativo (APK).
   - Os botões da tela ficam na parte de cima: o cabeçalho com o sino e o botão "Menu", e as abas logo abaixo dele.
   - "Votar" não é botão principal: o aviso de votação chega pelo sino (notificação) e pelos módulos.
+- **Menu da esquerda CURTO** (17/11/2026). Só três coisas:
+  - Início;
+  - a tela que está aberta;
+  - Meu perfil.
+  - Os módulos ficam na **página inicial**. No celular, o Menu também é curto: Início, Módulos, Avisos e Meu perfil.
+- **Abas = submódulos** (17/11/2026). Ao abrir um módulo, os submódulos aparecem em abas no alto. Cada aba precisa ser desenhada e mostrada na proposta.
 - **Cores do COMEP:** vermelho (principal), branco e cinza.
 - **Modos:** claro e escuro.
 - **Telas:** notebook e celular.
@@ -73,5 +79,13 @@ O site fica por **último**: ele já funciona e está aceitável.
   - Os **módulos** entram depois, um por vez, cada um com as telas de dentro dele.
   - **Rodada 4 publicada** com as telas gerais: 3 Meu perfil, 4 Minha credencial, 5 Minhas mensalidades, 6 Minha igreja, 7 Menu do celular e avisos do sino, 8 Primeiro acesso e esqueci a senha, 9 Meu pedido de associação, 10 Validar a credencial (QR Code).
   - A tela 8 traz uma proposta só, porque segue a tela de entrar aprovada.
+- 17/11/2026: **rodada 4 aprovada.** Ficaram com ajustes pedidos:
+  - **Meu perfil:** abas, com todas desenhadas.
+  - **Credencial:** a opção 1. No notebook, frente e verso; no celular, só a frente.
+  - **Mensalidades:** a opção 1 no notebook e a opção 3 no celular.
+  - **Minha igreja:** abas, com as cinco desenhadas, inclusive a diretoria da igreja com o mandato (ministros da igreja ou nome completo) e a conferência da secretaria, e a agenda (os empréstimos do patrimônio e os eventos).
+  - **Pedido de associação:** a opção 2, com o selo da secretaria em cada documento e em cada dado. A análise termina quando tudo for aprovado.
+  - **Aprovados sem mudança:** o menu e os avisos (opção 1), o primeiro acesso e esqueci a senha, e a validação da credencial (opção 3, a credencial com carimbo).
+- 17/11/2026: **rodada 5 publicada** com esses ajustes, mais o Início com o menu curto. As abas funcionam na própria prévia.
   - Depois vêm os módulos: Ministros e inscrições, Credenciais, Igrejas, Financeiro, Patrimônio, Assembleias, Votações e enquetes, Diretoria, Comissões, Eventos e projetos, Mural de avisos, Painel da presidência e Administração. O site fica por último.
 - Antes disso, por engano, foi feito um quadro de design com as telas iniciais todas de uma vez ("COMEP — Telas novas"). Ele está fora do modelo combinado e não vale como proposta.
