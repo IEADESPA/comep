@@ -102,6 +102,8 @@ test.describe('Conselho Fiscal', () => {
 
   test('acompanha o patrimônio, mas não pede emprestado', async ({ page }) => {
     await page.goto('painel')
+    // no celular, o botão "Menu" só aparece depois que a página carrega
+    await expect(page.getByRole('heading', { name: /^Olá,/, level: 1 })).toBeVisible()
     const menu = await abrirMenu(page)
     await menu.getByRole('link', { name: 'Patrimônio', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Patrimônio', level: 1 })).toBeVisible()
@@ -118,6 +120,8 @@ test.describe('ministro', () => {
 
   test('não vê o patrimônio (é do pastor presidente e da equipe)', async ({ page }) => {
     await page.goto('painel')
+    // no celular, o botão "Menu" só aparece depois que a página carrega
+    await expect(page.getByRole('heading', { name: /^Olá,/, level: 1 })).toBeVisible()
     const menu = await abrirMenu(page)
     await expect(menu.getByRole('link', { name: 'Patrimônio', exact: true })).toHaveCount(0)
     await page.goto('patrimonio')
