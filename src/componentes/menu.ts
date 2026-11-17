@@ -64,6 +64,14 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     pronto: true,
   },
   {
+    caminho: '/votacoes',
+    titulo: 'Votações e enquetes',
+    descricao: 'Vote pelo celular: enquetes, votações e os itens da assembleia',
+    perfis: ['ministro', 'presidente_igreja', 'secretaria', 'tesouraria', 'presidencia', 'conselho_fiscal'],
+    fase: 5.5,
+    pronto: true,
+  },
+  {
     caminho: '/patrimonio',
     titulo: 'Patrimônio',
     descricao: 'Bens do COMEP e o empréstimo às igrejas, com a agenda e o termo',

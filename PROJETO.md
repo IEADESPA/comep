@@ -1,7 +1,7 @@
 # PROJETO — Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)
 
 > Documento-base do sistema. Serve para a diretoria aprovar o escopo e para orientar o desenvolvimento no VS Code (com Claude Code).
-> Versão 0.30 — 17 de novembro de 2026 — atualizado com a **entrega 5.5.1 (patrimônio e empréstimo às igrejas)**, o **lançamento depois das telas novas e do site vivo (Fase 5.5)**, o **novo roteiro (a igreja como instituição na Fase 5; a Fase 5.5 com patrimônio, assembleia on-line e telas novas)**, a **entrega 4.5 (as regras das respostas de 14/11/2026)**, as **respostas de 14/11/2026 (todas as perguntas pendentes e as da Fase 5 e do lançamento)**, a **revisão geral da Fase 4 e a Fase 4 concluída**, a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
+> Versão 0.31 — 17 de novembro de 2026 — atualizado com a **entrega 5.5.2 (votações e enquetes on-line)**, a **entrega 5.5.1 (patrimônio e empréstimo às igrejas)**, o **lançamento depois das telas novas e do site vivo (Fase 5.5)**, o **novo roteiro (a igreja como instituição na Fase 5; a Fase 5.5 com patrimônio, assembleia on-line e telas novas)**, a **entrega 4.5 (as regras das respostas de 14/11/2026)**, as **respostas de 14/11/2026 (todas as perguntas pendentes e as da Fase 5 e do lançamento)**, a **revisão geral da Fase 4 e a Fase 4 concluída**, a **entrega 4.4 (diretoria e Conselho Fiscal: mandatos e perfis pelo cargo)**, a **entrega 4.3 (quórum, votações, desligamentos e ata)**, a **entrega 4.2 (presença e faltas)**, a **entrega 4.1 (assembleias e reuniões: convocação, pauta e edital no site)**, a **revisão geral da Fase 3**, a **entrega 3.4 (editor do modelo da credencial)**, o **ajuste da credencial (impressão para dobrar e plastificar, validade por mandato, foto 3×4)**, as **entregas 3.2 e 3.3 (credencial digital, validação pelo QR Code e impressão)**, a **entrega 3.1 (dados da credencial)**, as **decisões sobre a credencial (Fase 3)**, a **revisão geral da Fase 2**, a **entrega 2.3 (prestação de contas) e a Fase 2 concluída**, a **taxa de inscrição isenta (configurável)**, a **entrega 2.2 (caixa)**, a **entrega 2.1 (contribuições)**, o **aceite da presidência**, o **novo calendário** (lançamento com dados reais depois da versão 5.0), os **dados fictícios no teste**, a **revisão geral antes do lançamento** (entrega 1.4), as **respostas da diretoria de 12/11/2026** (títulos, diretoria, dados do site), o **Estatuto do COMEP** (25/05/2021), o **portal do ministro** (entrega 1.3), o **pedido de associação e os códigos de acesso** (entrega 1.2), a **tela de Configurações** (sistema personalizável), a previsão do perfil presidente de igreja, as **primeiras respostas da diretoria** (contribuição, exercício, Conselho Fiscal, quórum, reuniões mensais e carteirinha), as cores do COMEP, a decisão de não enviar e-mails, o login só com e-mail e senha, a Fase 0 concluída e a Fase 1 dividida em entregas. Rascunho para discussão.
 >
 > - O resumo do estatuto, artigo por artigo, está na **seção 13**.
 > - As travas de revisão de cada fase estão na **seção 14**.
@@ -256,6 +256,19 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
   - **Regras configuráveis (a presidência muda), até a diretoria decidir:** antecedência do pedido (3 dias), prazo máximo (7 dias), exigir que o pastor esteja em dia (sim) e o texto do termo.
   - **Quem vê:** os bens e a agenda, quem é do COMEP; os pedidos, a equipe, o Conselho Fiscal, quem pediu e o pastor presidente da igreja. No menu: pastor presidente, secretaria, tesouraria, presidência e Conselho Fiscal.
 
+### 4.13 Votações e enquetes on-line (Fase 5.5)
+
+Pedido do usuário em 17/11/2026: votações e enquetes pelo celular, também durante a assembleia, **sem se prender ao estatuto** (que só fala em assembleia presencial).
+
+- **Enquete:** uma pergunta com opções (de 2 a 20), para ouvir os associados; pode deixar escolher mais de uma.
+- **Votação:** a favor, contra ou abstenção, com a maioria exigida (simples, 3/5 ou 2/3 dos votos válidos — a abstenção não entra, como na assembleia).
+- **Quem vota:** todos os associados, só os em dia, ou só os presentes (em dia) numa assembleia. O jubilado vota.
+- **Voto secreto (o padrão):** o sistema guarda **quem** votou, não **o que** votou. A contagem fica numa tabela sem auditoria e sem ligação com a pessoa; ninguém vê a parcial antes do fim, nem quem organiza.
+- **Voto aberto:** quando termina, todos veem quem votou em quê; pode mostrar a parcial enquanto está aberta.
+- **Na assembleia:** cada item da pauta pode ser votado pelo celular dos presentes. Ao encerrar, o resultado vai para a votação do item (deliberação e ata), com o desligamento por conduta ou a jubilação, como na contagem à mão.
+- **Quem organiza:** a secretaria e a presidência preparam, abrem, encerram e cancelam. Cada associado vota uma vez, sem volta. O prazo é opcional.
+- **No Início:** as votações abertas em que a pessoa ainda não votou ("Vote agora").
+
 ## 5. Arquitetura (100% gratuita)
 
 | Camada | Tecnologia | Observação |
@@ -312,6 +325,7 @@ Pedido de 11/11/2026: o que muda com o tempo não fica preso no código, e sim n
 - `comissoes` e `comissao_membros`
 - `projetos`
 - `avisos`
+- `votacoes`, `votacao_opcoes`, `votacao_votantes` e `votacao_apuracao` — votações e enquetes on-line; a apuração fica separada de quem votou (voto secreto) ✅ criadas (Fase 5.5)
 - `patrimonio_itens`, `patrimonio_baixas`, `emprestimos`, `emprestimo_itens` e `config_patrimonio` — os bens, as baixas, os empréstimos às igrejas e as reservas dos eventos, e as regras ✅ criadas (Fase 5.5)
 
 Todas as tabelas (menos `auditoria`, que é imutável): coluna `arquivado_em` (em vez de apagar), `criado_por`, `criado_em`, `atualizado_em`.
@@ -559,7 +573,7 @@ O lançamento em produção passou para o fim da Fase 5.5 (14/11/2026).
 Decidida em 14/11/2026: o que o sistema consegue fazer sozinho, entre a Fase 5 e a 6. **A produção só entra no fim desta fase**, já com as telas novas e o site: uma mudança só, de uma vez.
 
 - [x] **5.5.1 — Patrimônio e empréstimo às igrejas** (seção 4.12) — 17/11/2026 (versão 5.5.0-teste.1): bens com a compra no caixa, agenda, pedido do presidente de igreja com o termo de compromisso, aprovação, retirada, devolução e baixa. As regras de apoio ficam configuráveis até a diretoria decidir
-- [ ] Votação on-line em assembleia (o estatuto atual só fala em assembleia presencial com registro de presença — exige reforma do estatuto ou regimento)
+- [x] **5.5.2 — Votações e enquetes on-line** (seção 4.13) — 17/11/2026 (versão 5.5.0-teste.2): enquetes, votações com a maioria exigida, voto secreto ou aberto, prazo, e o item da pauta votado pelo celular dos presentes (o resultado vai para a ata). O usuário pediu para fazer sem se prender ao estatuto
 - [ ] Pedido de assembleia extraordinária assinado on-line pelos associados (Art. 16, §3º)
 - [ ] **Telas novas:** design moderno, cores e uso no celular e no notebook, com o sistema já completo. Referência: dois artefatos de telas feitos no Claude (um para uma igreja, outro para outra associação)
 - [ ] **Site vivo** (14/11/2026): o site institucional, hoje de uma página, ganha as páginas úteis, e o que se lança no sistema aparece no site (e vice-versa):
