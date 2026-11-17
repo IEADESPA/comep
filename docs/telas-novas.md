@@ -68,4 +68,10 @@ O site fica por **último**: ele já funciona e está aceitável.
   - no celular: barra vermelha em cima, com o sino, o Menu e as abas.
   - Na observação, o usuário disse que essa tela do celular vale para todos os tipos de tela.
 - 17/11/2026: **tela 3, Meu perfil — 3 opções** (ficha com abas, tudo em blocos, lista de ajustes), esperando a aprovação.
+- 17/11/2026: **mudança no ritmo, a pedido do usuário.**
+  - As **telas gerais** (as que não são de módulo) vêm **todas juntas numa rodada só**, para aprovar de uma vez. Uma a uma ficava lento.
+  - Os **módulos** entram depois, um por vez, cada um com as telas de dentro dele.
+  - **Rodada 4 publicada** com as telas gerais: 3 Meu perfil, 4 Minha credencial, 5 Minhas mensalidades, 6 Minha igreja, 7 Menu do celular e avisos do sino, 8 Primeiro acesso e esqueci a senha, 9 Meu pedido de associação, 10 Validar a credencial (QR Code).
+  - A tela 8 traz uma proposta só, porque segue a tela de entrar aprovada.
+  - Depois vêm os módulos: Ministros e inscrições, Credenciais, Igrejas, Financeiro, Patrimônio, Assembleias, Votações e enquetes, Diretoria, Comissões, Eventos e projetos, Mural de avisos, Painel da presidência e Administração. O site fica por último.
 - Antes disso, por engano, foi feito um quadro de design com as telas iniciais todas de uma vez ("COMEP — Telas novas"). Ele está fora do modelo combinado e não vale como proposta.
