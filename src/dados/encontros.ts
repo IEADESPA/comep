@@ -145,10 +145,12 @@ export type ConfigAssembleias = {
   /** mandato do Conselho Diretor e do Conselho Fiscal, em anos (Art. 12) */
   anos_mandato: number
   membros_conselho_fiscal: number
+  /** dias para colher as assinaturas do pedido de AGE (Art. 16, §3º) */
+  prazo_pedido_age_dias: number
 }
 
 const CAMPOS_CONFIG =
-  'antecedencia_dias, meses_ago, dia_minimo_ago, minutos_segunda_chamada, faltas_aviso, faltas_pauta, anos_mandato, membros_conselho_fiscal'
+  'antecedencia_dias, meses_ago, dia_minimo_ago, minutos_segunda_chamada, faltas_aviso, faltas_pauta, anos_mandato, membros_conselho_fiscal, prazo_pedido_age_dias'
 
 export async function buscarConfigAssembleias(): Promise<Resultado<ConfigAssembleias>> {
   const { data, error } = await cliente().from('config_assembleias').select(CAMPOS_CONFIG).single<ConfigAssembleias>()

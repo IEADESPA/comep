@@ -122,6 +122,10 @@ export function ListaEncontros() {
           </Link>
         </div>
       )}
+      <p>
+        Os associados podem pedir uma Assembleia Extraordinária (Art. 16, §3º):{' '}
+        <Link to="/assembleias/pedidos">pedidos de AGE e assinaturas</Link>.
+      </p>
       <div className="abas" role="tablist" aria-label="Quais encontros">
         {(['proximos', 'anteriores'] as const).map((m) => (
           <button
