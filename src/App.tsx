@@ -14,6 +14,7 @@ import { EditorModelo } from './telas/credencial/EditorModelo'
 import { DetalheEncontro, EditarEncontro, ListaEncontros, NovoEncontro } from './telas/assembleias/Assembleias'
 import { FaltasEJustificativas, ListaDePresenca } from './telas/assembleias/Presenca'
 import { ConducaoAssembleia } from './telas/assembleias/Conducao'
+import { DetalhePedidoAge, ListaPedidosAge, NovoPedidoAge } from './telas/assembleias/PedidosAge'
 import { DetalheComissao, EditarComissao, ListaComissoes, NovaComissao } from './telas/comissoes/Comissoes'
 import { DetalheEvento, EditarEvento, ListaEventos, NovoEvento } from './telas/eventos/Eventos'
 import { MuralDeAvisos, PainelDaPresidencia } from './telas/avisos/Avisos'
@@ -102,6 +103,9 @@ export default function App() {
                 <Route index element={<ListaEncontros />} />
                 <Route path="novo" element={<NovoEncontro />} />
                 <Route path="faltas" element={<FaltasEJustificativas />} />
+                <Route path="pedidos" element={<ListaPedidosAge />} />
+                <Route path="pedidos/novo" element={<NovoPedidoAge />} />
+                <Route path="pedidos/:id" element={<DetalhePedidoAge />} />
                 <Route path=":id" element={<DetalheEncontro />} />
                 <Route path=":id/presenca" element={<ListaDePresenca />} />
                 <Route path=":id/conducao" element={<ConducaoAssembleia />} />

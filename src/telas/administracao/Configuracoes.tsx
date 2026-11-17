@@ -1230,6 +1230,7 @@ function FormRegrasAssembleias({
         {numero('faltas_pauta', 'Faltas seguidas às assembleias para homologar o desligamento (Art. 8º, IV)', 1, 12)}
         {numero('anos_mandato', 'Mandato da diretoria e do Conselho Fiscal, em anos (Art. 12)', 1, 10)}
         {numero('membros_conselho_fiscal', 'Membros do Conselho Fiscal (Art. 14)', 1, 9)}
+        {numero('prazo_pedido_age_dias', 'Dias para colher as assinaturas do pedido de AGE (Art. 16, §3º)', 1, 180)}
       </div>
       <fieldset className="pauta-campos">
         <legend>Meses da Assembleia Geral Ordinária (Art. 16, §6º)</legend>

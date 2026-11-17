@@ -110,3 +110,47 @@ O usuário pediu em 17/11/2026: "pode fazer as votações, enquetes", sem se pre
   - o cancelamento;
   - o item da pauta, com o resultado indo para a deliberação;
 - ponta a ponta: `testes/e2e/votacoes.spec.ts`. A presidência fictícia abre uma enquete secreta, o ministro fictício vota pelo Início, a presidência encerra e o ministro vê o resultado.
+
+## Entrega 5.5.3 — Pedido de Assembleia Extraordinária on-line (versão 5.5.0-teste.3)
+
+O Art. 16, §3º diz que a AGE é pedida por 3/5 dos associados ou pela maioria simples do Conselho Diretor, sempre com a pauta. Agora o pedido e as assinaturas são feitos no sistema.
+
+**O que entrou** (em "Assembleias" → "pedidos de AGE e assinaturas"):
+
+- **Abrir o pedido:** um associado em dia (ou membro do Conselho Diretor) escreve o assunto, a justificativa e a pauta (de 1 a 20 itens). Ao abrir, ele já assina.
+- **Assinar:**
+  - os associados em dia assinam pela tela;
+  - as assinaturas ficam visíveis a quem é do COMEP, como num abaixo-assinado;
+  - enquanto o pedido colhe assinaturas, dá para retirar a sua;
+  - quem abriu pode cancelar o pedido, com o motivo.
+- **A meta:**
+  - 3/5 dos associados aptos (ativos e em dia), arredondado para cima (75 aptos → 45 assinaturas);
+  - ou mais da metade dos membros do Conselho Diretor em mandato.
+  - Atingida a meta, o pedido fica guardado com a conta daquele momento e não muda mais.
+- **O prazo** para colher as assinaturas fica nas regras das assembleias, em Configurações (30 dias). Passado o prazo sem atingir a meta, ninguém mais assina.
+- **Marcar a AGE:** atingida a meta, a presidência ou a secretaria escolhe a data e o local.
+  - A assembleia nasce em preparo, com a pauta do pedido: itens de votação por maioria simples, que a secretaria ajusta antes de convocar.
+  - O "quem pediu" vem preenchido, por exemplo: "Pedido de 3/5 dos associados (Art. 16, §3º), feito no sistema: 45 assinaturas de associados em dia, de 75 aptos (mínimo 45), em dd/mm/aaaa".
+  - A convocação segue as regras de sempre: antecedência e edital.
+- **No Início:**
+  - os pedidos que ainda esperam a assinatura da pessoa;
+  - para a presidência e a secretaria, os pedidos que atingiram a meta.
+
+**Decisões tomadas sem perguntar:**
+
+- **A base dos 3/5** são os associados aptos (ativos e em dia), a mesma do quórum (pergunta 25). Só assinam os em dia.
+- **A conta vale para hoje:** quem assinou e depois caiu em atraso deixa de contar. A tela mostra "não conta hoje" ao lado do nome.
+- **O Conselho Diretor** são os cargos da diretoria com mandato valendo hoje; o Conselho Fiscal não entra.
+- **O pedido não se altera depois de aberto.** Se precisar mudar, quem abriu cancela e abre outro.
+
+**Verificação:**
+
+- testes do banco: `testes/banco/pedidos_age.test.ts` (11 testes). Cobrem:
+  - quem abre e quem assina;
+  - assinar duas vezes e retirar a assinatura;
+  - a meta pelos associados e pelo Conselho Diretor;
+  - o prazo e o cancelamento;
+  - quem vê;
+  - marcar a AGE, com a pauta e o fundamento;
+  - a conta de hoje com quem caiu em atraso;
+- ponta a ponta: `testes/e2e/pedidos-age.spec.ts`, com o pedido fictício de `testes/dados/semente-pedido-age-teste.sql`. Os usuários fictícios dos testes não podem assinar: a presidência fictícia não é associada e o ministro fictício está em atraso de propósito. Por isso o teste confere a tela, as assinaturas e a recusa a quem está em atraso.

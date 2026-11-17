@@ -4,6 +4,7 @@ import { minhasFaltas } from '../dados/encontros'
 import { AvisosNoInicio } from './avisos/Avisos'
 import { PatrimonioNoInicio } from './patrimonio/Patrimonio'
 import { VotacoesNoInicio } from './votacoes/Votacoes'
+import { PedidosAgeNoInicio } from './assembleias/PedidosAge'
 import { useCarregar } from '../estado/useCarregar'
 import { itensVisiveis } from '../componentes/menu'
 import { NOME_DO_PERFIL } from '../dados/perfis'
@@ -53,6 +54,7 @@ export function Inicio() {
           <h1>Olá, {primeiroNome}!</h1>
           {(conta.perfis.includes('ministro') || conta.perfis.includes('presidente_igreja')) && <AvisoDeFaltas />}
           {(conta.perfis.includes('ministro') || conta.perfis.includes('presidente_igreja')) && <VotacoesNoInicio />}
+          {conta.perfis.length > 0 && <PedidosAgeNoInicio />}
           {conta.perfis.length > 0 && <AvisosNoInicio />}
           {(conta.perfis.includes('secretaria') || conta.perfis.includes('presidencia')) && <PatrimonioNoInicio />}
 
