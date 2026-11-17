@@ -39,7 +39,7 @@ test('endereço que não existe mostra "Página não encontrada"', async ({ page
 })
 
 test('nenhuma página pública fica mais larga que a tela', async ({ page }) => {
-  for (const caminho of ['./', 'associar', 'associar/pedido', 'entrar', 'primeiro-acesso', 'nova-senha']) {
+  for (const caminho of ['./', 'associar', 'associar/pedido', 'entrar', 'primeiro-acesso', 'nova-senha', 'agenda', 'diretoria-do-comep', 'igrejas-do-comep']) {
     await page.goto(caminho)
     await page.waitForLoadState('networkidle')
     const sobra = await page.evaluate(

@@ -154,3 +154,35 @@ O Art. 16, §3º diz que a AGE é pedida por 3/5 dos associados ou pela maioria 
   - marcar a AGE, com a pauta e o fundamento;
   - a conta de hoje com quem caiu em atraso;
 - ponta a ponta: `testes/e2e/pedidos-age.spec.ts`, com o pedido fictício de `testes/dados/semente-pedido-age-teste.sql`. Os usuários fictícios dos testes não podem assinar: a presidência fictícia não é associada e o ministro fictício está em atraso de propósito. Por isso o teste confere a tela, as assinaturas e a recusa a quem está em atraso.
+
+## Entrega 5.5.4 — Site vivo: a diretoria e as igrejas no site (versão 5.5.0-teste.4)
+
+O usuário pediu em 14/11/2026 um "site vivo": o que se lança no sistema aparece no site. Já apareciam as convocações, os eventos (com a inscrição pelo site) e os avisos marcados pela secretaria; o pedido de associação e a inscrição nos eventos já iam do site para o sistema.
+
+**O que entrou:**
+
+- **Página "Diretoria"** (`/diretoria-do-comep`; `/diretoria` é a tela interna do sistema):
+  - o Conselho Diretor e o Conselho Fiscal com mandato valendo hoje, com o cargo, o nome e o período do mandato;
+  - vem do registro da diretoria no sistema: um mandato encerrado (renúncia, desligamento) sai do site na hora.
+- **Página "Igrejas"** (`/igrejas-do-comep`):
+  - as igrejas que têm ministros associados ativos, com o nome, a sigla, a denominação, o bairro e quantos ministros;
+  - uma busca por nome, denominação ou bairro.
+- **"O COMEP hoje"** na página inicial: ministros associados, igrejas e denominações. Aparece só quando já há associados cadastrados.
+- **No menu do site:** Agenda, Diretoria e Igrejas.
+
+**Decisões tomadas sem perguntar (cuidado com os dados, LGPD):**
+
+- **Só vai para o site o que é institucional.** Ficam de fora:
+  - o endereço, o telefone e o CNPJ das igrejas, que elas não autorizaram publicar;
+  - o CPF, o e-mail, o telefone e a foto das pessoas.
+  - Se a diretoria quiser mostrar o contato das igrejas, o próximo passo é o pastor presidente marcar "mostrar no site" em "Minha igreja".
+- **A igreja só aparece com pelo menos um ministro associado ativo.** Uma igreja só cadastrada não é "do COMEP".
+
+**Verificação:**
+
+- testes do banco: `testes/banco/site_vivo.test.ts` (4 testes). Cobrem:
+  - quem aparece na diretoria;
+  - o mandato encerrado sai do site;
+  - quais igrejas aparecem, sem endereço nem telefone;
+  - os números;
+- ponta a ponta: `testes/e2e/site-vivo.spec.ts`, como visitante sem login.

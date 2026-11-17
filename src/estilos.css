@@ -534,8 +534,10 @@ fieldset + fieldset {
 
 .site-menu {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  justify-content: flex-end;
+  gap: 0.5rem 1rem;
 }
 
 .site-menu a:not(.botao) {
@@ -545,6 +547,7 @@ fieldset + fieldset {
 
 .site-topo-conteudo {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -2279,4 +2282,62 @@ fieldset .caixa-marcar + .caixa-marcar {
   display: block;
   height: 100%;
   background: var(--cor-marca);
+}
+
+/* Site vivo (Fase 5.5.4): diretoria, igrejas e os números do COMEP */
+.site-lista-pessoas {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+}
+
+.site-lista-pessoas li {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem 1rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+}
+
+.site-lista-pessoas li > span {
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.site-cargo {
+  color: var(--cor-marca) !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.8rem !important;
+}
+
+.site-numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.site-numeros > div {
+  padding: 1rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  text-align: center;
+}
+
+.site-numeros dt {
+  color: var(--cor-texto-suave);
+}
+
+.site-numeros dd {
+  margin: 0.25rem 0 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--cor-marca);
 }

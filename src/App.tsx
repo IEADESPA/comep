@@ -36,7 +36,16 @@ import { CriarAcessoPedido, MeuPedido } from './telas/pedido/MeuPedido'
 import { MeuPerfil } from './telas/portal/MeuPerfil'
 import { MinhaIgreja } from './telas/portal/MinhaIgreja'
 import { ConfiguracaoAusente, EmConstrucao } from './telas/Simples'
-import { AgendaPagina, ConvocacaoPublicaPagina, EventoPublicoPagina, PaginaInicial, PaginaNaoEncontrada, QueroMeAssociar } from './telas/Site'
+import {
+  AgendaPagina,
+  ConvocacaoPublicaPagina,
+  DiretoriaPagina,
+  EventoPublicoPagina,
+  IgrejasPagina,
+  PaginaInicial,
+  PaginaNaoEncontrada,
+  QueroMeAssociar,
+} from './telas/Site'
 
 // "/comep/" vira "/comep"; com VITE_BASE=/ fica sem prefixo
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
@@ -73,6 +82,8 @@ export default function App() {
           <Route path="convocacoes/:id" element={<ConvocacaoPublicaPagina />} />
           <Route path="agenda" element={<AgendaPagina />} />
           <Route path="agenda/:id" element={<EventoPublicoPagina />} />
+          <Route path="diretoria-do-comep" element={<DiretoriaPagina />} />
+          <Route path="igrejas-do-comep" element={<IgrejasPagina />} />
 
           {/* Portal do membro (exige login) */}
           <Route element={<RotaProtegida />}>
