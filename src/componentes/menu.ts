@@ -64,6 +64,14 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     pronto: true,
   },
   {
+    caminho: '/patrimonio',
+    titulo: 'Patrimônio',
+    descricao: 'Bens do COMEP e o empréstimo às igrejas, com a agenda e o termo',
+    perfis: ['presidente_igreja', 'secretaria', 'tesouraria', 'presidencia', 'conselho_fiscal'],
+    fase: 5.5,
+    pronto: true,
+  },
+  {
     caminho: '/avisos',
     titulo: 'Mural de avisos',
     descricao: 'Os avisos do Conselho (a secretaria publica)',
