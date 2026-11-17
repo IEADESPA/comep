@@ -47,7 +47,7 @@ test('enquete secreta: preparar, abrir, o ministro vota, encerrar e o resultado'
     // a presidência vê a participação, encerra e apura
     await page.reload()
     await expect(page.getByText(/^1 de \d+ pessoas? que podem? votar$/)).toBeVisible()
-    await page.getByText('Encerrar e apurar').click()
+    await page.getByText('Encerrar e apurar', { exact: true }).click()
     await page.getByRole('button', { name: 'Confirmar — encerrar e apurar' }).click()
     await expect(mensagemNaTela(page, 'Votação encerrada e apurada.')).toBeVisible()
     await expect(page.getByRole('list', { name: 'Contagem' })).toContainText('Quinta-feira: 1 voto (100%)')

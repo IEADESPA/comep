@@ -65,7 +65,7 @@ export async function buscarVotacao(id: string): Promise<Resultado<Votacao | nul
     .select(
       `id, tipo, titulo, descricao, encontro_id, pauta_id, quem_vota, secreta, max_escolhas, maioria, parcial_visivel, fecha_em, situacao,
        aberta_em, encerrada_em, deliberacao_id, motivo_cancelamento, encontro:encontros(titulo),
-       opcoes:votacao_opcoes(id, ordem, texto, arquivado_em)`,
+       opcoes:votacao_opcoes!votacao_opcoes_votacao_id_fkey(id, ordem, texto, arquivado_em)`,
     )
     .eq('id', id)
     .maybeSingle<Votacao>()
