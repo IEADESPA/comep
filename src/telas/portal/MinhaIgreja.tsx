@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router'
 import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { Icone, Ladrilho } from '../../componentes/Icone'
 import { AbasDaTela, CabecalhoTela, Chip, Selo, type Aba, type TipoSelo } from '../../componentes/Telas'
-import { buscarIgreja, type Igreja } from '../../dados/cadastros'
+import { buscarIgreja, listarIgrejas, listarTitulos, type Igreja, type Titulo } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import { listarItens, type ItemLista } from '../../dados/configuracoes'
 import { listarPedidosCorrecao, type PedidoCorrecao } from '../../dados/igrejas'
@@ -14,7 +14,7 @@ import { agendaProxima } from '../../estado/resumos'
 import { useCarregar } from '../../estado/useCarregar'
 import { diaEMes, formatarCnpj, formatarData, hojeIso } from '../../utilitarios/formatos'
 import { DiretoriaDaIgreja, DocumentosDaIgreja } from '../igrejas/InstituicaoIgreja'
-import { ListaDePedidos, PedirCorrecao } from './PedidosCorrecao'
+import { FormCorrecao, ListaDePedidos } from './PedidosCorrecao'
 
 /**
  * /minha-igreja — o pastor presidente representa a igreja diante do COMEP (14/11/2026).
@@ -38,13 +38,34 @@ export function MinhaIgreja() {
     if (ministros.erro !== null) return ministros
     const igrejaId = ministros.dados[0]?.igreja_id
     if (!igrejaId) {
-      return ok({ ministros: [] as MinistroDaMinhaIgreja[], igreja: null, bairros: [] as ItemLista[], pedidos: [] as PedidoCorrecao[] })
+      return ok({
+        ministros: [] as MinistroDaMinhaIgreja[],
+        igreja: null,
+        bairros: [] as ItemLista[],
+        pedidos: [] as PedidoCorrecao[],
+        titulos: [] as Titulo[],
+        igrejas: [] as Igreja[],
+      })
     }
-    const [igreja, bairros, pedidos] = await Promise.all([buscarIgreja(igrejaId), listarItens('bairros'), listarPedidosCorrecao()])
+    const [igreja, bairros, pedidos, titulos, igrejas] = await Promise.all([
+      buscarIgreja(igrejaId),
+      listarItens('bairros'),
+      listarPedidosCorrecao(),
+      listarTitulos(),
+      listarIgrejas(),
+    ])
     if (igreja.erro !== null) return igreja
     if (bairros.erro !== null) return bairros
     if (pedidos.erro !== null) return pedidos
-    return ok({ ministros: ministros.dados, igreja: igreja.dados, bairros: bairros.dados, pedidos: pedidos.dados })
+    return ok({
+      ministros: ministros.dados,
+      igreja: igreja.dados,
+      bairros: bairros.dados,
+      pedidos: pedidos.dados,
+      // as listas da correção (o título e a igreja certos se escolhem, não se digitam)
+      titulos: titulos.erro === null ? titulos.dados : [],
+      igrejas: igrejas.erro === null ? igrejas.dados : [],
+    })
   })
   const concluir = (r: { erro: string | null }, sucesso: string) => {
     setRetorno(r.erro !== null ? { erro: r.erro, aba } : { sucesso, aba })
@@ -56,7 +77,7 @@ export function MinhaIgreja() {
     <div className="tela-nova">
       <CabecalhoTela titulo="Minha igreja" visivel={false} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ ministros, igreja, bairros, pedidos }) =>
+        {({ ministros, igreja, bairros, pedidos, titulos, igrejas }) =>
           !igreja ? (
             <Aviso titulo="Nenhuma igreja encontrada">
               <p>
@@ -74,7 +95,14 @@ export function MinhaIgreja() {
               ) : aba === 'diretoria' ? (
                 <DiretoriaDaIgreja igrejaId={igreja.id} />
               ) : aba === 'ministros' ? (
-                <MinistrosDaIgreja ministros={ministros} pedidos={pedidos} concluir={concluir} />
+                <MinistrosDaIgreja
+                  ministros={ministros}
+                  pedidos={pedidos}
+                  titulos={titulos}
+                  igrejas={igrejas}
+                  nomeDaIgreja={igreja.nome}
+                  concluir={concluir}
+                />
               ) : aba === 'agenda' ? (
                 <AgendaDaIgreja igreja={igreja} />
               ) : (
@@ -212,10 +240,16 @@ function DadosDaIgreja({
 function MinistrosDaIgreja({
   ministros,
   pedidos,
+  titulos,
+  igrejas,
+  nomeDaIgreja,
   concluir,
 }: {
   ministros: MinistroDaMinhaIgreja[]
   pedidos: PedidoCorrecao[]
+  titulos: Titulo[]
+  igrejas: Igreja[]
+  nomeDaIgreja: string
   concluir: (r: { erro: string | null }, sucesso: string) => void
 }) {
   return (
@@ -235,7 +269,24 @@ function MinistrosDaIgreja({
                     <a href={`tel:${m.telefone.replace(/[^\d+]/g, '')}`}>{m.telefone}</a>
                   </span>
                 )}
-                <PedirCorrecao pessoaId={m.pessoa_id} rotulo={`Pedir correção no cadastro de ${m.nome}`} aoConcluir={concluir} />
+                <details className="acao-recolhida">
+                  <summary>Pedir correção no cadastro de {m.nome}</summary>
+                  <FormCorrecao
+                    pessoaId={m.pessoa_id}
+                    rotulo={`Pedir correção no cadastro de ${m.nome}`}
+                    dados={[
+                      { campo: 'nome', atual: m.nome },
+                      { campo: 'telefone', atual: m.telefone ?? '' },
+                      { campo: 'titulo', atual: m.titulo ?? '' },
+                      { campo: 'funcao', atual: m.funcao ?? '' },
+                      { campo: 'igreja', atual: nomeDaIgreja },
+                      { campo: 'email', atual: '' },
+                    ]}
+                    titulos={titulos}
+                    igrejas={igrejas}
+                    aoConcluir={concluir}
+                  />
+                </details>
               </span>
               {m.em_dia ? <Chip area="financas">Em dia</Chip> : <Chip area="pessoas">Em atraso</Chip>}
             </li>

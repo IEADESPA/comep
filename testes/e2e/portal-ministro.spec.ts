@@ -2,6 +2,7 @@
 // Dados FICTÍCIOS do banco de teste; os associados e igrejas criados aqui são arquivados no fim.
 import { expect, test } from '@playwright/test'
 import {
+  abrirFichaDoMinistro,
   arquivarAssociadoDeTeste,
   arquivoDaSessao,
   cadastrarMinistro,
@@ -170,11 +171,13 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   await expect(page.getByRole('list', { name: 'Diretoria da igreja' })).toContainText(`Presidente: ${presidente}`)
 
   await page.goto('minha-igreja/ministros')
+  // a correção é estruturada: escolhe o dado, vê como está e escolhe como deve ficar (nada de texto livre)
   await page.getByText(`Pedir correção no cadastro de ${auxiliar}`).click()
-  await page.getByRole('form', { name: `Pedir correção no cadastro de ${auxiliar}` }).getByLabel(/^O que precisa ser corrigido/).fill(
-    'O título é Presbítero (teste automático).',
-  )
-  await page.getByRole('button', { name: 'Enviar à secretaria' }).click()
+  const correcaoForm = page.getByRole('form', { name: `Pedir correção no cadastro de ${auxiliar}` })
+  await correcaoForm.getByLabel(/^O que precisa ser corrigido/).selectOption({ label: 'Título ministerial' })
+  await expect(correcaoForm.getByLabel('Como está hoje')).toHaveValue('Evangelista')
+  await correcaoForm.getByLabel(/^Como deve ficar/).selectOption({ label: 'Presbítero' })
+  await correcaoForm.getByRole('button', { name: 'Mandar para a secretaria' }).click()
   await expect(mensagemNaTela(page, 'Pedido de correção enviado à secretaria.')).toBeVisible()
   await expect(page.getByRole('list', { name: 'Pedidos de correção' })).toContainText('Esperando a secretaria')
 
@@ -187,9 +190,12 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   await expect(mensagemNaTela(page, 'Estatuto da igreja: conferido.')).toBeVisible()
   await page.goto('ministros/correcoes')
   const correcao = page.getByRole('listitem', { name: `Correção: ${auxiliar}` })
-  await expect(correcao).toContainText('O título é Presbítero')
-  await correcao.getByRole('button', { name: 'Atendido' }).click()
-  await expect(mensagemNaTela(page, `Correção de ${auxiliar}: atendida.`)).toBeVisible()
+  await expect(correcao).toContainText('Título ministerial: Evangelista → Presbítero')
+  await correcao.getByRole('button', { name: 'Aceitar' }).click()
+  await expect(mensagemNaTela(page, `Correção de ${auxiliar}: aceita e já no cadastro.`)).toBeVisible()
+  // aceita, a correção entrou sozinha no cadastro
+  await abrirFichaDoMinistro(page, auxiliar)
+  await expect(page.getByRole('region', { name: 'O ministro' })).toContainText('Presbítero')
 
   // Limpeza: arquiva os dois associados e a igreja de teste
   await arquivarAssociadoDeTeste(page, auxiliar)

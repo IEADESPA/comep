@@ -195,6 +195,9 @@ describe('Revisão de segurança antes do lançamento', () => {
     })
 
     it('"aprovado" direto, com associado de outra pessoa, é recusado', async () => {
+      for (const item of ['dados_pessoais', 'igreja_titulo', 'foto', 'comprovante']) {
+        await como(db, presidente, () => db.query('select public.conferir_item_pedido($1, $2, true, null)', [pedido, item]))
+      }
       await como(db, presidente, () =>
         db.query("update public.pedidos_associacao set situacao = 'aguardando_assembleia' where id = $1", [pedido]),
       )

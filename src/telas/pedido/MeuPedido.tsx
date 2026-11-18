@@ -4,7 +4,7 @@ import { Aviso, BotaoConfirmar, Carregando, Mensagem, MostrarCarga } from '../..
 import { listarIgrejas, listarTitulos } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import { criarLogin } from '../../dados/codigos'
-import { desistirDoPedido, meuPedido, meusDados, type Pedido } from '../../dados/pedidos'
+import { desistirDoPedido, ITENS_DO_PEDIDO, meuPedido, meusDados, type ItemPedido, type Pedido } from '../../dados/pedidos'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, formatarDataHora } from '../../utilitarios/formatos'
@@ -77,6 +77,7 @@ function ConteudoMeuPedido({ pessoaId, jaEhMinistro }: { pessoaId: string; jaEhM
               igrejas={igrejas}
               dadosPessoa={pessoa}
               pedido={correcao}
+              corrigir={correcao ? recusadosDe(correcao) : undefined}
               aoConcluir={concluido}
             />
           )
@@ -151,6 +152,11 @@ function ConteudoMeuPedido({ pessoaId, jaEhMinistro }: { pessoaId: string; jaEhM
                             <Selo tipo={item.selo.tipo}>{item.selo.texto}</Selo>
                           </span>
                         </span>
+                        {item.selo.tipo === 'recusado' && pedido.situacao === 'pendencia' && (
+                          <a href="#corrigir-pedido" className="link-forte">
+                            Enviar de novo
+                          </a>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -161,7 +167,14 @@ function ConteudoMeuPedido({ pessoaId, jaEhMinistro }: { pessoaId: string; jaEhM
                 </section>
               </div>
 
-              {pedido.situacao === 'pendencia' && formulario(pedido)}
+              {pedido.situacao === 'pendencia' && (
+                <section id="corrigir-pedido" className="aba-conteudo" aria-labelledby="titulo-corrigir">
+                  <h2 id="titulo-corrigir" className="titulo-secao">
+                    Corrigir e enviar de novo
+                  </h2>
+                  {formulario(pedido)}
+                </section>
+              )}
 
               {ABERTOS.includes(pedido.situacao) && (
                 <section className="bloco painel-perigo">
@@ -201,26 +214,27 @@ const DESTAQUE: Record<Pedido['situacao'], { titulo: string; area: Area; icone: 
   desistiu: { titulo: 'Pedido encerrado por desistência', area: 'assembleias', icone: 'x' },
 }
 
-/**
- * O que a secretaria confere. O banco ainda guarda UMA decisão para o pedido inteiro (não um selo por item):
- * o selo de cada linha segue a situação do pedido (ver docs/revisoes/fase-5.5.md, o que depende do banco).
- */
+/** O que a secretaria recusou (o candidato envia de novo só isso). */
+function recusadosDe(pedido: Pedido): ItemPedido[] {
+  return pedido.itens.filter((i) => i.situacao === 'recusado').map((i) => i.item)
+}
+
+/** O selo da secretaria em cada item do pedido (a conferência é item por item desde 18/11/2026). */
 function itensDoPedido(pedido: Pedido): { nome: string; selo: { tipo: TipoSelo; texto: string } }[] {
-  const selo: { tipo: TipoSelo; texto: string } =
-    pedido.situacao === 'aguardando_assembleia' || pedido.situacao === 'aprovado'
-      ? { tipo: 'aprovado', texto: 'Aprovado pela secretaria' }
-      : pedido.situacao === 'pendencia'
-        ? { tipo: 'recusado', texto: 'Veja a correção pedida' }
-        : pedido.situacao === 'recusado'
-          ? { tipo: 'recusado', texto: 'Recusado' }
-          : { tipo: 'analise', texto: 'Em análise' }
-  const enviado = (sim: boolean) => (sim ? selo : { tipo: 'recusado' as const, texto: 'Não enviado' })
-  return [
-    { nome: 'Dados pessoais', selo },
-    { nome: 'Igreja e título', selo },
-    { nome: 'Foto 3×4', selo: enviado(Boolean(pedido.foto_caminho)) },
-    { nome: 'Comprovante do título', selo: enviado(Boolean(pedido.comprovante_caminho)) },
-  ]
+  return ITENS_DO_PEDIDO.map(({ chave, nome }) => {
+    const conferido = pedido.itens.find((i) => i.item === chave)
+    const enviado = chave === 'foto' ? Boolean(pedido.foto_caminho) : chave === 'comprovante' ? Boolean(pedido.comprovante_caminho) : true
+    const selo: { tipo: TipoSelo; texto: string } = !enviado
+      ? { tipo: 'recusado', texto: 'Não enviado' }
+      : conferido?.situacao === 'aprovado'
+        ? { tipo: 'aprovado', texto: 'Aprovado pela secretaria' }
+        : conferido?.situacao === 'recusado'
+          ? { tipo: 'recusado', texto: `Recusado: ${conferido.motivo ?? ''}` }
+          : pedido.situacao === 'recusado' || pedido.situacao === 'desistiu'
+            ? { tipo: 'recusado', texto: 'Não conferido' }
+            : { tipo: 'analise', texto: 'Em análise' }
+    return { nome, selo }
+  })
 }
 
 /** /associar/pedido — passo 1: quem ainda não tem login cria o acesso; depois segue para /meu-pedido. */

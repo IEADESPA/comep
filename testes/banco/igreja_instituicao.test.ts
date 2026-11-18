@@ -128,18 +128,18 @@ describe('Fase 5.1 — a igreja como instituição', () => {
     })
   })
 
+  // A correção é estruturada desde a parte 4 (o dado, como está e como deve ficar): testes/banco/correcao_estruturada.test.ts
   describe('pedidos de correção no cadastro', () => {
     let pedido: string
+    const pedir = (quem: string, pessoaId: string, campo: string, valor: string) =>
+      chamar(quem, 'select public.pedir_correcao_dado($1, $2, $3, null) as id', [pessoaId, campo, valor])
 
     it('o pastor presidente pede para os ministros da sua igreja; não para os de outra; o ministro pede para si', async () => {
-      const r = await chamar(pastorA, "select public.pedir_correcao($1, 'O título está errado: é Presbítero.') as id", [pessoa[ministroA]])
+      const r = await pedir(pastorA, pessoa[ministroA], 'funcao', 'Presbítero da congregação')
       pedido = (r.rows[0] as { id: string }).id
-      await assert.rejects(
-        chamar(pastorA, "select public.pedir_correcao($1, 'Corrigir o telefone.')", [pessoa[ministroB]]),
-        erroComCodigo(SEM_PERMISSAO),
-      )
-      await chamar(ministroB, "select public.pedir_correcao($1, 'Meu nome tem acento: Sebastião.')", [pessoa[ministroB]])
-      await assert.rejects(chamar(ministroA, "select public.pedir_correcao($1, 'Corrigir.')", [pessoa[ministroB]]), erroComCodigo(SEM_PERMISSAO))
+      await assert.rejects(pedir(pastorA, pessoa[ministroB], 'telefone', '(94) 90000-0000'), erroComCodigo(SEM_PERMISSAO))
+      await pedir(ministroB, pessoa[ministroB], 'nome', 'Ministro B Sebastião')
+      await assert.rejects(pedir(ministroA, pessoa[ministroB], 'nome', 'Outro Nome Qualquer'), erroComCodigo(SEM_PERMISSAO))
     })
 
     it('quem vê: o ministro vê os pedidos sobre ele; o outro pastor não', async () => {
@@ -150,7 +150,7 @@ describe('Fase 5.1 — a igreja como instituição', () => {
     it('a secretaria atende ou recusa (com motivo); o pastor não responde', async () => {
       await assert.rejects(chamar(pastorA, "select public.responder_correcao($1, true, 'ok')", [pedido]), erroComCodigo(SEM_PERMISSAO))
       await assert.rejects(chamar(secretaria, 'select public.responder_correcao($1, false, null)', [pedido]), erroComCodigo(BLOQUEADO_PELO_BANCO))
-      await chamar(secretaria, "select public.responder_correcao($1, true, 'Título corrigido.')", [pedido])
+      await chamar(secretaria, "select public.responder_correcao($1, true, 'Função corrigida.')", [pedido])
       const p = await um<{ situacao: string }>('select situacao from public.pedidos_correcao where id = $1', [pedido])
       assert.equal(p.situacao, 'atendido')
     })

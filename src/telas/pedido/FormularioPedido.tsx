@@ -10,6 +10,7 @@ import {
   enviarPedido,
   reenviarPedido,
   type DadosPedido,
+  type ItemPedido,
   type Pedido,
 } from '../../dados/pedidos'
 import { SUGESTOES_FUNCAO } from '../../dados/associados'
@@ -25,11 +26,15 @@ type Props = {
   dadosPessoa: MeusDadosBasicos
   /** Na correção de uma pendência: o pedido atual (os arquivos já enviados continuam valendo) */
   pedido?: Pedido
+  /** Na correção: só os itens que a secretaria recusou aparecem (vazio ou sem isso: tudo) */
+  corrigir?: readonly ItemPedido[]
   aoConcluir: (mensagem: string) => void
 }
 
-export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedido, aoConcluir }: Props) {
+export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedido, corrigir, aoConcluir }: Props) {
   const correcao = Boolean(pedido)
+  // na correção, só aparece o que foi recusado (o resto continua como foi enviado)
+  const mostrar = (item: ItemPedido) => !corrigir || corrigir.length === 0 || corrigir.includes(item)
   const [nome, setNome] = useState(dadosPessoa.nome)
   const [telefone, setTelefone] = useState(dadosPessoa.telefone ?? '')
   const [identidade, setIdentidade] = useState(identidadeInicial(dadosPessoa))
@@ -129,108 +134,119 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
         void enviar()
       }}
     >
-      <fieldset>
-        <legend>Seus dados</legend>
-        <div className="grade-form">
-          <label className="largura-total">
-            Nome completo *
-            <input required autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
-          </label>
-          <label>
-            Telefone (WhatsApp) *
-            <input required type="tel" autoComplete="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
-          </label>
-          <CamposIdentidade valor={identidade} gravada={dadosPessoa} aoMudar={setIdentidade} obrigatorio />
-        </div>
-      </fieldset>
+      {mostrar('dados_pessoais') && (
+        <fieldset>
+          <legend>Seus dados</legend>
+          <div className="grade-form">
+            <label className="largura-total">
+              Nome completo *
+              <input required autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
+            </label>
+            <label>
+              Telefone (WhatsApp) *
+              <input required type="tel" autoComplete="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+            </label>
+            <CamposIdentidade valor={identidade} gravada={dadosPessoa} aoMudar={setIdentidade} obrigatorio />
+          </div>
+        </fieldset>
+      )}
 
-      <fieldset>
-        <legend>Ministério</legend>
-        <div className="grade-form">
-          <label>
-            Título ministerial *
-            <select required {...campo('titulo_id')}>
-              <option value="">— Escolha —</option>
-              {titulos.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Data de consagração
-            <input type="date" max={hojeIso()} {...campo('titulo_desde')} />
-          </label>
-          <label className="largura-total">
-            Sua igreja *
-            <select required value={escolhaIgreja} onChange={(e) => setEscolhaIgreja(e.target.value)}>
-              <option value="">— Escolha —</option>
-              {igrejas.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.nome}
-                </option>
-              ))}
-              <option value={OUTRA_IGREJA}>Minha igreja não está na lista</option>
-            </select>
-          </label>
-          {escolhaIgreja === OUTRA_IGREJA && (
-            <>
-              <label>
-                Nome da sua igreja *
-                <input required {...campo('igreja_informada')} />
-              </label>
-              <label>
-                Denominação
-                <input {...campo('denominacao_informada')} />
-              </label>
-            </>
-          )}
-          <label>
-            Função na igreja
-            <input list="sugestoes-funcao-pedido" {...campo('funcao')} />
-            <datalist id="sugestoes-funcao-pedido">
-              {SUGESTOES_FUNCAO.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
-          </label>
-          <label className="caixa-marcar largura-total">
-            <input type="checkbox" {...marcar('pastor_presidente')} />
-            Sou o pastor presidente desta igreja
-          </label>
-        </div>
-      </fieldset>
+      {mostrar('igreja_titulo') && (
+        <fieldset>
+          <legend>Ministério</legend>
+          <div className="grade-form">
+            <label>
+              Título ministerial *
+              <select required {...campo('titulo_id')}>
+                <option value="">— Escolha —</option>
+                {titulos.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Data de consagração
+              <input type="date" max={hojeIso()} {...campo('titulo_desde')} />
+            </label>
+            <label className="largura-total">
+              Sua igreja *
+              <select required value={escolhaIgreja} onChange={(e) => setEscolhaIgreja(e.target.value)}>
+                <option value="">— Escolha —</option>
+                {igrejas.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.nome}
+                  </option>
+                ))}
+                <option value={OUTRA_IGREJA}>Minha igreja não está na lista</option>
+              </select>
+            </label>
+            {escolhaIgreja === OUTRA_IGREJA && (
+              <>
+                <label>
+                  Nome da sua igreja *
+                  <input required {...campo('igreja_informada')} />
+                </label>
+                <label>
+                  Denominação
+                  <input {...campo('denominacao_informada')} />
+                </label>
+              </>
+            )}
+            <label>
+              Função na igreja
+              <input list="sugestoes-funcao-pedido" {...campo('funcao')} />
+              <datalist id="sugestoes-funcao-pedido">
+                {SUGESTOES_FUNCAO.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </label>
+            <label className="caixa-marcar largura-total">
+              <input type="checkbox" {...marcar('pastor_presidente')} />
+              Sou o pastor presidente desta igreja
+            </label>
+            <p className="detalhe largura-total">Todo ministro do COMEP é ligado a uma igreja: a igreja é obrigatória.</p>
+          </div>
+        </fieldset>
+      )}
 
-      <fieldset>
-        <legend>Documentos</legend>
-        <div className="grade-form">
-          <label>
-            Sua foto *
-            <input type="file" accept="image/*" onChange={(e) => void escolherFoto(e.target.files?.[0])} />
-            <span className="detalhe">
-              {dados.foto_caminho && !foto ? 'Foto já enviada. Escolha outra só se quiser trocar.' : 'Foto de rosto, de frente.'}
-            </span>
-          </label>
-          {previaFoto && <img className="previa-foto" src={previaFoto} alt="Prévia da sua foto" />}
-          <label>
-            Comprovante do título *
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={async (e) => {
-                const arquivo = e.target.files?.[0]
-                setComprovante(arquivo ? await prepararComprovante(arquivo) : null)
-              }}
-            />
-            <span className="detalhe">
-              {dados.comprovante_caminho && !comprovante
-                ? 'Comprovante já enviado. Escolha outro só se quiser trocar.'
-                : 'Credencial ou certificado reconhecido pela sua denominação (foto ou PDF).'}
-            </span>
-          </label>
-        </div>
-      </fieldset>
+      {(mostrar('foto') || mostrar('comprovante')) && (
+        <fieldset>
+          <legend>Documentos</legend>
+          <div className="grade-form">
+            {mostrar('foto') && (
+              <label>
+                Sua foto *
+                <input type="file" accept="image/*" onChange={(e) => void escolherFoto(e.target.files?.[0])} />
+                <span className="detalhe">
+                  {dados.foto_caminho && !foto ? 'Foto já enviada. Escolha outra só se quiser trocar.' : 'Foto de rosto, de frente.'}
+                </span>
+              </label>
+            )}
+            {previaFoto && <img className="previa-foto" src={previaFoto} alt="Prévia da sua foto" />}
+            {mostrar('comprovante') && (
+              <label>
+                Comprovante do título *
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={async (e) => {
+                    const arquivo = e.target.files?.[0]
+                    setComprovante(arquivo ? await prepararComprovante(arquivo) : null)
+                  }}
+                />
+                <span className="detalhe">
+                  {dados.comprovante_caminho && !comprovante
+                    ? 'Comprovante já enviado. Escolha outro só se quiser trocar.'
+                    : 'Credencial ou certificado reconhecido pela sua denominação (foto ou PDF).'}
+                </span>
+              </label>
+            )}
+          </div>
+        </fieldset>
+      )}
 
       <fieldset>
         <legend>Declarações</legend>

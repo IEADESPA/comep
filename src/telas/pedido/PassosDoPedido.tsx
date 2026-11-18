@@ -1,5 +1,5 @@
 import { Icone } from '../../componentes/Icone'
-import type { Pedido } from '../../dados/pedidos'
+import { ITENS_DO_PEDIDO, type Pedido } from '../../dados/pedidos'
 import { formatarData } from '../../utilitarios/formatos'
 
 // Os três passos do pedido de associação (enviado, análise da secretaria, aprovação na assembleia),
@@ -21,7 +21,14 @@ function passosDoPedido(pedido: Pedido | null): Passo[] {
   if (pedido.situacao === 'enviado' || pedido.situacao === 'pendencia') {
     return [
       enviado,
-      { titulo: analise, detalhe: pedido.situacao === 'pendencia' ? 'falta corrigir uma coisa' : 'em andamento', estado: 'agora' },
+      {
+        titulo: analise,
+        detalhe:
+          pedido.situacao === 'pendencia'
+            ? 'falta corrigir o que foi recusado'
+            : `${(pedido.itens ?? []).filter((i) => i.situacao === 'aprovado').length} de ${ITENS_DO_PEDIDO.length} itens aprovados`,
+        estado: 'agora',
+      },
       { titulo: assembleia, detalhe: 'na próxima Assembleia Ordinária', estado: 'depois' },
     ]
   }

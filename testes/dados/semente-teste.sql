@@ -216,6 +216,9 @@ begin
                                       else 'Falta a data de consagração. Corrija e reenvie.' end
       where id = v_pedido;
     elsif j between 7 and 9 then
+      -- a conferência item por item (parte 4) vem antes de mandar para a AGO
+      insert into public.pedidos_associacao_itens (pedido_id, item, situacao, conferido_em)
+      select v_pedido, unnest(interno.itens_do_pedido()), 'aprovado', now();
       update public.pedidos_associacao set situacao = 'aguardando_assembleia' where id = v_pedido;
     elsif j in (10, 11) then
       update public.pedidos_associacao
@@ -224,6 +227,8 @@ begin
                                  else 'Título não reconhecido pela denominação.' end
       where id = v_pedido;
     elsif j >= 12 then
+      insert into public.pedidos_associacao_itens (pedido_id, item, situacao, conferido_em)
+      select v_pedido, unnest(interno.itens_do_pedido()), 'aprovado', now();
       update public.pedidos_associacao set situacao = 'aguardando_assembleia' where id = v_pedido;
       perform public.aprovar_pedido(
         v_pedido,

@@ -125,23 +125,36 @@ test('pedido de associação: envia, recebe pendência, corrige, a diretoria enc
   await expect(page.getByRole('heading', { name: 'Em análise pela secretaria' })).toBeVisible()
   const candidato = await guardarSessao(page)
 
-  // 3. A presidência analisa e devolve com pendência
+  // 3. A presidência confere item por item: aprova os dados, recusa a foto (com o motivo) e devolve
   await trocarPara(page, 'presidencia')
   await page.goto('inscricoes')
   await page.getByRole('list', { name: 'Pedidos' }).getByRole('link', { name: new RegExp(nome) }).click()
-  await expect(page.getByText('Igreja Informada E2E (não cadastrada)')).toBeVisible()
+  const itens = page.getByRole('list', { name: 'Confira item por item' })
+  await expect(itens.getByRole('listitem', { name: 'Igreja e título' })).toContainText('Igreja Informada E2E (não cadastrada)')
   await expect(page.getByRole('img', { name: `Foto de ${nome}` })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Abrir comprovante do título' })).toBeVisible()
-  await page.getByText('Devolver com pendência').click()
-  await page.getByLabel(/O que o candidato precisa corrigir/).fill('Envie uma foto mais nítida.')
-  await page.getByRole('button', { name: 'Devolver' }).click()
+  await expect(page.getByText('0 de 4 conferidos')).toBeVisible()
+  // sem nada recusado, não há o que devolver; sem tudo aprovado, não vai para a AGO
+  await expect(page.getByRole('button', { name: 'Devolver ao candidato' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Mandar para a AGO' })).toBeDisabled()
+  await itens.getByRole('listitem', { name: 'Dados pessoais' }).getByRole('button', { name: 'Aprovar' }).click()
+  await expect(mensagem(page, 'Dados pessoais: aprovado.')).toBeVisible()
+  const foto = itens.getByRole('listitem', { name: 'Foto 3×4' })
+  await foto.getByRole('button', { name: 'Recusar' }).click()
+  await foto.getByLabel('Motivo *').fill('Envie uma foto mais nítida.')
+  await foto.getByRole('button', { name: 'Recusar o item' }).click()
+  await expect(mensagem(page, 'Foto 3×4: recusado.')).toBeVisible()
+  await expect(foto).toContainText('Recusado: Envie uma foto mais nítida.')
+  await page.getByRole('button', { name: 'Devolver ao candidato' }).click()
   await expect(mensagem(page, 'Pedido devolvido ao candidato.')).toBeVisible()
   const enderecoPedido = page.url()
 
-  // 4. O candidato vê a pendência, troca a foto e reenvia
+  // 4. O candidato vê o selo em cada item e envia de novo só a foto (o resto do formulário não aparece)
   await trocarPara(page, candidato)
   await page.goto('meu-pedido')
-  await expect(page.getByText('Envie uma foto mais nítida.')).toBeVisible()
+  await expect(page.getByText('Recusado: Envie uma foto mais nítida.')).toBeVisible()
+  await expect(page.getByText('Aprovado pela secretaria')).toBeVisible()
+  await expect(page.getByLabel(/^Título ministerial/)).toHaveCount(0)
   await page.getByLabel(/^Sua foto/).setInputFiles(FOTO)
   await page.getByLabel(/princípios do Art\. 7º/).check()
   await page.getByLabel(/Concordo com o estatuto/).check()
@@ -149,11 +162,18 @@ test('pedido de associação: envia, recebe pendência, corrige, a diretoria enc
   await page.getByRole('button', { name: 'Corrigir e reenviar' }).click()
   await expect(mensagem(page, 'Correção enviada.')).toBeVisible()
 
-  // 5. A presidência escolhe a igreja cadastrada, aceita a ficha e registra a aprovação da assembleia
+  // 5. A presidência aprova o que faltava, escolhe a igreja cadastrada, manda para a AGO e registra a aprovação
   await trocarPara(page, 'presidencia')
   await page.goto(enderecoPedido)
+  const conferir = page.getByRole('list', { name: 'Confira item por item' })
+  await expect(conferir.getByRole('listitem', { name: 'Dados pessoais' })).toContainText('Aprovado')
+  for (const item of ['Igreja e título', 'Foto 3×4', 'Comprovante do título']) {
+    await conferir.getByRole('listitem', { name: item }).getByRole('button', { name: 'Aprovar' }).click()
+    await expect(mensagem(page, `${item}: aprovado.`)).toBeVisible()
+  }
+  await expect(page.getByText('4 de 4 conferidos')).toBeVisible()
   await page.getByLabel(/^Igreja cadastrada do candidato/).selectOption({ label: 'Igreja Fictícia B (teste)' })
-  await page.getByRole('button', { name: 'Aceitar a ficha e encaminhar à assembleia' }).click()
+  await page.getByRole('button', { name: 'Mandar para a AGO' }).click()
   await expect(mensagem(page, 'Ficha aceita e pedido encaminhado à Assembleia Ordinária.')).toBeVisible()
   await expect(page.getByText(/Aceite do diretor/)).toBeVisible()
   await page.getByLabel('Ata', { exact: true }).fill('Ata E2E')
