@@ -93,6 +93,7 @@ export default function App() {
               <Route path="modulos" element={<Modulos />} />
               <Route path="meu-pedido" element={<MeuPedido />} />
               <Route path="meu-perfil" element={<MeuPerfil />} />
+              <Route path="meu-perfil/:aba" element={<MeuPerfil />} />
 
               <Route path="minhas-mensalidades" element={<Area caminho="/minhas-mensalidades" />}>
                 <Route index element={<MinhasMensalidades />} />
@@ -157,6 +158,7 @@ export default function App() {
               </Route>
               <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>
                 <Route index element={<MinhaIgreja />} />
+                <Route path=":aba" element={<MinhaIgreja />} />
               </Route>
 
               <Route path="inscricoes" element={<Area caminho="/inscricoes" />}>

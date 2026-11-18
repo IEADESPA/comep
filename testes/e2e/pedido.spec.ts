@@ -129,7 +129,7 @@ test('pedido de associação: envia, recebe pendência, corrige, a diretoria enc
   await page.getByLabel(/Autorizo o COMEP/).check()
   await page.getByRole('button', { name: 'Enviar pedido' }).click()
   await expect(mensagem(page, 'Pedido enviado!')).toBeVisible()
-  await expect(page.getByText('Aguardando análise da diretoria')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Em análise pela secretaria' })).toBeVisible()
   const candidato = await guardarSessao(page)
 
   // 3. A presidência analisa e devolve com pendência

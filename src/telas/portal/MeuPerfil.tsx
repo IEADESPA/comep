@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { useEffect, useId, useState } from 'react'
+import { Link, useParams } from 'react-router'
 import { Aviso, BotaoConfirmar, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { CamposIdentidade } from '../../componentes/CamposIdentidade'
-import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
+import { Icone, Ladrilho } from '../../componentes/Icone'
 import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
+import { AbasDaTela, CabecalhoTela, Chip, FotoOuIniciais, Selo, type Aba } from '../../componentes/Telas'
 import {
   buscarFicha,
   NOME_DA_FORMA_ADMISSAO,
@@ -14,7 +15,11 @@ import {
 import { listarIgrejas, type Igreja } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import { formatarReais, listarValores, NOME_DA_CATEGORIA, type ValorContribuicao } from '../../dados/configuracoes'
-import { linkDoArquivo } from '../../dados/pedidos'
+import { buscarConfigCredencial } from '../../dados/credencial'
+import { minhasFaltas, type MinhasFaltas } from '../../dados/encontros'
+import { situacaoDe, type SituacaoContribuicao } from '../../dados/financeiro'
+import { listarPedidosCorrecao, pedirCorrecao, type PedidoCorrecao } from '../../dados/igrejas'
+import { atualizarMeusDados, linkDoArquivo } from '../../dados/pedidos'
 import { NOME_DO_PERFIL, type Perfil } from '../../dados/perfis'
 import {
   buscarMeusDados,
@@ -28,20 +33,35 @@ import {
   type NovaTroca,
   type PedidoTroca,
 } from '../../dados/portal'
-import { atualizarMeusDados } from '../../dados/pedidos'
-import { listarPedidosCorrecao } from '../../dados/igrejas'
-import { ListaDePedidos, PedirCorrecao } from './PedidosCorrecao'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
-import { formatarData, hojeIso } from '../../utilitarios/formatos'
+import { useUmaVez } from '../../estado/useUmaVez'
+import { formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
+import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
 import { prepararFoto } from '../../utilitarios/imagens'
+
+// /meu-perfil — telas novas (Fase 5.5): a ficha com abas (aprovada: "a ficha com todas as abas").
+// Cada aba tem endereço próprio: /meu-perfil (Meus dados), /meu-perfil/comep, /igreja, /senha e /correcoes.
 
 type Retorno = { sucesso?: string; erro?: string }
 type Concluir = (r: { erro: string | null }, sucesso: string) => boolean
 
-/** /meu-perfil — a própria pessoa vê e corrige os seus dados (LGPD), troca a foto e a senha. */
+const ABAS_ASSOCIADO: readonly Aba[] = [
+  { para: '/meu-perfil', nome: 'Meus dados', curto: 'Dados' },
+  { para: '/meu-perfil/comep', nome: 'No COMEP' },
+  { para: '/meu-perfil/igreja', nome: 'Minha igreja', curto: 'Igreja' },
+  { para: '/meu-perfil/senha', nome: 'Senha' },
+  { para: '/meu-perfil/correcoes', nome: 'Correções' },
+]
+
+const ABAS_SEM_CADASTRO: readonly Aba[] = [
+  { para: '/meu-perfil', nome: 'Meus dados', curto: 'Dados' },
+  { para: '/meu-perfil/senha', nome: 'Senha' },
+]
+
 export function MeuPerfil() {
   const { estado } = useSessao()
+  const { aba = 'dados' } = useParams()
   if (estado.situacao !== 'logado' || estado.conta === null) return <Carregando />
   if (estado.conta.tipo !== 'ok') {
     return (
@@ -51,19 +71,22 @@ export function MeuPerfil() {
     )
   }
   const { pessoaId, perfis } = estado.conta.conta
-  return <Conteudo key={pessoaId} pessoaId={pessoaId} perfis={perfis} email={estado.sessao.email} />
+  return <Conteudo key={pessoaId} pessoaId={pessoaId} perfis={perfis} email={estado.sessao.email} aba={aba} />
 }
 
-function Conteudo({ pessoaId, perfis, email }: { pessoaId: string; perfis: Perfil[]; email: string | null }) {
+function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: Perfil[]; email: string | null; aba: string }) {
   const { recarregarConta } = useSessao()
   const [retorno, setRetorno] = useState<Retorno>({})
   const [carga, recarregar] = useCarregar(async () => {
-    const [dados, ficha, trocas, igrejas, valores] = await Promise.all([
+    const [dados, ficha, trocas, igrejas, valores, situacao, faltas, config] = await Promise.all([
       buscarMeusDados(pessoaId),
       buscarFicha(pessoaId),
       minhasTrocas(pessoaId),
       listarIgrejas(),
       listarValores(),
+      situacaoDe(pessoaId),
+      minhasFaltas(),
+      buscarConfigCredencial(),
     ])
     if (dados.erro !== null) return dados
     if (ficha.erro !== null) return ficha
@@ -76,66 +99,145 @@ function Conteudo({ pessoaId, perfis, email }: { pessoaId: string; perfis: Perfi
       trocas: trocas.dados,
       igrejas: igrejas.dados,
       valores: valores.dados.vigentes,
+      // estas três só completam a aba "No COMEP": se faltarem, a linha some
+      situacao: situacao.dados,
+      faltas: faltas.dados,
+      fimMandato: config.dados?.fim_mandato ?? null,
     })
   })
 
+  // trocou de aba: a mensagem da aba anterior não vale mais
+  const [abaDaMensagem, setAbaDaMensagem] = useState(aba)
+  const mensagem = abaDaMensagem === aba ? retorno : {}
+
   const concluir: Concluir = (r, sucesso) => {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+    setAbaDaMensagem(aba)
     if (r.erro === null) recarregar()
     return r.erro === null
   }
 
   return (
-    <>
-      <h1>Meu perfil</h1>
-      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+    <div className="tela-nova">
+      <CabecalhoTela titulo="Meu perfil" visivel={false} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ dados, ficha, trocas, igrejas, valores }) => (
+        {({ dados, ficha, trocas, igrejas, valores, situacao, faltas, fimMandato }) => (
           <>
-            <MeusDados
-              dados={dados}
-              email={email}
-              nomeTravado={ficha?.associado.situacao === 'ativo'}
-              concluir={(r, s) => {
-                const certo = concluir(r, s)
-                if (certo) recarregarConta()
-                return certo
-              }}
-            />
-            {ficha ? (
-              <>
-                <NoComep ficha={ficha} valores={valores} />
-                <PendenciasCredencial pendencias={ficha.pendencias} propria verEm="/minha-credencial" />
-                <MinhaIgrejaEHistorico ficha={ficha} trocas={trocas} igrejas={igrejas} concluir={concluir} />
-                <MinhasCorrecoes pessoaId={pessoaId} />
-              </>
+            <CabecalhoPerfil dados={dados} ficha={ficha} situacao={situacao} concluir={concluir} />
+            <AbasDaTela rotulo="Partes do meu perfil" abas={ficha ? ABAS_ASSOCIADO : ABAS_SEM_CADASTRO} />
+            <Mensagem sucesso={mensagem.sucesso} erro={mensagem.erro} />
+
+            {aba === 'senha' ? (
+              <TrocarSenha email={email} concluir={concluir} />
+            ) : ficha && aba === 'comep' ? (
+              <NoComep ficha={ficha} valores={valores} situacao={situacao} faltas={faltas} fimMandato={fimMandato} perfis={perfis} />
+            ) : ficha && aba === 'igreja' ? (
+              <MinhaIgrejaEHistorico ficha={ficha} trocas={trocas} igrejas={igrejas} concluir={concluir} />
+            ) : ficha && aba === 'correcoes' ? (
+              <MinhasCorrecoes pessoaId={pessoaId} dados={dados} ficha={ficha} />
             ) : (
-              <Aviso titulo="Você ainda não é associado">
-                <p>
-                  Quer se associar? <Link to="/meu-pedido">Faça ou acompanhe o seu pedido</Link>. Já é associado e este
-                  login não mostra o seu cadastro? Peça à secretaria um código de primeiro acesso.
-                </p>
-              </Aviso>
+              <>
+                <MeusDados
+                  dados={dados}
+                  email={email}
+                  nomeTravado={ficha?.associado.situacao === 'ativo'}
+                  concluir={(r, s) => {
+                    const certo = concluir(r, s)
+                    if (certo) recarregarConta()
+                    return certo
+                  }}
+                />
+                {ficha ? (
+                  <PendenciasCredencial pendencias={ficha.pendencias} propria verEm="/minha-credencial" />
+                ) : (
+                  <Aviso titulo="Você ainda não é associado">
+                    <p>
+                      Quer se associar? <Link to="/meu-pedido">Faça ou acompanhe o seu pedido</Link>. Já é associado e este
+                      login não mostra o seu cadastro? Peça à secretaria um código de primeiro acesso.
+                    </p>
+                  </Aviso>
+                )}
+              </>
             )}
-            <section className="painel" aria-labelledby="titulo-perfis">
-              <h2 id="titulo-perfis">Meus perfis de acesso</h2>
-              {perfis.length === 0 ? (
-                <p className="vazio">Nenhum perfil ainda.</p>
-              ) : (
-                <ul className="perfis" aria-label="Meus perfis">
-                  {perfis.map((p) => (
-                    <li key={p}>{NOME_DO_PERFIL[p]}</li>
-                  ))}
-                </ul>
-              )}
-            </section>
-            <TrocarSenha email={email} concluir={concluir} />
           </>
         )}
       </MostrarCarga>
-    </>
+    </div>
   )
 }
+
+// ---------------------------------------------------------------------
+// O alto da ficha: a foto, o nome, a igreja e as etiquetas (em dia, título, nº)
+// ---------------------------------------------------------------------
+
+function CabecalhoPerfil({
+  dados,
+  ficha,
+  situacao,
+  concluir,
+}: {
+  dados: MeusDadosCompletos
+  ficha: FichaAssociado | null
+  situacao: SituacaoContribuicao | null
+  concluir: Concluir
+}) {
+  const [foto, setFoto] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    let ativo = true
+    if (dados.foto_caminho) void linkDoArquivo(dados.foto_caminho).then((u) => ativo && setFoto(u))
+    return () => {
+      ativo = false
+    }
+  }, [dados.foto_caminho])
+
+  async function novaFoto(arquivo: File | undefined) {
+    if (!arquivo) return
+    const pronto = await prepararFoto(arquivo)
+    if ('erro' in pronto) {
+      concluir({ erro: pronto.erro }, '')
+      return
+    }
+    setEnviando(true)
+    concluir(await trocarMinhaFoto(dados.id, pronto.blob, pronto.extensao), 'Foto atualizada.')
+    setEnviando(false)
+  }
+
+  const atual = ficha?.vinculos.find((v) => v.fim === null)
+  const linhaIgreja = [atual?.funcao, atual?.igreja?.nome].filter(Boolean).join(' · ')
+  return (
+    <section className="bloco cabecalho-perfil" aria-label="Seus dados principais">
+      <FotoOuIniciais foto={foto} nome={dados.nome} largura={72} />
+      <div className="cabecalho-perfil-texto">
+        <strong className="cabecalho-perfil-nome">{dados.nome}</strong>
+        {linhaIgreja && <span className="cabecalho-perfil-igreja">{linhaIgreja}</span>}
+        {ficha && (
+          <span className="chips">
+            {situacao && (situacao.em_dia ? <Chip area="financas">Em dia</Chip> : <Chip area="pessoas">Em atraso</Chip>)}
+            {ficha.associado.titulo && <Chip area="assembleias">{ficha.associado.titulo}</Chip>}
+            <Chip area="pessoas">Nº {String(ficha.associado.numero_registro).padStart(4, '0')}</Chip>
+          </span>
+        )}
+      </div>
+      <label className="botao botao-secundario botao-arquivo botao-com-icone">
+        <Icone nome="camera" tamanho={18} />
+        {dados.foto_caminho ? 'Trocar foto' : 'Enviar foto'}
+        <input
+          type="file"
+          accept="image/*"
+          className="somente-leitor"
+          disabled={enviando}
+          onChange={(e) => void novaFoto(e.target.files?.[0])}
+        />
+      </label>
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Aba "Meus dados"
+// ---------------------------------------------------------------------
 
 function MeusDados({
   dados,
@@ -152,16 +254,8 @@ function MeusDados({
   const [nome, setNome] = useState(dados.nome)
   const [telefone, setTelefone] = useState(dados.telefone ?? '')
   const [identidade, setIdentidade] = useState(identidadeInicial(dados))
-  const [foto, setFoto] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
-
-  useEffect(() => {
-    let ativo = true
-    if (dados.foto_caminho) void linkDoArquivo(dados.foto_caminho).then((u) => ativo && setFoto(u))
-    return () => {
-      ativo = false
-    }
-  }, [dados.foto_caminho])
+  const idNome = useId()
 
   async function salvar() {
     const erro = erroDaIdentidade(identidade, false)
@@ -174,117 +268,172 @@ function MeusDados({
     setEnviando(false)
   }
 
-  async function novaFoto(arquivo: File | undefined) {
-    if (!arquivo) return
-    const pronto = await prepararFoto(arquivo)
-    if ('erro' in pronto) {
-      concluir({ erro: pronto.erro }, '')
-      return
-    }
-    setEnviando(true)
-    concluir(await trocarMinhaFoto(dados.id, pronto.blob, pronto.extensao), 'Foto atualizada.')
-    setEnviando(false)
-  }
-
   return (
-    <section className="painel" aria-labelledby="titulo-meus-dados">
-      <h2 id="titulo-meus-dados">Meus dados</h2>
-      <div className="ficha-com-foto">
-        <div className="coluna-foto">
-          {foto ? (
-            <img className="foto-ficha" src={foto} alt="Sua foto" />
-          ) : (
-            <div className="foto-ficha foto-vazia" role="img" aria-label="Sem foto" />
-          )}
-          <label className="botao botao-secundario botao-arquivo">
-            {dados.foto_caminho ? 'Trocar foto' : 'Enviar foto'}
-            <input
-              type="file"
-              accept="image/*"
-              className="somente-leitor"
-              disabled={enviando}
-              onChange={(e) => void novaFoto(e.target.files?.[0])}
-            />
-          </label>
-        </div>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void salvar()
-          }}
-        >
+    <section className="aba-conteudo" aria-labelledby="titulo-meus-dados">
+      <h2 id="titulo-meus-dados" className="somente-leitor">
+        Meus dados
+      </h2>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          void salvar()
+        }}
+      >
+        <div className="grade-form">
+          <div className="campo-com-link">
+            <span className="rotulo-com-link">
+              <label htmlFor={idNome}>Nome completo</label>
+              {nomeTravado && (
+                <Link to="/meu-perfil/correcoes" className="link-pequeno">
+                  Pedir correção
+                </Link>
+              )}
+            </span>
+            <input id={idNome} required value={nome} disabled={nomeTravado} onChange={(e) => setNome(e.target.value)} />
+          </div>
           <label>
-            Nome completo
-            <input required value={nome} disabled={nomeTravado} onChange={(e) => setNome(e.target.value)} />
-            {nomeTravado && <span className="detalhe">O nome vai na credencial: para corrigir, fale com a secretaria.</span>}
+            E-mail de login
+            <input type="email" value={email ?? ''} disabled />
           </label>
           <label>
             Telefone (WhatsApp)
             <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
           </label>
-          <label>
-            E-mail de login
-            <input type="email" value={email ?? ''} disabled />
-          </label>
           <CamposIdentidade valor={identidade} gravada={dados} aoMudar={setIdentidade} />
-          <div className="acoes">
-            <button type="submit" className="botao" disabled={enviando}>
-              Salvar meus dados
-            </button>
-          </div>
-        </form>
-      </div>
-      <p className="detalhe">
-        Pela LGPD, você pode ver e corrigir os seus dados aqui. Título, igreja e situação são mantidos pela secretaria.
-      </p>
+        </div>
+        <p className="detalhe">
+          Pela LGPD, você pode ver e corrigir os seus dados aqui. O que vai na credencial e já foi preenchido, a secretaria
+          corrige: peça na aba <Link to="/meu-perfil/correcoes">Correções</Link>.
+        </p>
+        <div className="acoes">
+          <button type="submit" className="botao" disabled={enviando}>
+            Salvar meus dados
+          </button>
+        </div>
+      </form>
     </section>
   )
 }
 
-function NoComep({ ficha, valores }: { ficha: FichaAssociado; valores: ValorContribuicao[] }) {
+// ---------------------------------------------------------------------
+// Aba "No COMEP": a situação em detalhe
+// ---------------------------------------------------------------------
+
+function NoComep({
+  ficha,
+  valores,
+  situacao,
+  faltas,
+  fimMandato,
+  perfis,
+}: {
+  ficha: FichaAssociado
+  valores: ValorContribuicao[]
+  situacao: SituacaoContribuicao | null
+  faltas: MinhasFaltas | null
+  fimMandato: string | null
+  perfis: Perfil[]
+}) {
   const { associado } = ficha
   const valor = (tipo: ValorContribuicao['tipo']) =>
     valores.find((v) => v.categoria === associado.categoria_contribuicao && v.tipo === tipo)
   const mensal = valor('mensal')
   const anual = valor('anual')
+  const tituloAtual = ficha.titulos[ficha.titulos.length - 1]
 
   return (
-    <section className="painel" aria-labelledby="titulo-no-comep">
-      <h2 id="titulo-no-comep">No COMEP</h2>
-      <dl className="definicoes">
-        <dt>Nº de registro</dt>
-        <dd>{associado.numero_registro}</dd>
-        <dt>Situação</dt>
-        <dd>{NOME_DA_SITUACAO[associado.situacao]}</dd>
-        <dt>Admissão</dt>
-        <dd>
-          {NOME_DA_FORMA_ADMISSAO[associado.forma_admissao]}
-          {associado.admitido_em && ` — ${formatarData(associado.admitido_em)}`}
-        </dd>
-        <dt>Contribuição</dt>
-        <dd>
-          {NOME_DA_CATEGORIA[associado.categoria_contribuicao]}
-          {mensal && anual && ` — ${formatarReais(mensal.valor)} por mês ou ${formatarReais(anual.valor)} por ano`}
-        </dd>
-        <dt>Título</dt>
-        <dd>{associado.titulo ?? 'Não informado'}</dd>
-      </dl>
-      {ficha.titulos.length > 1 && (
-        <>
-          <h3>Histórico de títulos</h3>
-          <ol className="historico">
-            {ficha.titulos.map((t) => (
-              <li key={t.id}>
-                {t.titulo?.nome}
-                {t.desde && ` — desde ${formatarData(t.desde)}`}
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-    </section>
+    <div className="duas-colunas">
+      <section className="bloco" aria-labelledby="titulo-no-comep">
+        <h2 id="titulo-no-comep">A sua situação no COMEP</h2>
+        <dl className="definicoes definicoes-fortes">
+          <dt>Nº de registro</dt>
+          <dd>{String(associado.numero_registro).padStart(4, '0')}</dd>
+          <dt>Situação</dt>
+          <dd>
+            {NOME_DA_SITUACAO[associado.situacao]}
+            {situacao && (situacao.em_dia ? ' · em dia' : ' · contribuição em atraso')}
+            {associado.jubilado && ' · jubilado'}
+          </dd>
+          <dt>Admissão</dt>
+          <dd>
+            {associado.admitido_em ? formatarData(associado.admitido_em) : 'Sem data'} ·{' '}
+            {NOME_DA_FORMA_ADMISSAO[associado.forma_admissao].toLowerCase()}
+          </dd>
+          <dt>Título</dt>
+          <dd>
+            {associado.titulo ?? 'Não informado'}
+            {tituloAtual?.desde && ` · desde ${formatarData(tituloAtual.desde).slice(-4)}`}
+          </dd>
+          <dt>Contribuição</dt>
+          <dd>
+            {NOME_DA_CATEGORIA[associado.categoria_contribuicao]}
+            {mensal && anual && ` — ${formatarReais(mensal.valor)} por mês ou ${formatarReais(anual.valor)} por ano`}
+          </dd>
+          <dt>Credencial</dt>
+          <dd>
+            {ficha.pendencias.length > 0
+              ? `falta completar (${ficha.pendencias.length})`
+              : fimMandato
+                ? `válida até ${formatarData(fimMandato)}`
+                : 'completa'}
+          </dd>
+          {faltas && (
+            <>
+              <dt>Faltas às assembleias</dt>
+              <dd>
+                {faltas.faltas_seguidas === 0
+                  ? 'nenhuma seguida'
+                  : faltas.faltas_seguidas === 1
+                    ? '1 falta sem justificativa aceita'
+                    : `${faltas.faltas_seguidas} seguidas, sem justificativa aceita`}
+              </dd>
+            </>
+          )}
+          <dt>Perfis no sistema</dt>
+          <dd>{perfis.length > 0 ? perfis.map((p) => NOME_DO_PERFIL[p]).join(', ') : 'nenhum'}</dd>
+        </dl>
+        {ficha.titulos.length > 1 && (
+          <>
+            <h3>Histórico de títulos</h3>
+            <ol className="historico">
+              {ficha.titulos.map((t) => (
+                <li key={t.id}>
+                  {t.titulo?.nome}
+                  {t.desde && ` — desde ${formatarData(t.desde)}`}
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+      </section>
+      <div className="coluna-atalhos">
+        <Link to="/minhas-mensalidades" className="bloco atalho-bloco">
+          <Ladrilho area="financas" icone="mensalidade" tamanho={40} />
+          <span>
+            <strong>Minhas mensalidades</strong>
+            <span>{situacao ? (situacao.em_dia ? 'Em dia' : `Em atraso: ${situacao.cobrancas_vencidas} vencida(s)`) : 'Ver as contribuições'}</span>
+          </span>
+          <Icone nome="seta" />
+        </Link>
+        <Link to="/minha-credencial" className="bloco atalho-bloco">
+          <Ladrilho area="pessoas" icone="credencial" tamanho={40} />
+          <span>
+            <strong>Minha credencial</strong>
+            <span>{fimMandato ? `Válida até ${formatarData(fimMandato)}` : 'Digital e impressão'}</span>
+          </span>
+          <Icone nome="seta" />
+        </Link>
+        <p className="detalhe">
+          Algum dado errado? Peça a correção na aba <Link to="/meu-perfil/correcoes">Correções</Link>.
+        </p>
+      </div>
+    </div>
   )
 }
+
+// ---------------------------------------------------------------------
+// Aba "Minha igreja": as igrejas (histórico) e o pedido de troca
+// ---------------------------------------------------------------------
 
 const OUTRA_IGREJA = '__outra__'
 
@@ -312,6 +461,7 @@ function MinhaIgrejaEHistorico({
     observacao: '',
   })
   const [enviando, setEnviando] = useState(false)
+  const vinculos = [...ficha.vinculos].sort((a, b) => (b.inicio ?? '').localeCompare(a.inicio ?? ''))
 
   async function pedir() {
     setEnviando(true)
@@ -324,88 +474,86 @@ function MinhaIgrejaEHistorico({
   }
 
   return (
-    <section className="painel" aria-labelledby="titulo-minha-igreja-perfil">
-      <h2 id="titulo-minha-igreja-perfil">Minha igreja</h2>
-      <p>
-        Atual: <strong>{atual?.igreja?.nome ?? 'Sem igreja'}</strong>
-        {atual?.funcao && ` — ${atual.funcao}`}
-        {atual?.pastor_presidente && <span className="etiqueta etiqueta-marca">Pastor presidente</span>}
-      </p>
-      {ficha.vinculos.length > 1 && (
-        <ol className="historico" aria-label="Histórico de igrejas">
-          {ficha.vinculos.map((v) => (
-            <li key={v.id}>
-              {v.igreja?.nome}
-              <span className="detalhe">
-                {' '}
-                {v.inicio ? formatarData(v.inicio) : '?'} a {v.fim ? formatarData(v.fim) : 'hoje'}
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
+    <div className="duas-colunas duas-iguais">
+      <section className="bloco" aria-labelledby="titulo-minhas-igrejas">
+        <h2 id="titulo-minhas-igrejas">Minhas igrejas</h2>
+        {vinculos.length === 0 ? (
+          <p className="vazio">Nenhuma igreja no cadastro.</p>
+        ) : (
+          <ul className="lista-linhas" aria-label="Histórico de igrejas">
+            {vinculos.map((v) => (
+              <li key={v.id}>
+                <Ladrilho area="pessoas" icone="igreja" tamanho={36} />
+                <span className="linha-corpo">
+                  <strong>
+                    {v.igreja?.nome}
+                    {v === atual && v.pastor_presidente && ' · pastor presidente'}
+                  </strong>
+                  <span>
+                    {[v.funcao, `${v.inicio ? formatarData(v.inicio) : '?'} ${v.fim ? `a ${formatarData(v.fim)}` : 'até hoje'}`]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      {pendente ? (
-        <div className="aviso-campo">
-          <p>
-            Pedido de troca para <strong>{pendente.igreja?.nome ?? pendente.igreja_informada}</strong>:{' '}
-            {NOME_DA_SITUACAO_TROCA.pendente.toLowerCase()}.
-          </p>
-          <BotaoConfirmar
-            texto="Cancelar o pedido de troca"
-            confirmar="Confirmar cancelamento"
-            aviso="Cancelar o pedido de troca de igreja?"
-            aoConfirmar={async () => concluir(await cancelarTroca(pendente.id), 'Pedido de troca cancelado.')}
-          />
-        </div>
-      ) : (
-        <>
-          {ultimaDecidida?.situacao === 'recusado' && (
-            <p className="detalhe">
-              O último pedido de troca (para {ultimaDecidida.igreja?.nome ?? ultimaDecidida.igreja_informada}) foi
-              recusado: {ultimaDecidida.motivo_recusa}
+      <section className="bloco" aria-labelledby="titulo-pedir-troca">
+        <h2 id="titulo-pedir-troca">Pedir troca de igreja</h2>
+        {pendente ? (
+          <div className="aviso-campo">
+            <p>
+              Pedido de troca para <strong>{pendente.igreja?.nome ?? pendente.igreja_informada}</strong>:{' '}
+              {NOME_DA_SITUACAO_TROCA.pendente.toLowerCase()}.
             </p>
-          )}
-          <details className="acao-recolhida">
-            <summary>Pedir troca de igreja</summary>
+            <BotaoConfirmar
+              texto="Cancelar o pedido de troca"
+              confirmar="Confirmar cancelamento"
+              aviso="Cancelar o pedido de troca de igreja?"
+              aoConfirmar={async () => concluir(await cancelarTroca(pendente.id), 'Pedido de troca cancelado.')}
+            />
+          </div>
+        ) : (
+          <>
+            {ultimaDecidida?.situacao === 'recusado' && (
+              <p className="detalhe">
+                O último pedido de troca (para {ultimaDecidida.igreja?.nome ?? ultimaDecidida.igreja_informada}) foi recusado:{' '}
+                {ultimaDecidida.motivo_recusa}
+              </p>
+            )}
             <form
               onSubmit={(e) => {
                 e.preventDefault()
                 void pedir()
               }}
             >
-              <div className="grade-form">
-                <label className="largura-total">
-                  Igreja nova *
-                  <select required value={escolha} onChange={(e) => setEscolha(e.target.value)}>
-                    <option value="">— Escolha —</option>
-                    {igrejas
-                      .filter((i) => i.id !== atual?.igreja_id)
-                      .map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.nome}
-                        </option>
-                      ))}
-                    <option value={OUTRA_IGREJA}>A igreja não está na lista</option>
-                  </select>
+              <label>
+                Igreja nova *
+                <select required value={escolha} onChange={(e) => setEscolha(e.target.value)}>
+                  <option value="">— Escolha a igreja —</option>
+                  {igrejas
+                    .filter((i) => i.id !== atual?.igreja_id)
+                    .map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.nome}
+                      </option>
+                    ))}
+                  <option value={OUTRA_IGREJA}>A igreja não está na lista</option>
+                </select>
+              </label>
+              {escolha === OUTRA_IGREJA && (
+                <label>
+                  Nome da igreja nova *
+                  <input required value={troca.igrejaInformada} onChange={(e) => setTroca({ ...troca, igrejaInformada: e.target.value })} />
                 </label>
-                {escolha === OUTRA_IGREJA && (
-                  <label className="largura-total">
-                    Nome da igreja nova *
-                    <input
-                      required
-                      value={troca.igrejaInformada}
-                      onChange={(e) => setTroca({ ...troca, igrejaInformada: e.target.value })}
-                    />
-                  </label>
-                )}
+              )}
+              <div className="grade-form">
                 <label>
                   Função na igreja nova
-                  <input
-                    list="sugestoes-funcao-perfil"
-                    value={troca.funcao}
-                    onChange={(e) => setTroca({ ...troca, funcao: e.target.value })}
-                  />
+                  <input list="sugestoes-funcao-perfil" value={troca.funcao} onChange={(e) => setTroca({ ...troca, funcao: e.target.value })} />
                   <datalist id="sugestoes-funcao-perfil">
                     {SUGESTOES_FUNCAO.map((s) => (
                       <option key={s} value={s} />
@@ -414,37 +562,38 @@ function MinhaIgrejaEHistorico({
                 </label>
                 <label>
                   A partir de
-                  <input
-                    type="date"
-                    value={troca.aPartirDe}
-                    onChange={(e) => setTroca({ ...troca, aPartirDe: e.target.value })}
-                  />
-                </label>
-                <label className="caixa-marcar largura-total">
-                  <input
-                    type="checkbox"
-                    checked={troca.pastorPresidente}
-                    onChange={(e) => setTroca({ ...troca, pastorPresidente: e.target.checked })}
-                  />
-                  Serei o pastor presidente da igreja nova
-                </label>
-                <label className="largura-total">
-                  Observação
-                  <input value={troca.observacao} onChange={(e) => setTroca({ ...troca, observacao: e.target.value })} />
+                  <input type="date" value={troca.aPartirDe} onChange={(e) => setTroca({ ...troca, aPartirDe: e.target.value })} />
                 </label>
               </div>
+              <label className="caixa-marcar">
+                <input
+                  type="checkbox"
+                  checked={troca.pastorPresidente}
+                  onChange={(e) => setTroca({ ...troca, pastorPresidente: e.target.checked })}
+                />
+                Serei o pastor presidente da igreja nova
+              </label>
+              <label>
+                Observação
+                <input value={troca.observacao} onChange={(e) => setTroca({ ...troca, observacao: e.target.value })} />
+              </label>
               <div className="acoes">
                 <button type="submit" className="botao" disabled={enviando}>
                   Enviar pedido de troca
                 </button>
               </div>
+              <p className="detalhe">A secretaria aprova a troca.</p>
             </form>
-          </details>
-        </>
-      )}
-    </section>
+          </>
+        )}
+      </section>
+    </div>
   )
 }
+
+// ---------------------------------------------------------------------
+// Aba "Senha"
+// ---------------------------------------------------------------------
 
 function TrocarSenha({ email, concluir }: { email: string | null; concluir: Concluir }) {
   const [atual, setAtual] = useState('')
@@ -467,10 +616,11 @@ function TrocarSenha({ email, concluir }: { email: string | null; concluir: Conc
   }
 
   return (
-    <section className="painel" aria-labelledby="titulo-senha">
-      <h2 id="titulo-senha">Trocar a senha</h2>
+    <section className="aba-conteudo aba-estreita" aria-labelledby="titulo-senha">
+      <h2 id="titulo-senha" className="somente-leitor">
+        Trocar a senha
+      </h2>
       <form
-        className="form-linha"
         onSubmit={(e) => {
           e.preventDefault()
           void trocar()
@@ -478,13 +628,7 @@ function TrocarSenha({ email, concluir }: { email: string | null; concluir: Conc
       >
         <label>
           Senha atual
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={atual}
-            onChange={(e) => setAtual(e.target.value)}
-          />
+          <input type="password" autoComplete="current-password" required value={atual} onChange={(e) => setAtual(e.target.value)} />
         </label>
         <label>
           Senha nova
@@ -507,36 +651,143 @@ function TrocarSenha({ email, concluir }: { email: string | null; concluir: Conc
             onChange={(e) => setConfirmacao(e.target.value)}
           />
         </label>
-        <button type="submit" className="botao" disabled={enviando}>
-          Trocar senha
-        </button>
+        <p className="detalhe">Use pelo menos 8 caracteres, com letras e números.</p>
+        <Mensagem erro={erro} />
+        <div className="acoes">
+          <button type="submit" className="botao" disabled={enviando}>
+            Trocar a senha
+          </button>
+        </div>
       </form>
-      <p className="detalhe">Pelo menos 8 caracteres, com letras e números.</p>
-      <Mensagem erro={erro} />
     </section>
   )
 }
 
-/** Pedir à secretaria que corrija algo no próprio cadastro (o nome, por exemplo, só a secretaria corrige). */
-function MinhasCorrecoes({ pessoaId }: { pessoaId: string }) {
+// ---------------------------------------------------------------------
+// Aba "Correções": escolher o dado, ver como está e dizer como deve ficar
+// (o banco ainda guarda o pedido como texto: a secretaria corrige à mão — ver docs/revisoes/fase-5.5.md)
+// ---------------------------------------------------------------------
+
+type DadoCorrigivel = { chave: string; rotulo: string; atual: string }
+
+function dadosCorrigiveis(dados: MeusDadosCompletos, ficha: FichaAssociado): DadoCorrigivel[] {
+  const atual = ficha.vinculos.find((v) => v.fim === null)
+  const lista: DadoCorrigivel[] = [
+    { chave: 'nome', rotulo: 'Nome completo', atual: dados.nome },
+    { chave: 'cpf', rotulo: 'CPF', atual: dados.cpf ?? '' },
+    { chave: 'nome_mae', rotulo: 'Nome da mãe', atual: dados.nome_mae ?? '' },
+    { chave: 'nome_pai', rotulo: 'Nome do pai', atual: dados.nome_pai ?? '' },
+    { chave: 'titulo', rotulo: 'Título ministerial', atual: ficha.associado.titulo ?? '' },
+    { chave: 'funcao', rotulo: 'Função na igreja', atual: atual?.funcao ?? '' },
+    {
+      chave: 'admissao',
+      rotulo: 'Data de admissão no COMEP',
+      atual: ficha.associado.admitido_em ? formatarData(ficha.associado.admitido_em) : '',
+    },
+  ]
+  return lista
+}
+
+function seloDoPedido(p: PedidoCorrecao) {
+  if (p.situacao === 'atendido') {
+    return <Selo tipo="aprovado">Aceita{p.respondido_em ? ` em ${formatarDataDeInstante(p.respondido_em)}` : ''}</Selo>
+  }
+  if (p.situacao === 'recusado') return <Selo tipo="recusado">Recusada{p.resposta ? `: ${p.resposta}` : ''}</Selo>
+  return <Selo tipo="analise">Esperando a secretaria</Selo>
+}
+
+function MinhasCorrecoes({ pessoaId, dados, ficha }: { pessoaId: string; dados: MeusDadosCompletos; ficha: FichaAssociado }) {
   const [carga, recarregar] = useCarregar(() => listarPedidosCorrecao({ pessoaId }))
+  const opcoes = dadosCorrigiveis(dados, ficha)
+  const [qual, setQual] = useState(opcoes[0].chave)
+  const [novo, setNovo] = useState('')
   const [retorno, setRetorno] = useState<Retorno>({})
+  const [enviando, umaVez] = useUmaVez()
+  const escolhido = opcoes.find((o) => o.chave === qual) ?? opcoes[0]
+
+  async function enviar() {
+    const valor = novo.trim()
+    if (!valor) return setRetorno({ erro: 'Escreva como o dado deve ficar.' })
+    if (valor === escolhido.atual.trim()) return setRetorno({ erro: 'O valor novo é igual ao de hoje.' })
+    const texto = `${escolhido.rotulo}: como está hoje "${escolhido.atual || '(vazio)'}"; como deve ficar "${valor}".`
+    const r = await pedirCorrecao(pessoaId, texto)
+    if (r.erro !== null) return setRetorno({ erro: r.erro })
+    setNovo('')
+    setRetorno({ sucesso: 'Pedido de correção enviado à secretaria.' })
+    recarregar()
+  }
+
   return (
-    <section className="painel" aria-labelledby="titulo-minhas-correcoes">
-      <h2 id="titulo-minhas-correcoes">Correções no meu cadastro</h2>
-      <p className="detalhe">Algo errado que você não consegue mudar aqui (o nome, o título, a data de ingresso)? Peça à secretaria.</p>
-      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-      <PedirCorrecao
-        pessoaId={pessoaId}
-        rotulo="Pedir uma correção à secretaria"
-        aoConcluir={(r, s) => {
-          setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: s })
-          if (r.erro === null) recarregar()
-        }}
-      />
-      <MostrarCarga carga={carga} recarregar={recarregar}>
-        {(pedidos) => (pedidos.length > 0 ? <ListaDePedidos pedidos={pedidos} /> : null)}
-      </MostrarCarga>
-    </section>
+    <div className="duas-colunas duas-iguais">
+      <section className="bloco" aria-labelledby="titulo-pedir-correcao">
+        <h2 id="titulo-pedir-correcao">Pedir uma correção</h2>
+        <form
+          aria-labelledby="titulo-pedir-correcao"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void umaVez(enviar)
+          }}
+        >
+          <label>
+            O que você quer corrigir?
+            <select
+              value={qual}
+              onChange={(e) => {
+                setQual(e.target.value)
+                setNovo('')
+              }}
+            >
+              {opcoes.map((o) => (
+                <option key={o.chave} value={o.chave}>
+                  {o.rotulo}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Como está hoje
+            <input value={escolhido.atual || '(vazio)'} disabled />
+          </label>
+          <label>
+            Como deve ficar
+            <input required maxLength={300} value={novo} onChange={(e) => setNovo(e.target.value)} />
+          </label>
+          <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+          <div className="acoes">
+            <button type="submit" className="botao" disabled={enviando}>
+              Mandar para a secretaria
+            </button>
+          </div>
+          <p className="detalhe">
+            A secretaria confere e corrige o cadastro. O telefone e o que ainda está vazio você muda na aba{' '}
+            <Link to="/meu-perfil">Meus dados</Link>.
+          </p>
+        </form>
+      </section>
+      <section className="bloco" aria-labelledby="titulo-meus-pedidos-correcao">
+        <h2 id="titulo-meus-pedidos-correcao">Os meus pedidos</h2>
+        <MostrarCarga carga={carga} recarregar={recarregar}>
+          {(pedidos) =>
+            pedidos.length === 0 ? (
+              <p className="vazio">Nenhum pedido de correção.</p>
+            ) : (
+              <ul className="lista-linhas" aria-label="Meus pedidos de correção">
+                {pedidos.map((p) => (
+                  <li key={p.id}>
+                    <span className="linha-corpo">
+                      <span className="linha-texto">{p.texto}</span>
+                      <span className="linha-selo">
+                        {seloDoPedido(p)}
+                        <span className="detalhe">pedido em {formatarDataDeInstante(p.criado_em)}</span>
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )
+          }
+        </MostrarCarga>
+      </section>
+    </div>
   )
 }
