@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test'
 import {
   arquivarAssociadoDeTeste,
   arquivoDaSessao,
+  cadastrarMinistro,
   criarAssociadoComLogin,
   mensagemNaTela,
   preencherLogin,
@@ -80,9 +81,9 @@ test('o ministro pede troca de igreja, a secretaria aprova; o ministro troca a p
   await page.getByRole('button', { name: 'Trocar a senha' }).click()
   await expect(mensagemNaTela(page, 'Senha trocada.')).toBeVisible()
 
-  // A presidência vê o pedido na tela de Ministros e aprova
+  // A presidência vê o pedido em Ministros e inscrições › Correções pedidas e aprova
   await trocarPara(page, 'presidencia')
-  await page.goto('ministros')
+  await page.goto('ministros/correcoes')
   const pedido = page.getByRole('listitem', { name: `Troca de ${nome}` })
   await expect(pedido).toContainText('Igreja Fictícia B (teste)')
   await pedido.getByRole('button', { name: 'Aprovar troca' }).click()
@@ -116,14 +117,13 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   await page.getByRole('button', { name: 'Cadastrar igreja' }).click()
   await expect(mensagemNaTela(page, 'Igreja cadastrada.')).toBeVisible()
   const enderecoIgreja = page.url()
-  await page.goto('ministros/novo')
-  await page.getByLabel(/^Nome completo/).fill(auxiliar)
-  await page.getByLabel(/^Telefone/).fill('(94) 92222-2222')
-  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Evangelista' })
-  await page.getByLabel(/^Igreja \*/).selectOption({ label: igreja })
-  await page.getByLabel(/^Função na igreja/).fill('Evangelista dirigente')
-  await page.getByRole('button', { name: 'Cadastrar associado' }).click()
-  await expect(mensagemNaTela(page, 'Associado cadastrado.')).toBeVisible()
+  await cadastrarMinistro(page, {
+    nome: auxiliar,
+    telefone: '(94) 92222-2222',
+    titulo: 'Evangelista',
+    igreja,
+    funcao: 'Evangelista dirigente',
+  })
 
   // O pastor presidente da igreja cria o login e abre "Minha igreja"
   await criarAssociadoComLogin(page, {
@@ -185,7 +185,7 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   await page.goto(enderecoIgreja)
   await page.getByRole('list', { name: 'Documentos da igreja' }).getByRole('button', { name: 'Conferido' }).click()
   await expect(mensagemNaTela(page, 'Estatuto da igreja: conferido.')).toBeVisible()
-  await page.goto('ministros')
+  await page.goto('ministros/correcoes')
   const correcao = page.getByRole('listitem', { name: `Correção: ${auxiliar}` })
   await expect(correcao).toContainText('O título é Presbítero')
   await correcao.getByRole('button', { name: 'Atendido' }).click()

@@ -7,7 +7,7 @@ import { aprovarTroca, recusarTroca, trocasPendentes, type PedidoTroca } from '.
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
 
-/** Pedidos de troca de igreja feitos pelos ministros, para a secretaria/presidência decidir. */
+/** Pedidos de troca de igreja feitos pelos ministros, para a secretaria/presidência decidir (Correções pedidas). */
 export function TrocasPendentes() {
   const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
   const [carga, recarregar] = useCarregar(async () => {
@@ -24,21 +24,22 @@ export function TrocasPendentes() {
 
   return (
     <MostrarCarga carga={carga} recarregar={recarregar}>
-      {({ trocas, igrejas }) =>
-        trocas.length === 0 && !retorno.sucesso ? null : (
-          <section className="painel" aria-labelledby="titulo-trocas">
-            <h2 id="titulo-trocas">Pedidos de troca de igreja ({trocas.length})</h2>
-            <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-            {trocas.length > 0 && (
-              <ul className="lista" aria-label="Pedidos de troca de igreja">
-                {trocas.map((t) => (
-                  <Troca key={t.id} troca={t} igrejas={igrejas} concluir={concluir} />
-                ))}
-              </ul>
-            )}
-          </section>
-        )
-      }
+      {({ trocas, igrejas }) => (
+        <section className="painel" aria-labelledby="titulo-trocas">
+          <h2 id="titulo-trocas">Trocas de igreja ({trocas.length})</h2>
+          <p className="detalhe">O ministro pede a troca no perfil dele. Aprovada, a igreja nova entra na ficha e a anterior fica no histórico.</p>
+          <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+          {trocas.length === 0 ? (
+            <p className="vazio">Nenhum pedido de troca de igreja esperando.</p>
+          ) : (
+            <ul className="lista" aria-label="Pedidos de troca de igreja">
+              {trocas.map((t) => (
+                <Troca key={t.id} troca={t} igrejas={igrejas} concluir={concluir} />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </MostrarCarga>
   )
 }

@@ -1,7 +1,7 @@
 // Portal do membro: login e "cada um vê só o que lhe cabe", com usuários fictícios do banco de teste.
 // A proteção real dos dados está no banco (testes/banco/); aqui se confere o que cada perfil enxerga.
 import { expect, test } from '@playwright/test'
-import { USUARIOS, abrirMenu, abrirModulos, arquivoDaSessao, entrar, preencherLogin, saudacao, sair } from './ajuda'
+import { USUARIOS, abrirMenu, abrirModulos, arquivoDaSessao, entrar, nomeDaFuncao, preencherLogin, saudacao, sair } from './ajuda'
 
 test('senha errada mostra uma mensagem clara', async ({ page }) => {
   await preencherLogin(page, USUARIOS.presidencia.email, 'senha-errada-de-proposito')
@@ -10,7 +10,7 @@ test('senha errada mostra uma mensagem clara', async ({ page }) => {
 })
 
 test.describe('presidência', () => {
-  test('entra, vê todos os módulos, abre uma área (o menu curto mostra a tela aberta) e sai', async ({ page }, info) => {
+  test('entra, vê todos os módulos, abre um módulo (a coluna vira o menu dele) e sai', async ({ page }, info) => {
     await entrar(page, USUARIOS.presidencia)
     await expect(page.getByRole('heading', { name: saudacao('Presidência'), level: 1 })).toBeVisible()
     await expect(page.getByRole('list', { name: 'Seus perfis' })).toContainText('Presidência')
@@ -24,12 +24,15 @@ test.describe('presidência', () => {
     await modulos.getByRole('link', { name: 'Ministros', exact: true }).click()
     await expect(page).toHaveURL(/\/ministros$/)
     await expect(page.getByRole('heading', { name: 'Ministros', level: 1 })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Cadastrar associado' })).toBeVisible()
-    // o menu curto: Início, a tela aberta e Meu perfil (no celular, o Menu de cima: Início, Módulos, Avisos e Meu perfil)
+    // o menu do módulo: Início para voltar, as funções do módulo e Meu perfil
+    // (no celular, o Menu de cima continua curto: Início, Módulos, Avisos e Meu perfil)
     const menu = await abrirMenu(page)
-    const doMenu = info.project.name === 'celular' ? ['Início', 'Módulos', 'Meu perfil'] : ['Início', 'Ministros', 'Meu perfil']
+    const doMenu =
+      info.project.name === 'celular'
+        ? ['Início', 'Módulos', 'Meu perfil']
+        : ['Início', 'Ministros', 'Pedidos de associação', 'Correções pedidas', 'Cadastrar ministro', 'Meu perfil']
     for (const item of doMenu) {
-      await expect(menu.getByRole('link', { name: item, exact: true })).toBeVisible()
+      await expect(menu.getByRole('link', { name: nomeDaFuncao(item) })).toBeVisible()
     }
     await page.keyboard.press('Escape')
     await expect(menu.getByRole('link', { name: 'Financeiro', exact: true })).toHaveCount(0)

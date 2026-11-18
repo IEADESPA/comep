@@ -281,6 +281,304 @@ export function moduloAberto(caminhoAtual: string): ItemMenu | null {
   return item
 }
 
+// ---------- O menu de cada módulo: as funções (e as subfunções) ----------
+//
+// Padrão aprovado pelo usuário em 18/11/2026 para TODOS os módulos ("o módulo toma a coluna"): ao entrar num módulo,
+// a coluna vermelha da esquerda vira o menu dele, com as funções grandes; as subfunções abrem embaixo da função
+// aberta. Não há abas no alto para os submódulos (as abas ficam só dentro das fichas). Cada função é um endereço
+// do sistema. Fora dos módulos (Início, Módulos, Meu perfil e as telas pessoais) continua o menu curto.
+
+/** As contagens que aparecem ao lado de uma função quando há pendência (src/estado/pendencias.ts). */
+export type ChavePendencia = 'pedidosAssociacao' | 'correcoes' | 'comprovantes' | 'despesas' | 'emprestimos' | 'justificativas'
+
+export type Subfuncao = {
+  titulo: string
+  caminho: string
+}
+
+export type Funcao = {
+  chave: string
+  titulo: string
+  icone: NomeIcone
+  /** o endereço que a função abre; o que vem depois dele (a ficha, o detalhe…) também é dela */
+  caminho: string
+  /** outros começos de endereço que também são desta função */
+  tambem?: readonly string[]
+  /** o item do menu que dá acesso (sem isso: o do módulo) */
+  item?: string
+  /** só estes perfis veem a função (dentro de quem vê o item) */
+  perfis?: readonly Perfil[]
+  subfuncoes?: readonly Subfuncao[]
+  pendencia?: ChavePendencia
+}
+
+export type Modulo = {
+  chave: string
+  titulo: string
+  icone: NomeIcone
+  area: Area
+  /** o item do menu (ITENS_MENU) que dá acesso ao módulo */
+  item: string
+  /** os começos de endereço do módulo (ex.: /financeiro, que leva à primeira função) */
+  bases: readonly string[]
+  funcoes: readonly Funcao[]
+}
+
+const SECRETARIA_PRESIDENCIA: readonly Perfil[] = ['secretaria', 'presidencia']
+
+export const MODULOS: readonly Modulo[] = [
+  {
+    chave: 'ministros',
+    titulo: 'Ministros e inscrições',
+    icone: 'ministros',
+    area: 'pessoas',
+    item: '/ministros',
+    bases: ['/ministros', '/inscricoes'],
+    funcoes: [
+      { chave: 'ministros', titulo: 'Ministros', icone: 'ministros', caminho: '/ministros' },
+      {
+        chave: 'pedidos',
+        titulo: 'Pedidos de associação',
+        icone: 'inscricoes',
+        caminho: '/inscricoes',
+        item: '/inscricoes',
+        pendencia: 'pedidosAssociacao',
+      },
+      { chave: 'correcoes', titulo: 'Correções pedidas', icone: 'editar', caminho: '/ministros/correcoes', pendencia: 'correcoes' },
+      { chave: 'cadastrar', titulo: 'Cadastrar ministro', icone: 'mais', caminho: '/ministros/novo' },
+    ],
+  },
+  {
+    chave: 'credenciais',
+    titulo: 'Credenciais',
+    icone: 'credencial',
+    area: 'pessoas',
+    item: '/credenciais',
+    bases: ['/credenciais'],
+    funcoes: [
+      { chave: 'lista', titulo: 'Credenciais', icone: 'credencial', caminho: '/credenciais' },
+      { chave: 'imprimir', titulo: 'Imprimir', icone: 'imprimir', caminho: '/credenciais/imprimir' },
+      { chave: 'modelo', titulo: 'Modelo', icone: 'grade', caminho: '/credenciais/modelo' },
+    ],
+  },
+  {
+    chave: 'igrejas',
+    titulo: 'Igrejas',
+    icone: 'igreja',
+    area: 'pessoas',
+    item: '/igrejas',
+    bases: ['/igrejas'],
+    funcoes: [
+      { chave: 'igrejas', titulo: 'Igrejas', icone: 'igreja', caminho: '/igrejas' },
+      { chave: 'cadastrar', titulo: 'Cadastrar igreja', icone: 'mais', caminho: '/igrejas/nova' },
+    ],
+  },
+  {
+    chave: 'financeiro',
+    titulo: 'Financeiro',
+    icone: 'financeiro',
+    area: 'financas',
+    item: '/financeiro',
+    bases: ['/financeiro'],
+    funcoes: [
+      {
+        chave: 'contribuicoes',
+        titulo: 'Contribuições',
+        icone: 'mensalidade',
+        caminho: '/financeiro/contribuicoes',
+        subfuncoes: [
+          { titulo: 'Situação dos associados', caminho: '/financeiro/contribuicoes' },
+          { titulo: 'Cobranças do exercício', caminho: '/financeiro/contribuicoes/cobrancas' },
+        ],
+      },
+      {
+        chave: 'comprovantes',
+        titulo: 'Comprovantes',
+        icone: 'enviar',
+        caminho: '/financeiro/comprovantes',
+        perfis: ['tesouraria', 'presidencia'],
+        pendencia: 'comprovantes',
+      },
+      { chave: 'caixa', titulo: 'Caixa', icone: 'financeiro', caminho: '/financeiro/caixa' },
+      { chave: 'despesas', titulo: 'Despesas a autorizar', icone: 'check', caminho: '/financeiro/despesas', pendencia: 'despesas' },
+      { chave: 'prestacao', titulo: 'Prestação de contas', icone: 'assembleia', caminho: '/financeiro/prestacao' },
+    ],
+  },
+  {
+    chave: 'patrimonio',
+    titulo: 'Patrimônio',
+    icone: 'patrimonio',
+    area: 'financas',
+    item: '/patrimonio',
+    bases: ['/patrimonio'],
+    funcoes: [
+      {
+        chave: 'pedidos',
+        titulo: 'Pedidos',
+        icone: 'pedido',
+        caminho: '/patrimonio/pedidos',
+        tambem: ['/patrimonio/emprestimos'],
+        pendencia: 'emprestimos',
+      },
+      {
+        chave: 'pedir',
+        titulo: 'Pedir emprestado',
+        icone: 'enviar',
+        caminho: '/patrimonio/pedir',
+        perfis: ['presidente_igreja', 'secretaria', 'tesouraria', 'presidencia'],
+      },
+      { chave: 'agenda', titulo: 'Agenda', icone: 'evento', caminho: '/patrimonio/agenda' },
+      { chave: 'bens', titulo: 'Bens', icone: 'patrimonio', caminho: '/patrimonio/bens' },
+      { chave: 'regras', titulo: 'Regras', icone: 'config', caminho: '/patrimonio/regras' },
+    ],
+  },
+  {
+    chave: 'assembleias',
+    titulo: 'Assembleias',
+    icone: 'assembleia',
+    area: 'assembleias',
+    item: '/assembleias',
+    bases: ['/assembleias'],
+    funcoes: [
+      { chave: 'encontros', titulo: 'Assembleias e reuniões', icone: 'assembleia', caminho: '/assembleias' },
+      { chave: 'pedidos', titulo: 'Pedidos de AGE', icone: 'pedido', caminho: '/assembleias/pedidos' },
+      {
+        chave: 'faltas',
+        titulo: 'Faltas e justificativas',
+        icone: 'relogio',
+        caminho: '/assembleias/faltas',
+        perfis: SECRETARIA_PRESIDENCIA,
+        pendencia: 'justificativas',
+      },
+      { chave: 'preparar', titulo: 'Preparar assembleia', icone: 'mais', caminho: '/assembleias/novo', perfis: SECRETARIA_PRESIDENCIA },
+    ],
+  },
+  {
+    chave: 'votacoes',
+    titulo: 'Votações e enquetes',
+    icone: 'votar',
+    area: 'assembleias',
+    item: '/votacoes',
+    bases: ['/votacoes'],
+    funcoes: [
+      { chave: 'votacoes', titulo: 'Votações e enquetes', icone: 'votar', caminho: '/votacoes' },
+      { chave: 'nova', titulo: 'Nova votação ou enquete', icone: 'mais', caminho: '/votacoes/nova', perfis: SECRETARIA_PRESIDENCIA },
+    ],
+  },
+  {
+    chave: 'diretoria',
+    titulo: 'Diretoria',
+    icone: 'diretoria',
+    area: 'assembleias',
+    item: '/diretoria',
+    bases: ['/diretoria'],
+    funcoes: [{ chave: 'diretoria', titulo: 'Conselhos e mandatos', icone: 'diretoria', caminho: '/diretoria' }],
+  },
+  {
+    chave: 'comissoes',
+    titulo: 'Comissões',
+    icone: 'comissao',
+    area: 'assembleias',
+    item: '/comissoes',
+    bases: ['/comissoes'],
+    funcoes: [
+      { chave: 'comissoes', titulo: 'Comissões', icone: 'comissao', caminho: '/comissoes' },
+      { chave: 'nova', titulo: 'Nova comissão', icone: 'mais', caminho: '/comissoes/nova', perfis: SECRETARIA_PRESIDENCIA },
+    ],
+  },
+  {
+    chave: 'eventos',
+    titulo: 'Eventos e projetos',
+    icone: 'evento',
+    area: 'eventos',
+    item: '/eventos',
+    bases: ['/eventos'],
+    funcoes: [
+      { chave: 'eventos', titulo: 'Eventos e projetos', icone: 'evento', caminho: '/eventos' },
+      { chave: 'novo', titulo: 'Novo evento ou projeto', icone: 'mais', caminho: '/eventos/novo', perfis: SECRETARIA_PRESIDENCIA },
+    ],
+  },
+  {
+    chave: 'avisos',
+    titulo: 'Mural de avisos',
+    icone: 'aviso',
+    area: 'eventos',
+    item: '/avisos',
+    bases: ['/avisos'],
+    funcoes: [{ chave: 'mural', titulo: 'Mural de avisos', icone: 'aviso', caminho: '/avisos' }],
+  },
+  {
+    chave: 'painel',
+    titulo: 'Painel da presidência',
+    icone: 'grade',
+    area: 'assembleias',
+    item: '/painel-presidencia',
+    bases: ['/painel-presidencia'],
+    funcoes: [{ chave: 'painel', titulo: 'Painel da presidência', icone: 'grade', caminho: '/painel-presidencia' }],
+  },
+  {
+    chave: 'administracao',
+    titulo: 'Administração',
+    icone: 'config',
+    area: 'assembleias',
+    item: '/configuracoes',
+    bases: ['/configuracoes', '/acessos', '/auditoria'],
+    funcoes: [
+      { chave: 'configuracoes', titulo: 'Configurações', icone: 'config', caminho: '/configuracoes' },
+      { chave: 'acessos', titulo: 'Perfis de acesso', icone: 'chave', caminho: '/acessos', item: '/acessos' },
+      { chave: 'auditoria', titulo: 'Auditoria', icone: 'relogio', caminho: '/auditoria', item: '/auditoria' },
+    ],
+  },
+]
+
+const comecaCom = (caminho: string, base: string) => caminho === base || caminho.startsWith(`${base}/`)
+
+/** O tamanho do maior começo de endereço que bate (-1: nenhum). Ganha sempre o mais específico. */
+function alcance(caminho: string, bases: readonly string[]): number {
+  return bases.reduce((maior, base) => (comecaCom(caminho, base) && base.length > maior ? base.length : maior), -1)
+}
+
+const basesDaFuncao = (f: Funcao) => [f.caminho, ...(f.tambem ?? []), ...(f.subfuncoes ?? []).map((s) => s.caminho)]
+
+export function funcaoVisivel(f: Funcao, modulo: Modulo, perfis: readonly Perfil[]): boolean {
+  const item = ITENS_MENU.find((i) => i.caminho === (f.item ?? modulo.item))
+  if (!item || !podeVer(item, perfis)) return false
+  return f.perfis ? podeVer({ perfis: f.perfis }, perfis) : true
+}
+
+/** As funções do módulo que a pessoa pode abrir (na ordem do menu). */
+export function funcoesVisiveis(modulo: Modulo, perfis: readonly Perfil[]): Funcao[] {
+  return modulo.funcoes.filter((f) => funcaoVisivel(f, modulo, perfis))
+}
+
+export type Localizacao = { modulo: Modulo; funcao: Funcao | null; subfuncao: Subfuncao | null }
+
+/** Em que módulo, função e subfunção está o endereço (null: fora dos módulos, ex.: Início e Meu perfil). */
+export function localizar(caminho: string): Localizacao | null {
+  let achado: Localizacao | null = null
+  let melhor = -1
+  for (const modulo of MODULOS) {
+    if (alcance(caminho, modulo.bases) > melhor) {
+      melhor = alcance(caminho, modulo.bases)
+      achado = { modulo, funcao: null, subfuncao: null }
+    }
+    for (const funcao of modulo.funcoes) {
+      const n = alcance(caminho, basesDaFuncao(funcao))
+      // empate: a função ganha do módulo (mesmo começo de endereço)
+      if (n >= 0 && (n > melhor || (n === melhor && achado?.funcao === null))) {
+        melhor = n
+        const subs = funcao.subfuncoes ?? []
+        const sub = subs.reduce<Subfuncao | null>(
+          (atual, s) => (alcance(caminho, [s.caminho]) > (atual ? alcance(caminho, [atual.caminho]) : -1) ? s : atual),
+          null,
+        )
+        achado = { modulo, funcao, subfuncao: sub }
+      }
+    }
+  }
+  return achado
+}
+
 // ---------- Os módulos na página inicial, agrupados por assunto ----------
 
 export type ModuloNoInicio = Pick<ItemMenu, 'caminho' | 'titulo' | 'icone' | 'area'> & { curto: string }

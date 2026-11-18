@@ -41,6 +41,9 @@ const CAMINHOS = {
   check: 'M20 6L9 17l-5-5',
   mais: 'M12 5v14M5 12h14',
   filtro: 'M3 5h18l-7 8v6l-4-2v-4z',
+  baixo: 'M6 9l6 6 6-6',
+  cima: 'M6 15l6-6 6 6',
+  editar: 'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z',
 } as const
 
 export type NomeIcone = keyof typeof CAMINHOS

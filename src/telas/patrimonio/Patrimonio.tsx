@@ -3,8 +3,9 @@
 // ou a presidência aprova conferindo a agenda; a equipe registra a retirada e a devolução. O que não volta sai do
 // patrimônio (baixa). As regras de apoio ainda vão ser definidas pela diretoria: ficam em "Regras" (a presidência muda).
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router'
 import { Aviso, BotaoConfirmarNaLinha, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
 import { ok } from '../../dados/cliente'
 import { formatarReais } from '../../dados/configuracoes'
 import { listarEventos, type Evento } from '../../dados/eventos'
@@ -101,41 +102,36 @@ const NOME_DA_ABA: Record<Aba, string> = {
   regras: 'Regras',
 }
 
+const ehAba = (a: string | undefined): a is Aba => a !== undefined && a in NOME_DA_ABA
+
+/**
+ * /patrimonio/:aba — cada parte é uma função do menu do módulo (src/componentes/menu.ts): pedidos, pedir emprestado,
+ * agenda, bens e regras. /patrimonio abre os pedidos.
+ */
 export function Patrimonio() {
   const { perfis } = useConta()
+  const { aba: daRota } = useParams()
   const local = useLocation()
-  const [aba, setAba] = useState<Aba>('pedidos')
-  const [retorno, setRetorno] = useState<Retorno>(() => {
+  // o Conselho Fiscal acompanha, mas não pede
+  const pede = perfis.includes('presidente_igreja') || equipe(perfis)
+  if (!ehAba(daRota) || (daRota === 'pedir' && !pede)) return <Navigate to="/patrimonio/pedidos" replace state={local.state} />
+  return <ParteDoPatrimonio key={daRota} aba={daRota} perfis={perfis} />
+}
+
+function ParteDoPatrimonio({ aba, perfis }: { aba: Aba; perfis: readonly Perfil[] }) {
+  const local = useLocation()
+  const [retorno] = useState<Retorno>(() => {
     const mensagem = (local.state as { mensagem?: string } | null)?.mensagem
     return mensagem ? { sucesso: mensagem } : {}
   })
-  // o Conselho Fiscal acompanha, mas não pede
-  const abas: Aba[] = perfis.includes('presidente_igreja') || equipe(perfis) ? ['pedidos', 'pedir', 'agenda', 'bens', 'regras'] : ['pedidos', 'agenda', 'bens', 'regras']
   return (
     <>
-      <h1>Patrimônio</h1>
-      <p className="detalhe">
-        Os bens do COMEP (som, palcos, cadeiras…) e o empréstimo às igrejas. O pastor presidente pede para a igreja e aceita o
-        termo de compromisso; a secretaria ou a presidência aprova conferindo a agenda.
-      </p>
+      <CabecalhoFuncao
+        modulo="Patrimônio"
+        titulo={NOME_DA_ABA[aba]}
+        sub="Os bens do COMEP (som, palcos, cadeiras…) e o empréstimo às igrejas. O pastor presidente pede para a igreja e aceita o termo de compromisso; a secretaria ou a presidência aprova conferindo a agenda."
+      />
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-      <div className="abas" role="tablist" aria-label="Partes do patrimônio">
-        {abas.map((a) => (
-          <button
-            key={a}
-            type="button"
-            role="tab"
-            aria-selected={aba === a}
-            className={aba === a ? 'aba ativa' : 'aba'}
-            onClick={() => {
-              setAba(a)
-              setRetorno({})
-            }}
-          >
-            {NOME_DA_ABA[a]}
-          </button>
-        ))}
-      </div>
       {aba === 'pedidos' && <Pedidos perfis={perfis} />}
       {aba === 'pedir' && <FormPedido perfis={perfis} />}
       {aba === 'agenda' && <Agenda perfis={perfis} />}

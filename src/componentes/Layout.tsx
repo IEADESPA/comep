@@ -4,14 +4,18 @@ import { NOME_DO_PERFIL, type Perfil } from '../dados/perfis'
 import { useSessao } from '../estado/contexto'
 import { contemTexto } from '../utilitarios/formatos'
 import { Icone, Ladrilho, MarcaCaixa, type NomeIcone } from './Icone'
-import { ehDaDiretoria, itensVisiveis, moduloAberto, podeVer, ITENS_MENU } from './menu'
+import { ehDaDiretoria, funcoesVisiveis, itensVisiveis, localizar, moduloAberto, podeVer, ITENS_MENU, type Localizacao } from './menu'
+import { MenuDoModulo, SeletorDeFuncao } from './MenuDoModulo'
+import { usePendencias } from '../estado/pendencias'
 import { PainelAvisos } from './Sino'
 import { useSino } from './useSino'
 import { useTema } from './tema'
 
 // Moldura do sistema (telas novas, Fase 5.5 — docs/telas-novas.md).
 // Notebook: menu vermelho CURTO à esquerda (Início, a tela aberta e Meu perfil) e a barra branca do topo.
-// Celular: barra vermelha em cima com o sino, o botão Menu e as abas (nada de barra embaixo).
+// Dentro de um módulo, a coluna vermelha vira o menu do módulo, com as funções (MenuDoModulo.tsx).
+// Celular: barra vermelha em cima com o sino, o botão Menu e as abas (nada de barra embaixo); dentro de um
+// módulo, logo abaixo dela, o botão com a função aberta, que abre a lista das funções.
 // O menu e o conteúdo rolam cada um por si.
 
 type Aberto = 'sino' | 'menu' | null
@@ -43,9 +47,14 @@ function itensCurtos(caminho: string, semPerfil: boolean): ItemCurto[] {
   return itens
 }
 
-function trilhaDe(caminho: string): string {
+function trilhaDe(caminho: string, local: Localizacao | null): string {
   if (caminho === '/meu-perfil' || caminho.startsWith('/meu-perfil/')) return 'Meu perfil'
   if (caminho === '/modulos') return 'Módulos'
+  if (local) {
+    const partes = [local.modulo.titulo, local.funcao?.titulo, local.subfuncao?.titulo]
+    // sem repetir (ex.: "Mural de avisos › Mural de avisos")
+    return ['Início', ...partes.filter((p, i): p is string => Boolean(p) && p !== partes[i - 1])].join(' › ')
+  }
   return moduloAberto(caminho)?.titulo ?? 'Início'
 }
 
@@ -80,6 +89,11 @@ export function Layout() {
 
   const semPerfil = conta !== null && conta.perfis.length === 0
   const curtos = itensCurtos(pathname, semPerfil)
+  // Dentro de um módulo (com alguma função que a pessoa pode abrir), o menu é o do módulo
+  const achado = localizar(pathname)
+  const funcoes = achado && conta ? funcoesVisiveis(achado.modulo, conta.perfis) : []
+  const local = achado && funcoes.length > 0 ? achado : null
+  const pendencias = usePendencias(local?.modulo ?? null, conta?.perfis ?? [], pathname)
   const trocar = (qual: Exclude<Aberto, null>) => {
     setAberto(aberto === qual ? null : qual)
     if (qual === 'sino' && aberto !== 'sino') sino.recarregar()
@@ -96,16 +110,26 @@ export function Layout() {
             COMEP
           </span>
         </Link>
-        <ul>
-          {curtos.map((item) => (
-            <li key={item.para}>
-              <NavLink to={item.para} end={item.para === '/painel'} className="lateral-item">
-                <Icone nome={item.icone} />
-                {item.titulo}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+        {local ? (
+          <>
+            <MenuDoModulo local={local} funcoes={funcoes} pendencias={pendencias} />
+            <NavLink to="/meu-perfil" className="lateral-item lateral-perfil">
+              <Icone nome="perfil" />
+              Meu perfil
+            </NavLink>
+          </>
+        ) : (
+          <ul>
+            {curtos.map((item) => (
+              <li key={item.para}>
+                <NavLink to={item.para} end={item.para === '/painel'} className="lateral-item">
+                  <Icone nome={item.icone} />
+                  {item.titulo}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        )}
         {conta && (
           <div className="lateral-usuario">
             <span className="avatar-iniciais" aria-hidden="true">
@@ -126,7 +150,7 @@ export function Layout() {
         <header className="topo">
           {/* Notebook: a barra branca */}
           <div className="topo-computador">
-            <span className="topo-trilha">{trilhaDe(pathname)}</span>
+            <span className="topo-trilha">{trilhaDe(pathname, local)}</span>
             {conta && ehDaDiretoria(conta.perfis) && <BuscaTopo perfis={conta.perfis} />}
             <button type="button" className="botao-quadrado" aria-label={temaTexto} title={temaTexto} onClick={alternarTema}>
               <Icone nome={tema === 'escuro' ? 'sol' : 'lua'} tamanho={19} />
@@ -194,7 +218,7 @@ export function Layout() {
                       Meu pedido
                     </NavLink>
                   ) : (
-                    <Link to="/modulos" className={pathname === '/modulos' || moduloAberto(pathname) ? 'ativa' : undefined}>
+                    <Link to="/modulos" className={pathname === '/modulos' || local || moduloAberto(pathname) ? 'ativa' : undefined}>
                       <Icone nome="grade" tamanho={18} />
                       Módulos
                     </Link>
@@ -270,6 +294,7 @@ export function Layout() {
         {/* A coluna da direita rola sozinha, sem levar o menu junto */}
         <main className="area-conteudo" ref={areaConteudo}>
           <div className="conteudo">
+            {local && <SeletorDeFuncao key={pathname} local={local} funcoes={funcoes} pendencias={pendencias} />}
             <Outlet />
           </div>
         </main>

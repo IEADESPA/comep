@@ -3,6 +3,7 @@
 // Associado FICTÍCIO criado pelo próprio teste (e arquivado no fim).
 import { expect, test } from '@playwright/test'
 import {
+  abrirFichaDoMinistro,
   arquivarAssociadoDeTeste,
   cpfAleatorio,
   criarAssociadoComLogin,
@@ -50,26 +51,24 @@ test('CPF e filiação: o associado preenche, a secretaria corrige; pendências 
 
   // 2. A secretaria (aqui, a presidência) vê na ficha e corrige
   await trocarPara(page, 'presidencia')
-  await page.goto('ministros')
-  await page.getByLabel('Buscar associado').fill(nome)
-  await page.getByRole('link', { name: new RegExp(nome) }).click()
-  const contato = page.getByRole('region', { name: 'Contato' })
-  await expect(contato).toContainText(comPontos(cpf))
-  await expect(contato).toContainText('Mãe Fictícia')
+  await abrirFichaDoMinistro(page, nome)
+  // a aba Dados da ficha já abre com o formulário
+  const dados = page.getByRole('region', { name: 'Dados pessoais' })
+  await expect(dados.getByLabel(/^CPF/)).toHaveValue(comPontos(cpf))
+  await expect(dados.getByLabel(/^Nome da mãe/)).toHaveValue('Mãe Fictícia')
   await expect(page.getByRole('list', { name: 'Pendências da credencial' })).toContainText('Sem foto')
 
   const corrigido = cpfAleatorio()
-  await contato.getByRole('button', { name: 'Editar' }).click()
-  await contato.getByLabel(/^CPF/).fill(corrigido)
-  await contato.getByRole('button', { name: 'Salvar', exact: true }).click()
-  await expect(mensagemNaTela(page, 'Dados de contato salvos.')).toBeVisible()
-  await expect(contato).toContainText(comPontos(corrigido))
+  await dados.getByLabel(/^CPF/).fill(corrigido)
+  await dados.getByRole('button', { name: 'Salvar', exact: true }).click()
+  await expect(mensagemNaTela(page, 'Dados salvos.')).toBeVisible()
+  await expect(dados.getByLabel(/^CPF/)).toHaveValue(comPontos(corrigido))
 
   // 3. A lista de ministros filtra quem tem pendência na credencial
   await page.goto('ministros')
-  await page.getByLabel(/Só com pendência na credencial/).check()
-  await page.getByLabel('Buscar associado').fill(nome)
-  await expect(page.getByRole('list', { name: 'Associados' })).toContainText('Credencial:')
+  await page.getByRole('button', { name: /^Com pendência/ }).click()
+  await page.getByLabel('Buscar ministro', { exact: true }).fill(nome)
+  await expect(page.getByRole('list', { name: 'Ministros' })).toContainText('Sem foto')
 
   await arquivarAssociadoDeTeste(page, nome)
 })

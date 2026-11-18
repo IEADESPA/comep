@@ -148,3 +148,17 @@ export function quandoFoi(instante: string, agora: Date = new Date()): string {
   if (dia === ontem) return 'ontem'
   return diaMes(instante)
 }
+
+/** As iniciais do nome (a primeira e a última palavra), sem o título abreviado (Pr., Ev., Pb.…). */
+export function iniciaisDe(nome: string): string {
+  const partes = nome
+    .trim()
+    .split(/\s+/)
+    .filter((p) => !/^(pr|pra|ev|pb|dc|miss|bp)\.?$/i.test(p))
+  const primeira = partes[0]?.[0] ?? ''
+  const ultima = partes.length > 1 ? (partes[partes.length - 1][0] ?? '') : ''
+  return (primeira + ultima).toUpperCase()
+}
+
+/** O nº de registro com quatro algarismos (0042), como na credencial e no Meu perfil. */
+export const numeroDoRegistro = (n: number) => String(n).padStart(4, '0')

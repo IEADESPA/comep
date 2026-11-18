@@ -1,7 +1,7 @@
 // Fase 2.2: caixa — a tesouraria lança, o presidente autoriza a despesa, o saldo muda; transferência; tudo desfeito no fim.
 // Os valores são pequenos e o teste cancela o que lançou (motivo "Teste automático"), então o saldo volta ao que era.
 import { expect, test, type Page } from '@playwright/test'
-import { mensagemNaTela, sufixoUnico, trocarPara } from './ajuda'
+import { abrirFuncao, mensagemNaTela, sufixoUnico, trocarPara } from './ajuda'
 
 const CAIXA = 'Caixa (dinheiro)'
 const BANCO = 'Conta bancária'
@@ -15,7 +15,7 @@ async function saldoEmCentavos(page: Page, conta: string): Promise<number> {
 
 async function abrirCaixa(page: Page) {
   await page.goto('financeiro')
-  await page.getByRole('tab', { name: 'Caixa', exact: true }).click()
+  await abrirFuncao(page, 'Caixa')
   await expect(page.getByRole('list', { name: 'Saldos' })).toBeVisible()
 }
 
@@ -67,7 +67,7 @@ test('a tesouraria lança; a despesa só sai do saldo depois que o presidente au
   await esperarSaldo(page, CAIXA, caixaAntes + 1000) // ainda não saiu
 
   // A tesouraria vê a despesa na fila, mas não autoriza
-  await page.getByRole('tab', { name: 'Despesas a autorizar' }).click()
+  await abrirFuncao(page, 'Despesas a autorizar')
   const naFila = page.getByRole('listitem', { name: `Despesa: ${despesa}` })
   await expect(naFila).toContainText('R$ 3,50')
   await expect(naFila.getByRole('button', { name: 'Autorizar despesa' })).toHaveCount(0)
@@ -75,7 +75,7 @@ test('a tesouraria lança; a despesa só sai do saldo depois que o presidente au
   // 2. O presidente autoriza
   await trocarPara(page, 'presidencia')
   await page.goto('financeiro')
-  await page.getByRole('tab', { name: 'Despesas a autorizar' }).click()
+  await abrirFuncao(page, 'Despesas a autorizar')
   await page
     .getByRole('listitem', { name: `Despesa: ${despesa}` })
     .getByRole('button', { name: 'Autorizar despesa' })
@@ -131,13 +131,13 @@ test('valor digitado do jeito brasileiro; quem lançou a despesa não vê "Autor
   // A presidência lança uma despesa: na fila, a dela aparece sem o botão de autorizar
   await lancar(page, 'saida', 'Material e expediente', '2', despesa)
   await expect(mensagemNaTela(page, /Despesa lançada/)).toBeVisible()
-  await page.getByRole('tab', { name: 'Despesas a autorizar' }).click()
+  await abrirFuncao(page, 'Despesas a autorizar')
   const minha = page.getByRole('listitem', { name: `Despesa: ${despesa}` })
   await expect(minha).toContainText('Você lançou esta despesa: outra pessoa da presidência autoriza.')
   await expect(minha.getByRole('button', { name: 'Autorizar despesa' })).toHaveCount(0)
 
   // Desfaz
-  await page.getByRole('tab', { name: 'Caixa', exact: true }).click()
+  await abrirFuncao(page, 'Caixa')
   await cancelar(page, entrada)
   await cancelar(page, despesa)
   await esperarSaldo(page, CAIXA, caixaAntes)
@@ -146,5 +146,7 @@ test('valor digitado do jeito brasileiro; quem lançou a despesa não vê "Autor
 test('o ministro não vê o financeiro', async ({ page }) => {
   await trocarPara(page, 'ministro')
   await page.goto('financeiro')
-  await expect(page.getByRole('tab', { name: 'Caixa', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Sem acesso' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Caixa', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Funções do módulo/ })).toHaveCount(0)
 })

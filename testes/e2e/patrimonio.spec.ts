@@ -3,7 +3,7 @@
 // registra a retirada e a devolução (tudo volta, então a quantidade não muda). As regras finas (agenda, antecedência,
 // termo, baixa do que falta) estão nos testes do banco: testes/banco/patrimonio.test.ts.
 import { expect, test } from '@playwright/test'
-import { abrirModulos, arquivoDaSessao, mensagemNaTela } from './ajuda'
+import { abrirFuncao, abrirModulos, arquivoDaSessao, funcoesDoModulo, mensagemNaTela, nomeDaFuncao } from './ajuda'
 
 const ITEM = 'Cadeira de teste (E2E)'
 
@@ -15,10 +15,11 @@ test.describe('presidência', () => {
   test('o bem, o pedido em nome da igreja com o termo, a aprovação, a retirada e a devolução', async ({ page }, info) => {
     test.setTimeout(120_000)
     await page.goto('patrimonio')
-    await expect(page.getByRole('heading', { name: 'Patrimônio', level: 1 })).toBeVisible()
+    // o módulo abre nos pedidos (a primeira função)
+    await expect(page.getByRole('heading', { name: 'Pedidos', level: 1 })).toBeVisible()
 
     // o bem fictício (só na primeira rodada); acrescentar 1 e dar baixa de 1 deixa a quantidade igual
-    await page.getByRole('tab', { name: 'Bens' }).click()
+    await abrirFuncao(page, 'Bens')
     const bens = page.getByRole('list', { name: 'Bens' }).or(page.getByText('Nenhum bem cadastrado.'))
     await expect(bens.first()).toBeVisible()
     if ((await page.getByRole('listitem', { name: ITEM }).count()) === 0) {
@@ -48,7 +49,7 @@ test.describe('presidência', () => {
 
     // o pedido em nome de uma igreja fictícia (a equipe não precisa da antecedência)
     const dia = diaDaqui(info.project.name === 'celular' ? 41 : 40)
-    await page.getByRole('tab', { name: 'Pedir emprestado' }).click()
+    await abrirFuncao(page, 'Pedir emprestado')
     const pedido = page.getByRole('form', { name: 'Pedir emprestado' })
     await pedido.getByLabel(/^Para \*/).selectOption({ index: 1 })
     await pedido.getByLabel(/^Retirada \*/).fill(dia)
@@ -70,7 +71,7 @@ test.describe('presidência', () => {
 
       // a agenda mostra a reserva
       await page.goto('patrimonio')
-      await page.getByRole('tab', { name: 'Agenda' }).click()
+      await abrirFuncao(page, 'Agenda')
       await expect(page.getByRole('list', { name: 'Reservas' })).toContainText(ITEM)
 
       await page.goto(endereco)
@@ -103,10 +104,11 @@ test.describe('Conselho Fiscal', () => {
   test('acompanha o patrimônio, mas não pede emprestado', async ({ page }) => {
     const modulos = await abrirModulos(page)
     await modulos.getByRole('link', { name: 'Patrimônio', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Patrimônio', level: 1 })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'Pedidos' })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'Pedir emprestado' })).toHaveCount(0)
-    await page.getByRole('tab', { name: 'Bens' }).click()
+    await expect(page.getByRole('heading', { name: 'Pedidos', level: 1 })).toBeVisible()
+    const funcoes = await funcoesDoModulo(page)
+    await expect(funcoes.getByRole('link', { name: nomeDaFuncao('Agenda') })).toBeVisible()
+    await expect(funcoes.getByRole('link', { name: nomeDaFuncao('Pedir emprestado') })).toHaveCount(0)
+    await abrirFuncao(page, 'Bens')
     await expect(page.getByRole('listitem', { name: ITEM })).toBeVisible()
     await expect(page.getByText('Cadastrar um bem')).toHaveCount(0)
   })

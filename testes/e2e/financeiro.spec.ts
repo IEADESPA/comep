@@ -1,7 +1,7 @@
 // Fase 2.1: contribuições — a tesouraria gera, o associado escolhe o plano e informa o pagamento, a tesouraria confirma.
 // Associado FICTÍCIO criado pelo próprio teste (e arquivado no fim). Vale em qualquer dia do ano.
 import { expect, test } from '@playwright/test'
-import { arquivarAssociadoDeTeste, criarAssociadoComLogin, mensagemNaTela, sufixoUnico, trocarPara } from './ajuda'
+import { abrirFuncao, arquivarAssociadoDeTeste, criarAssociadoComLogin, mensagemNaTela, sufixoUnico, trocarPara } from './ajuda'
 
 const COMPROVANTE = {
   name: 'pix.pdf',
@@ -32,7 +32,7 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
   // 1. A tesouraria (aqui, a presidência) gera as cobranças do exercício
   await trocarPara(page, 'presidencia')
   await page.goto('financeiro')
-  await page.getByRole('tab', { name: 'Cobranças do exercício' }).click()
+  await abrirFuncao(page, 'Cobranças do exercício', 'Contribuições')
   await page.getByRole('button', { name: 'Gerar cobranças do exercício' }).click()
   await expect(mensagemNaTela(page, /cobrança\(s\) gerada\(s\)/)).toBeVisible()
 
@@ -55,9 +55,10 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
   await expect(mensagemNaTela(page, 'Pagamento informado. A tesouraria vai conferir.')).toBeVisible()
   await expect(lista).toContainText('Aguardando a tesouraria')
 
-  // 3. A tesouraria confere o comprovante e confirma
+  // 3. A tesouraria confere o comprovante e confirma (o Financeiro abre nos comprovantes)
   await trocarPara(page, 'presidencia')
   await page.goto('financeiro')
+  await expect(page).toHaveURL(/\/financeiro\/comprovantes$/)
   const pagamento = page.getByRole('listitem', { name: `Pagamento de ${nome}` })
   await expect(pagamento).toContainText(`${anuidade}: R$ 200,00`)
   await expect(pagamento.getByRole('link', { name: 'Abrir comprovante' })).toBeVisible()
@@ -65,12 +66,12 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
   await expect(mensagemNaTela(page, `Pagamento de ${nome} confirmado`)).toBeVisible()
 
   // A situação do associado aparece certa para a tesouraria
-  await page.getByRole('tab', { name: 'Situação dos associados' }).click()
+  await abrirFuncao(page, 'Situação dos associados', 'Contribuições')
   await page.getByLabel('Buscar associado').fill(nome)
   await expect(page.getByRole('listitem', { name: nome })).toContainText('Em dia')
 
   // O pagamento confirmado entrou sozinho no caixa (PIX → conta bancária)
-  await page.getByRole('tab', { name: 'Caixa', exact: true }).click()
+  await abrirFuncao(page, 'Caixa')
   await expect(page.getByRole('listitem', { name: `Contribuição de ${nome} — ${anuidade.toLowerCase()}` })).toContainText(
     'R$ 200,00',
   )

@@ -1,7 +1,7 @@
 // Fase 1.2 (parte 1): configurações, pastor presidente/jubilado e as duas colunas independentes.
 // Dados FICTÍCIOS no banco de teste; o que o teste cria, ele mesmo arquiva no fim (nada se apaga).
 import { expect, test } from '@playwright/test'
-import { arquivoDaSessao, sufixoUnico } from './ajuda'
+import { abrirAbaDaFicha, arquivarCadastroAberto, arquivoDaSessao, cadastrarMinistro, sufixoUnico } from './ajuda'
 
 const mensagem = (page: import('@playwright/test').Page, texto: string) =>
   page.getByRole('status').filter({ hasText: texto })
@@ -118,19 +118,17 @@ test('pastor presidente paga como presidente de igreja; a jubilação é da asse
   await expect(mensagem(page, 'Igreja cadastrada.')).toBeVisible()
   const enderecoIgreja = page.url()
 
-  await page.goto('ministros/novo')
-  await page.getByLabel(/^Nome completo/).fill(nome)
-  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor(a)' })
-  await page.getByLabel(/^Igreja \*/).selectOption({ label: igreja })
-  await page.getByLabel(/É o pastor presidente desta igreja/).check()
-  await page.getByRole('button', { name: 'Cadastrar associado' }).click()
-  await expect(mensagem(page, 'Associado cadastrado.')).toBeVisible()
+  await cadastrarMinistro(page, { nome, igreja, pastorPresidente: true })
 
+  // a ficha em abas: a contribuição na aba Contribuição; o pastor presidente na aba Igreja
   const contribuicao = page.locator('section', { has: page.getByRole('heading', { name: 'Contribuição' }) })
+  await abrirAbaDaFicha(page, 'Contribuição')
   await expect(contribuicao).toContainText('Categoria: Presidente de igreja — R$ 40,00 por mês ou R$ 400,00 por ano')
 
+  await abrirAbaDaFicha(page, 'Igreja')
   await page.getByRole('button', { name: 'Desmarcar pastor presidente' }).click()
   await expect(mensagem(page, 'Desmarcado como pastor presidente.')).toBeVisible()
+  await abrirAbaDaFicha(page, 'Contribuição')
   await expect(contribuicao).toContainText('Categoria: Não presidente de igreja — R$ 20,00 por mês')
 
   // a secretaria não marca o jubilado na ficha: a jubilação é aprovada pela assembleia (14/11/2026)
@@ -138,9 +136,7 @@ test('pastor presidente paga como presidente de igreja; a jubilação é da asse
   await expect(contribuicao).toContainText('a assembleia aprova')
 
   // Limpeza: arquiva o associado e a igreja de teste
-  await page.getByText('Arquivar cadastro', { exact: true }).last().click()
-  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/ministros$/)
+  await arquivarCadastroAberto(page)
   await page.goto(enderecoIgreja)
   await page.getByText('Arquivar igreja', { exact: true }).last().click()
   await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()

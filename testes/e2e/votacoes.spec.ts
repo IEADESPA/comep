@@ -4,7 +4,7 @@
 // (nada se apaga), com "E2E" no título. As regras finas (voto secreto, maiorias, prazo, item da pauta) estão nos testes
 // do banco: testes/banco/votacoes.test.ts.
 import { expect, test } from '@playwright/test'
-import { arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
+import { abrirFuncao, arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
 
 test.use({ storageState: arquivoDaSessao('presidencia') })
 
@@ -12,7 +12,8 @@ test('enquete secreta: preparar, abrir, o ministro vota, encerrar e o resultado'
   test.setTimeout(120_000)
   const titulo = `Enquete E2E ${sufixoUnico(info.project.name)}`
   await page.goto('votacoes')
-  await page.getByRole('link', { name: 'Nova votação ou enquete' }).click()
+  // "Nova votação ou enquete" é uma função do menu do módulo
+  await abrirFuncao(page, 'Nova votação ou enquete')
   const form = page.getByRole('form', { name: 'Votação' })
   await form.getByRole('radio', { name: /^Enquete/ }).check()
   await form.getByLabel(/^Pergunta \*/).fill(titulo)
