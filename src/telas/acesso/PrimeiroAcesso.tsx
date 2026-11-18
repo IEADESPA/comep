@@ -1,66 +1,68 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router'
 import { Mensagem } from '../../componentes/Basicos'
 import { criarLogin, redefinirSenha } from '../../dados/codigos'
 import { useSessao } from '../../estado/contexto'
+import { CampoAcesso, TelaAcesso } from './TelaAcesso'
 
-/** Moldura das telas de acesso (mesma da tela "Entrar"). */
-function CartaoAcesso({ titulo, children }: { titulo: string; children: ReactNode }) {
-  return (
-    <main className="tela-entrada">
-      <div className="cartao-entrada">
-        <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" width={56} height={56} />
-        <h1>{titulo}</h1>
-        <p className="subtitulo">Conselho de Ministros Evangélicos de Parauapebas</p>
-        {children}
-        <p className="rodape-entrada">
-          <Link to="/entrar">← Voltar para "Entrar"</Link>
-        </p>
-      </div>
-    </main>
-  )
-}
+// Primeiro acesso e esqueci a senha (aprovadas: seguem a tela de entrar, "Vermelho forte").
+
+const DICA_SENHA = 'Pelo menos 8 caracteres, com letras e números.'
 
 function CamposSenha({
   senha,
   confirmacao,
   setSenha,
   setConfirmacao,
-  rotulo = 'Crie uma senha',
 }: {
   senha: string
   confirmacao: string
   setSenha: (v: string) => void
   setConfirmacao: (v: string) => void
-  rotulo?: string
 }) {
   return (
     <>
-      <label>
-        {rotulo}
-        <input
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={8}
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-        />
-        <span className="detalhe">Pelo menos 8 caracteres, com letras e números.</span>
-      </label>
-      <label>
-        Repita a senha
-        <input
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirmacao}
-          onChange={(e) => setConfirmacao(e.target.value)}
-        />
-      </label>
+      <CampoAcesso
+        rotulo="Senha nova"
+        detalhe={DICA_SENHA}
+        type="password"
+        autoComplete="new-password"
+        required
+        minLength={8}
+        value={senha}
+        onChange={(e) => setSenha(e.target.value)}
+      />
+      <CampoAcesso
+        rotulo="Repita a senha"
+        type="password"
+        autoComplete="new-password"
+        required
+        value={confirmacao}
+        onChange={(e) => setConfirmacao(e.target.value)}
+      />
     </>
   )
 }
+
+function CampoCodigo({ rotulo, codigo, setCodigo }: { rotulo: string; codigo: string; setCodigo: (v: string) => void }) {
+  return (
+    <CampoAcesso
+      rotulo={rotulo}
+      required
+      autoComplete="one-time-code"
+      autoCapitalize="characters"
+      placeholder="XXXX-XXXX-XXXX"
+      value={codigo}
+      onChange={(e) => setCodigo(e.target.value)}
+    />
+  )
+}
+
+const voltarParaEntrar = (
+  <Link to="/entrar" className="link-forte acesso-centro">
+    ← Voltar para entrar
+  </Link>
+)
 
 /** /primeiro-acesso — associado já cadastrado pela secretaria cria o login com o código recebido. */
 export function PrimeiroAcesso() {
@@ -87,39 +89,38 @@ export function PrimeiroAcesso() {
   }
 
   return (
-    <CartaoAcesso titulo="Primeiro acesso">
-      <p className="texto-acesso">
-        Para quem <strong>já é associado</strong> e recebeu um código da secretaria (pelo WhatsApp). Use o seu e-mail e
-        crie a sua senha.
-      </p>
+    <TelaAcesso compacto>
+      <div className="acesso-titulo">
+        <h1>Primeiro acesso</h1>
+        <p className="acesso-explica">
+          Para quem <strong>já é associado</strong>: use o código que a secretaria entregou (pelo WhatsApp) para criar a sua
+          senha.
+        </p>
+      </div>
       <form
         onSubmit={(e) => {
           e.preventDefault()
           void enviar()
         }}
       >
-        <label>
-          Código de acesso
-          <input
-            required
-            autoComplete="one-time-code"
-            autoCapitalize="characters"
-            placeholder="XXXX-XXXX-XXXX"
-            value={codigo}
-            onChange={(e) => setCodigo(e.target.value)}
-          />
-        </label>
-        <label>
-          Seu e-mail
-          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
+        <CampoCodigo rotulo="Código de acesso" codigo={codigo} setCodigo={setCodigo} />
+        <CampoAcesso
+          rotulo="E-mail"
+          type="email"
+          autoComplete="email"
+          placeholder="seu@email.com"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
         <CamposSenha senha={senha} confirmacao={confirmacao} setSenha={setSenha} setConfirmacao={setConfirmacao} />
         <Mensagem erro={erro} />
-        <button type="submit" className="botao" disabled={enviando}>
-          {enviando ? 'Criando o acesso…' : 'Criar meu acesso'}
+        <button type="submit" className="botao botao-cheio" disabled={enviando}>
+          {enviando ? 'Criando a senha…' : 'Criar a minha senha'}
         </button>
       </form>
-    </CartaoAcesso>
+      {voltarParaEntrar}
+    </TelaAcesso>
   )
 }
 
@@ -148,44 +149,37 @@ export function NovaSenha() {
   }
 
   return (
-    <CartaoAcesso titulo="Esqueci a senha">
-      <p className="texto-acesso">
-        Como o sistema não envia e-mails, peça à <strong>secretaria</strong> um código para nova senha. Ele chega pelo
-        WhatsApp e vale por 7 dias.
-      </p>
+    <TelaAcesso compacto>
+      <div className="acesso-titulo">
+        <h1>Esqueci a senha</h1>
+        <p className="acesso-explica">
+          O sistema não envia e-mails: peça à <strong>secretaria</strong> um código para criar uma senha nova. Ele chega pelo
+          WhatsApp e vale por 7 dias.
+        </p>
+      </div>
       <form
         onSubmit={(e) => {
           e.preventDefault()
           void enviar()
         }}
       >
-        <label>
-          Código para nova senha
-          <input
-            required
-            autoComplete="one-time-code"
-            autoCapitalize="characters"
-            placeholder="XXXX-XXXX-XXXX"
-            value={codigo}
-            onChange={(e) => setCodigo(e.target.value)}
-          />
-        </label>
-        <label>
-          Seu e-mail de login
-          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <CamposSenha
-          senha={senha}
-          confirmacao={confirmacao}
-          setSenha={setSenha}
-          setConfirmacao={setConfirmacao}
-          rotulo="Nova senha"
+        <CampoCodigo rotulo="Código para nova senha" codigo={codigo} setCodigo={setCodigo} />
+        <CampoAcesso
+          rotulo="E-mail"
+          type="email"
+          autoComplete="email"
+          placeholder="seu@email.com"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
+        <CamposSenha senha={senha} confirmacao={confirmacao} setSenha={setSenha} setConfirmacao={setConfirmacao} />
         <Mensagem erro={erro} />
-        <button type="submit" className="botao" disabled={enviando}>
-          {enviando ? 'Trocando…' : 'Trocar a senha e entrar'}
+        <button type="submit" className="botao botao-cheio" disabled={enviando}>
+          {enviando ? 'Trocando…' : 'Trocar a senha'}
         </button>
       </form>
-    </CartaoAcesso>
+      {voltarParaEntrar}
+    </TelaAcesso>
   )
 }

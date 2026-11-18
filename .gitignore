@@ -38,3 +38,6 @@ playwright-report/
 test-results/
 # Sessões dos usuários fictícios dos testes de ponta a ponta
 playwright/.auth/
+
+# Estado do trabalho de cada pessoa: nunca vai para o Git (regra de 17/11/2026)
+/HANDOFF.md

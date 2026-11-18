@@ -419,29 +419,3 @@ function MarcarAge({ p }: { p: PedidoAge }) {
 // ---------------------------------------------------------------------
 // No Início: pedidos para assinar; para a presidência e a secretaria, os atingidos
 // ---------------------------------------------------------------------
-
-export function PedidosAgeNoInicio() {
-  const perfis = usePerfis()
-  const [carga] = useCarregar(listarPedidosAge)
-  if (carga.situacao !== 'ok') return null
-  const assinar = carga.dados.filter((p) => p.posso_assinar && !p.eu_assinei)
-  const marcar = marca(perfis) ? carga.dados.filter((p) => p.situacao === 'atingido') : []
-  if (assinar.length === 0 && marcar.length === 0) return null
-  return (
-    <section className="painel" aria-labelledby="titulo-pedidos-age-inicio">
-      <h2 id="titulo-pedidos-age-inicio">Pedidos de Assembleia Extraordinária</h2>
-      <ul className="lista-pendencias" aria-label="Pedidos de AGE para você">
-        {marcar.map((p) => (
-          <li key={p.id}>
-            Atingiu as assinaturas: <Link to={`/assembleias/pedidos/${p.id}`}>{p.titulo}</Link> — marcar a AGE
-          </li>
-        ))}
-        {assinar.map((p) => (
-          <li key={p.id}>
-            Falta a sua assinatura: <Link to={`/assembleias/pedidos/${p.id}`}>{p.titulo}</Link> (até {formatarData(p.prazo)})
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}

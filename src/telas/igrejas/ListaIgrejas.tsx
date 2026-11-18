@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { listarIgrejas } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
@@ -7,7 +7,14 @@ import { DOCUMENTOS_ESSENCIAIS, documentosParaConferir, NOME_DO_DOCUMENTO, resum
 import { useCarregar } from '../../estado/useCarregar'
 import { contemTexto, formatarDataDeInstante } from '../../utilitarios/formatos'
 
+/** A busca do topo abre esta lista já filtrada (?busca=…); cada busca nova recomeça a tela. */
 export function ListaIgrejas() {
+  const [parametros] = useSearchParams()
+  const busca = parametros.get('busca') ?? ''
+  return <ConteudoListaIgrejas key={busca} buscaInicial={busca} />
+}
+
+function ConteudoListaIgrejas({ buscaInicial }: { buscaInicial: string }) {
   const location = useLocation()
   const mensagem = (location.state as { mensagem?: string } | null)?.mensagem
   const [carga, recarregar] = useCarregar(async () => {
@@ -20,7 +27,7 @@ export function ListaIgrejas() {
       conferir: conferir.erro === null ? conferir.dados : [],
     })
   })
-  const [busca, setBusca] = useState('')
+  const [busca, setBusca] = useState(buscaInicial)
 
   return (
     <>

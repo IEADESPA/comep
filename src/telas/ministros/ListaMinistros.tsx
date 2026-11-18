@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { listarAssociados, NOME_DA_SITUACAO } from '../../dados/associados'
 import { ok } from '../../dados/cliente'
@@ -9,7 +9,14 @@ import { contemTexto } from '../../utilitarios/formatos'
 import { CorrecoesPendentes } from '../portal/PedidosCorrecao'
 import { TrocasPendentes } from './TrocasPendentes'
 
+/** A busca do topo abre esta lista já filtrada (?busca=…); cada busca nova recomeça a tela. */
 export function ListaMinistros() {
+  const [parametros] = useSearchParams()
+  const busca = parametros.get('busca') ?? ''
+  return <ConteudoListaMinistros key={busca} buscaInicial={busca} />
+}
+
+function ConteudoListaMinistros({ buscaInicial }: { buscaInicial: string }) {
   const location = useLocation()
   const mensagem = (location.state as { mensagem?: string } | null)?.mensagem
   const [carga, recarregar] = useCarregar(async () => {
@@ -18,7 +25,7 @@ export function ListaMinistros() {
     if (pendencias.erro !== null) return pendencias
     return ok({ associados: associados.dados, pendencias: new Map(pendencias.dados.map((p) => [p.pessoa_id, p.pendencias])) })
   })
-  const [busca, setBusca] = useState('')
+  const [busca, setBusca] = useState(buscaInicial)
   const [soPendencia, setSoPendencia] = useState(false)
 
   return (

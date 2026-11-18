@@ -29,13 +29,35 @@ export async function entrar(page: Page, usuario: Usuario) {
   await expect(page).toHaveURL(/\/painel$/)
 }
 
-/** No celular o menu fica atrás do botão "Menu"; no computador ele já aparece. */
+/**
+ * O menu CURTO (telas novas, Fase 5.5): Início, a tela aberta e Meu perfil (e o "Sair").
+ * No celular ele fica atrás do botão "Menu", na barra de cima; no computador é a coluna vermelha da esquerda.
+ */
 export async function abrirMenu(page: Page): Promise<Locator> {
-  const botao = page.getByRole('button', { name: 'Menu' })
+  const botao = page.getByRole('button', { name: 'Menu', exact: true })
   if (await botao.isVisible()) await botao.click()
   const menu = page.getByRole('navigation', { name: 'Menu principal' })
   await expect(menu).toBeVisible()
   return menu
+}
+
+/** Os módulos ficam na página inicial; /modulos mostra todos (no celular, é a aba "Módulos"). */
+export async function abrirModulos(page: Page): Promise<Locator> {
+  await page.goto('modulos')
+  const modulos = page.getByRole('region', { name: 'Módulos' })
+  await expect(modulos).toBeVisible()
+  return modulos
+}
+
+/** O "Sair" fica no menu (no computador, embaixo da coluna vermelha; no celular, no fim do Menu). */
+export async function sair(page: Page): Promise<void> {
+  const menu = await abrirMenu(page)
+  await menu.getByRole('button', { name: 'Sair' }).click()
+}
+
+/** A saudação do Início: "Bom dia, Fulano" (ou boa tarde, boa noite). */
+export function saudacao(nome: string): RegExp {
+  return new RegExp(`^(Bom dia|Boa tarde|Boa noite), ${nome}$`)
 }
 
 /** Sufixo único por execução e por tamanho de tela (computador/celular), para não misturar dados. */
@@ -135,10 +157,10 @@ export async function criarAssociadoComLogin(
   await trocarPara(page, null)
   await page.goto('primeiro-acesso')
   await page.getByLabel('Código de acesso').fill(codigo)
-  await page.getByLabel('Seu e-mail').fill(dados.email)
-  await page.getByLabel('Crie uma senha').fill(dados.senha)
+  await page.getByLabel('E-mail').fill(dados.email)
+  await page.getByLabel('Senha nova').fill(dados.senha)
   await page.getByLabel('Repita a senha').fill(dados.senha)
-  await page.getByRole('button', { name: 'Criar meu acesso' }).click()
+  await page.getByRole('button', { name: 'Criar a minha senha' }).click()
   await expect(page).toHaveURL(/\/painel$/)
   return guardarSessao(page)
 }

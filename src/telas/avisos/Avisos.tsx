@@ -185,27 +185,6 @@ function FormAviso({
   )
 }
 
-/** No Início: os avisos mais recentes (os fixados primeiro). */
-export function AvisosNoInicio() {
-  const [carga] = useCarregar(listarAvisos)
-  if (carga.situacao !== 'ok') return null
-  const avisos = carga.dados.filter((a) => !vencido(a)).slice(0, 3)
-  if (avisos.length === 0) return null
-  return (
-    <section className="painel" aria-labelledby="titulo-avisos-inicio">
-      <h2 id="titulo-avisos-inicio">Mural de avisos</h2>
-      <ul className="lista-pendencias" aria-label="Avisos recentes">
-        {avisos.map((a) => (
-          <li key={a.id}>
-            <strong>{a.titulo}</strong> — {a.texto.length > 160 ? `${a.texto.slice(0, 160)}…` : a.texto}
-          </li>
-        ))}
-      </ul>
-      <Link to="/avisos">Ver o mural</Link>
-    </section>
-  )
-}
-
 // ---------------------------------------------------------------------
 // /painel-presidencia
 // ---------------------------------------------------------------------

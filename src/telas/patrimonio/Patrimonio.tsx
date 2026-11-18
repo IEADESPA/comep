@@ -1148,21 +1148,3 @@ function Cancelar({ e, aoConcluir }: { e: Emprestimo; aoConcluir: Concluir }) {
 // ---------------------------------------------------------------------
 // No Início (secretaria e presidência): pedidos esperando e devoluções atrasadas
 // ---------------------------------------------------------------------
-
-export function PatrimonioNoInicio() {
-  const [carga] = useCarregar(listarEmprestimos)
-  if (carga.situacao !== 'ok') return null
-  const esperando = carga.dados.filter((e) => e.situacao === 'solicitado').length
-  const atrasados = carga.dados.filter(atrasado).length
-  if (esperando === 0 && atrasados === 0) return null
-  return (
-    <section className="painel" aria-labelledby="titulo-patrimonio-inicio">
-      <h2 id="titulo-patrimonio-inicio">Patrimônio</h2>
-      <ul className="lista-pendencias" aria-label="Pendências do patrimônio">
-        {esperando > 0 && <li>{esperando === 1 ? '1 pedido de empréstimo esperando a aprovação' : `${esperando} pedidos de empréstimo esperando a aprovação`}</li>}
-        {atrasados > 0 && <li>{atrasados === 1 ? '1 empréstimo com a devolução atrasada' : `${atrasados} empréstimos com a devolução atrasada`}</li>}
-      </ul>
-      <Link to="/patrimonio">Ver os pedidos</Link>
-    </section>
-  )
-}
