@@ -10,7 +10,7 @@ test('senha errada mostra uma mensagem clara', async ({ page }) => {
 })
 
 test.describe('presidência', () => {
-  test('entra, vê todos os módulos, abre uma área (o menu curto mostra a tela aberta) e sai', async ({ page }) => {
+  test('entra, vê todos os módulos, abre uma área (o menu curto mostra a tela aberta) e sai', async ({ page }, info) => {
     await entrar(page, USUARIOS.presidencia)
     await expect(page.getByRole('heading', { name: saudacao('Presidência'), level: 1 })).toBeVisible()
     await expect(page.getByRole('list', { name: 'Seus perfis' })).toContainText('Presidência')
@@ -25,11 +25,13 @@ test.describe('presidência', () => {
     await expect(page).toHaveURL(/\/ministros$/)
     await expect(page.getByRole('heading', { name: 'Ministros', level: 1 })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Cadastrar associado' })).toBeVisible()
-    // o menu curto: Início, a tela aberta e Meu perfil
+    // o menu curto: Início, a tela aberta e Meu perfil (no celular, o Menu de cima: Início, Módulos, Avisos e Meu perfil)
     const menu = await abrirMenu(page)
-    for (const item of ['Início', 'Ministros', 'Meu perfil']) {
+    const doMenu = info.project.name === 'celular' ? ['Início', 'Módulos', 'Meu perfil'] : ['Início', 'Ministros', 'Meu perfil']
+    for (const item of doMenu) {
       await expect(menu.getByRole('link', { name: item, exact: true })).toBeVisible()
     }
+    await page.keyboard.press('Escape')
     await expect(menu.getByRole('link', { name: 'Financeiro', exact: true })).toHaveCount(0)
 
     // A Fase 5 completou os módulos: eventos, comissões, mural e o painel da presidência

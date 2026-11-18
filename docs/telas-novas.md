@@ -96,3 +96,7 @@ O site fica por **último**: ele já funciona e está aceitável.
 - 18/11/2026: **rodada 6, o primeiro módulo: Ministros e inscrições**, com todas as abas.
   - Depois vêm os outros módulos: Credenciais, Igrejas, Financeiro, Patrimônio, Assembleias, Votações e enquetes, Diretoria, Comissões, Eventos e projetos, Mural de avisos, Painel da presidência e Administração. O site fica por último.
 - Antes disso, por engano, foi feito um quadro de design com as telas iniciais todas de uma vez ("COMEP — Telas novas"). Ele está fora do modelo combinado e não vale como proposta.
+- 18/11/2026: **as telas aprovadas começam a entrar no sistema** (só no site de teste):
+  - parte 1 (versão 5.5.0-teste.5): a moldura (menu curto, topo com busca, claro/escuro e sino; no celular, a barra vermelha em cima), o sino e o Menu do celular, Entrar, Primeiro acesso e Esqueci a senha, e o Início;
+  - parte 2 (versão 5.5.0-teste.6): as telas gerais (Meu perfil, Minha credencial, Minhas mensalidades, Minha igreja, Meu pedido e Validar credencial);
+  - o registro de cada parte, com as decisões tomadas sem o desenho e o que depende do banco, está em `docs/revisoes/fase-5.5.md` (entrega 5.5.5).
