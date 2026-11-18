@@ -13,6 +13,9 @@ import { contemTexto, formatarData } from '../../utilitarios/formatos'
 const PERFIS_AUTOMATICOS: readonly Perfil[] = ['ministro', 'presidente_igreja']
 const PERFIS_CONCEDIVEIS = PERFIS.filter((p) => !PERFIS_AUTOMATICOS.includes(p))
 
+/** Quantas pessoas a lista desenha de uma vez (o resto se acha pela busca). */
+const MAXIMO_NA_TELA = 50
+
 type Retorno = { sucesso?: string; erro?: string }
 
 export function Acessos() {
@@ -43,7 +46,13 @@ export function Acessos() {
 
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(pessoas) => {
-          const filtradas = pessoas.filter((p) => contemTexto(p.nome, busca) || contemTexto(p.email, busca))
+          // Com mais de mil pessoas (18/11/2026), desenhar todas deixava a tela lenta: sem busca, aparecem só as que
+          // têm algum perfil; com busca, as primeiras que batem.
+          const termo = busca.trim()
+          const filtradas = termo
+            ? pessoas.filter((p) => contemTexto(p.nome, termo) || contemTexto(p.email, termo))
+            : pessoas.filter((p) => p.perfis_acesso.length > 0)
+          const mostradas = filtradas.slice(0, MAXIMO_NA_TELA)
           return (
             <>
               <label className="busca">
@@ -55,8 +64,15 @@ export function Acessos() {
                   onChange={(e) => setBusca(e.target.value)}
                 />
               </label>
+              <p className="detalhe">
+                {!termo
+                  ? `Sem busca, aparecem as pessoas que já têm algum perfil (${filtradas.length}). Para conceder um perfil a outra pessoa, busque pelo nome ou pelo e-mail.`
+                  : filtradas.length > MAXIMO_NA_TELA
+                    ? `Mostrando ${MAXIMO_NA_TELA} de ${filtradas.length}: escreva mais do nome para achar a pessoa.`
+                    : `${filtradas.length} ${filtradas.length === 1 ? 'pessoa encontrada' : 'pessoas encontradas'}.`}
+              </p>
               <ul className="lista" aria-label="Pessoas">
-                {filtradas.map((pessoa) => (
+                {mostradas.map((pessoa) => (
                   <LinhaPessoa key={pessoa.id} pessoa={pessoa} concluir={concluir} />
                 ))}
               </ul>
