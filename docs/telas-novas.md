@@ -87,5 +87,12 @@ O site fica por **último**: ele já funciona e está aceitável.
   - **Pedido de associação:** a opção 2, com o selo da secretaria em cada documento e em cada dado. A análise termina quando tudo for aprovado.
   - **Aprovados sem mudança:** o menu e os avisos (opção 1), o primeiro acesso e esqueci a senha, e a validação da credencial (opção 3, a credencial com carimbo).
 - 17/11/2026: **rodada 5 publicada** com esses ajustes, mais o Início com o menu curto. As abas funcionam na própria prévia.
-  - Depois vêm os módulos: Ministros e inscrições, Credenciais, Igrejas, Financeiro, Patrimônio, Assembleias, Votações e enquetes, Diretoria, Comissões, Eventos e projetos, Mural de avisos, Painel da presidência e Administração. O site fica por último.
+- 18/11/2026: **rodada 5 aprovada** (as 6 telas). Observações:
+  - **Correções no cadastro: nada de texto livre**, porque a pessoa digita errado.
+    - Na aba Correções, ela **escolhe o dado** (telefone, nome, título…), vê **como está** e digita **como deve ficar**. A secretaria aceita ou recusa.
+    - Aceita, a correção entra sozinha no cadastro.
+    - Isso muda o pedido de correção do sistema (`pedidos_correcao`): ele ganha o campo, o valor de hoje e o valor pedido.
+  - **Minha igreja:** as agendas melhoram depois, quando o módulo de agenda for revisto.
+- 18/11/2026: **rodada 6, o primeiro módulo: Ministros e inscrições**, com todas as abas.
+  - Depois vêm os outros módulos: Credenciais, Igrejas, Financeiro, Patrimônio, Assembleias, Votações e enquetes, Diretoria, Comissões, Eventos e projetos, Mural de avisos, Painel da presidência e Administração. O site fica por último.
 - Antes disso, por engano, foi feito um quadro de design com as telas iniciais todas de uma vez ("COMEP — Telas novas"). Ele está fora do modelo combinado e não vale como proposta.
