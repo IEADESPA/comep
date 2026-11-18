@@ -12,7 +12,7 @@ export function CorrecoesPedidas() {
       <CabecalhoFuncao
         modulo="Ministros e inscrições"
         titulo="Correções pedidas"
-        sub="Os ministros pedem pelo perfil (ou o pastor presidente, pela igreja). Corrija na ficha e responda aqui."
+        sub="Os ministros pedem pelo perfil (ou o pastor presidente, pela igreja). Aceita, a correção entra sozinha no cadastro."
       />
       <CorrecoesPendentes />
       <TrocasPendentes />
