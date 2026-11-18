@@ -9,6 +9,7 @@ import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, formatarDataHora } from '../../utilitarios/formatos'
 import { FormularioPedido } from './FormularioPedido'
+import { CampoAcesso, TelaAcesso } from '../acesso/TelaAcesso'
 
 const ABERTOS: readonly Pedido['situacao'][] = ['enviado', 'pendencia', 'aguardando_assembleia']
 
@@ -188,61 +189,62 @@ export function CriarAcessoPedido() {
   }
 
   return (
-    <main className="tela-entrada">
-      <div className="cartao-entrada">
-        <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" width={56} height={56} />
+    <TelaAcesso compacto>
+      <div className="acesso-titulo">
         <h1>Quero me associar</h1>
-        <p className="subtitulo">Passo 1 de 2: crie o seu acesso</p>
-        <p className="texto-acesso">
-          Com ele você envia o pedido, acompanha a análise e, depois de aprovado, entra no Portal do membro.
-        </p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void enviar()
-          }}
-        >
-          <label>
-            Nome completo
-            <input required autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
-          </label>
-          <label>
-            E-mail
-            <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          </label>
-          <label>
-            Crie uma senha
-            <input
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-            />
-            <span className="detalhe">Pelo menos 8 caracteres, com letras e números.</span>
-          </label>
-          <label>
-            Repita a senha
-            <input
-              type="password"
-              autoComplete="new-password"
-              required
-              value={confirmacao}
-              onChange={(e) => setConfirmacao(e.target.value)}
-            />
-          </label>
-          <Mensagem erro={erro} />
-          <button type="submit" className="botao" disabled={enviando}>
-            {enviando ? 'Criando…' : 'Criar acesso e continuar'}
-          </button>
-        </form>
-        <p className="rodape-entrada">
-          Já tem login? <Link to="/entrar" state={{ voltarPara: '/meu-pedido' }}>Entrar</Link>
-          <br />
-          <Link to="/associar">← Voltar</Link>
+        <p className="acesso-explica">
+          <strong>Passo 1 de 2: crie o seu acesso.</strong> Com ele você envia o pedido, acompanha a análise e, depois de
+          aprovado, entra no Portal do membro.
         </p>
       </div>
-    </main>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          void enviar()
+        }}
+      >
+        <CampoAcesso rotulo="Nome completo" required autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
+        <CampoAcesso
+          rotulo="E-mail"
+          type="email"
+          autoComplete="email"
+          placeholder="seu@email.com"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <CampoAcesso
+          rotulo="Crie uma senha"
+          detalhe="Pelo menos 8 caracteres, com letras e números."
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
+        />
+        <CampoAcesso
+          rotulo="Repita a senha"
+          type="password"
+          autoComplete="new-password"
+          required
+          value={confirmacao}
+          onChange={(e) => setConfirmacao(e.target.value)}
+        />
+        <Mensagem erro={erro} />
+        <button type="submit" className="botao botao-cheio" disabled={enviando}>
+          {enviando ? 'Criando…' : 'Criar acesso e continuar'}
+        </button>
+      </form>
+      <p className="acesso-associar">
+        Já tem login?{' '}
+        <Link to="/entrar" state={{ voltarPara: '/meu-pedido' }}>
+          Entrar
+        </Link>
+      </p>
+      <Link to="/associar" className="link-forte acesso-centro">
+        ← Voltar
+      </Link>
+    </TelaAcesso>
   )
 }

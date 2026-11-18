@@ -1,7 +1,7 @@
 // Fase 1.2 (parte 2): código de primeiro acesso, senha esquecida e pedido de associação completo.
 // Tudo com dados FICTÍCIOS no banco de teste (e-mails @example.com). Os associados criados são arquivados no fim.
 import { expect, test, type Page } from '@playwright/test'
-import { cpfAleatorio, guardarSessao, sufixoUnico, trocarPara } from './ajuda'
+import { cpfAleatorio, guardarSessao, saudacao, sufixoUnico, trocarPara } from './ajuda'
 
 const mensagem = (page: Page, texto: string | RegExp) => page.getByRole('status').filter({ hasText: texto })
 
@@ -55,19 +55,19 @@ test('associado antigo: primeiro acesso com código e, depois, senha esquecida c
   // 2. O associado cria o login com o código (sem e-mail nenhum)
   await trocarPara(page, null)
   await page.goto('entrar')
-  await page.getByRole('link', { name: 'Primeiro acesso (recebi um código)' }).click()
+  await page.getByRole('link', { name: /^Primeiro acesso/ }).click()
   await page.getByLabel('Código de acesso').fill(codigo.toLowerCase())
-  await page.getByLabel('Seu e-mail').fill(email)
+  await page.getByLabel('E-mail').fill(email)
   // Senha só com letras é recusada (precisa de letras e números)
-  await page.getByLabel('Crie uma senha').fill('somenteletras')
+  await page.getByLabel('Senha nova').fill('somenteletras')
   await page.getByLabel('Repita a senha').fill('somenteletras')
-  await page.getByRole('button', { name: 'Criar meu acesso' }).click()
+  await page.getByRole('button', { name: 'Criar a minha senha' }).click()
   await expect(page.getByRole('alert')).toContainText('pelo menos 8 caracteres, com letras e números')
-  await page.getByLabel('Crie uma senha').fill('SenhaE2e123')
+  await page.getByLabel('Senha nova').fill('SenhaE2e123')
   await page.getByLabel('Repita a senha').fill('SenhaE2e123')
-  await page.getByRole('button', { name: 'Criar meu acesso' }).click()
+  await page.getByRole('button', { name: 'Criar a minha senha' }).click()
   await expect(page).toHaveURL(/\/painel$/)
-  await expect(page.getByRole('heading', { name: 'Olá, Acesso!' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: saudacao('Acesso'), level: 1 })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Seus perfis' })).toContainText('Ministro')
 
   // 3. Esqueceu a senha: a presidência gera o código de nova senha
@@ -82,12 +82,12 @@ test('associado antigo: primeiro acesso com código e, depois, senha esquecida c
   await page.goto('entrar')
   await page.getByRole('link', { name: 'Esqueci a senha' }).click()
   await page.getByLabel('Código para nova senha').fill(codigoSenha)
-  await page.getByLabel('Seu e-mail de login').fill(email)
-  await page.getByLabel(/^Nova senha/).fill('OutraSenha456')
+  await page.getByLabel('E-mail').fill(email)
+  await page.getByLabel('Senha nova').fill('OutraSenha456')
   await page.getByLabel('Repita a senha').fill('OutraSenha456')
-  await page.getByRole('button', { name: 'Trocar a senha e entrar' }).click()
+  await page.getByRole('button', { name: 'Trocar a senha' }).click()
   await expect(page).toHaveURL(/\/painel$/)
-  await expect(page.getByRole('heading', { name: 'Olá, Acesso!' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: saudacao('Acesso'), level: 1 })).toBeVisible()
 
   // Limpeza: arquiva o cadastro de teste
   await trocarPara(page, 'presidencia')

@@ -17,6 +17,13 @@
           )
         }
       })()
+      // Modo claro/escuro escolhido no aparelho (src/componentes/tema.ts): aplica antes de a tela aparecer
+      ;(function () {
+        try {
+          var tema = localStorage.getItem('comep-tema')
+          if (tema === 'claro' || tema === 'escuro') document.documentElement.setAttribute('data-tema', tema)
+        } catch (e) {}
+      })()
     </script>
   </head>
   <body>

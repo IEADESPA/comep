@@ -3,7 +3,7 @@
 // registra a retirada e a devolução (tudo volta, então a quantidade não muda). As regras finas (agenda, antecedência,
 // termo, baixa do que falta) estão nos testes do banco: testes/banco/patrimonio.test.ts.
 import { expect, test } from '@playwright/test'
-import { abrirMenu, arquivoDaSessao, mensagemNaTela } from './ajuda'
+import { abrirModulos, arquivoDaSessao, mensagemNaTela } from './ajuda'
 
 const ITEM = 'Cadeira de teste (E2E)'
 
@@ -101,11 +101,8 @@ test.describe('Conselho Fiscal', () => {
   test.use({ storageState: arquivoDaSessao('conselho') })
 
   test('acompanha o patrimônio, mas não pede emprestado', async ({ page }) => {
-    await page.goto('painel')
-    // no celular, o botão "Menu" só aparece depois que a página carrega
-    await expect(page.getByRole('heading', { name: /^Olá,/, level: 1 })).toBeVisible()
-    const menu = await abrirMenu(page)
-    await menu.getByRole('link', { name: 'Patrimônio', exact: true }).click()
+    const modulos = await abrirModulos(page)
+    await modulos.getByRole('link', { name: 'Patrimônio', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Patrimônio', level: 1 })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Pedidos' })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Pedir emprestado' })).toHaveCount(0)
@@ -119,11 +116,9 @@ test.describe('ministro', () => {
   test.use({ storageState: arquivoDaSessao('ministro') })
 
   test('não vê o patrimônio (é do pastor presidente e da equipe)', async ({ page }) => {
-    await page.goto('painel')
-    // no celular, o botão "Menu" só aparece depois que a página carrega
-    await expect(page.getByRole('heading', { name: /^Olá,/, level: 1 })).toBeVisible()
-    const menu = await abrirMenu(page)
-    await expect(menu.getByRole('link', { name: 'Patrimônio', exact: true })).toHaveCount(0)
+    const modulos = await abrirModulos(page)
+    await expect(modulos.getByRole('link', { name: 'Assembleias', exact: true })).toBeVisible()
+    await expect(modulos.getByRole('link', { name: 'Patrimônio', exact: true })).toHaveCount(0)
     await page.goto('patrimonio')
     await expect(page.getByRole('heading', { name: 'Sem acesso' })).toBeVisible()
   })

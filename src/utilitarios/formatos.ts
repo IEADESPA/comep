@@ -96,3 +96,55 @@ export function formatarCpf(valor: string | null | undefined): string {
   const cpf = limparCpf(valor)
   return cpf.length === 11 ? `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9)}` : (valor ?? '')
 }
+
+// ---------- Datas do Início e do sino (telas novas, Fase 5.5), no fuso de Parauapebas ----------
+
+const FUSO = 'America/Belem'
+
+/** "Bom dia" (5h às 11h59), "Boa tarde" (12h às 17h59) ou "Boa noite". */
+export function saudacaoDaHora(agora: Date = new Date()): string {
+  const hora = Number(agora.toLocaleString('en-US', { timeZone: FUSO, hour: 'numeric', hourCycle: 'h23' }))
+  if (hora >= 5 && hora < 12) return 'Bom dia'
+  if (hora >= 12 && hora < 18) return 'Boa tarde'
+  return 'Boa noite'
+}
+
+/** "Terça-feira, 17 de novembro" */
+export function dataPorExtenso(agora: Date = new Date()): string {
+  const texto = agora.toLocaleDateString('pt-BR', { timeZone: FUSO, weekday: 'long', day: 'numeric', month: 'long' })
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
+
+/** O dia e o mês curto de um instante, para a caixinha de data da agenda: { dia: '28', mes: 'ABR' } */
+export function diaEMes(instante: string): { dia: string; mes: string } {
+  const data = new Date(instante)
+  const dia = data.toLocaleDateString('pt-BR', { timeZone: FUSO, day: '2-digit' })
+  const mes = data.toLocaleDateString('pt-BR', { timeZone: FUSO, month: 'short' }).replace('.', '').toUpperCase()
+  return { dia, mes }
+}
+
+/** "19h30" (ou "8h" na hora cheia) */
+export function horaCurta(instante: string): string {
+  const [h, m] = new Date(instante)
+    .toLocaleTimeString('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .split(':')
+  return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`
+}
+
+/** "28/04" (dia e mês) de um instante */
+export function diaMes(instante: string): string {
+  return new Date(instante).toLocaleDateString('pt-BR', { timeZone: FUSO, day: '2-digit', month: '2-digit' })
+}
+
+/** Há quanto tempo: "agora há pouco", "há 20 min", "há 2 h", "ontem" ou "15/11". */
+export function quandoFoi(instante: string, agora: Date = new Date()): string {
+  const minutos = Math.floor((agora.getTime() - new Date(instante).getTime()) / 60_000)
+  if (minutos < 5) return 'agora há pouco'
+  if (minutos < 60) return `há ${minutos} min`
+  const hoje = diaIsoDeInstante(agora.toISOString())
+  const dia = diaIsoDeInstante(instante)
+  if (dia === hoje) return `há ${Math.floor(minutos / 60)} h`
+  const ontem = diaIsoDeInstante(new Date(agora.getTime() - 86_400_000).toISOString())
+  if (dia === ontem) return 'ontem'
+  return diaMes(instante)
+}

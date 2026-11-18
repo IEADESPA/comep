@@ -27,7 +27,8 @@ import { Financeiro } from './telas/financeiro/Financeiro'
 import { MinhasMensalidades } from './telas/financeiro/MinhasMensalidades'
 import { EditarIgreja, NovaIgreja } from './telas/igrejas/FormIgreja'
 import { ListaIgrejas } from './telas/igrejas/ListaIgrejas'
-import { Inicio } from './telas/Inicio'
+import { Inicio } from './telas/inicio/Inicio'
+import { Modulos } from './telas/inicio/Modulos'
 import { DetalheInscricao, ListaInscricoes } from './telas/inscricoes/Inscricoes'
 import { DetalheMinistro } from './telas/ministros/DetalheMinistro'
 import { ListaMinistros } from './telas/ministros/ListaMinistros'
@@ -89,6 +90,7 @@ export default function App() {
           <Route element={<RotaProtegida />}>
             <Route element={<Layout />}>
               <Route path="painel" element={<Inicio />} />
+              <Route path="modulos" element={<Modulos />} />
               <Route path="meu-pedido" element={<MeuPedido />} />
               <Route path="meu-perfil" element={<MeuPerfil />} />
 

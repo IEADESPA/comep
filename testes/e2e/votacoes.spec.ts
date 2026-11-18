@@ -28,11 +28,11 @@ test('enquete secreta: preparar, abrir, o ministro vota, encerrar e o resultado'
     await page.getByRole('button', { name: 'Abrir a votação' }).click()
     await expect(mensagemNaTela(page, 'Votação aberta: os associados já podem votar.')).toBeVisible()
 
-    // o ministro vê o "Vote agora" no Início, vota e não vê a contagem (voto secreto)
+    // o ministro vê a votação em "Para você", no Início, vota e não vê a contagem (voto secreto)
     const contexto = await browser.newContext({ storageState: arquivoDaSessao('ministro') })
     const m = await contexto.newPage()
     await m.goto('painel')
-    await m.getByRole('list', { name: 'Votações abertas para você' }).getByRole('link', { name: titulo }).click()
+    await m.getByRole('list', { name: /^(Para você|Precisa de você)$/ }).getByRole('link', { name: titulo }).click()
     await expect(m.getByRole('heading', { name: titulo, level: 1 })).toBeVisible()
     await expect(m.getByRole('heading', { name: 'Organizar' })).toHaveCount(0)
     const voto = m.getByRole('form', { name: 'Seu voto' })

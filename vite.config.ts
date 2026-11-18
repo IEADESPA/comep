@@ -30,7 +30,7 @@ export default defineConfig({
       workbox: {
         // Guarda só os arquivos do app (telas, estilos, ícones) para abrir com internet ruim.
         // Respostas do banco (dados pessoais) NÃO são guardadas no aparelho.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,woff2}'],
         // O app instalado do site oficial não responde pelos endereços do ambiente de teste
         navigateFallbackDenylist: [new RegExp(`^${base}teste/`)],
       },

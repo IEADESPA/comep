@@ -636,23 +636,3 @@ function AcoesDeQuemOrganiza({
 // ---------------------------------------------------------------------
 // No Início: as votações abertas em que a pessoa ainda não votou
 // ---------------------------------------------------------------------
-
-export function VotacoesNoInicio() {
-  const [carga] = useCarregar(listarVotacoes)
-  if (carga.situacao !== 'ok') return null
-  const pendentes = carga.dados.filter((v) => v.posso_votar && !v.eu_votei)
-  if (pendentes.length === 0) return null
-  return (
-    <section className="painel" aria-labelledby="titulo-votacoes-inicio">
-      <h2 id="titulo-votacoes-inicio">Vote agora</h2>
-      <ul className="lista-pendencias" aria-label="Votações abertas para você">
-        {pendentes.map((v) => (
-          <li key={v.id}>
-            <Link to={`/votacoes/${v.id}`}>{v.titulo}</Link>
-            {v.fecha_em && ` — até ${formatarDataHora(v.fecha_em)}`}
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}

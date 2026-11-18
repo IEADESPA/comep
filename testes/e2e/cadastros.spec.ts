@@ -127,6 +127,7 @@ test('perfil da diretoria não vai para quem não é associado (login criado pel
 test('nenhuma tela da diretoria fica mais larga que a tela', async ({ page }) => {
   for (const caminho of [
     'painel',
+    'modulos',
     'igrejas',
     'igrejas/nova',
     'ministros',

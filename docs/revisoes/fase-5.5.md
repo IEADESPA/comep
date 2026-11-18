@@ -186,3 +186,45 @@ O usuário pediu em 14/11/2026 um "site vivo": o que se lança no sistema aparec
   - quais igrejas aparecem, sem endereço nem telefone;
   - os números;
 - ponta a ponta: `testes/e2e/site-vivo.spec.ts`, como visitante sem login.
+
+## Entrega 5.5.5 — Telas novas, parte 1: a moldura, o sino, entrar e o Início (versão 5.5.0-teste.5)
+
+As telas aprovadas pelo usuário na página de propostas (roteiro e regras em `docs/telas-novas.md`) começam a entrar no sistema. Esta parte traz o que vale para todas as telas; a parte 2 traz as telas gerais (Meu perfil, Minha credencial, Minhas mensalidades, Minha igreja, Meu pedido e Validar credencial).
+
+**O que entrou:**
+
+- **Moldura do sistema** (aprovada: Opção 2, "Menu vermelho e blocos por assunto"):
+  - no notebook, o menu da esquerda no vermelho do COMEP, **curto**: Início, a tela aberta e Meu perfil, com o nome e o "Sair" embaixo. Os módulos ficam na página inicial;
+  - em cima, a barra branca com o caminho, a **busca** (diretoria: telas, ministros e igrejas; abre a lista já filtrada), o botão **claro/escuro** e o **sino**;
+  - o menu e o conteúdo **rolam cada um por si** (regra das colunas separadas);
+  - no celular, a **barra vermelha em cima** com o sino, o botão Menu e as abas Início, Módulos e Meu perfil (quem não tem perfil: Meu pedido no lugar de Módulos). **Nada de barra embaixo.**
+- **Modo claro e escuro:** sem escolha, segue o do aparelho; a escolha fica guardada no aparelho (`src/componentes/tema.ts`). As cores viraram variáveis em `src/estilos.css`, com os tons das propostas.
+- **Letras:** Inter no texto e Plus Jakarta Sans nos títulos, guardadas no próprio app (pacotes `@fontsource`), sem buscar em servidor de fora.
+- **O sino** (aprovado: "painel que desce do sino") e o **Menu do celular** (de cima para baixo: Início, Módulos, Avisos, Meu perfil, o modo claro/escuro e Sair).
+- **Entrar, Primeiro acesso, Esqueci a senha** (aprovada: Opção 3, "Vermelho forte") e, no mesmo padrão, a criação do acesso para o pedido de associação.
+- **Início** (aprovado com o menu curto): "Precisa de você" (diretoria) ou "Para você" (ministro), a agenda dos próximos dias (diretoria) ou a credencial (ministro), e os módulos agrupados por assunto. Quem ainda não tem perfil vê o pedido de associação em passos. Nova tela `/modulos`, com todos os módulos (no celular, é a aba "Módulos").
+
+**De onde vêm os dados (nada novo no banco nesta parte):**
+
+- "Precisa de você": pedidos de associação para analisar, despesas para autorizar (presidência), comprovantes para conferir, empréstimos para aprovar ou com a devolução atrasada, trocas de igreja, pedidos de correção, justificativas de falta e pedidos de AGE que atingiram as assinaturas.
+- "Para você": votações abertas, pedidos de AGE para assinar, faltas seguidas, a próxima assembleia convocada (com a presença confirmada ou não), eventos com inscrição aberta e a situação da contribuição.
+- O sino é montado com o que já existe: votação aberta, pedido de AGE para assinar, assembleia convocada, aviso no mural e pendência no pedido de associação. O "lido" fica guardado no aparelho.
+
+**Decisões tomadas sem o desenho:**
+
+- A troca claro/escuro no celular fica no Menu (o desenho do celular só mostrava o sino e o Menu).
+- O sino no celular abre logo abaixo da barra vermelha, do mesmo jeito que o Menu.
+- O "Ver todos os avisos" do sino leva ao mural de avisos (ainda não existe a lista de notificações no banco).
+- A agenda dos próximos dias aparece também no celular, embaixo do "Precisa de você".
+- Os perfis da pessoa continuam como etiquetas logo abaixo da saudação.
+- A saudação segue a hora de Parauapebas: "Bom dia", "Boa tarde" ou "Boa noite", com o primeiro nome.
+- No "Já é associado do COMEP?" (quem não tem perfil) não há o botão "Tenho um código": o sistema ainda não liga um login já criado a um cadastro pelo código. Fica o texto pedindo o código à secretaria.
+
+**O que depende do banco (para depois):**
+
+- Uma tabela de notificações, para o sino avisar também o que hoje não fica registrado (ex.: "comprovante conferido") e guardar o "lido" na conta, e não só no aparelho.
+
+**Verificação:**
+
+- testes de unidade: `testes/unidade/inicio.test.ts` (as datas no fuso de Parauapebas e os módulos por perfil);
+- ponta a ponta: `testes/e2e/moldura.spec.ts` (o modo escuro guardado, o sino e a navegação em cima no celular) e os testes antigos ajustados para o menu curto (os módulos agora são conferidos em `/modulos`).
