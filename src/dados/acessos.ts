@@ -1,5 +1,5 @@
 // Perfis de acesso (tela da presidência) e auditoria.
-import { cliente, falha, ok, type Resultado } from './cliente'
+import { cliente, falha, ok, todasAsLinhas, type Resultado } from './cliente'
 import type { Perfil } from './perfis'
 
 export type PerfilConcedido = { id: string; perfil: Perfil }
@@ -15,16 +15,23 @@ export type PessoaComPerfis = {
   associados: { numero_registro: number; situacao: string }[]
 }
 
+/**
+ * Todas as pessoas, de mil em mil: o servidor devolve no máximo mil linhas por vez e cortava o resto sem avisar
+ * (com mais de mil pessoas, quem vinha depois na ordem alfabética sumia da tela — 18/11/2026).
+ */
 export async function listarPessoasComPerfis(): Promise<Resultado<PessoaComPerfis[]>> {
-  const { data, error } = await cliente()
-    .from('pessoas')
-    .select('id, nome, email, usuario_id, criado_em, perfis_acesso(id, perfil), associados(numero_registro, situacao)')
-    .is('arquivado_em', null)
-    .is('perfis_acesso.arquivado_em', null)
-    .is('associados.arquivado_em', null)
-    .order('nome')
-    .returns<PessoaComPerfis[]>()
-  return error ? falha(error) : ok(data)
+  return todasAsLinhas((de, ate) =>
+    cliente()
+      .from('pessoas')
+      .select('id, nome, email, usuario_id, criado_em, perfis_acesso(id, perfil), associados(numero_registro, situacao)')
+      .is('arquivado_em', null)
+      .is('perfis_acesso.arquivado_em', null)
+      .is('associados.arquivado_em', null)
+      .order('nome')
+      .order('id')
+      .range(de, ate)
+      .returns<PessoaComPerfis[]>(),
+  )
 }
 
 export async function concederPerfil(pessoaId: string, perfil: Perfil): Promise<Resultado<null>> {
