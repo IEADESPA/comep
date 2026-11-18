@@ -4654,3 +4654,793 @@ fieldset .caixa-marcar + .caixa-marcar {
   font-weight: 600;
   font-size: 0.95rem;
 }
+
+/* ---------- O menu do módulo (aprovado em 18/11/2026: "o módulo toma a coluna") ----------
+   Notebook: a coluna vermelha vira o menu do módulo. Celular: o botão com a função aberta, logo abaixo do
+   cabeçalho vermelho, que abre a lista das funções. */
+
+.lateral-voltar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 2px 8px 6px;
+  border-radius: 8px;
+  color: var(--cor-vermelho-suave);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lateral-voltar:hover {
+  color: #ffffff;
+}
+
+.lateral-modulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.18);
+}
+
+.lateral-modulo-icone {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: #ffffff;
+  color: #b91c1c;
+}
+
+.lateral-modulo-nome {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lateral-modulo-nome strong {
+  font-family: var(--letra-titulo);
+  font-size: 17px;
+  line-height: 1.2;
+  color: #ffffff;
+  overflow-wrap: anywhere;
+}
+
+.lateral-modulo-nome span {
+  font-size: 12.5px;
+}
+
+.lateral .lateral-funcoes {
+  gap: 3px;
+}
+
+.lateral-funcao {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  color: var(--cor-vermelho-suave);
+  font-size: 14.5px;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.lateral-funcao:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: #ffffff;
+}
+
+.lateral-funcao.ativa {
+  background: #ffffff;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.lateral-funcao-nome {
+  flex: 1;
+  min-width: 0;
+}
+
+.contagem-funcao {
+  flex: none;
+  min-width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: #ffffff;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lateral-funcao.ativa .contagem-funcao {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.lateral .lateral-subfuncoes {
+  gap: 1px;
+  margin: 4px 0 6px 19px;
+  padding-left: 12px;
+  border-left: 2px solid rgb(255 255 255 / 0.35);
+}
+
+.lateral-subfuncao {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 7px;
+  color: var(--cor-vermelho-suave);
+  font-size: 13.5px;
+  text-decoration: none;
+}
+
+.lateral-subfuncao:hover {
+  color: #ffffff;
+}
+
+.lateral-subfuncao.ativa {
+  background: rgb(255 255 255 / 0.18);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* "Meu perfil" fica embaixo, logo acima do cartão de quem está usando */
+.lateral-perfil {
+  margin-top: auto;
+}
+
+.lateral-perfil + .lateral-usuario {
+  margin-top: 6px;
+}
+
+/* Celular: o botão da função aberta e a lista das funções */
+.seletor-funcao {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.seletor-funcao-botao {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border: 1px solid var(--cor-campo-borda);
+  border-radius: 12px;
+  background: var(--cor-superficie);
+  color: var(--cor-titulo);
+  font: inherit;
+  font-size: 15.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.seletor-funcao-botao > svg:first-child {
+  color: var(--cor-marca-texto);
+}
+
+.seletor-funcao-botao > svg:last-child {
+  color: var(--cor-texto-suave);
+}
+
+.seletor-funcao-nome {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.seletor-funcao-nome span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+.seletor-funcao-total {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+.ponto-pendencia {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #dc2626;
+}
+
+.seletor-funcao-lista {
+  margin-top: 8px;
+  padding: 4px 14px;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+  box-shadow: var(--sombra-flutuante);
+}
+
+.seletor-funcao-lista ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seletor-funcao-lista > ul > li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.seletor-item {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--cor-titulo);
+  font-size: 15.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.seletor-item svg {
+  color: var(--cor-texto-suave);
+}
+
+.seletor-item.ativa,
+.seletor-item.ativa svg {
+  color: var(--cor-marca-texto);
+  font-weight: 800;
+}
+
+.seletor-item-nome {
+  flex: 1;
+  min-width: 0;
+}
+
+.seletor-item .contagem-funcao {
+  background: var(--cor-marca);
+  color: #ffffff;
+}
+
+.seletor-funcao-lista .seletor-subfuncoes {
+  margin: -4px 0 8px 9px;
+  padding-left: 20px;
+  border-left: 2px solid var(--cor-borda);
+}
+
+.seletor-subitem {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  color: var(--cor-texto);
+  font-size: 14.5px;
+  text-decoration: none;
+}
+
+.seletor-subitem.ativa {
+  color: var(--cor-marca-texto);
+  font-weight: 700;
+}
+
+/* O alto da tela de uma função: o módulo em cima, pequeno, e o nome da função */
+.cabecalho-funcao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+}
+
+.cabecalho-funcao-texto {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cabecalho-funcao-modulo {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cor-marca-texto);
+}
+
+.cabecalho-funcao h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.cabecalho-funcao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (min-width: 900px) {
+  .cabecalho-funcao h1 {
+    font-size: 26px;
+  }
+}
+
+/* ---------- Módulo Ministros e inscrições ---------- */
+
+/* A busca com o botão ao lado */
+.busca-com-acao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.campo-busca {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+
+.campo-busca > svg {
+  position: absolute;
+  left: 12px;
+  top: 13px;
+  color: var(--cor-texto-suave);
+  pointer-events: none;
+}
+
+.campo-busca input {
+  height: 44px;
+  padding-left: 38px;
+}
+
+.busca-com-acao .botao {
+  flex: none;
+  height: 44px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Os filtros em pílulas (a escolhida em vermelho claro) */
+.pilulas {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pilula {
+  flex: none;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 999px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pilula.ativa {
+  border-color: var(--cor-marca);
+  background: var(--cor-marca-suave);
+  color: var(--cor-marca-texto);
+}
+
+@media (min-width: 900px) {
+  .pilulas {
+    flex-wrap: wrap;
+  }
+}
+
+/* A tabela dos ministros: no celular, a lista compacta (iniciais, nome, nº e igreja, situação) */
+.tabela-ministros {
+  overflow: hidden;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+}
+
+.tabela-ministros ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tabela-ministros li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.linha-ministro {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  color: var(--cor-texto);
+  text-decoration: none;
+}
+
+.linha-ministro:hover {
+  background: var(--cor-fundo);
+}
+
+.avatar-ministro {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: var(--cor-marca-suave);
+  color: var(--cor-marca-texto);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.linha-ministro-nome {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.linha-ministro-nome strong {
+  font-size: 14.5px;
+  color: var(--cor-titulo);
+}
+
+.linha-ministro-nome span {
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.linha-ministro-situacao {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.linha-ministro-seta {
+  color: var(--cor-texto-suave);
+}
+
+@media (min-width: 900px) {
+  .tabela-ministros-cabecalho,
+  .linha-ministro {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 2.1fr) minmax(0, 0.55fr) minmax(0, 0.9fr) minmax(0, 1.7fr) minmax(0, 1.8fr) 20px;
+    gap: 12px;
+    align-items: center;
+    padding: 0 18px;
+  }
+
+  .tabela-ministros-cabecalho {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background: var(--cor-fundo);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cor-texto-suave);
+  }
+
+  /* o "Nome" começa em cima das iniciais */
+  .tabela-ministros-cabecalho > span:first-child {
+    grid-column: 1 / span 2;
+  }
+
+  .linha-ministro {
+    min-height: 52px;
+  }
+
+  .avatar-ministro {
+    width: 30px;
+    height: 30px;
+    font-size: 11.5px;
+  }
+
+  .linha-ministro-coluna {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .linha-ministro-situacao {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
+/* A barra "x de 5 conferidos" dos pedidos de associação */
+.progresso-conferencia {
+  flex: none;
+  width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.progresso-conferencia-barra {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--cor-fundo);
+}
+
+.progresso-conferencia-barra > span {
+  display: block;
+  height: 100%;
+  background: var(--area-eventos);
+}
+
+.progresso-conferencia.completo .progresso-conferencia-barra > span {
+  background: var(--area-financas);
+}
+
+.lista-pedidos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+}
+
+.lista-pedidos > li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.linha-pedido {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  color: var(--cor-texto);
+  text-decoration: none;
+}
+
+.linha-pedido:hover {
+  background: var(--cor-fundo);
+}
+
+.linha-pedido > svg {
+  flex: none;
+  color: var(--cor-texto-suave);
+}
+
+.linha-pedido-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+
+.linha-pedido-texto strong {
+  font-size: 15px;
+  color: var(--cor-titulo);
+}
+
+.linha-pedido-texto > span {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+.linha-pedido-texto .selo-novo {
+  align-self: flex-start;
+}
+
+@media (min-width: 900px) {
+  .linha-pedido {
+    padding: 10px 18px;
+  }
+}
+
+/* O cadastro passo a passo: os passos marcados no alto */
+.passos-cadastro {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.passos-cadastro li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.passos-cadastro li + li::before {
+  content: '';
+  box-sizing: border-box;
+  flex: none;
+  width: 40px;
+  height: 2px;
+  margin-right: 2px;
+  background: var(--cor-borda);
+}
+
+.passos-cadastro li.feito + li::before {
+  background: var(--cor-marca);
+}
+
+.passos-cadastro li[aria-current='step'] {
+  font-weight: 700;
+  color: var(--cor-titulo);
+}
+
+.numero-passo {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+  background: var(--cor-fundo);
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+li[aria-current='step'] .numero-passo {
+  border-color: var(--cor-marca);
+  background: var(--cor-marca);
+  color: #ffffff;
+}
+
+li.feito .numero-passo {
+  border-color: transparent;
+  background: var(--area-financas-fundo);
+  color: var(--area-financas);
+}
+
+/* No celular: três traços e "1 de 3 · Dados pessoais" */
+.passos-tracos {
+  display: flex;
+  gap: 6px;
+}
+
+.passos-tracos span {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--cor-borda);
+}
+
+.passos-tracos span.feito {
+  background: var(--cor-marca);
+}
+
+.cadastro-passo {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cadastro-passo .grade-form {
+  margin: 0;
+}
+
+.botoes-passo {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+@media (max-width: 899.98px) {
+  .botoes-passo {
+    flex-direction: column-reverse;
+  }
+
+  .botoes-passo .botao {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* A ficha do ministro: o alto e os blocos lado a lado */
+.cabecalho-ficha {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.cabecalho-ficha-texto {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cabecalho-ficha-texto h1 {
+  margin: 0;
+  font-size: 21px;
+  overflow-wrap: anywhere;
+}
+
+.cabecalho-ficha-modulo {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+@media (min-width: 900px) {
+  .cabecalho-ficha-texto h1 {
+    font-size: 24px;
+  }
+}
+
+.dois-blocos {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .dois-blocos {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.tres-numeros {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .tres-numeros {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.bloco-numero strong {
+  font-size: 16px;
+  color: var(--cor-titulo);
+}

@@ -110,22 +110,22 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
   }
   if (despesas) {
     const n = despesas.length
-    contagem('despesas', 'financas', 'financeiro', n, 'despesa esperando a sua autorização', 'despesas esperando a sua autorização', '/financeiro')
+    contagem('despesas', 'financas', 'financeiro', n, 'despesa esperando a sua autorização', 'despesas esperando a sua autorização', '/financeiro/despesas')
   }
   if (informes) {
-    contagem('informes', 'financas', 'mensalidade', informes.length, 'comprovante de pagamento para conferir', 'comprovantes de pagamento para conferir', '/financeiro')
+    contagem('informes', 'financas', 'mensalidade', informes.length, 'comprovante de pagamento para conferir', 'comprovantes de pagamento para conferir', '/financeiro/comprovantes')
   }
   if (emprestimos) {
     const esperando = emprestimos.filter((e) => e.situacao === 'solicitado').length
     const atrasados = emprestimos.filter((e) => e.situacao === 'retirado' && e.devolucao < hoje).length
-    contagem('emprestimos', 'financas', 'patrimonio', esperando, 'pedido de empréstimo para aprovar', 'pedidos de empréstimo para aprovar', '/patrimonio')
-    contagem('devolucoes', 'financas', 'patrimonio', atrasados, 'empréstimo com a devolução atrasada', 'empréstimos com a devolução atrasada', '/patrimonio')
+    contagem('emprestimos', 'financas', 'patrimonio', esperando, 'pedido de empréstimo para aprovar', 'pedidos de empréstimo para aprovar', '/patrimonio/pedidos')
+    contagem('devolucoes', 'financas', 'patrimonio', atrasados, 'empréstimo com a devolução atrasada', 'empréstimos com a devolução atrasada', '/patrimonio/pedidos')
   }
   if (trocas) {
-    contagem('trocas', 'pessoas', 'igreja', trocas.length, 'pedido de troca de igreja para decidir', 'pedidos de troca de igreja para decidir', '/ministros')
+    contagem('trocas', 'pessoas', 'igreja', trocas.length, 'pedido de troca de igreja para decidir', 'pedidos de troca de igreja para decidir', '/ministros/correcoes')
   }
   if (correcoes) {
-    contagem('correcoes', 'pessoas', 'ministros', correcoes.length, 'pedido de correção no cadastro', 'pedidos de correção no cadastro', '/ministros')
+    contagem('correcoes', 'pessoas', 'ministros', correcoes.length, 'pedido de correção no cadastro', 'pedidos de correção no cadastro', '/ministros/correcoes')
   }
   if (justificativas) {
     const n = justificativas.filter((j) => j.situacao === 'pendente').length

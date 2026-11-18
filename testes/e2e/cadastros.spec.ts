@@ -1,7 +1,7 @@
 // Fase 1.1 — cadastros da secretaria/presidência: igrejas, associados, perfis de acesso e auditoria.
 // Usa dados FICTÍCIOS do banco de teste. O que o teste cria, ele mesmo arquiva no fim (nada se apaga).
 import { expect, test } from '@playwright/test'
-import { arquivoDaSessao, cnpjAleatorio, sufixoUnico } from './ajuda'
+import { abrirAbaDaFicha, abrirFuncao, arquivarCadastroAberto, arquivoDaSessao, cadastrarMinistro, cnpjAleatorio, sufixoUnico } from './ajuda'
 
 const IGREJA_A = 'Igreja Fictícia A (teste)'
 const IGREJA_B = 'Igreja Fictícia B (teste)'
@@ -52,25 +52,27 @@ test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async 
 test('cadastra um associado atual, registra a troca de igreja e arquiva o cadastro', async ({ page }, info) => {
   const nome = `Ministro E2E ${sufixoUnico(info.project.name)}`
 
+  // Cadastrar ministro: passo a passo (1 Dados pessoais, 2 Igreja e ministério, 3 No COMEP)
   await page.goto('ministros')
-  await page.getByRole('link', { name: 'Cadastrar associado' }).click()
-  await page.getByLabel(/^Nome completo/).fill(nome)
-  await page.getByLabel(/^Telefone/).fill('(94) 90000-0000')
-  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor(a)' })
-  await page.getByLabel(/^Igreja \*/).selectOption({ label: IGREJA_A })
-  await page.getByLabel(/^Função na igreja/).fill('Pastor de congregação')
-  await page.getByRole('button', { name: 'Cadastrar associado' }).click()
-
-  await expect(page.getByRole('status').filter({ hasText: 'Associado cadastrado.' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
-  await expect(page.getByText(/Nº de registro \d+/)).toBeVisible()
+  await abrirFuncao(page, 'Cadastrar ministro')
+  await expect(page).toHaveURL(/\/ministros\/novo$/)
+  // o passo não avança sem o nome (campo obrigatório)
+  await page.getByRole('button', { name: /^Continuar/ }).click()
+  await expect(page.getByLabel(/^Nome completo/)).toBeVisible()
+  await cadastrarMinistro(page, {
+    nome,
+    telefone: '(94) 90000-0000',
+    igreja: IGREJA_A,
+    funcao: 'Pastor de congregação',
+  })
+  await expect(page.getByText(/^Nº \d{4,}$/)).toBeVisible()
   await expect(page.getByText('Sem login', { exact: true })).toBeVisible()
 
-  // Troca de igreja: encerra a A e abre a B
-  await page.getByText('Registrar troca de igreja').click()
+  // Troca de igreja (aba Igreja da ficha): encerra a A e abre a B
+  await abrirAbaDaFicha(page, 'Igreja')
   await page.getByLabel(/^Nova igreja/).selectOption({ label: IGREJA_B })
   await page.getByLabel(/^Função$/).fill('Pastor auxiliar')
-  await page.getByRole('button', { name: 'Registrar troca' }).click()
+  await page.getByRole('button', { name: 'Registrar a troca' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Troca de igreja registrada.' })).toBeVisible()
   const historico = page.getByRole('list', { name: 'Histórico de igrejas' })
   await expect(historico).toContainText(IGREJA_A)
@@ -78,14 +80,12 @@ test('cadastra um associado atual, registra a troca de igreja e arquiva o cadast
 
   // Aparece na lista com a igreja nova
   await page.getByRole('link', { name: '← Ministros' }).click()
-  await page.getByLabel('Buscar associado').fill(nome)
-  await expect(page.getByRole('list', { name: 'Associados' })).toContainText(IGREJA_B)
+  await page.getByLabel('Buscar ministro', { exact: true }).fill(nome)
+  await expect(page.getByRole('list', { name: 'Ministros' })).toContainText(IGREJA_B)
 
-  // Arquiva (cadastro de teste) — sai da lista, nada se apaga
-  await page.getByRole('list', { name: 'Associados' }).getByRole('link').first().click()
-  await page.getByText('Arquivar cadastro', { exact: true }).last().click()
-  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/ministros$/)
+  // Arquiva (cadastro de teste, aba Situação) — sai da lista, nada se apaga
+  await page.getByRole('list', { name: 'Ministros' }).getByRole('link').first().click()
+  await arquivarCadastroAberto(page)
   await expect(page.getByRole('status').filter({ hasText: `Cadastro de ${nome} arquivado.` })).toBeVisible()
 })
 
@@ -132,6 +132,7 @@ test('nenhuma tela da diretoria fica mais larga que a tela', async ({ page }) =>
     'igrejas/nova',
     'ministros',
     'ministros/novo',
+    'ministros/correcoes',
     'acessos',
     'auditoria',
     'configuracoes',

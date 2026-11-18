@@ -84,7 +84,7 @@ export function ListaDePedidos({ pedidos, nomes }: { pedidos: PedidoCorrecao[]; 
   )
 }
 
-/** Para a secretaria e a presidência: os pedidos esperando resposta (na lista de ministros). */
+/** Para a secretaria e a presidência: os pedidos esperando resposta (Ministros e inscrições › Correções pedidas). */
 export function CorrecoesPendentes() {
   const [carga, recarregar] = useCarregar(() => listarPedidosCorrecao({ pendentes: true }))
   const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
@@ -94,22 +94,22 @@ export function CorrecoesPendentes() {
   }
   return (
     <MostrarCarga carga={carga} recarregar={recarregar}>
-      {(pedidos) =>
-        pedidos.length === 0 && !retorno.sucesso ? null : (
-          <section className="painel" aria-labelledby="titulo-correcoes">
-            <h2 id="titulo-correcoes">Pedidos de correção no cadastro ({pedidos.length})</h2>
-            <p className="detalhe">Corrija na ficha do ministro e marque como atendido. Para recusar, diga o motivo.</p>
-            <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-            {pedidos.length > 0 && (
-              <ul className="lista" aria-label="Pedidos de correção pendentes">
-                {pedidos.map((p) => (
-                  <Pendente key={p.id} p={p} aoConcluir={concluir} />
-                ))}
-              </ul>
-            )}
-          </section>
-        )
-      }
+      {(pedidos) => (
+        <section className="painel" aria-labelledby="titulo-correcoes">
+          <h2 id="titulo-correcoes">Correções no cadastro ({pedidos.length})</h2>
+          <p className="detalhe">Corrija na ficha do ministro e marque como atendido. Para recusar, diga o motivo.</p>
+          <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+          {pedidos.length === 0 ? (
+            <p className="vazio">Nenhum pedido de correção esperando.</p>
+          ) : (
+            <ul className="lista" aria-label="Pedidos de correção pendentes">
+              {pedidos.map((p) => (
+                <Pendente key={p.id} p={p} aoConcluir={concluir} />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </MostrarCarga>
   )
 }

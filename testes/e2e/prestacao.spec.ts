@@ -4,7 +4,7 @@
 // semente fictícia (testes/dados/semente-prestacao-teste.sql), já aprovado.
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
-import { mensagemNaTela, sufixoUnico, trocarPara, type NomeUsuario } from './ajuda'
+import { abrirFuncao, funcoesDoModulo, mensagemNaTela, nomeDaFuncao, sufixoUnico, trocarPara, type NomeUsuario } from './ajuda'
 
 const RESERVADO = 2021
 
@@ -16,7 +16,7 @@ function exercicioAtual(): number {
 async function abrir(page: Page, quem: NomeUsuario, exercicio: number) {
   await trocarPara(page, quem)
   await page.goto('financeiro')
-  await page.getByRole('tab', { name: 'Prestação de contas' }).click()
+  await abrirFuncao(page, 'Prestação de contas')
   await page.getByRole('combobox', { name: 'Exercício', exact: true }).selectOption(String(exercicio))
   await expect(page.getByRole('heading', { name: `Balanço do exercício ${exercicio}/${exercicio + 1}` })).toBeVisible()
 }
@@ -147,20 +147,26 @@ test('o balanço passa pela tesouraria, pela diretoria, pelo Conselho Fiscal e p
 test('o Conselho Fiscal só vê: sem pagamentos a conferir e sem botões de lançar ou gerar', async ({ page }) => {
   await trocarPara(page, 'conselho')
   await page.goto('financeiro')
-  await expect(page.getByRole('tab', { name: 'Prestação de contas' })).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('tab', { name: 'Pagamentos informados' })).toHaveCount(0)
+  // o Financeiro do Conselho Fiscal abre na prestação de contas e não tem os comprovantes a conferir
+  await expect(page).toHaveURL(/\/financeiro\/prestacao$/)
+  await expect(page.getByRole('heading', { name: 'Prestação de contas', level: 1 })).toBeVisible()
+  const funcoes = await funcoesDoModulo(page)
+  await expect(funcoes.getByRole('link', { name: nomeDaFuncao('Caixa') })).toBeVisible()
+  await expect(funcoes.getByRole('link', { name: nomeDaFuncao('Comprovantes') })).toHaveCount(0)
+  await page.goto('financeiro/comprovantes')
+  await expect(page).toHaveURL(/\/financeiro\/prestacao$/)
 
-  await page.getByRole('tab', { name: 'Caixa', exact: true }).click()
+  await abrirFuncao(page, 'Caixa')
   await expect(page.getByRole('list', { name: 'Saldos' })).toBeVisible()
   await expect(page.getByText('Novo lançamento', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Transferência entre contas', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Cancelar lançamento')).toHaveCount(0)
 
-  await page.getByRole('tab', { name: 'Cobranças do exercício' }).click()
+  await abrirFuncao(page, 'Cobranças do exercício', 'Contribuições')
   await expect(page.getByRole('heading', { name: 'Cobranças do exercício' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Gerar cobranças do exercício' })).toHaveCount(0)
 
-  await page.getByRole('tab', { name: 'Situação dos associados' }).click()
+  await abrirFuncao(page, 'Situação dos associados', 'Contribuições')
   await expect(page.getByRole('list', { name: 'Situação dos associados' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Registrar pagamento recebido' })).toHaveCount(0)
 })

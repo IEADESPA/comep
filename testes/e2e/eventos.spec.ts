@@ -2,7 +2,7 @@
 // o site mostra o evento; um visitante (sem login) se inscreve pelo site; a inscrição aparece no sistema. No fim, o
 // evento é cancelado e arquivado. (O pagamento da taxa, que entra no caixa, é testado só no banco: eventos.test.ts.)
 import { expect, test } from '@playwright/test'
-import { arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
+import { abrirFuncao, arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
 
 test.use({ storageState: arquivoDaSessao('presidencia') })
 
@@ -18,7 +18,8 @@ test('evento: publicar, aparecer no site, inscrição pelo site e na lista do si
   const telefone = `94 9${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`
 
   await page.goto('eventos')
-  await page.getByRole('link', { name: 'Novo evento ou projeto' }).click()
+  // "Novo evento ou projeto" é uma função do menu do módulo
+  await abrirFuncao(page, 'Novo evento ou projeto')
   await page.getByLabel(/^Título/).fill(titulo)
   await page.getByLabel('Início *').fill(campoDaquiDias(20))
   await page.getByLabel('Local').fill('Local do teste automático (E2E)')

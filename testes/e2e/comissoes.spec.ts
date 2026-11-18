@@ -2,7 +2,7 @@
 // registra uma reunião; o ministro (coordenador) vê a comissão e registra uma atividade. No fim, a comissão é encerrada
 // (fica em "Encerradas" no banco de teste, com o nome "E2E").
 import { expect, test } from '@playwright/test'
-import { arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
+import { abrirFuncao, arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
 
 test.use({ storageState: arquivoDaSessao('presidencia') })
 
@@ -12,7 +12,8 @@ test('comissão: criar, indicar o coordenador, registrar e encerrar', async ({ p
   test.setTimeout(120_000)
   const nome = `Comissão E2E ${sufixoUnico(info.project.name)}`
   await page.goto('comissoes')
-  await page.getByRole('link', { name: 'Nova comissão' }).click()
+  // "Nova comissão" é uma função do menu do módulo
+  await abrirFuncao(page, 'Nova comissão')
   await page.getByLabel(/^Nome \*/).fill(nome)
   await page.getByLabel(/^Área/).fill('Educação')
   await page.getByLabel('Finalidade').fill('Comissão fictícia do teste automático.')

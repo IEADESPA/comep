@@ -28,7 +28,12 @@ Combinado com o usuário em 17/11/2026, para não precisar perguntar de novo.
   - a tela que está aberta;
   - Meu perfil.
   - Os módulos ficam na **página inicial**. No celular, o Menu também é curto: Início, Módulos, Avisos e Meu perfil.
-- **Abas = submódulos** (17/11/2026). Ao abrir um módulo, os submódulos aparecem em abas no alto. Cada aba precisa ser desenhada e mostrada na proposta.
+- ~~Abas = submódulos~~ (17/11/2026), **substituída em 18/11/2026 pelo menu do módulo** ("o módulo toma a coluna"):
+  - ao entrar num módulo, a coluna vermelha da esquerda vira o menu dele: "← Início", o bloco do módulo com "N funções", as funções grandes (com o número quando há pendência) e, embaixo, Meu perfil e o cartão com "Sair";
+  - as subfunções abrem embaixo da função aberta, com recuo e um traço à esquerda (sanfona);
+  - no celular, logo abaixo da barra vermelha, um botão de largura inteira com a função aberta e "N funções" abre a lista das funções;
+  - **as abas ficam só dentro das fichas** (ficha do ministro, da igreja, Meu perfil, Minha igreja).
+  - A lista das funções de cada módulo fica num lugar só: `src/componentes/menu.ts` (`MODULOS`).
 - **Cores do COMEP:** vermelho (principal), branco e cinza.
 - **Modos:** claro e escuro.
 - **Telas:** notebook e celular.
@@ -99,4 +104,5 @@ O site fica por **último**: ele já funciona e está aceitável.
 - 18/11/2026: **as telas aprovadas começam a entrar no sistema** (só no site de teste):
   - parte 1 (versão 5.5.0-teste.5): a moldura (menu curto, topo com busca, claro/escuro e sino; no celular, a barra vermelha em cima), o sino e o Menu do celular, Entrar, Primeiro acesso e Esqueci a senha, e o Início;
   - parte 2 (versão 5.5.0-teste.6): as telas gerais (Meu perfil, Minha credencial, Minhas mensalidades, Minha igreja, Meu pedido e Validar credencial);
-  - o registro de cada parte, com as decisões tomadas sem o desenho e o que depende do banco, está em `docs/revisoes/fase-5.5.md` (entrega 5.5.5).
+  - parte 3 (versão 5.5.0-teste.7): o menu do módulo em todos os módulos e o módulo Ministros e inscrições (a tabela, os pedidos de associação, as correções pedidas, o cadastro passo a passo e a ficha em abas);
+  - o registro de cada parte, com as decisões tomadas sem o desenho e o que depende do banco, está em `docs/revisoes/fase-5.5.md` (entregas 5.5.5 e 5.5.6).

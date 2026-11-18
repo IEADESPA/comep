@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, Navigate, useParams } from 'react-router'
 import { Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
 import { formatarReais } from '../../dados/configuracoes'
 import {
   analisarInforme,
@@ -27,25 +28,45 @@ import { CaixaAba, DespesasAutorizar } from './Caixa'
 import { PrestacaoContasAba } from './PrestacaoContas'
 
 type Retorno = { sucesso?: string; erro?: string }
-const ABAS = [
-  'Pagamentos informados',
-  'Situação dos associados',
-  'Cobranças do exercício',
-  'Caixa',
-  'Despesas a autorizar',
-  'Prestação de contas',
-] as const
-type Aba = (typeof ABAS)[number]
+
+/**
+ * As partes do financeiro. Cada uma é uma função do menu do módulo (src/componentes/menu.ts), com endereço
+ * próprio: /financeiro/contribuicoes (e /cobrancas), /comprovantes, /caixa, /despesas e /prestacao.
+ */
+const PARTES = {
+  contribuicoes: { titulo: 'Contribuições', sub: 'Situação dos associados' },
+  cobrancas: { titulo: 'Contribuições', sub: 'Cobranças do exercício' },
+  comprovantes: { titulo: 'Comprovantes', sub: 'Pagamentos informados pelos associados' },
+  caixa: { titulo: 'Caixa', sub: null },
+  despesas: { titulo: 'Despesas a autorizar', sub: null },
+  prestacao: { titulo: 'Prestação de contas', sub: null },
+} as const
+type Parte = keyof typeof PARTES
+
+const ehParte = (p: string | undefined): p is Parte => p !== undefined && p in PARTES
 
 /** /financeiro — tesouraria e presidência operam; o Conselho Fiscal só vê (Fase 2: contribuições, caixa e contas). */
-export function Financeiro() {
+export function Financeiro({ parte: fixa }: { parte?: Parte }) {
   const { estado } = useSessao()
+  const { parte: daRota } = useParams()
   const perfisDaConta = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
   const opera = perfisDaConta.includes('tesouraria') || perfisDaConta.includes('presidencia')
-  const [aba, setAba] = useState<Aba>(opera ? 'Pagamentos informados' : 'Prestação de contas')
+  const parte = fixa ?? daRota
+
+  if (estado.situacao !== 'logado' || estado.conta?.tipo !== 'ok') return <Carregando />
+  // /financeiro (ou um endereço que não existe) abre a primeira função de quem está vendo;
+  // os comprovantes a conferir não são do Conselho Fiscal (Art. 14: só leitura)
+  if (!ehParte(parte) || (parte === 'comprovantes' && !opera)) {
+    return <Navigate to={opera ? '/financeiro/comprovantes' : '/financeiro/prestacao'} replace />
+  }
+  return <ParteDoFinanceiro key={parte} parte={parte} opera={opera} />
+}
+
+function ParteDoFinanceiro({ parte, opera }: { parte: Parte; opera: boolean }) {
+  const { estado } = useSessao()
   const [retorno, setRetorno] = useState<Retorno>({})
 
-  // Cada aba recarrega os próprios dados depois de uma ação (sem perder a busca, o filtro ou o exercício escolhido)
+  // Cada parte recarrega os próprios dados depois de uma ação (sem perder a busca, o filtro ou o exercício escolhido)
   function concluir(r: { erro: string | null }, sucesso: string) {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
     return r.erro === null
@@ -55,44 +76,32 @@ export function Financeiro() {
   const { pessoaId, perfis } = estado.conta.conta
   const usuarioId = estado.sessao.usuarioId
   // O Conselho Fiscal (Art. 14) vê tudo, sem os pagamentos a conferir e sem botões de ação
-  const abas = opera ? ABAS : ABAS.filter((a) => a !== 'Pagamentos informados')
   const somenteLeitura = !opera
+  const { titulo, sub } = PARTES[parte]
 
   return (
     <>
-      <h1>Financeiro</h1>
-      <p className="detalhe nao-imprimir">
-        Exercício de abril a março.
-        {somenteLeitura && ' Você vê o financeiro como Conselho Fiscal: só leitura, e o parecer sobre o balanço anual.'}
-      </p>
-      <div className="abas nao-imprimir" role="tablist" aria-label="Partes do financeiro">
-        {abas.map((a) => (
-          <button
-            key={a}
-            type="button"
-            role="tab"
-            aria-selected={aba === a}
-            className={aba === a ? 'aba ativa' : 'aba'}
-            onClick={() => {
-              setAba(a)
-              setRetorno({})
-            }}
-          >
-            {a}
-          </button>
-        ))}
+      <div className="nao-imprimir">
+        <CabecalhoFuncao
+          modulo="Financeiro"
+          titulo={titulo}
+          sub={
+            <>
+              {sub ? `${sub}. ` : ''}Exercício de abril a março.
+              {somenteLeitura && ' Você vê o financeiro como Conselho Fiscal: só leitura, e o parecer sobre o balanço anual.'}
+            </>
+          }
+        />
       </div>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-      {aba === 'Pagamentos informados' && <PagamentosInformados pessoaId={pessoaId} concluir={concluir} />}
-      {aba === 'Situação dos associados' && (
-        <SituacaoAssociados pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />
-      )}
-      {aba === 'Cobranças do exercício' && <CobrancasExercicio concluir={concluir} somenteLeitura={somenteLeitura} />}
-      {aba === 'Caixa' && <CaixaAba pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />}
-      {aba === 'Despesas a autorizar' && (
+      {parte === 'comprovantes' && <PagamentosInformados pessoaId={pessoaId} concluir={concluir} />}
+      {parte === 'contribuicoes' && <SituacaoAssociados pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />}
+      {parte === 'cobrancas' && <CobrancasExercicio concluir={concluir} somenteLeitura={somenteLeitura} />}
+      {parte === 'caixa' && <CaixaAba pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />}
+      {parte === 'despesas' && (
         <DespesasAutorizar podeAutorizar={perfis.includes('presidencia')} usuarioId={usuarioId} concluir={concluir} />
       )}
-      {aba === 'Prestação de contas' && <PrestacaoContasAba perfis={perfis} pessoaId={pessoaId} />}
+      {parte === 'prestacao' && <PrestacaoContasAba perfis={perfis} pessoaId={pessoaId} />}
     </>
   )
 }

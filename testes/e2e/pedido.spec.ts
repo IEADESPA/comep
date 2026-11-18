@@ -1,7 +1,17 @@
 // Fase 1.2 (parte 2): código de primeiro acesso, senha esquecida e pedido de associação completo.
 // Tudo com dados FICTÍCIOS no banco de teste (e-mails @example.com). Os associados criados são arquivados no fim.
 import { expect, test, type Page } from '@playwright/test'
-import { cpfAleatorio, guardarSessao, saudacao, sufixoUnico, trocarPara } from './ajuda'
+import {
+  abrirAbaDaFicha,
+  abrirFichaDoMinistro,
+  arquivarCadastroAberto,
+  cadastrarMinistro,
+  cpfAleatorio,
+  guardarSessao,
+  saudacao,
+  sufixoUnico,
+  trocarPara,
+} from './ajuda'
 
 const mensagem = (page: Page, texto: string | RegExp) => page.getByRole('status').filter({ hasText: texto })
 
@@ -20,19 +30,6 @@ const COMPROVANTE = {
   buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'),
 }
 
-async function abrirFichaDoMinistro(page: Page, nome: string) {
-  await page.goto('ministros')
-  await page.getByLabel('Buscar associado').fill(nome)
-  await page.getByRole('list', { name: 'Associados' }).getByRole('link').first().click()
-  await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
-}
-
-async function arquivarCadastroAberto(page: Page) {
-  await page.getByText('Arquivar cadastro', { exact: true }).last().click()
-  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/ministros$/)
-}
-
 test('associado antigo: primeiro acesso com código e, depois, senha esquecida com outro código', async ({ page }, info) => {
   const sufixo = sufixoUnico(info.project.name)
   const nome = `Acesso E2E ${sufixo}`
@@ -40,13 +37,8 @@ test('associado antigo: primeiro acesso com código e, depois, senha esquecida c
 
   // 1. A presidência cadastra o associado (sem login) e gera o código
   await trocarPara(page, 'presidencia')
-  await page.goto('ministros/novo')
-  await page.getByLabel(/^Nome completo/).fill(nome)
-  await page.getByLabel(/^Telefone/).fill('(94) 90000-0000')
-  await page.getByLabel(/^Título ministerial/).selectOption({ label: 'Pastor(a)' })
-  await page.getByLabel(/^Igreja \*/).selectOption({ label: 'Igreja Fictícia A (teste)' })
-  await page.getByRole('button', { name: 'Cadastrar associado' }).click()
-  await expect(mensagem(page, 'Associado cadastrado.')).toBeVisible()
+  await cadastrarMinistro(page, { nome, telefone: '(94) 90000-0000', igreja: 'Igreja Fictícia A (teste)' })
+  await abrirAbaDaFicha(page, 'Acesso')
   await page.getByRole('button', { name: 'Gerar código de primeiro acesso' }).click()
   const codigo = (await page.locator('.codigo').textContent())?.trim() ?? ''
   expect(codigo).toMatch(/^[2-9A-Z]{4}-[2-9A-Z]{4}-[2-9A-Z]{4}$/)
@@ -73,7 +65,8 @@ test('associado antigo: primeiro acesso com código e, depois, senha esquecida c
   // 3. Esqueceu a senha: a presidência gera o código de nova senha
   await trocarPara(page, 'presidencia')
   await abrirFichaDoMinistro(page, nome)
-  await expect(page.getByText('Já tem login no portal')).toBeVisible()
+  await abrirAbaDaFicha(page, 'Acesso')
+  await expect(page.getByText('Tem acesso', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Gerar código para nova senha' }).click()
   const codigoSenha = (await page.locator('.codigo').textContent())?.trim() ?? ''
 
@@ -167,8 +160,9 @@ test('pedido de associação: envia, recebe pendência, corrige, a diretoria enc
   await page.getByRole('button', { name: 'Registrar aprovação' }).click()
   await expect(mensagem(page, 'Aprovado!')).toBeVisible()
   await page.getByRole('link', { name: 'Abrir a ficha do associado' }).click()
+  await expect(page.getByText(/^Nº \d{4,}$/)).toBeVisible()
+  await abrirAbaDaFicha(page, 'Situação')
   await expect(page.getByText('Aprovado em Assembleia Ordinária')).toBeVisible()
-  await expect(page.getByText(/Nº de registro \d+/)).toBeVisible()
 
   // 6. O candidato agora é associado
   await trocarPara(page, candidato)

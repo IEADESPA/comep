@@ -33,6 +33,7 @@ import { DetalheInscricao, ListaInscricoes } from './telas/inscricoes/Inscricoes
 import { DetalheMinistro } from './telas/ministros/DetalheMinistro'
 import { ListaMinistros } from './telas/ministros/ListaMinistros'
 import { NovoMinistro } from './telas/ministros/NovoMinistro'
+import { CorrecoesPedidas } from './telas/ministros/CorrecoesPedidas'
 import { CriarAcessoPedido, MeuPedido } from './telas/pedido/MeuPedido'
 import { MeuPerfil } from './telas/portal/MeuPerfil'
 import { MinhaIgreja } from './telas/portal/MinhaIgreja'
@@ -99,8 +100,11 @@ export default function App() {
                 <Route index element={<MinhasMensalidades />} />
               </Route>
 
+              {/* Cada função do módulo tem endereço próprio (menu do módulo, src/componentes/menu.ts) */}
               <Route path="financeiro" element={<Area caminho="/financeiro" />}>
                 <Route index element={<Financeiro />} />
+                <Route path="contribuicoes/cobrancas" element={<Financeiro parte="cobrancas" />} />
+                <Route path=":parte" element={<Financeiro />} />
               </Route>
 
               <Route path="minha-credencial" element={<Area caminho="/minha-credencial" />}>
@@ -154,6 +158,7 @@ export default function App() {
               </Route>
               <Route path="patrimonio" element={<Area caminho="/patrimonio" />}>
                 <Route index element={<Patrimonio />} />
+                <Route path=":aba" element={<Patrimonio />} />
                 <Route path="emprestimos/:id" element={<DetalheEmprestimo />} />
               </Route>
               <Route path="minha-igreja" element={<Area caminho="/minha-igreja" />}>
@@ -175,7 +180,9 @@ export default function App() {
               <Route path="ministros" element={<Area caminho="/ministros" />}>
                 <Route index element={<ListaMinistros />} />
                 <Route path="novo" element={<NovoMinistro />} />
+                <Route path="correcoes" element={<CorrecoesPedidas />} />
                 <Route path=":pessoaId" element={<DetalheMinistro />} />
+                <Route path=":pessoaId/:aba" element={<DetalheMinistro />} />
               </Route>
 
               <Route path="acessos" element={<Area caminho="/acessos" />}>

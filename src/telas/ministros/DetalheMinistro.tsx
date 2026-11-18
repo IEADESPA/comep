@@ -1,10 +1,11 @@
-import { CamposIdentidade } from '../../componentes/CamposIdentidade'
-import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
-import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Aviso, BotaoConfirmar, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { CamposIdentidade } from '../../componentes/CamposIdentidade'
 import { GerarCodigo } from '../../componentes/GerarCodigo'
+import { Icone } from '../../componentes/Icone'
+import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
+import { AbasDaTela, Chip, FotoOuIniciais, type Aba } from '../../componentes/Telas'
 import {
   arquivarAssociado,
   atualizarContato,
@@ -19,22 +20,33 @@ import {
 } from '../../dados/associados'
 import { listarIgrejas, listarTitulos, type Igreja, type Titulo } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
-import {
-  formatarReais,
-  listarValores,
-  NOME_DA_CATEGORIA,
-  type ValorContribuicao,
-} from '../../dados/configuracoes'
+import { formatarReais, listarValores, NOME_DA_CATEGORIA, type ValorContribuicao } from '../../dados/configuracoes'
+import { dadosCredenciais } from '../../dados/credencial'
+import { registrarDesligamento } from '../../dados/encontros'
 import { situacaoDe, type SituacaoContribuicao } from '../../dados/financeiro'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { registrarDesligamento } from '../../dados/encontros'
-import { formatarCpf, formatarData, hojeIso } from '../../utilitarios/formatos'
+import { formatarData, hojeIso, numeroDoRegistro } from '../../utilitarios/formatos'
+import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
+import { CredencialNaTela, SituacaoAgora } from '../credencial/Credenciais'
 
-/** /ministros/:pessoaId — remonta a tela ao trocar de pessoa */
+// Ministros e inscrições › a ficha do ministro (aprovada em 18/11/2026: a ficha em abas, no mesmo formato do Meu perfil).
+// Abas com endereço próprio: Dados (/ministros/:id), Igreja, Título, Contribuição, Credencial, Acesso e Situação.
+
+const ABAS = (id: string): Aba[] => [
+  { para: `/ministros/${id}`, nome: 'Dados' },
+  { para: `/ministros/${id}/igreja`, nome: 'Igreja' },
+  { para: `/ministros/${id}/titulo`, nome: 'Título' },
+  { para: `/ministros/${id}/contribuicao`, nome: 'Contribuição', curto: 'Contrib.' },
+  { para: `/ministros/${id}/credencial`, nome: 'Credencial' },
+  { para: `/ministros/${id}/acesso`, nome: 'Acesso' },
+  { para: `/ministros/${id}/situacao`, nome: 'Situação' },
+]
+
+/** /ministros/:pessoaId e /ministros/:pessoaId/:aba — remonta a tela ao trocar de pessoa */
 export function DetalheMinistro() {
-  const { pessoaId } = useParams()
-  return <Ficha key={pessoaId} pessoaId={pessoaId ?? ''} />
+  const { pessoaId, aba = 'dados' } = useParams()
+  return <Ficha key={pessoaId} pessoaId={pessoaId ?? ''} aba={aba} />
 }
 
 type DadosTela = {
@@ -47,11 +59,14 @@ type DadosTela = {
 
 type Retorno = { sucesso?: string; erro?: string }
 
-function Ficha({ pessoaId }: { pessoaId: string }) {
+function Ficha({ pessoaId, aba }: { pessoaId: string; aba: string }) {
   const location = useLocation()
   const [retorno, setRetorno] = useState<Retorno>({
     sucesso: (location.state as { mensagem?: string } | null)?.mensagem,
   })
+  // trocou de aba: a mensagem da aba anterior não vale mais
+  const [abaDaMensagem, setAbaDaMensagem] = useState(aba)
+  const mensagem = abaDaMensagem === aba ? retorno : {}
   const [carga, recarregar] = useCarregar(async () => {
     const [ficha, titulos, igrejas, valores, situacao] = await Promise.all([
       buscarFicha(pessoaId),
@@ -76,12 +91,13 @@ function Ficha({ pessoaId }: { pessoaId: string }) {
   /** Depois de cada ação: mostra o resultado e, se deu certo, recarrega a ficha. */
   function concluir(r: { erro: string | null }, sucesso: string) {
     setRetorno(r.erro ? { erro: r.erro } : { sucesso })
+    setAbaDaMensagem(aba)
     if (!r.erro) recarregar()
     return !r.erro
   }
 
   return (
-    <>
+    <div className="tela-nova">
       <p className="trilha">
         <Link to="/ministros">← Ministros</Link>
       </p>
@@ -92,19 +108,33 @@ function Ficha({ pessoaId }: { pessoaId: string }) {
               <p>O cadastro pode ter sido arquivado.</p>
             </Aviso>
           ) : (
-            <Conteudo
-              ficha={ficha}
-              titulos={titulos}
-              igrejas={igrejas}
-              valores={valores}
-              situacao={situacao}
-              retorno={retorno}
-              concluir={concluir}
-            />
+            <>
+              <CabecalhoFicha ficha={ficha} situacao={situacao} />
+              <AbasDaTela rotulo="Partes da ficha" abas={ABAS(pessoaId)} />
+              <Mensagem sucesso={mensagem.sucesso} erro={mensagem.erro} />
+              {aba === 'igreja' ? (
+                <Igrejas ficha={ficha} igrejas={igrejas} concluir={concluir} />
+              ) : aba === 'titulo' ? (
+                <Titulos ficha={ficha} titulos={titulos} concluir={concluir} />
+              ) : aba === 'contribuicao' ? (
+                <Contribuicao ficha={ficha} valores={valores} situacao={situacao} />
+              ) : aba === 'credencial' ? (
+                <AbaCredencial pessoaId={pessoaId} />
+              ) : aba === 'acesso' ? (
+                <AbaAcesso ficha={ficha} />
+              ) : aba === 'situacao' ? (
+                <AbaSituacao ficha={ficha} concluir={concluir} />
+              ) : (
+                <>
+                  <Dados ficha={ficha} concluir={concluir} />
+                  <PendenciasCredencial pendencias={ficha.pendencias} verEm={`/ministros/${pessoaId}/credencial`} />
+                </>
+              )}
+            </>
           )
         }
       </MostrarCarga>
-    </>
+    </div>
   )
 }
 
@@ -114,88 +144,39 @@ type PropsConteudo = {
   igrejas: Igreja[]
   valores: ValorContribuicao[]
   situacao: SituacaoContribuicao | null
-  retorno: Retorno
   concluir: (r: { erro: string | null }, sucesso: string) => boolean
 }
 
-function Conteudo({ ficha, titulos, igrejas, valores, situacao, retorno, concluir }: PropsConteudo) {
-  const navigate = useNavigate()
+/** O alto da ficha: as iniciais, o nome e as etiquetas (em dia, título, nº, pastor presidente…). */
+function CabecalhoFicha({ ficha, situacao }: Pick<PropsConteudo, 'ficha' | 'situacao'>) {
   const { associado } = ficha
-
-  async function arquivar() {
-    const r = await arquivarAssociado(associado.id)
-    if (r.erro !== null) {
-      concluir(r, '')
-      return
-    }
-    navigate('/ministros', { replace: true, state: { mensagem: `Cadastro de ${associado.nome} arquivado.` } })
-  }
-
   return (
-    <>
-      <h1>{associado.nome}</h1>
-      <p className="etiquetas">
-        <span className="etiqueta etiqueta-marca">Nº de registro {associado.numero_registro}</span>
-        <span className="etiqueta">{NOME_DA_SITUACAO[associado.situacao]}</span>
-        {associado.pastor_presidente && <span className="etiqueta">Pastor presidente</span>}
-        {associado.jubilado && <span className="etiqueta">Jubilado</span>}
-        {!associado.tem_login && <span className="etiqueta etiqueta-neutra">Sem login</span>}
-      </p>
-      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-
-      <Contato ficha={ficha} concluir={concluir} />
-      <PendenciasCredencial pendencias={ficha.pendencias} verEm={`/credenciais/${ficha.associado.pessoa_id}`} />
-      <Titulos ficha={ficha} titulos={titulos} concluir={concluir} />
-      <Igrejas ficha={ficha} igrejas={igrejas} concluir={concluir} />
-      <Contribuicao ficha={ficha} valores={valores} situacao={situacao} />
-
-      <section className="painel" aria-labelledby="titulo-admissao">
-        <h2 id="titulo-admissao">Admissão no COMEP</h2>
-        <dl className="definicoes">
-          <dt>Forma</dt>
-          <dd>{NOME_DA_FORMA_ADMISSAO[associado.forma_admissao]}</dd>
-          <dt>Associado desde</dt>
-          <dd>{formatarData(associado.admitido_em) || 'Não informado'}</dd>
-          {associado.assembleia_data && (
-            <>
-              <dt>Assembleia</dt>
-              <dd>
-                {formatarData(associado.assembleia_data)}
-                {associado.assembleia_ata && ` — ${associado.assembleia_ata}`}
-              </dd>
-            </>
+    <section className="bloco cabecalho-ficha" aria-label="O ministro">
+      <FotoOuIniciais foto={null} nome={associado.nome} largura={64} />
+      <div className="cabecalho-ficha-texto">
+        <span className="cabecalho-ficha-modulo">Ministros e inscrições › Ficha do ministro</span>
+        <h1>{associado.nome}</h1>
+        <span className="chips">
+          {associado.situacao !== 'ativo' ? (
+            <Chip area="assembleias">{NOME_DA_SITUACAO[associado.situacao]}</Chip>
+          ) : associado.jubilado ? (
+            <Chip area="assembleias">Jubilado</Chip>
+          ) : (
+            situacao && (situacao.em_dia ? <Chip area="financas">Em dia</Chip> : <Chip area="pessoas">Em atraso</Chip>)
           )}
-          {associado.observacoes && (
-            <>
-              <dt>Observações</dt>
-              <dd>{associado.observacoes}</dd>
-            </>
-          )}
-        </dl>
-      </section>
-
-      <Desligamento ficha={ficha} concluir={concluir} />
-
-      <section className="painel painel-perigo">
-        <h2>Arquivar cadastro</h2>
-        <p className="detalhe">
-          Só para cadastro feito <strong>por engano</strong> (pessoa duplicada ou errada). Desligamento e falecimento
-          ficam na seção "Desligamento" (Art. 8º): nada se arquiva nesses casos.
-        </p>
-        <BotaoConfirmar
-          texto="Arquivar cadastro"
-          confirmar="Confirmar arquivamento"
-          aviso={`Arquivar o cadastro de ${associado.nome}? Ele perde o perfil de ministro. Nada se apaga.`}
-          aoConfirmar={() => void arquivar()}
-        />
-      </section>
-    </>
+          {associado.titulo && <Chip area="assembleias">{associado.titulo}</Chip>}
+          <Chip area="pessoas">Nº {numeroDoRegistro(associado.numero_registro)}</Chip>
+          {associado.pastor_presidente && <Chip area="pessoas">Pastor presidente</Chip>}
+          {!associado.tem_login && <Chip area="eventos">Sem login</Chip>}
+        </span>
+      </div>
+    </section>
   )
 }
 
-function Contato({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>) {
+/** Aba "Dados": nome, telefone, e-mail, CPF e filiação (vão na credencial). */
+function Dados({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>) {
   const { associado } = ficha
-  const [editando, setEditando] = useState(false)
   const [nome, setNome] = useState(associado.nome)
   const [telefone, setTelefone] = useState(associado.telefone ?? '')
   const [email, setEmail] = useState(associado.email ?? '')
@@ -213,88 +194,194 @@ function Contato({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>)
       identidadeParaGravar(identidade, ficha.identidade, true),
     )
     setEnviando(false)
-    if (concluir(r, 'Dados de contato salvos.')) setEditando(false)
+    concluir(r, 'Dados salvos.')
   }
 
   return (
-    <section className="painel" aria-labelledby="titulo-contato">
-      <div className="cabecalho-painel">
-        <h2 id="titulo-contato">Contato</h2>
-        {!editando && (
-          <button type="button" className="botao-texto" onClick={() => setEditando(true)}>
-            Editar
+    <section className="aba-conteudo" aria-labelledby="titulo-dados">
+      <h2 id="titulo-dados" className="somente-leitor">
+        Dados pessoais
+      </h2>
+      <form
+        aria-labelledby="titulo-dados"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void salvar()
+        }}
+      >
+        <div className="grade-form">
+          <label className="largura-total">
+            Nome completo *
+            <input required value={nome} onChange={(e) => setNome(e.target.value)} />
+          </label>
+          <label>
+            Telefone (WhatsApp)
+            <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+          </label>
+          <label>
+            E-mail
+            <input type="email" value={email} disabled={associado.tem_login} onChange={(e) => setEmail(e.target.value)} />
+          </label>
+          <CamposIdentidade valor={identidade} gravada={ficha.identidade} aoMudar={setIdentidade} livre />
+        </div>
+        {associado.tem_login && <p className="detalhe">O e-mail é o do login: só a própria pessoa o usa.</p>}
+        <div className="acoes">
+          <button type="submit" className="botao" disabled={enviando}>
+            Salvar
           </button>
-        )}
-      </div>
-      {editando ? (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void salvar()
-          }}
-        >
-          <div className="grade-form">
-            <label className="largura-total">
-              Nome completo *
-              <input required value={nome} onChange={(e) => setNome(e.target.value)} />
-            </label>
-            <label>
-              Telefone (WhatsApp)
-              <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
-            </label>
-            <label>
-              E-mail
-              <input
-                type="email"
-                value={email}
-                disabled={associado.tem_login}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
-            <CamposIdentidade valor={identidade} gravada={ficha.identidade} aoMudar={setIdentidade} livre />
-          </div>
-          {associado.tem_login && <p className="detalhe">O e-mail é o do login e só a própria pessoa o usa.</p>}
-          <div className="acoes">
-            <button type="submit" className="botao" disabled={enviando}>
-              Salvar
-            </button>
-            <button type="button" className="botao botao-secundario" onClick={() => setEditando(false)}>
-              Cancelar
-            </button>
-          </div>
-        </form>
-      ) : (
-        <>
-          <dl className="definicoes">
-            <dt>CPF</dt>
-            <dd>{ficha.identidade.cpf ? formatarCpf(ficha.identidade.cpf) : 'Não informado'}</dd>
-            <dt>Filiação</dt>
-            <dd>
-              {[ficha.identidade.nome_mae, ficha.identidade.nome_pai].filter(Boolean).join(' e ') || 'Não informada'}
-            </dd>
-            <dt>Telefone</dt>
-            <dd>{associado.telefone || 'Não informado'}</dd>
-            <dt>E-mail</dt>
-            <dd>{associado.email || 'Não informado'}</dd>
-            <dt>Login</dt>
-            <dd>{associado.tem_login ? 'Já tem login no portal' : 'Ainda sem login no portal'}</dd>
-          </dl>
-          <GerarCodigo
-            pessoaId={associado.pessoa_id}
-            nome={associado.nome}
-            temLogin={associado.tem_login}
-            telefone={associado.telefone}
-          />
-        </>
-      )}
+        </div>
+      </form>
     </section>
   )
 }
 
+/** Aba "Credencial": a credencial digital (frente e verso), a situação e os atalhos para imprimir e emitir outra. */
+function AbaCredencial({ pessoaId }: { pessoaId: string }) {
+  const [carga, recarregar] = useCarregar(() => dadosCredenciais([pessoaId]))
+  return (
+    <MostrarCarga carga={carga} recarregar={recarregar}>
+      {(pacote) => {
+        const c = pacote.credenciais[0]
+        if (!c) {
+          return (
+            <Aviso titulo="Sem credencial">
+              <p>A credencial é do associado ativo.</p>
+            </Aviso>
+          )
+        }
+        return (
+          <div className="aba-conteudo">
+            <CredencialNaTela pacote={pacote} c={c} />
+            <div className="acoes">
+              <Link className="botao botao-com-icone" to={`/credenciais/imprimir?p=${c.pessoa_id}`}>
+                <Icone nome="imprimir" tamanho={18} />
+                Imprimir
+              </Link>
+              <Link className="botao botao-secundario" to={`/credenciais/${c.pessoa_id}`}>
+                Gerar nova (perda ou roubo)
+              </Link>
+            </div>
+            <SituacaoAgora c={c} />
+            <PendenciasCredencial pendencias={c.pendencias} />
+          </div>
+        )
+      }}
+    </MostrarCarga>
+  )
+}
+
+/** Aba "Acesso": o login no sistema e o código de primeiro acesso (ou de nova senha). */
+function AbaAcesso({ ficha }: Pick<PropsConteudo, 'ficha'>) {
+  const { associado } = ficha
+  return (
+    <div className="dois-blocos">
+      <section className="bloco" aria-labelledby="titulo-login">
+        <h2 id="titulo-login">Login no sistema</h2>
+        <span className="chips">
+          {associado.tem_login ? <Chip area="financas">Tem acesso</Chip> : <Chip area="eventos">Ainda sem login</Chip>}
+        </span>
+        <dl className="definicoes">
+          <dt>E-mail</dt>
+          <dd>{associado.email || 'Não informado'}</dd>
+          <dt>Telefone</dt>
+          <dd>{associado.telefone || 'Não informado'}</dd>
+        </dl>
+        <p className="detalhe">
+          {associado.tem_login
+            ? 'Esqueceu a senha? Gere um código de nova senha e entregue a ele (vale por 7 dias).'
+            : 'Ainda não entrou no sistema? Gere um código de primeiro acesso e entregue a ele (vale por 7 dias).'}
+        </p>
+        <GerarCodigo pessoaId={associado.pessoa_id} nome={associado.nome} temLogin={associado.tem_login} telefone={associado.telefone} />
+      </section>
+      <section className="bloco" aria-labelledby="titulo-perfis">
+        <h2 id="titulo-perfis">Perfis de acesso</h2>
+        <p>
+          Todo associado ativo tem o perfil <strong>Ministro</strong>
+          {associado.pastor_presidente && (
+            <>
+              {' '}
+              e, como pastor presidente, o de <strong>Pastor presidente</strong>
+            </>
+          )}
+          .
+        </p>
+        <p className="detalhe">Os perfis da diretoria (secretaria, tesouraria…) a presidência concede em Administração › Perfis de acesso.</p>
+      </section>
+    </div>
+  )
+}
+
+/** Aba "Situação": a admissão, o desligamento (Art. 8º) e o arquivamento de cadastro feito por engano. */
+function AbaSituacao({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>) {
+  const navigate = useNavigate()
+  const { associado } = ficha
+
+  async function arquivar() {
+    const r = await arquivarAssociado(associado.id)
+    if (r.erro !== null) {
+      concluir(r, '')
+      return
+    }
+    navigate('/ministros', { replace: true, state: { mensagem: `Cadastro de ${associado.nome} arquivado.` } })
+  }
+
+  return (
+    <div className="aba-conteudo">
+      <div className="dois-blocos">
+        <section className="bloco" aria-labelledby="titulo-admissao">
+          <h2 id="titulo-admissao">Admissão no COMEP</h2>
+          <dl className="definicoes">
+            <dt>Situação</dt>
+            <dd>{NOME_DA_SITUACAO[associado.situacao]}</dd>
+            <dt>Forma</dt>
+            <dd>{NOME_DA_FORMA_ADMISSAO[associado.forma_admissao]}</dd>
+            <dt>Associado desde</dt>
+            <dd>{formatarData(associado.admitido_em) || 'Não informado'}</dd>
+            {associado.assembleia_data && (
+              <>
+                <dt>Assembleia</dt>
+                <dd>
+                  {formatarData(associado.assembleia_data)}
+                  {associado.assembleia_ata && ` — ${associado.assembleia_ata}`}
+                </dd>
+              </>
+            )}
+            <dt>Jubilado</dt>
+            <dd>{associado.jubilado ? 'sim' : 'não'}</dd>
+            {associado.observacoes && (
+              <>
+                <dt>Observações</dt>
+                <dd>{associado.observacoes}</dd>
+              </>
+            )}
+          </dl>
+        </section>
+        <Desligamento ficha={ficha} concluir={concluir} />
+      </div>
+
+      <section className="painel painel-perigo">
+        <h2>Arquivar cadastro</h2>
+        <p className="detalhe">
+          Só para cadastro feito <strong>por engano</strong> (pessoa duplicada ou errada). Desligamento e falecimento ficam em
+          "Desligamento" (Art. 8º): nada se arquiva nesses casos.
+        </p>
+        <BotaoConfirmar
+          texto="Arquivar cadastro"
+          confirmar="Confirmar arquivamento"
+          aviso={`Arquivar o cadastro de ${associado.nome}? Ele perde o perfil de ministro. Nada se apaga.`}
+          aoConfirmar={() => void arquivar()}
+        />
+      </section>
+    </div>
+  )
+}
+
+/** Aba "Título": o título atual com o histórico e o registro de um título novo. */
 function Titulos({ ficha, titulos, concluir }: Pick<PropsConteudo, 'ficha' | 'titulos' | 'concluir'>) {
   const [tituloId, setTituloId] = useState('')
   const [desde, setDesde] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [atual, ...anteriores] = ficha.titulos
 
   async function registrar() {
     setEnviando(true)
@@ -307,38 +394,42 @@ function Titulos({ ficha, titulos, concluir }: Pick<PropsConteudo, 'ficha' | 'ti
   }
 
   return (
-    <section className="painel" aria-labelledby="titulo-titulos">
-      <h2 id="titulo-titulos">Título ministerial</h2>
-      <p>
-        Atual: <strong>{ficha.associado.titulo ?? 'Não informado'}</strong>
-      </p>
-      {ficha.titulos.length > 1 && (
-        <>
-          <h3>Histórico</h3>
-          <ol className="historico">
-            {ficha.titulos.map((t, i) => (
-              <li key={t.id}>
-                {t.titulo?.nome}
-                {t.desde && ` — desde ${formatarData(t.desde)}`}
-                {i === 0 && <span className="etiqueta etiqueta-marca">Atual</span>}
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-      <details className="acao-recolhida">
-        <summary>Registrar novo título</summary>
+    <div className="dois-blocos">
+      <section className="bloco" aria-labelledby="titulo-titulos">
+        <h2 id="titulo-titulos">Título ministerial</h2>
+        <dl className="definicoes definicoes-fortes">
+          <dt>Atual</dt>
+          <dd>
+            {ficha.associado.titulo ?? 'Não informado'}
+            {atual?.desde && ` · desde ${formatarData(atual.desde)}`}
+          </dd>
+        </dl>
+        {anteriores.length > 0 && (
+          <>
+            <h3>Antes</h3>
+            <ol className="historico" aria-label="Histórico de títulos">
+              {anteriores.map((t) => (
+                <li key={t.id}>
+                  {t.titulo?.nome}
+                  {t.desde && ` — desde ${formatarData(t.desde)}`}
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+      </section>
+      <section className="bloco" aria-labelledby="titulo-novo-titulo">
+        <h2 id="titulo-novo-titulo">Registrar novo título</h2>
         <form
-          className="form-linha"
           onSubmit={(e) => {
             e.preventDefault()
             void registrar()
           }}
         >
           <label>
-            Novo título
+            Título
             <select required value={tituloId} onChange={(e) => setTituloId(e.target.value)}>
-              <option value="">— Escolha —</option>
+              <option value="">— Escolha o título —</option>
               {titulos.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.nome}
@@ -350,15 +441,19 @@ function Titulos({ ficha, titulos, concluir }: Pick<PropsConteudo, 'ficha' | 'ti
             Desde
             <input type="date" max={hojeIso()} value={desde} onChange={(e) => setDesde(e.target.value)} />
           </label>
-          <button type="submit" className="botao" disabled={enviando}>
-            Registrar título
-          </button>
+          <div className="acoes">
+            <button type="submit" className="botao" disabled={enviando}>
+              Registrar o título
+            </button>
+          </div>
         </form>
-      </details>
-    </section>
+        <p className="detalhe">O título anterior fica no histórico.</p>
+      </section>
+    </div>
   )
 }
 
+/** Aba "Igreja": a igreja atual (com o pastor presidente), o histórico e o registro da troca. */
 function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'igrejas' | 'concluir'>) {
   const atual = ficha.vinculos.find((v) => v.fim === null)
   const [igrejaId, setIgrejaId] = useState('')
@@ -387,57 +482,58 @@ function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'ig
   }
 
   return (
-    <section className="painel" aria-labelledby="titulo-igrejas">
-      <h2 id="titulo-igrejas">Igreja</h2>
-      <p>
-        Atual:{' '}
+    <div className="dois-blocos">
+      <section className="bloco" aria-labelledby="titulo-igreja-atual">
+        <h2 id="titulo-igreja-atual">Igreja atual</h2>
         {atual ? (
-          <>
-            <Link to={`/igrejas/${atual.igreja_id}`}>
-              <strong>{atual.igreja?.nome}</strong>
-            </Link>
-            {atual.funcao && ` — ${atual.funcao}`}
-            {atual.pastor_presidente && <span className="etiqueta etiqueta-marca">Pastor presidente</span>}
-          </>
+          <dl className="definicoes definicoes-fortes">
+            <dt>Igreja</dt>
+            <dd>
+              <Link to={`/igrejas/${atual.igreja_id}`}>{atual.igreja?.nome}</Link>
+            </dd>
+            <dt>Função</dt>
+            <dd>{atual.funcao || 'Não informada'}</dd>
+            <dt>Desde</dt>
+            <dd>{atual.inicio ? formatarData(atual.inicio) : 'Não informado'}</dd>
+            <dt>Pastor presidente</dt>
+            <dd>{atual.pastor_presidente ? 'sim' : 'não'}</dd>
+          </dl>
         ) : (
-          <strong>Sem igreja</strong>
+          <p>
+            <strong>Sem igreja</strong>
+          </p>
         )}
-      </p>
-      {atual && (
-        <p>
-          <button
-            type="button"
-            className="botao botao-secundario"
-            disabled={enviando}
-            onClick={() => void marcarPresidente(!atual.pastor_presidente)}
-          >
-            {atual.pastor_presidente ? 'Desmarcar pastor presidente' : 'Marcar como pastor presidente desta igreja'}
-          </button>
-        </p>
-      )}
-      {ficha.vinculos.length > 1 && (
-        <>
-          <h3>Histórico</h3>
-          <ol className="historico" aria-label="Histórico de igrejas">
-            {ficha.vinculos.map((v) => (
-              <li key={v.id}>
-                {v.igreja?.nome}
-                {v.funcao && ` (${v.funcao})`}
-                {v.pastor_presidente && ' · pastor presidente'}
-                <span className="detalhe">
-                  {' '}
-                  {v.inicio ? formatarData(v.inicio) : '?'} a {v.fim ? formatarData(v.fim) : 'hoje'}
-                </span>
-                {v.fim === null && <span className="etiqueta etiqueta-marca">Atual</span>}
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-      <details className="acao-recolhida">
-        <summary>Registrar troca de igreja</summary>
+        {atual && (
+          <p>
+            <button type="button" className="botao botao-secundario" disabled={enviando} onClick={() => void marcarPresidente(!atual.pastor_presidente)}>
+              {atual.pastor_presidente ? 'Desmarcar pastor presidente' : 'Marcar como pastor presidente desta igreja'}
+            </button>
+          </p>
+        )}
+        {ficha.vinculos.length > 1 && (
+          <>
+            <h3>Histórico</h3>
+            <ol className="historico" aria-label="Histórico de igrejas">
+              {ficha.vinculos.map((v) => (
+                <li key={v.id}>
+                  {v.igreja?.nome}
+                  {v.funcao && ` (${v.funcao})`}
+                  {v.pastor_presidente && ' · pastor presidente'}
+                  <span className="detalhe">
+                    {' '}
+                    {v.inicio ? formatarData(v.inicio) : '?'} a {v.fim ? formatarData(v.fim) : 'hoje'}
+                  </span>
+                  {v.fim === null && <span className="etiqueta etiqueta-marca">Atual</span>}
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+      </section>
+
+      <section className="bloco" aria-labelledby="titulo-troca">
+        <h2 id="titulo-troca">Registrar troca de igreja</h2>
         <form
-          className="form-linha"
           onSubmit={(e) => {
             e.preventDefault()
             void trocar()
@@ -446,7 +542,7 @@ function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'ig
           <label>
             Nova igreja
             <select required value={igrejaId} onChange={(e) => setIgrejaId(e.target.value)}>
-              <option value="">— Escolha —</option>
+              <option value="">— Escolha a igreja —</option>
               {igrejas
                 .filter((i) => i.id !== atual?.igreja_id)
                 .map((i) => (
@@ -473,56 +569,79 @@ function Igrejas({ ficha, igrejas, concluir }: Pick<PropsConteudo, 'ficha' | 'ig
             <input type="checkbox" checked={presidente} onChange={(e) => setPresidente(e.target.checked)} />
             Pastor presidente da nova igreja
           </label>
-          <button type="submit" className="botao" disabled={enviando}>
-            Registrar troca
-          </button>
+          <div className="acoes">
+            <button type="submit" className="botao" disabled={enviando}>
+              Registrar a troca
+            </button>
+          </div>
         </form>
-      </details>
-    </section>
+        <p className="detalhe">A igreja anterior fica no histórico.</p>
+      </section>
+    </div>
   )
 }
 
+/** Aba "Contribuição": a categoria (automática), os valores e a situação de agora. */
 function Contribuicao({ ficha, valores, situacao }: Pick<PropsConteudo, 'ficha' | 'valores' | 'situacao'>) {
   const { associado } = ficha
   const categoria = associado.categoria_contribuicao
-  const valor = (tipo: ValorContribuicao['tipo']) =>
-    valores.find((v) => v.categoria === categoria && v.tipo === tipo)
+  const valor = (tipo: ValorContribuicao['tipo']) => valores.find((v) => v.categoria === categoria && v.tipo === tipo)
 
   const mensal = valor('mensal')
   const anual = valor('anual')
 
   return (
-    <section className="painel" aria-labelledby="titulo-contribuicao">
-      <h2 id="titulo-contribuicao">Contribuição</h2>
-      <p>
-        Categoria: <strong>{NOME_DA_CATEGORIA[categoria]}</strong>
-        {mensal && anual && (
-          <>
-            {' '}
-            — {formatarReais(mensal.valor)} por mês ou {formatarReais(anual.valor)} por ano
-          </>
-        )}
-      </p>
-      {situacao && !associado.jubilado && (
+    <section className="aba-conteudo" aria-labelledby="titulo-contribuicao">
+      <h2 id="titulo-contribuicao" className="somente-leitor">
+        Contribuição
+      </h2>
+      <div className="tres-numeros">
+        <div className="bloco bloco-numero">
+          <span className="rotulo">Categoria</span>
+          <strong>{NOME_DA_CATEGORIA[categoria]}</strong>
+        </div>
+        <div className="bloco bloco-numero">
+          <span className="rotulo">Valor</span>
+          <strong>{mensal ? `${formatarReais(mensal.valor)} por mês` : 'Sem valor em Configurações'}</strong>
+        </div>
+        <div className="bloco bloco-numero">
+          <span className="rotulo">Situação</span>
+          <span className="chips">
+            {associado.jubilado ? (
+              <Chip area="assembleias">Isento (jubilado)</Chip>
+            ) : situacao ? (
+              situacao.em_dia ? (
+                <Chip area="financas">Em dia</Chip>
+              ) : (
+                <Chip area="pessoas">
+                  Em atraso: {situacao.cobrancas_vencidas} vencida(s), {formatarReais(situacao.valor_vencido)}
+                </Chip>
+              )
+            ) : (
+              <Chip area="assembleias">Sem cobrança</Chip>
+            )}
+          </span>
+        </div>
+      </div>
+      <div className="bloco">
         <p>
-          Situação:{' '}
-          {situacao.em_dia ? (
-            <span className="etiqueta etiqueta-ok">Em dia</span>
-          ) : (
-            <span className="etiqueta etiqueta-atraso">
-              Em atraso: {situacao.cobrancas_vencidas} vencida(s), {formatarReais(situacao.valor_vencido)}
-            </span>
+          Categoria: <strong>{NOME_DA_CATEGORIA[categoria]}</strong>
+          {mensal && anual && (
+            <>
+              {' '}
+              — {formatarReais(mensal.valor)} por mês ou {formatarReais(anual.valor)} por ano
+            </>
           )}
         </p>
-      )}
-      <p className="detalhe">
-        A categoria é automática: jubilado é isento; quem está marcado como pastor presidente da igreja atual paga como
-        presidente de igreja; os demais, como não presidente. Os valores ficam em Configurações.
-      </p>
-      <p className="detalhe">
-        <strong>Jubilação:</strong> o documento vem da denominação, a secretaria põe na pauta da assembleia (item "Jubilação de")
-        e a assembleia aprova. O jubilado é isento, vota, mas não pode ser votado (14/11/2026).
-      </p>
+        <p className="detalhe">
+          A categoria é automática: jubilado é isento; quem está marcado como pastor presidente da igreja atual paga como presidente
+          de igreja; os demais, como não presidente. Os valores ficam em Configurações; os pagamentos, com a tesouraria (Financeiro).
+        </p>
+        <p className="detalhe">
+          <strong>Jubilação:</strong> o documento vem da denominação, a secretaria põe na pauta da assembleia (item "Jubilação de") e
+          a assembleia aprova. O jubilado é isento, vota, mas não pode ser votado (14/11/2026).
+        </p>
+      </div>
     </section>
   )
 }
@@ -548,7 +667,7 @@ function Desligamento({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'conclu
   const [enviando, umaVez] = useUmaVez()
   const escolhido = HOMOLOGADOS.find((h) => h.inciso === inciso)
   return (
-    <section className="painel" aria-labelledby="titulo-desligamento">
+    <section className="bloco" aria-labelledby="titulo-desligamento">
       <h2 id="titulo-desligamento">Desligamento (Art. 8º)</h2>
       {associado.situacao !== 'ativo' ? (
         <p>
@@ -615,4 +734,3 @@ function Desligamento({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'conclu
     </section>
   )
 }
-

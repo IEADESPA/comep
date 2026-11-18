@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { Aviso, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Icone } from '../../componentes/Icone'
+import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
+import { Selo, type TipoSelo } from '../../componentes/Telas'
 import { listarIgrejas, type Igreja } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import {
@@ -18,15 +21,50 @@ import {
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, formatarDataHora, hojeIso } from '../../utilitarios/formatos'
 
+// Módulo "Ministros e inscrições" › Pedidos de associação (aprovado em 18/11/2026): os filtros em pílulas,
+// cada pedido com a barra "x de N conferidos" e o selo da situação.
+
 const GRUPOS: { titulo: string; situacoes: SituacaoPedido[] }[] = [
-  { titulo: 'Para analisar', situacoes: ['enviado'] },
+  { titulo: 'Em análise', situacoes: ['enviado'] },
   { titulo: 'Com pendência', situacoes: ['pendencia'] },
-  { titulo: 'Aguardando assembleia', situacoes: ['aguardando_assembleia'] },
-  { titulo: 'Encerrados', situacoes: ['aprovado', 'recusado', 'desistiu'] },
+  { titulo: 'Esperando a AGO', situacoes: ['aguardando_assembleia'] },
+  { titulo: 'Concluídos', situacoes: ['aprovado', 'recusado', 'desistiu'] },
 ]
 
 const igrejaDoPedido = (p: Pedido) =>
   p.igreja?.nome ?? (p.igreja_informada ? `${p.igreja_informada} (não cadastrada)` : 'Igreja não informada')
+
+/** O selo da situação do pedido (o mesmo selo da secretaria do "Meu pedido"). */
+const SELO_DO_PEDIDO: Record<SituacaoPedido, { tipo: TipoSelo; texto: string }> = {
+  enviado: { tipo: 'analise', texto: 'Em análise' },
+  pendencia: { tipo: 'recusado', texto: 'Devolvido com pendência' },
+  aguardando_assembleia: { tipo: 'aprovado', texto: 'Esperando a AGO' },
+  aprovado: { tipo: 'aprovado', texto: 'Aprovado na AGO' },
+  recusado: { tipo: 'recusado', texto: 'Recusado' },
+  desistiu: { tipo: 'recusado', texto: 'Desistiu' },
+}
+
+/**
+ * O que a secretaria confere em cada pedido: os dados pessoais, a igreja e o título, a foto 3×4 e o comprovante.
+ * Por enquanto a conferência é do pedido inteiro: com a ficha aceita, os itens contam como conferidos.
+ */
+function conferidos(p: Pedido): { feitos: number; total: number } {
+  const total = 4
+  return { feitos: p.situacao === 'aguardando_assembleia' || p.situacao === 'aprovado' ? total : 0, total }
+}
+
+export function ProgressoConferencia({ feitos, total }: { feitos: number; total: number }) {
+  return (
+    <span className={feitos === total ? 'progresso-conferencia completo' : 'progresso-conferencia'}>
+      <span>
+        {feitos} de {total} conferidos
+      </span>
+      <span className="progresso-conferencia-barra" aria-hidden="true">
+        <span style={{ width: `${Math.round((feitos * 100) / total)}%` }} />
+      </span>
+    </span>
+  )
+}
 
 /** /inscricoes — pedidos de associação para a secretaria e a presidência. */
 export function ListaInscricoes() {
@@ -34,54 +72,71 @@ export function ListaInscricoes() {
   const [grupo, setGrupo] = useState(0)
 
   return (
-    <>
-      <h1>Inscrições</h1>
-      <p className="detalhe">
-        Pedidos de associação (Art. 7º): a diretoria analisa, um diretor aceita a ficha e o pedido vai para a Assembleia
-        Ordinária, que decide.
-      </p>
+    <div className="tela-nova">
+      <CabecalhoFuncao
+        modulo="Ministros e inscrições"
+        titulo="Pedidos de associação"
+        sub="Pedidos de associação (Art. 7º): a secretaria confere, um diretor aceita a ficha e o pedido vai para a Assembleia Ordinária, que decide."
+      />
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(pedidos) => {
           const doGrupo = pedidos.filter((p) => GRUPOS[grupo].situacoes.includes(p.situacao))
           return (
             <>
-              <div className="abas" role="tablist" aria-label="Situação dos pedidos">
+              <div className="pilulas" role="group" aria-label="Situação dos pedidos">
                 {GRUPOS.map((g, i) => (
                   <button
                     key={g.titulo}
                     type="button"
-                    role="tab"
-                    aria-selected={grupo === i}
-                    className={grupo === i ? 'aba ativa' : 'aba'}
+                    className={grupo === i ? 'pilula ativa' : 'pilula'}
+                    aria-pressed={grupo === i}
                     onClick={() => setGrupo(i)}
                   >
-                    {g.titulo} ({pedidos.filter((p) => g.situacoes.includes(p.situacao)).length})
+                    {g.titulo} <strong>{pedidos.filter((p) => g.situacoes.includes(p.situacao)).length}</strong>
                   </button>
                 ))}
               </div>
               {doGrupo.length === 0 ? (
                 <p className="vazio">Nenhum pedido aqui.</p>
               ) : (
-                <ul className="lista" aria-label="Pedidos">
-                  {doGrupo.map((p) => (
-                    <li key={p.id}>
-                      <Link to={`/inscricoes/${p.id}`} className="lista-item">
-                        <strong>{p.pessoa?.nome}</strong>
-                        <span>{[p.titulo?.nome, igrejaDoPedido(p)].filter(Boolean).join(' · ')}</span>
-                        <span>
-                          {NOME_DA_SITUACAO_PEDIDO[p.situacao]}
-                          {p.enviado_em && ` · enviado em ${formatarData(p.enviado_em)}`}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
+                <ul className="lista-pedidos" aria-label="Pedidos">
+                  {doGrupo.map((p) => {
+                    const selo = SELO_DO_PEDIDO[p.situacao]
+                    const encerrado = p.situacao === 'aprovado' || p.situacao === 'recusado' || p.situacao === 'desistiu'
+                    return (
+                      <li key={p.id}>
+                        <Link to={`/inscricoes/${p.id}`} className="linha-pedido">
+                          <span className="linha-pedido-texto">
+                            <strong>{p.pessoa?.nome}</strong>
+                            <span>
+                              {[p.titulo?.nome, igrejaDoPedido(p)].filter(Boolean).join(' · ')}
+                              {p.enviado_em && ` · enviado em ${formatarData(p.enviado_em)}`}
+                            </span>
+                            <span className="so-celular">
+                              <Selo tipo={selo.tipo}>{selo.texto}</Selo>
+                            </span>
+                          </span>
+                          {!encerrado && (
+                            <span className="so-computador">
+                              <ProgressoConferencia {...conferidos(p)} />
+                            </span>
+                          )}
+                          <span className="so-computador">
+                            <Selo tipo={selo.tipo}>{selo.texto}</Selo>
+                          </span>
+                          <Icone nome="seta" tamanho={18} />
+                        </Link>
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
+              <p className="detalhe">A secretaria confere o pedido. Com tudo conferido, um diretor aceita a ficha e o pedido vai para a próxima AGO.</p>
             </>
           )
         }}
       </MostrarCarga>
-    </>
+    </div>
   )
 }
 
@@ -110,13 +165,13 @@ function Detalhe({ id }: { id: string }) {
   return (
     <>
       <p className="trilha">
-        <Link to="/inscricoes">← Inscrições</Link>
+        <Link to="/inscricoes">← Pedidos de associação</Link>
       </p>
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {({ pedido, igrejas }) =>
           !pedido ? (
             <Aviso titulo="Pedido não encontrado">
-              <p>Volte para a lista de inscrições.</p>
+              <p>Volte para a lista dos pedidos de associação.</p>
             </Aviso>
           ) : (
             <>

@@ -64,7 +64,7 @@ export function CredencialNaTela({ pacote, c }: { pacote: PacoteCredenciais; c: 
   )
 }
 
-function SituacaoAgora({ c }: { c: DadosCredencial }) {
+export function SituacaoAgora({ c }: { c: DadosCredencial }) {
   const vencida = c.valida_ate !== null && c.valida_ate < hojeIso()
   return (
     <section className="painel" aria-labelledby="titulo-situacao-credencial">
@@ -455,6 +455,20 @@ export function ImprimirCredenciais() {
       Array.isArray(doEstado) ? doEstado.filter((p): p is string => typeof p === 'string') : (parametros.get('p') ?? '').split(',').filter(Boolean),
     [doEstado, parametros],
   )
+  // aberta pelo menu do módulo (Credenciais › Imprimir), ainda sem ninguém marcado
+  if (pessoas.length === 0) {
+    return (
+      <>
+        <h1>Impressão das credenciais</h1>
+        <Aviso titulo="Escolha quem vai para a impressão">
+          <p>
+            Na lista das <Link to="/credenciais">Credenciais</Link>, marque as pessoas e use "Imprimir as marcadas". Para uma só,
+            abra a credencial dela e use "Ver a impressão".
+          </p>
+        </Aviso>
+      </>
+    )
+  }
   return <TelaImpressao key={pessoas.join(',')} pessoas={pessoas} voltar="/credenciais" />
 }
 

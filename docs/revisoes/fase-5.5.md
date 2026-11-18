@@ -281,3 +281,63 @@ As telas gerais aprovadas na rodada 5 (`docs/telas-novas.md`), na moldura da par
 **Verificação:**
 
 - ponta a ponta: os testes do perfil, da igreja, da credencial e do pedido foram ajustados às abas (`portal-ministro`, `credencial-digital` e `pedido`).
+
+## Entrega 5.5.6 — Telas novas, parte 3: o menu do módulo e o módulo Ministros e inscrições (versão 5.5.0-teste.7)
+
+O padrão de navegação aprovado em 18/11/2026 para **todos** os módulos ("o módulo toma a coluna", rodada 11) e o primeiro módulo redesenhado (rodada 6, com o cadastro da rodada 7). Nada novo no banco.
+
+**O que entrou:**
+
+- **O menu do módulo** (`src/componentes/MenuDoModulo.tsx`):
+  - no notebook, dentro de um módulo, a coluna vermelha vira o menu dele: "← Início", o bloco com o ícone (fundo branco), o nome e "N funções", as funções grandes com ícone e o número da pendência, a função aberta em fundo branco com o texto vermelho e, embaixo, Meu perfil e o cartão com "Sair";
+  - as subfunções abrem embaixo da função aberta, com recuo e o traço à esquerda; ao abrir outra função, a anterior fecha;
+  - no celular, logo abaixo da barra vermelha, o botão de largura inteira com o ícone e o nome da função aberta, "N funções" e a seta; ele abre a lista das funções e das subfunções. Nada de barra embaixo;
+  - o caminho no topo mostra "Início › Módulo › Função";
+  - fora dos módulos (Início, Módulos, Meu perfil e as telas pessoais), continua o menu curto.
+- **A lista das funções de cada módulo num lugar só** (`MODULOS` em `src/componentes/menu.ts`), cada uma ligada a um endereço:
+  - Ministros e inscrições: Ministros, Pedidos de associação, Correções pedidas e Cadastrar ministro;
+  - Credenciais: Credenciais, Imprimir e Modelo;
+  - Igrejas: Igrejas e Cadastrar igreja;
+  - Financeiro: Contribuições (com as subfunções Situação dos associados e Cobranças do exercício), Comprovantes, Caixa, Despesas a autorizar e Prestação de contas;
+  - Patrimônio: Pedidos, Pedir emprestado, Agenda, Bens e Regras;
+  - Assembleias: Assembleias e reuniões, Pedidos de AGE, Faltas e justificativas e Preparar assembleia;
+  - Votações e enquetes, Comissões e Eventos e projetos: a lista e o "novo";
+  - Diretoria, Mural de avisos e Painel da presidência: uma função cada;
+  - Administração: Configurações, Perfis de acesso e Auditoria.
+- **Não há mais abas no alto para os submódulos.** O Financeiro e o Patrimônio, que tinham abas, ganharam um endereço por função (`/financeiro/caixa`, `/patrimonio/bens`…). `/financeiro` e `/patrimonio` abrem a primeira função de quem está vendo. O conteúdo de cada função continua o de antes (o usuário ainda vai escolher 3 opções de cada tela).
+- **O número das pendências** ao lado da função (`src/estado/pendencias.ts`): pedidos de associação em análise, correções e trocas de igreja, comprovantes a conferir, despesas a autorizar (presidência), empréstimos para aprovar e justificativas de falta. Os atalhos do "Precisa de você" do Início levam direto à função.
+- **Ministros** (aprovada: opção 1, a tabela): a busca por nome, nº, igreja ou título; os filtros Todos, Em dia, Em atraso, Com pendência e Jubilados, com a quantidade; as colunas Nome (com as iniciais), Nº, Título, Igreja e Situação. No celular, a lista compacta (iniciais, nome, nº e igreja, situação).
+- **Pedidos de associação:** os filtros em pílulas, cada pedido com a barra "x de 4 conferidos" e o selo da situação.
+- **Correções pedidas** (`/ministros/correcoes`): as correções no cadastro e as trocas de igreja pedidas pelos ministros, que antes ficavam no alto da lista dos ministros.
+- **Cadastrar ministro** (aprovada: opção 2, o passo a passo): 1 Dados pessoais, 2 Igreja e ministério, 3 No COMEP, um de cada vez, com os passos marcados no alto, "Continuar" e "Voltar". No celular, os três traços e "1 de 3".
+- **A ficha do ministro em abas**, cada uma com endereço próprio (`/ministros/:id/igreja`…): Dados, Igreja, Título, Contribuição, Credencial, Acesso e Situação. No alto, as iniciais, o nome e as etiquetas (em dia, título, nº, pastor presidente, sem login).
+
+**Decisões tomadas sem o desenho:**
+
+- **Módulo de uma função só** (Diretoria, Mural de avisos, Painel da presidência) também usa o menu do módulo, com "1 função", para todos os módulos terem o mesmo jeito.
+- **Administração** virou um módulo (Configurações, Perfis de acesso e Auditoria), como na lista das telas (`docs/telas-novas.md`, nº 19). No Início, a linha "Administração" continua igual.
+- **Nomes das funções do Financeiro:** os do desenho aprovado (Contribuições, Comprovantes…). "Pagamentos informados" virou **Comprovantes**; "Situação dos associados" e "Cobranças do exercício" viraram as subfunções de **Contribuições**. O Orçamento continua dentro da Prestação de contas, como já era.
+- **A função com subfunções que não está aberta** mostra uma seta para baixo (no desenho só a aberta tinha a seta).
+- **No celular, a lista das funções** mostra as subfunções de todas as funções (a sanfona é do notebook); um ponto vermelho ao lado de "N funções" avisa que há pendência em outra função.
+- **Credenciais › Imprimir** aberta pelo menu, sem ninguém marcado, explica que se marca na lista.
+- **Situação na tabela dos ministros:** uma etiqueta principal (Desligado, Jubilado, Em atraso ou Em dia) e, se faltar algo na credencial, uma segunda etiqueta (por exemplo, "Sem foto +2"). O desenho mostrava uma só.
+- **Pedidos de associação:** além dos três filtros do desenho (Em análise, Esperando a AGO, Concluídos), ficou o **Com pendência** (devolvido ao candidato), que já existia.
+- **A barra "x de 4 conferidos":** os itens são os dados pessoais, a igreja e o título, a foto 3×4 e o comprovante. Até a parte 4 (o banco da análise item por item), a conferência é do pedido inteiro: com a ficha aceita, os quatro contam como conferidos.
+- **Cadastrar ministro:** o CPF e a filiação não entram no cadastro (a função do banco não recebe); ficam na aba Dados da ficha, logo depois. A forma de admissão é sempre "associado anterior ao sistema" (quem é novo faz o pedido). A contribuição segue a categoria, sem escolha no cadastro.
+- **Ficha do ministro:**
+  - sem "Trocar foto": a foto continua com o próprio ministro (o sistema não sobe a foto de outra pessoa);
+  - a aba Dados já abre com o formulário (antes era "Editar");
+  - a aba Contribuição mostra a categoria, o valor e a situação; os pagamentos continuam com a tesouraria, no Financeiro (o desenho mostrava os meses com "Registrar pagamento");
+  - a aba Acesso mostra o login e o código de primeiro acesso (ou de nova senha); os perfis da diretoria continuam em Administração › Perfis de acesso;
+  - "Arquivar cadastro" fica na aba Situação, com a admissão e o desligamento.
+- **Os testes de ponta a ponta** ganharam ajudantes (`testes/e2e/ajuda.ts`): `abrirFuncao`, `funcoesDoModulo`, `cadastrarMinistro`, `abrirFichaDoMinistro`, `abrirAbaDaFicha` e `arquivarCadastroAberto`.
+
+**O que depende do banco (parte 4):**
+
+- a correção estruturada (o dado, como está e como deve ficar; aceitar aplica sozinho);
+- a conferência do pedido de associação item por item, com o selo em cada item e "Mandar para a AGO" só com tudo aprovado.
+
+**Verificação:**
+
+- testes de unidade: `testes/unidade/menu.test.ts` (a função acesa por endereço, as subfunções, quem vê cada função, as iniciais e o nº com quatro algarismos);
+- ponta a ponta: `testes/e2e/menu-modulo.spec.ts` (computador e celular: as funções do módulo, a função aberta marcada, a volta ao Início, as subfunções em sanfona e o que o ministro vê) e os testes antigos ajustados às funções (financeiro, caixa, prestação, patrimônio) e à ficha em abas (cadastros, credencial, pedido, configurações, portal, portal-ministro).
