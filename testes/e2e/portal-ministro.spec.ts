@@ -24,12 +24,16 @@ test.describe('ministro fictício (sessão guardada)', () => {
   test.use({ storageState: arquivoDaSessao('ministro') })
 
   test('vê os próprios dados, corrige o telefone e troca a foto', async ({ page }) => {
-    await page.goto('meu-perfil')
-    await expect(page.getByRole('heading', { name: 'Meu perfil', level: 1 })).toBeVisible()
-    const noComep = page.locator('section', { has: page.getByRole('heading', { name: 'No COMEP' }) })
+    // a ficha com abas (telas novas, Fase 5.5): cada aba tem endereço próprio
+    await page.goto('meu-perfil/comep')
+    await expect(page.getByRole('heading', { name: 'Meu perfil', level: 1 })).toBeAttached()
+    const noComep = page.locator('section', { has: page.getByRole('heading', { name: 'A sua situação no COMEP' }) })
     await expect(noComep).toContainText('Nº de registro')
     await expect(noComep).toContainText('Não presidente de igreja — R$ 20,00 por mês ou R$ 200,00 por ano')
-    await expect(page.getByText('Igreja Fictícia A (teste)')).toBeVisible()
+    await expect(page.getByLabel('Seus dados principais')).toContainText('Igreja Fictícia A (teste)')
+
+    await page.getByRole('navigation', { name: 'Partes do meu perfil' }).getByRole('link', { name: 'Meus dados' }).click()
+    await expect(page).toHaveURL(/\/meu-perfil$/)
 
     // o nome vai na credencial: o associado não muda sozinho (a secretaria corrige)
     await expect(page.getByLabel(/^Nome completo/)).toBeDisabled()
@@ -56,9 +60,9 @@ test('o ministro pede troca de igreja, a secretaria aprova; o ministro troca a p
     igreja: 'Igreja Fictícia A (teste)',
   })
 
-  // O ministro pede a troca para a Igreja B
-  await page.goto('meu-perfil')
-  await page.getByText('Pedir troca de igreja').click()
+  // O ministro pede a troca para a Igreja B (aba "Minha igreja" do perfil)
+  await page.goto('meu-perfil/igreja')
+  await expect(page.getByRole('heading', { name: 'Pedir troca de igreja' })).toBeVisible()
   await page.getByLabel(/^Igreja nova/).selectOption({ label: 'Igreja Fictícia B (teste)' })
   await page.getByLabel('Função na igreja nova').fill('Pastor auxiliar')
   // Troca marcada para daqui a 10 dias: a secretaria precisa conseguir aprovar mesmo assim
@@ -68,11 +72,12 @@ test('o ministro pede troca de igreja, a secretaria aprova; o ministro troca a p
   await expect(mensagemNaTela(page, 'Pedido de troca de igreja enviado à secretaria.')).toBeVisible()
   await expect(page.getByText(/Pedido de troca para Igreja Fictícia B \(teste\)/)).toBeVisible()
 
-  // ...e troca a própria senha
+  // ...e troca a própria senha (aba "Senha")
+  await page.goto('meu-perfil/senha')
   await page.getByLabel('Senha atual').fill('SenhaE2e123')
   await page.getByLabel('Senha nova', { exact: true }).fill('NovaSenha789')
   await page.getByLabel('Repita a senha nova').fill('NovaSenha789')
-  await page.getByRole('button', { name: 'Trocar senha' }).click()
+  await page.getByRole('button', { name: 'Trocar a senha' }).click()
   await expect(mensagemNaTela(page, 'Senha trocada.')).toBeVisible()
 
   // A presidência vê o pedido na tela de Ministros e aprova
@@ -87,9 +92,11 @@ test('o ministro pede troca de igreja, a secretaria aprova; o ministro troca a p
   await trocarPara(page, null)
   await preencherLogin(page, email, 'NovaSenha789')
   await expect(page).toHaveURL(/\/painel$/)
-  await page.goto('meu-perfil')
-  await expect(page.getByText('Atual: Igreja Fictícia B (teste)')).toBeVisible()
-  await expect(page.getByRole('list', { name: 'Histórico de igrejas' })).toContainText('Igreja Fictícia A (teste)')
+  await page.goto('meu-perfil/igreja')
+  const historico = page.getByRole('list', { name: 'Histórico de igrejas' })
+  await expect(historico.getByRole('listitem').first()).toContainText('Igreja Fictícia B (teste)')
+  await expect(historico.getByRole('listitem').first()).toContainText('até hoje')
+  await expect(historico).toContainText('Igreja Fictícia A (teste)')
   void ministro
 
   await arquivarAssociadoDeTeste(page, nome)
@@ -127,7 +134,8 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
     pastorPresidente: true,
   })
   await expect(page.getByRole('list', { name: 'Seus perfis' })).toContainText('Presidente de igreja')
-  await page.goto('minha-igreja')
+  // Minha igreja em abas (telas novas, Fase 5.5): Dados, Documentos, Diretoria, Ministros e Agenda
+  await page.goto('minha-igreja/ministros')
   await expect(page.getByRole('heading', { name: igreja, level: 2 })).toBeVisible()
   const ministros = page.getByRole('list', { name: 'Ministros da igreja' })
   await expect(ministros).toContainText(presidente)
@@ -135,6 +143,7 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   await expect(ministros).toContainText('Evangelista dirigente')
   await expect(ministros.getByRole('link', { name: '(94) 92222-2222' })).toBeVisible()
 
+  await page.getByRole('navigation', { name: 'Partes da minha igreja' }).getByRole('link', { name: 'Dados' }).click()
   await page.getByLabel('Endereço').fill('Rua Fictícia, 100')
   await page.getByLabel('Telefone da igreja').fill('(94) 93333-3333')
   await page.getByRole('button', { name: 'Salvar contato da igreja' }).click()
@@ -142,6 +151,7 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
 
   // Fase 5.1: a igreja como instituição — o pastor presidente envia o estatuto, informa a diretoria e pede uma correção
   await expect(page.getByText(/2 ministros associados/)).toBeVisible()
+  await page.goto('minha-igreja/documentos')
   await page.getByText('Enviar um documento').click()
   await page.getByRole('combobox', { name: 'Documento' }).selectOption({ label: 'Estatuto da igreja' })
   await page.locator('input[type=file][accept^="application/pdf"]').setInputFiles({
@@ -152,12 +162,14 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   await expect(mensagemNaTela(page, 'Estatuto da igreja enviado: a secretaria vai conferir.')).toBeVisible()
   await expect(page.getByRole('list', { name: 'Documentos da igreja' })).toContainText('Esperando a conferência')
 
+  await page.goto('minha-igreja/diretoria')
   await page.getByText('Informar a diretoria da igreja').click()
   await page.getByLabel('Nome 1').fill(presidente)
   await page.getByRole('button', { name: 'Salvar a diretoria' }).click()
   await expect(mensagemNaTela(page, 'Diretoria da igreja salva. A anterior fica no histórico.')).toBeVisible()
   await expect(page.getByRole('list', { name: 'Diretoria da igreja' })).toContainText(`Presidente: ${presidente}`)
 
+  await page.goto('minha-igreja/ministros')
   await page.getByText(`Pedir correção no cadastro de ${auxiliar}`).click()
   await page.getByRole('form', { name: `Pedir correção no cadastro de ${auxiliar}` }).getByLabel(/^O que precisa ser corrigido/).fill(
     'O título é Presbítero (teste automático).',

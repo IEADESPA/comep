@@ -44,7 +44,7 @@ function itensCurtos(caminho: string, semPerfil: boolean): ItemCurto[] {
 }
 
 function trilhaDe(caminho: string): string {
-  if (caminho === '/meu-perfil') return 'Meu perfil'
+  if (caminho === '/meu-perfil' || caminho.startsWith('/meu-perfil/')) return 'Meu perfil'
   if (caminho === '/modulos') return 'Módulos'
   return moduloAberto(caminho)?.titulo ?? 'Início'
 }

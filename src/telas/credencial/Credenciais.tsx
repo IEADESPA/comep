@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { FaceCredencial } from '../../componentes/CartaoCredencial'
+import { Icone } from '../../componentes/Icone'
 import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
+import { QrCode } from '../../componentes/QrCode'
+import { CabecalhoTela, Chip } from '../../componentes/Telas'
 import {
   dadosCredenciais,
   listarPendencias,
@@ -18,7 +21,7 @@ import { linkDoArquivo } from '../../dados/pedidos'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { contemTexto, formatarData, hojeIso } from '../../utilitarios/formatos'
+import { contemTexto, formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
 import { imprimir } from '../../utilitarios/exportar'
 import { normalizarModelo, valoresDaCredencial, type ModeloCredencial } from '../../utilitarios/modeloCredencial'
 
@@ -105,8 +108,8 @@ export function MinhaCredencial() {
 function ConteudoMinha({ pessoaId }: { pessoaId: string }) {
   const [carga, recarregar] = useCarregar(() => dadosCredenciais([pessoaId]))
   return (
-    <>
-      <h1>Minha credencial</h1>
+    <div className="tela-nova">
+      <CabecalhoTela titulo="Minha credencial" sub="A sua identificação de ministro do COMEP" />
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(pacote) => {
           const c = pacote.credenciais[0]
@@ -117,23 +120,93 @@ function ConteudoMinha({ pessoaId }: { pessoaId: string }) {
               </Aviso>
             )
           }
-          return (
-            <>
-              <p className="detalhe nao-imprimir">
-                Esta é a sua credencial digital. Mostre a tela ou o QR Code. Também dá para imprimir no tamanho de cartão.
-              </p>
-              <CredencialNaTela pacote={pacote} c={c} />
-              <div className="acoes nao-imprimir">
-                <Link className="botao" to={`/minha-credencial/imprimir`}>
-                  Ver a impressão (tamanho real)
-                </Link>
-              </div>
-              <SituacaoAgora c={c} />
-              {c.pendencias.length > 0 && <PendenciasCredencial pendencias={c.pendencias} propria />}
-            </>
-          )
+          return <MinhaCredencialNaTela pacote={pacote} c={c} />
         }}
       </MostrarCarga>
+    </div>
+  )
+}
+
+/**
+ * Telas novas (Fase 5.5, aprovada): no notebook, a frente e o verso; no celular, só a frente (o verso num botão).
+ * O cartão é o do modelo em uso (Credenciais → Modelo); "Mostrar o QR Code" abre o QR grande para quem vai conferir.
+ */
+function MinhaCredencialNaTela({ pacote, c }: { pacote: PacoteCredenciais; c: DadosCredencial }) {
+  const foto = useFoto(c, true)
+  const modelo = useMemo(() => normalizarModelo(pacote.modelo), [pacote.modelo])
+  const [verso, setVerso] = useState(false)
+  const [qrAberto, setQrAberto] = useState(false)
+  const vencida = c.valida_ate !== null && c.valida_ate < hojeIso()
+  const situacao = vencida ? 'Vencida: aguardando a renovação' : c.em_dia ? 'Válida · em dia' : 'Válida · contribuição em atraso'
+
+  useEffect(() => {
+    if (!qrAberto) return
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && setQrAberto(false)
+    document.addEventListener('keydown', tecla)
+    return () => document.removeEventListener('keydown', tecla)
+  }, [qrAberto])
+
+  return (
+    <>
+      <div className={verso ? 'credencial-nova mostrar-verso' : 'credencial-nova'} aria-label={`Credencial de ${c.nome}`}>
+        <FrenteEVerso modelo={modelo} textoVerso={pacote.texto_verso} c={c} foto={foto} />
+      </div>
+      <div className="linha-situacao">
+        <Chip area={vencida ? 'pessoas' : c.em_dia ? 'financas' : 'eventos'}>
+          <Icone nome={vencida ? 'alerta' : 'check'} tamanho={16} traco={2.6} />
+          {situacao}
+        </Chip>
+        <span className="detalhe">
+          {c.valida_ate ? `Válida até ${formatarData(c.valida_ate)} (fim do mandato)` : 'Válida enquanto o associado estiver ativo'}
+          {c.emitida_em && ` · emitida em ${formatarDataDeInstante(c.emitida_em)}`}
+        </span>
+      </div>
+      <div className="acoes acoes-credencial">
+        <button type="button" className="botao botao-com-icone" onClick={() => setQrAberto(true)}>
+          <Icone nome="qr" tamanho={20} />
+          Mostrar o QR Code
+        </button>
+        <Link className="botao botao-secundario botao-com-icone" to="/minha-credencial/imprimir">
+          <Icone nome="imprimir" tamanho={18} />
+          Imprimir
+        </Link>
+        <button type="button" className="botao botao-secundario so-celular" aria-pressed={verso} onClick={() => setVerso((v) => !v)}>
+          {verso ? 'Ver a frente' : 'Ver o verso'}
+        </button>
+      </div>
+      <p className="detalhe">
+        A digital passa sozinha para o mandato seguinte. A impressa vale até a data que está nela: depois da posse da nova
+        diretoria, imprima de novo.{' '}
+        <a href={urlValidacao(c.codigo)} target="_blank" rel="noreferrer">
+          Abrir a página de validação (a mesma do QR Code)
+        </a>
+      </p>
+      {c.pendencias.length > 0 && <PendenciasCredencial pendencias={c.pendencias} propria />}
+
+      {qrAberto && (
+        <div className="janela-fundo" onClick={() => setQrAberto(false)}>
+          <div
+            className="janela-qr"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-qr"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="titulo-qr" className="somente-leitor">
+              QR Code da credencial
+            </h2>
+            <QrCode texto={urlValidacao(c.codigo)} rotulo={`QR Code para conferir a credencial de ${c.nome}`} className="qr-grande" />
+            <strong>{c.nome}</strong>
+            <span className={c.em_dia && !vencida ? 'texto-ok' : 'texto-atencao'}>
+              {situacao} · nº {String(c.numero_registro).padStart(4, '0')}
+            </span>
+            <span className="detalhe">Aumente o brilho do celular para ler mais rápido.</span>
+            <button type="button" className="botao botao-secundario" autoFocus onClick={() => setQrAberto(false)}>
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

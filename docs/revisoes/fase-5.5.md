@@ -228,3 +228,56 @@ As telas aprovadas pelo usuário na página de propostas (roteiro e regras em `d
 
 - testes de unidade: `testes/unidade/inicio.test.ts` (as datas no fuso de Parauapebas e os módulos por perfil);
 - ponta a ponta: `testes/e2e/moldura.spec.ts` (o modo escuro guardado, o sino e a navegação em cima no celular) e os testes antigos ajustados para o menu curto (os módulos agora são conferidos em `/modulos`).
+
+## Entrega 5.5.5 — Telas novas, parte 2: as telas gerais (versão 5.5.0-teste.6)
+
+As telas gerais aprovadas na rodada 5 (`docs/telas-novas.md`), na moldura da parte 1. Regra das **abas = submódulos**: cada aba tem endereço próprio, e o link abre na aba certa.
+
+**O que entrou:**
+
+- **Meu perfil** (aprovado: "a ficha com todas as abas"):
+  - no alto, a foto (ou as iniciais), o nome, a função e a igreja, as etiquetas (em dia, título, nº) e "Trocar foto";
+  - abas **Meus dados** (`/meu-perfil`), **No COMEP** (`/meu-perfil/comep`), **Minha igreja** (`/meu-perfil/igreja`), **Senha** (`/meu-perfil/senha`) e **Correções** (`/meu-perfil/correcoes`);
+  - "No COMEP" mostra a situação, a admissão, o título, a contribuição, a credencial, as faltas seguidas e os perfis, com atalhos para as mensalidades e a credencial.
+- **Minha credencial:** no notebook, a frente e o verso; no celular, só a frente, com "Ver o verso". O botão **"Mostrar o QR Code"** abre o QR grande para quem vai conferir. O cartão continua sendo o do modelo em uso (Credenciais → Modelo).
+- **Minhas mensalidades:**
+  - no notebook, o resumo (situação, a próxima e o plano) e a lista dos meses, com "Enviar comprovante" em cada mês em aberto;
+  - no celular, a próxima mensalidade em destaque, com "Já paguei: enviar o comprovante";
+  - o formulário de informar o pagamento continua embaixo, e os botões já marcam o mês.
+- **Minha igreja** (aprovado: "as cinco abas da igreja"):
+  - no alto, a igreja com o peso dela (ministros associados e em dia);
+  - abas **Dados**, **Documentos**, **Diretoria**, **Ministros** e **Agenda** (`/minha-igreja/…`);
+  - a Agenda mostra os empréstimos do patrimônio da igreja (com o selo da situação) e a agenda do COMEP.
+- **Meu pedido** (aprovado: "a situação em destaque"): o quadro grande com a situação, "O que a secretaria conferiu" e os passos. O formulário (fazer, corrigir e desistir) continua o mesmo.
+- **Validar credencial** (aprovada: Opção 3, "a credencial com carimbo"):
+  - a credencial com o carimbo por cima (VÁLIDA, EM ATRASO, NÃO VALE ou VENCIDA);
+  - ao lado, a situação e os dados;
+  - o botão de marcar presença da secretaria continua.
+
+**Decisões tomadas sem o desenho:**
+
+- **Correções:** a tela já pede do jeito estruturado (escolher o dado, ver como está e dizer como deve ficar). O banco ainda guarda o pedido como texto, então a frase vai pronta para a secretaria corrigir à mão. O telefone e o que ainda está vazio a própria pessoa muda em "Meus dados".
+- **Validar credencial:** o cartão da página pública é o desenho padrão do COMEP, porque a página sem login não recebe o modelo editado da credencial. O carimbo usa as cores do modo claro mesmo no escuro, para ler bem no papel branco.
+- **Mensalidades no celular:**
+  - a lista completa dos meses continua embaixo (o desenho mostrava só os dois últimos);
+  - o plano aparece num bloco próprio;
+  - não há chave PIX na tela, porque ela ainda não existe nas Configurações.
+- **Meus dados:** o e-mail de login segue travado. Ele é o login e não se troca por aqui.
+- **Os textos dos botões:** ficaram os que já eram claros ("Salvar meus dados", "Enviar pedido de troca", "Salvar contato da igreja"). "Trocar senha" virou "Trocar a senha" e "Ver a impressão" virou "Imprimir", como no desenho.
+
+**O que depende do banco (para depois):**
+
+- **Correção estruturada de verdade:** `pedidos_correcao` com o campo, o valor de hoje e o valor pedido. Assim, a secretaria aceita e a correção entra sozinha no cadastro.
+- **Selo da secretaria por item no pedido de associação:** cada dado e cada documento aprovado ou recusado com o motivo; "Mandar para a AGO" só com tudo aprovado. Hoje a decisão é uma só para o pedido inteiro, e o selo de cada linha segue a situação do pedido.
+- **Diretoria da igreja:**
+  - o cargo ligado a um ministro da igreja ("ministro da igreja") ou a um nome completo;
+  - a conferência da secretaria ("conferido em…").
+  - Hoje é cargo e nome, com o mandato.
+- **"Dados conferidos pela secretaria"** na igreja: não há registro dessa conferência (só a dos documentos).
+- **Faltas na aba "No COMEP":** aparece o número de faltas seguidas (já existe). A lista de cada falta e da justificativa depende de uma consulta nova.
+- **Agenda da Minha igreja:** os empréstimos e a agenda do COMEP aparecem. Ela melhora quando o módulo de agenda for revisto.
+- **Chave PIX da tesouraria** nas Configurações, para aparecer em "Como pagar".
+
+**Verificação:**
+
+- ponta a ponta: os testes do perfil, da igreja, da credencial e do pedido foram ajustados às abas (`portal-ministro`, `credencial-digital` e `pedido`).

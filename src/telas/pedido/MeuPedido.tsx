@@ -4,12 +4,15 @@ import { Aviso, BotaoConfirmar, Carregando, Mensagem, MostrarCarga } from '../..
 import { listarIgrejas, listarTitulos } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import { criarLogin } from '../../dados/codigos'
-import { desistirDoPedido, meuPedido, meusDados, NOME_DA_SITUACAO_PEDIDO, type Pedido } from '../../dados/pedidos'
+import { desistirDoPedido, meuPedido, meusDados, type Pedido } from '../../dados/pedidos'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, formatarDataHora } from '../../utilitarios/formatos'
 import { FormularioPedido } from './FormularioPedido'
 import { CampoAcesso, TelaAcesso } from '../acesso/TelaAcesso'
+import { Icone, type Area, type NomeIcone } from '../../componentes/Icone'
+import { CabecalhoTela, Selo, type TipoSelo } from '../../componentes/Telas'
+import { PassosDoPedido } from './PassosDoPedido'
 
 const ABERTOS: readonly Pedido['situacao'][] = ['enviado', 'pendencia', 'aguardando_assembleia']
 
@@ -55,8 +58,15 @@ function ConteudoMeuPedido({ pessoaId, jaEhMinistro }: { pessoaId: string; jaEhM
   }
 
   return (
-    <>
-      <h1>Pedido de associação</h1>
+    <div className="tela-nova">
+      <CabecalhoTela
+        titulo={
+          <>
+            <span className="so-computador">Meu pedido de associação</span>
+            <span className="so-celular">Meu pedido</span>
+          </>
+        }
+      />
       <Mensagem sucesso={mensagem} erro={erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {({ pedido, pessoa, titulos, igrejas }) => {
@@ -94,42 +104,67 @@ function ConteudoMeuPedido({ pessoaId, jaEhMinistro }: { pessoaId: string; jaEhM
             )
           }
 
+          const destaque = DESTAQUE[pedido.situacao]
           return (
             <>
-              <section className="painel" aria-labelledby="titulo-situacao">
-                <h2 id="titulo-situacao">Situação</h2>
-                <p>
-                  <span className="etiqueta etiqueta-marca">{NOME_DA_SITUACAO_PEDIDO[pedido.situacao]}</span>
-                </p>
-                <Linha rotulo="Enviado em" valor={pedido.enviado_em && formatarDataHora(pedido.enviado_em)} />
-                {pedido.situacao === 'aguardando_assembleia' && (
-                  <p>
-                    A diretoria aceitou a sua ficha. O pedido será votado na próxima Assembleia Ordinária (2ª quinzena de
-                    abril ou de outubro).
-                  </p>
-                )}
-                {pedido.situacao === 'aprovado' && (
-                  <p>
-                    Aprovado na Assembleia Ordinária de {formatarData(pedido.assembleia_data)}. Bem-vindo ao COMEP!{' '}
-                    <button type="button" className="botao-texto" onClick={recarregarConta}>
-                      Atualizar meu acesso
-                    </button>
-                  </p>
-                )}
-                {pedido.situacao === 'recusado' && <p>Motivo: {pedido.motivo_recusa}</p>}
+              <section className={`destaque-pedido area-${destaque.area}`} aria-labelledby="titulo-situacao">
+                <span className="destaque-pedido-icone" aria-hidden="true">
+                  <Icone nome={destaque.icone} tamanho={26} />
+                </span>
+                <span className="destaque-pedido-texto">
+                  <h2 id="titulo-situacao">
+                    {pedido.situacao === 'aprovado'
+                      ? `Aprovado na Assembleia Ordinária de ${formatarData(pedido.assembleia_data)}`
+                      : destaque.titulo}
+                  </h2>
+                  <span>
+                    {pedido.situacao === 'enviado' &&
+                      `Desde ${pedido.enviado_em ? formatarDataHora(pedido.enviado_em) : '—'}. Se faltar alguma coisa, o aviso aparece aqui e no sino.`}
+                    {pedido.situacao === 'pendencia' && pedido.mensagem_pendencia}
+                    {pedido.situacao === 'aguardando_assembleia' &&
+                      'A secretaria aceitou a sua ficha. O pedido será votado na próxima Assembleia Ordinária (2ª quinzena de abril ou de outubro).'}
+                    {pedido.situacao === 'aprovado' && (
+                      <>
+                        Bem-vindo ao COMEP!{' '}
+                        <button type="button" className="botao-texto" onClick={recarregarConta}>
+                          Atualizar meu acesso
+                        </button>
+                      </>
+                    )}
+                    {pedido.situacao === 'recusado' && `Motivo: ${pedido.motivo_recusa ?? '—'}`}
+                    {pedido.situacao === 'desistiu' && 'Você pode fazer outro pedido quando quiser.'}
+                  </span>
+                </span>
               </section>
 
-              {pedido.situacao === 'pendencia' && (
-                <>
-                  <Aviso titulo="A diretoria pediu uma correção">
-                    <p>{pedido.mensagem_pendencia}</p>
-                  </Aviso>
-                  {formulario(pedido)}
-                </>
-              )}
+              <div className="duas-colunas">
+                <section className="aba-conteudo" aria-labelledby="titulo-conferido">
+                  <h2 id="titulo-conferido" className="titulo-secao">
+                    O que a secretaria conferiu
+                  </h2>
+                  <ul className="bloco lista-linhas" aria-labelledby="titulo-conferido">
+                    {itensDoPedido(pedido).map((item) => (
+                      <li key={item.nome}>
+                        <span className="linha-corpo">
+                          <strong>{item.nome}</strong>
+                          <span className="linha-selo">
+                            <Selo tipo={item.selo.tipo}>{item.selo.texto}</Selo>
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+                <section className="bloco" aria-labelledby="titulo-passos">
+                  <h2 id="titulo-passos">Os passos</h2>
+                  <PassosDoPedido pedido={pedido} />
+                </section>
+              </div>
+
+              {pedido.situacao === 'pendencia' && formulario(pedido)}
 
               {ABERTOS.includes(pedido.situacao) && (
-                <section className="painel painel-perigo">
+                <section className="bloco painel-perigo">
                   <h2>Desistir do pedido</h2>
                   <BotaoConfirmar
                     texto="Desistir do pedido"
@@ -153,17 +188,39 @@ function ConteudoMeuPedido({ pessoaId, jaEhMinistro }: { pessoaId: string; jaEhM
           )
         }}
       </MostrarCarga>
-    </>
+    </div>
   )
 }
 
-function Linha({ rotulo, valor }: { rotulo: string; valor: string | null | false }) {
-  if (!valor) return null
-  return (
-    <p>
-      <span className="detalhe">{rotulo}:</span> {valor}
-    </p>
-  )
+const DESTAQUE: Record<Pedido['situacao'], { titulo: string; area: Area; icone: NomeIcone }> = {
+  enviado: { titulo: 'Em análise pela secretaria', area: 'eventos', icone: 'relogio' },
+  pendencia: { titulo: 'A secretaria pediu uma correção', area: 'pessoas', icone: 'alerta' },
+  aguardando_assembleia: { titulo: 'Esperando a Assembleia Ordinária', area: 'assembleias', icone: 'assembleia' },
+  aprovado: { titulo: 'Aprovado', area: 'financas', icone: 'check' },
+  recusado: { titulo: 'Pedido recusado', area: 'pessoas', icone: 'x' },
+  desistiu: { titulo: 'Pedido encerrado por desistência', area: 'assembleias', icone: 'x' },
+}
+
+/**
+ * O que a secretaria confere. O banco ainda guarda UMA decisão para o pedido inteiro (não um selo por item):
+ * o selo de cada linha segue a situação do pedido (ver docs/revisoes/fase-5.5.md, o que depende do banco).
+ */
+function itensDoPedido(pedido: Pedido): { nome: string; selo: { tipo: TipoSelo; texto: string } }[] {
+  const selo: { tipo: TipoSelo; texto: string } =
+    pedido.situacao === 'aguardando_assembleia' || pedido.situacao === 'aprovado'
+      ? { tipo: 'aprovado', texto: 'Aprovado pela secretaria' }
+      : pedido.situacao === 'pendencia'
+        ? { tipo: 'recusado', texto: 'Veja a correção pedida' }
+        : pedido.situacao === 'recusado'
+          ? { tipo: 'recusado', texto: 'Recusado' }
+          : { tipo: 'analise', texto: 'Em análise' }
+  const enviado = (sim: boolean) => (sim ? selo : { tipo: 'recusado' as const, texto: 'Não enviado' })
+  return [
+    { nome: 'Dados pessoais', selo },
+    { nome: 'Igreja e título', selo },
+    { nome: 'Foto 3×4', selo: enviado(Boolean(pedido.foto_caminho)) },
+    { nome: 'Comprovante do título', selo: enviado(Boolean(pedido.comprovante_caminho)) },
+  ]
 }
 
 /** /associar/pedido — passo 1: quem ainda não tem login cria o acesso; depois segue para /meu-pedido. */

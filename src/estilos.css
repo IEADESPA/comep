@@ -3735,3 +3735,922 @@ fieldset .caixa-marcar + .caixa-marcar {
   font-weight: 700;
   color: var(--cor-marca-texto);
 }
+
+/* ---------- Telas gerais (telas novas, Fase 5.5, parte 2) ----------
+   Meu perfil, Minha credencial, Minhas mensalidades, Minha igreja, Meu pedido e Validar credencial.
+   Abas = submódulos, cada uma com endereço próprio. */
+
+.tela-nova {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tela-nova > .sucesso,
+.tela-nova > .erro {
+  margin: 0;
+}
+
+.cabecalho-nova {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titulo-com-voltar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titulo-com-voltar h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.voltar-celular {
+  display: inline-flex;
+  margin-left: -6px;
+  color: var(--cor-marca-texto);
+}
+
+.sub-tela {
+  margin: 0;
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+}
+
+@media (min-width: 900px) {
+  .titulo-com-voltar h1 {
+    font-size: 28px;
+  }
+
+  .sub-tela {
+    font-size: 15px;
+  }
+}
+
+/* As abas (submódulos), com endereço próprio */
+.abas-tela {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--cor-borda);
+  scrollbar-width: none;
+}
+
+.aba-tela {
+  flex: none;
+  padding: 10px 9px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.aba-tela:hover {
+  color: var(--cor-texto);
+}
+
+.aba-tela.ativa {
+  border-bottom-color: var(--cor-marca);
+  color: var(--cor-marca-texto);
+  font-weight: 700;
+}
+
+@media (min-width: 900px) {
+  .abas-tela {
+    gap: 4px;
+  }
+
+  .aba-tela {
+    padding: 10px 14px;
+    font-size: 14.5px;
+  }
+}
+
+/* Etiquetas por assunto e o selo da secretaria */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip,
+.selo-novo {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--area-fundo);
+  color: var(--area-cor);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.selo-novo {
+  max-width: 100%;
+  white-space: normal;
+  height: auto;
+  min-height: 28px;
+}
+
+.botao-com-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.alinhar-esquerda.botao-link {
+  justify-self: start;
+  align-self: flex-start;
+  text-align: left;
+}
+
+/* A foto 3×4 (ou as iniciais) */
+.foto-3x4 {
+  flex: none;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.foto-iniciais {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cor-marca-suave);
+  color: var(--cor-marca-texto);
+  font-weight: 800;
+}
+
+/* Meu perfil: o alto da ficha */
+.cabecalho-perfil {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.cabecalho-perfil-texto {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cabecalho-perfil-nome {
+  font-family: var(--letra-titulo);
+  font-size: 19px;
+  color: var(--cor-titulo);
+  overflow-wrap: anywhere;
+}
+
+.cabecalho-perfil-igreja {
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+}
+
+.cabecalho-perfil .botao-arquivo {
+  flex: none;
+}
+
+@media (min-width: 900px) {
+  .cabecalho-perfil-nome {
+    font-size: 22px;
+  }
+}
+
+.aba-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.aba-estreita {
+  max-width: 460px;
+}
+
+.rotulo-com-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.link-pequeno {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cor-marca-texto);
+  text-decoration: none;
+}
+
+.link-pequeno:hover {
+  text-decoration: underline;
+}
+
+.rotulo-com-cadeado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rotulo-com-cadeado svg {
+  color: var(--cor-texto-suave);
+}
+
+/* Duas colunas (empilham no celular) */
+.duas-colunas {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .duas-colunas {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+
+  .duas-colunas.duas-iguais {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.coluna-atalhos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.atalho-bloco {
+  flex-direction: row;
+  align-items: center;
+  color: var(--cor-texto);
+  text-decoration: none;
+}
+
+.atalho-bloco > span:nth-child(2) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.atalho-bloco strong {
+  font-size: 15px;
+  color: var(--cor-titulo);
+}
+
+.atalho-bloco > span:nth-child(2) span {
+  font-size: 13.5px;
+  color: var(--cor-texto-suave);
+}
+
+.atalho-bloco > svg {
+  color: var(--cor-texto-suave);
+}
+
+.atalho-bloco:hover {
+  border-color: var(--cor-marca-texto);
+}
+
+.definicoes-fortes {
+  font-size: 14.5px;
+  gap: 8px 16px;
+}
+
+.definicoes-fortes dd {
+  font-weight: 600;
+  color: var(--cor-titulo);
+}
+
+/* Lista em linhas, dentro de um bloco */
+.lista-linhas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bloco.lista-linhas {
+  gap: 0;
+  padding: 4px 18px;
+}
+
+.lista-linhas > li {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.lista-linhas > li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.linha-corpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.linha-corpo > strong {
+  font-size: 14.5px;
+  color: var(--cor-titulo);
+}
+
+.linha-corpo > span {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+.linha-texto {
+  font-size: 14.5px !important;
+  color: var(--cor-titulo) !important;
+}
+
+.linha-selo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.linha-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.linha-link:hover strong {
+  text-decoration: underline;
+}
+
+.texto-ok {
+  color: var(--cor-ok-forte);
+  font-weight: 700;
+}
+
+.texto-atencao {
+  color: var(--cor-atencao-texto);
+  font-weight: 700;
+}
+
+.cabecalho-bloco {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bloco h3,
+.cabecalho-bloco h3 {
+  margin: 0;
+  font-family: var(--letra-titulo);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--cor-titulo);
+}
+
+.titulo-secao {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Minha credencial: frente e verso no notebook; só a frente no celular (o verso num botão) */
+.credencial-nova {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.credencial-nova .credencial {
+  flex: 1 1 300px;
+}
+
+@media (max-width: 899.98px) {
+  .credencial-nova:not(.mostrar-verso) .credencial-verso,
+  .credencial-nova.mostrar-verso .credencial-frente {
+    display: none;
+  }
+}
+
+.linha-situacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.linha-situacao .detalhe {
+  font-size: 14.5px;
+}
+
+.acoes-credencial .botao {
+  height: 44px;
+}
+
+@media (max-width: 899.98px) {
+  .acoes-credencial {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .acoes-credencial > .botao:first-child {
+    grid-column: 1 / -1;
+    height: 50px;
+  }
+}
+
+.janela-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(9 9 11 / 0.6);
+}
+
+.janela-qr {
+  width: min(380px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #18181b;
+  text-align: center;
+}
+
+.janela-qr .detalhe {
+  color: #52525b;
+}
+
+.janela-qr .botao-secundario {
+  color: #b91c1c;
+  border-color: #8a8a94;
+}
+
+.qr-grande {
+  width: min(300px, 100%);
+  height: auto;
+}
+
+/* Minhas mensalidades */
+.resumo-mensalidades {
+  display: grid;
+  gap: 14px;
+}
+
+.resumo-mensalidades .bloco {
+  gap: 10px;
+}
+
+.resumo-mensalidades .chip {
+  align-self: flex-start;
+  height: 30px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.numero-grande {
+  font-family: var(--letra-titulo);
+  font-size: 24px;
+  color: var(--cor-titulo);
+}
+
+.plano-nome {
+  font-size: 17px;
+  color: var(--cor-titulo);
+}
+
+@media (min-width: 900px) {
+  .resumo-mensalidades {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 899.98px) {
+  /* celular: a próxima mensalidade em destaque, logo no alto */
+  .bloco-proxima {
+    order: -1;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .bloco-proxima .numero-grande {
+    font-size: 24px;
+  }
+
+  .bloco-proxima .botao {
+    height: 50px;
+    width: 100%;
+  }
+}
+
+.lista-meses {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linha-mes {
+  min-height: 50px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px 0;
+}
+
+.linha-mes + .linha-mes {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.linha-mes-nome {
+  flex: 1 1 140px;
+  font-size: 15px;
+  color: var(--cor-titulo);
+}
+
+.linha-mes-valor {
+  width: 90px;
+  font-size: 14.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.linha-mes-situacao {
+  flex: 1 1 220px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.linha-mes-situacao .detalhe {
+  font-size: 13px;
+}
+
+.linha-mes-aviso {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--cor-erro);
+}
+
+/* Minha igreja: o alto */
+.topo-igreja {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.topo-igreja-texto {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.topo-igreja-texto h2 {
+  margin: 0;
+  font-size: 21px;
+  overflow-wrap: anywhere;
+}
+
+.ministro-da-igreja {
+  align-items: flex-start !important;
+}
+
+.ministro-da-igreja .confirmar,
+.ministro-da-igreja details {
+  font-size: 13.5px;
+}
+
+/* Meu pedido: a situação em destaque */
+.destaque-pedido {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--area-cor);
+  border-radius: 18px;
+  background: var(--area-fundo);
+}
+
+.destaque-pedido-icone {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+  background: var(--cor-superficie);
+  color: var(--area-cor);
+}
+
+.destaque-pedido-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14.5px;
+  color: var(--cor-texto);
+  overflow-wrap: anywhere;
+}
+
+.destaque-pedido-texto h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+@media (min-width: 900px) {
+  .destaque-pedido {
+    padding: 20px 22px;
+  }
+
+  .destaque-pedido-texto h2 {
+    font-size: 21px;
+  }
+}
+
+/* Validar credencial (página pública): a credencial com o carimbo */
+.validacao-nova {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cor-fundo);
+}
+
+.topo-publico {
+  height: 60px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.topo-publico .nome-comep {
+  font-size: 19px;
+}
+
+.topo-publico-titulo {
+  margin-left: auto;
+  font-size: 14px;
+  color: #fee2e2;
+  text-align: right;
+}
+
+.validacao-corpo {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 16px 40px;
+}
+
+.validacao-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.credencial-carimbada {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  align-self: center;
+}
+
+.credencial-publica {
+  container-type: inline-size;
+  aspect-ratio: 85.6 / 53.98;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #18181b;
+  box-shadow: 0 10px 28px rgb(24 24 27 / 0.22);
+}
+
+.credencial-publica-topo {
+  height: 21%;
+  display: flex;
+  align-items: center;
+  gap: 2.3cqi;
+  padding: 0 3.7cqi;
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.credencial-publica-topo svg {
+  width: 7cqi;
+  height: 7cqi;
+}
+
+.credencial-publica-topo > span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.credencial-publica-topo strong {
+  font-size: 3.7cqi;
+  letter-spacing: 0.08em;
+}
+
+.credencial-publica-topo span span {
+  font-size: 2.3cqi;
+}
+
+.credencial-publica-corpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 3.3cqi;
+  padding: 3.3cqi 3.7cqi;
+}
+
+.credencial-publica-corpo img,
+.credencial-publica-sem-foto {
+  flex: none;
+  width: 18cqi;
+  height: 24cqi;
+  object-fit: cover;
+  border-radius: 1.9cqi;
+}
+
+.credencial-publica-sem-foto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fdecec;
+  color: #b91c1c;
+  font-size: 2.8cqi;
+  font-weight: 800;
+}
+
+.credencial-publica-dados {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7cqi;
+  font-size: 2.8cqi;
+  color: #52525b;
+}
+
+.credencial-publica-dados strong {
+  font-size: 4cqi;
+  color: #18181b;
+}
+
+.credencial-publica-titulo {
+  font-size: 3cqi;
+  font-weight: 600;
+  color: #b91c1c !important;
+}
+
+.credencial-publica-qr {
+  flex: none;
+  width: 21.5cqi;
+  height: 21.5cqi;
+}
+
+.carimbo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  padding: 6px 16px;
+  border: 4px solid var(--area-cor);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.88);
+  color: var(--area-cor);
+  font-family: var(--letra-titulo);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* no papel claro do carimbo, a cor do assunto do modo claro (lê bem mesmo no modo escuro) */
+.validacao-resultado.area-financas .carimbo {
+  --area-cor: #15803d;
+}
+
+.validacao-resultado.area-eventos .carimbo {
+  --area-cor: #b45309;
+}
+
+.validacao-resultado.area-pessoas .carimbo {
+  --area-cor: #b91c1c;
+}
+
+.validacao-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.validacao-lado p {
+  margin: 0;
+  font-size: 14.5px;
+}
+
+.validacao-titulo {
+  font-family: var(--letra-titulo);
+  font-size: 22px !important;
+  font-weight: 800;
+  color: var(--area-cor);
+}
+
+.validacao-lado .definicoes {
+  padding: 16px 18px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+  background: var(--cor-superficie);
+}
+
+@media (min-width: 900px) {
+  .topo-publico {
+    height: 72px;
+    padding: 0 40px;
+  }
+
+  .validacao-corpo {
+    padding-top: 48px;
+  }
+
+  .validacao-resultado {
+    flex-direction: row;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .credencial-carimbada {
+    flex: 1 1 520px;
+  }
+
+  .carimbo {
+    padding: 8px 22px;
+    border-width: 5px;
+    border-radius: 12px;
+    font-size: 40px;
+  }
+
+  .validacao-lado {
+    flex: 0 1 360px;
+  }
+
+  .validacao-titulo {
+    font-size: 26px !important;
+  }
+}
+
+/* rótulo em maiúsculas dentro dos blocos (ganha do "h2/h3 do bloco") */
+.bloco .rotulo {
+  margin: 0;
+  font-family: var(--letra);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.campo-com-link {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.campo-com-link label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}

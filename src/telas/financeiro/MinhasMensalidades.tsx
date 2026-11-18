@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Icone, type Area } from '../../componentes/Icone'
+import { CabecalhoTela, Chip } from '../../componentes/Telas'
 import { ok } from '../../dados/cliente'
 import { formatarReais, listarValores, NOME_DA_CATEGORIA, type ValorContribuicao } from '../../dados/configuracoes'
 import {
@@ -29,6 +31,17 @@ const ROTULO_ESTADO = {
   cancelada: 'Cancelada',
 } as const
 
+const AREA_ESTADO: Record<keyof typeof ROTULO_ESTADO, Area> = {
+  paga: 'financas',
+  conferencia: 'eventos',
+  vencida: 'pessoas',
+  a_vencer: 'assembleias',
+  cancelada: 'assembleias',
+}
+
+// Telas novas (Fase 5.5, aprovada): no notebook, o resumo (situação, a próxima e o plano) e a lista dos meses;
+// no celular, a próxima mensalidade em destaque, com "Já paguei: enviar o comprovante".
+
 /** /minhas-mensalidades — o associado vê as contribuições do exercício e informa pagamentos. */
 export function MinhasMensalidades() {
   const { estado } = useSessao()
@@ -47,6 +60,12 @@ function Conteudo({ pessoaId }: { pessoaId: string }) {
   const hoje = hojeIso()
   const exercicio = exercicioDe(hoje)
   const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
+  // as contribuições marcadas no "Informar pagamento" (o botão "Enviar comprovante" de cada mês já marca)
+  const [marcadas, setMarcadas] = useState<string[]>([])
+  const marcarParaPagar = (id: string) => {
+    setMarcadas((atual) => (atual.includes(id) ? atual : [...atual, id]))
+    document.getElementById('informar')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   const [carga, recarregar] = useCarregar(async () => {
     const [cobrancas, situacao, plano, valores] = await Promise.all([
       minhasCobrancas(pessoaId, exercicio),
@@ -68,9 +87,8 @@ function Conteudo({ pessoaId }: { pessoaId: string }) {
   }
 
   return (
-    <>
-      <h1>Minhas mensalidades</h1>
-      <p className="detalhe">Exercício {nomeDoExercicio(exercicio)} (de abril a março).</p>
+    <div className="tela-nova">
+      <CabecalhoTela titulo="Minhas mensalidades" sub={`Exercício ${nomeDoExercicio(exercicio)} (de abril a março)`} />
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {({ cobrancas, situacao, plano, valores }) => {
@@ -104,51 +122,96 @@ function Conteudo({ pessoaId }: { pessoaId: string }) {
                 )
               : !doExercicio.some((c) => c.tipo === 'anual' && (c.situacao === 'paga' || informada(c))))
 
+          const abertas = visiveis
+            .filter((c) => ['vencida', 'a_vencer'].includes(estadoDaCobranca(c, hoje)))
+            .sort((a, b) => a.vencimento.localeCompare(b.vencimento))
+          const proxima = abertas[0]
+          const proximaVencida = proxima !== undefined && estadoDaCobranca(proxima, hoje) === 'vencida'
+
           return (
             <>
-              <section className="painel" aria-labelledby="titulo-situacao-fin">
-                <h2 id="titulo-situacao-fin">Situação</h2>
-                {situacao.em_dia ? (
-                  <p>
-                    <span className="etiqueta etiqueta-ok">Em dia</span> Você pode votar e ser votado (Art. 11).
+              <div className="resumo-mensalidades">
+                <section className="bloco" aria-labelledby="titulo-situacao-fin">
+                  <h2 id="titulo-situacao-fin" className="rotulo">
+                    Situação
+                  </h2>
+                  {situacao.em_dia ? (
+                    <Chip area="financas">
+                      <Icone nome="check" tamanho={16} traco={2.6} />
+                      <span>Em dia</span>
+                    </Chip>
+                  ) : (
+                    <Chip area="pessoas">
+                      <Icone nome="alerta" tamanho={16} traco={2.4} />
+                      <span>Em atraso</span>
+                    </Chip>
+                  )}
+                  <p className="detalhe">
+                    {situacao.em_dia
+                      ? 'Você pode votar e ser votado (Art. 11).'
+                      : `${situacao.cobrancas_vencidas} contribuição(ões) vencida(s), ${formatarReais(situacao.valor_vencido)}. Quem está em atraso não vota nem é votado (Art. 11).`}
                   </p>
-                ) : (
-                  <p>
-                    <span className="etiqueta etiqueta-atraso">Em atraso</span> {situacao.cobrancas_vencidas} contribuição(ões)
-                    vencida(s), {formatarReais(situacao.valor_vencido)}. Quem está em atraso não vota nem é votado (Art. 11).
+                </section>
+
+                <section className="bloco bloco-proxima" aria-labelledby="titulo-proxima">
+                  <h2 id="titulo-proxima" className="rotulo">
+                    {proximaVencida ? 'Vencida' : 'Próxima'}
+                  </h2>
+                  {proxima ? (
+                    <>
+                      <strong className="numero-grande">
+                        <span className="so-celular">{nomeDaCobranca(proxima)} · </span>
+                        {formatarReais(proxima.valor)}
+                      </strong>
+                      <span className="detalhe">
+                        <span className="so-computador">{nomeDaCobranca(proxima)} · </span>
+                        {proximaVencida ? 'venceu' : 'vence'} em {formatarData(proxima.vencimento)}
+                      </span>
+                      <button type="button" className="botao botao-com-icone so-celular" onClick={() => marcarParaPagar(proxima.id)}>
+                        <Icone nome="enviar" tamanho={20} />
+                        Já paguei: enviar o comprovante
+                      </button>
+                    </>
+                  ) : (
+                    <span className="detalhe">Nada em aberto agora.</span>
+                  )}
+                </section>
+
+                <section className="bloco" aria-labelledby="titulo-plano">
+                  <h2 id="titulo-plano" className="rotulo">
+                    Plano
+                  </h2>
+                  <Plano
+                    plano={plano}
+                    podeTrocar={podeTrocar}
+                    proporcional={algumaPaga}
+                    aoTrocar={async (tipo) =>
+                      concluir(
+                        await escolherPlano(pessoaId, exercicio, tipo),
+                        tipo === 'anual'
+                          ? algumaPaga
+                            ? 'Plano anual escolhido: as mensalidades deste mês até março viraram uma anuidade proporcional.'
+                            : 'Plano anual escolhido: uma anuidade, que vence na data da AGO de abril.'
+                          : 'Plano mensal escolhido.',
+                      )
+                    }
+                  />
+                  <p className="detalhe">
+                    Categoria: {NOME_DA_CATEGORIA[situacao.categoria_contribuicao]}
+                    {valor('mensal') && valor('anual') &&
+                      ` — ${formatarReais(valor('mensal')!.valor)} por mês ou ${formatarReais(valor('anual')!.valor)} por ano`}
                   </p>
-                )}
-                <p className="detalhe">
-                  Categoria: {NOME_DA_CATEGORIA[situacao.categoria_contribuicao]}
-                  {valor('mensal') && valor('anual') &&
-                    ` — ${formatarReais(valor('mensal')!.valor)} por mês ou ${formatarReais(valor('anual')!.valor)} por ano`}
-                </p>
-              </section>
+                </section>
+              </div>
 
-              <Plano
-                plano={plano}
-                podeTrocar={podeTrocar}
-                proporcional={algumaPaga}
-                aoTrocar={async (tipo) =>
-                  concluir(
-                    await escolherPlano(pessoaId, exercicio, tipo),
-                    tipo === 'anual'
-                      ? algumaPaga
-                        ? 'Plano anual escolhido: as mensalidades deste mês até março viraram uma anuidade proporcional.'
-                        : 'Plano anual escolhido: uma anuidade, que vence na data da AGO de abril.'
-                      : 'Plano mensal escolhido.',
-                  )
-                }
-              />
-
-              <section className="painel" aria-labelledby="titulo-contribuicoes">
+              <section className="bloco" aria-labelledby="titulo-contribuicoes">
                 <h2 id="titulo-contribuicoes">Contribuições do exercício</h2>
                 {visiveis.length === 0 ? (
                   <p className="vazio">As cobranças deste exercício ainda não foram geradas pela tesouraria.</p>
                 ) : (
-                  <ul className="lista" aria-label="Contribuições do exercício">
+                  <ul className="lista-meses" aria-label="Contribuições do exercício">
                     {visiveis.map((c) => (
-                      <LinhaCobranca key={c.id} cobranca={c} hoje={hoje} />
+                      <LinhaCobranca key={c.id} cobranca={c} hoje={hoje} aoPagar={() => marcarParaPagar(c.id)} />
                     ))}
                   </ul>
                 )}
@@ -156,32 +219,40 @@ function Conteudo({ pessoaId }: { pessoaId: string }) {
 
               <InformarPagamento
                 pessoaId={pessoaId}
-                cobrancas={visiveis.filter((c) => ['vencida', 'a_vencer'].includes(estadoDaCobranca(c, hoje)))}
+                cobrancas={abertas}
+                escolhidas={marcadas}
+                setEscolhidas={setMarcadas}
                 concluir={concluir}
               />
             </>
           )
         }}
       </MostrarCarga>
-    </>
+    </div>
   )
 }
 
-function LinhaCobranca({ cobranca: c, hoje }: { cobranca: Cobranca; hoje: string }) {
+function LinhaCobranca({ cobranca: c, hoje, aoPagar }: { cobranca: Cobranca; hoje: string; aoPagar: () => void }) {
   const estado = estadoDaCobranca(c, hoje)
   const recusado = [...c.informes].sort((a, b) => b.criado_em.localeCompare(a.criado_em)).find((i) => i.situacao === 'recusado')
+  const aberta = estado === 'vencida' || estado === 'a_vencer'
   return (
-    <li className="lista-item lista-item-estatico" aria-label={nomeDaCobranca(c)}>
-      <strong>
-        {nomeDaCobranca(c)} — {formatarReais(c.valor)}
-      </strong>
-      <span>
-        <span className={`etiqueta etiqueta-${estado}`}>{ROTULO_ESTADO[estado]}</span>{' '}
-        {estado === 'paga' ? `em ${formatarData(c.pago_em)} (${c.forma_pagamento})` : `vence em ${formatarData(c.vencimento)}`}
+    <li className="linha-mes" aria-label={nomeDaCobranca(c)}>
+      <strong className="linha-mes-nome">{nomeDaCobranca(c)}</strong>
+      <span className="somente-leitor"> — </span>
+      <span className="linha-mes-valor">{formatarReais(c.valor)}</span>
+      <span className="linha-mes-situacao">
+        <Chip area={AREA_ESTADO[estado]}>{ROTULO_ESTADO[estado]}</Chip>
+        <span className="detalhe">
+          {estado === 'paga' ? `em ${formatarData(c.pago_em)} (${c.forma_pagamento})` : `vence em ${formatarData(c.vencimento)}`}
+        </span>
       </span>
-      {estado !== 'paga' && estado !== 'conferencia' && recusado && (
-        <span>Pagamento informado recusado pela tesouraria: {recusado.motivo_recusa}</span>
+      {aberta && (
+        <button type="button" className="botao-link" onClick={aoPagar}>
+          Enviar comprovante
+        </button>
       )}
+      {aberta && recusado && <span className="linha-mes-aviso">Pagamento informado recusado pela tesouraria: {recusado.motivo_recusa}</span>}
     </li>
   )
 }
@@ -201,20 +272,13 @@ function Plano({
   const [enviando, umaVez] = useUmaVez()
   const outro = plano === 'mensal' ? 'anual' : 'mensal'
   return (
-    <section className="painel" aria-labelledby="titulo-plano">
-      <h2 id="titulo-plano">Plano</h2>
-      <p>
-        Você paga <strong>{plano === 'mensal' ? 'por mês' : 'de uma vez (anuidade)'}</strong>.
-      </p>
-      <p className="detalhe">
-        Dá para trocar no meio do exercício (14/11/2026). Do mensal para o anual: as mensalidades em aberto deste mês até março
-        viram uma anuidade proporcional (sem nada pago no exercício, a anuidade inteira, que vence na data da AGO de abril). Do
-        anual para o mensal: enquanto a anuidade não foi paga.
-      </p>
+    <>
+      <strong className="plano-nome">{plano === 'mensal' ? 'Mensal' : 'Anual (anuidade)'}</strong>
       {podeTrocar ? (
         <button
           type="button"
-          className="botao botao-secundario"
+          className="botao-link alinhar-esquerda"
+          title="Do mensal para o anual: as mensalidades em aberto deste mês até março viram uma anuidade proporcional (sem nada pago no exercício, a anuidade inteira, que vence na data da AGO de abril). Do anual para o mensal: enquanto a anuidade não foi paga."
           disabled={enviando}
           onClick={() => void umaVez(() => aoTrocar(outro))}
         >
@@ -231,20 +295,23 @@ function Plano({
             : 'Não há mensalidades em aberto deste mês até março para trocar.'}
         </p>
       )}
-    </section>
+    </>
   )
 }
 
 function InformarPagamento({
   pessoaId,
   cobrancas,
+  escolhidas,
+  setEscolhidas,
   concluir,
 }: {
   pessoaId: string
   cobrancas: Cobranca[]
+  escolhidas: string[]
+  setEscolhidas: (f: (atual: string[]) => string[]) => void
   concluir: (r: { erro: string | null }, sucesso: string) => boolean
 }) {
-  const [escolhidas, setEscolhidas] = useState<string[]>([])
   const [data, setData] = useState(hojeIso())
   const [forma, setForma] = useState<string>('PIX')
   const [arquivo, setArquivo] = useState<File | null>(null)
@@ -268,7 +335,7 @@ function InformarPagamento({
     }
     const r = await informarPagamento({ pessoaId, cobrancas: escolhidas, data, forma, comprovante, observacao })
     if (r.erro !== null) return setErro(r.erro)
-    setEscolhidas([])
+    setEscolhidas(() => [])
     setArquivo(null)
     setVersaoArquivo((v) => v + 1)
     setObservacao('')
@@ -276,8 +343,9 @@ function InformarPagamento({
   }
 
   return (
-    <section className="painel" aria-labelledby="titulo-informar">
+    <section className="bloco" id="informar" aria-labelledby="titulo-informar">
       <h2 id="titulo-informar">Informar pagamento</h2>
+      <p className="detalhe">Pagou pelo PIX, depósito ou transferência? Marque o que pagou e envie o comprovante: a tesouraria confere.</p>
       <form
         onSubmit={(e) => {
           e.preventDefault()
