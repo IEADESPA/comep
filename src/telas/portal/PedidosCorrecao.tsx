@@ -1,65 +1,166 @@
-// Fase 5.1 — pedidos de correção no cadastro: o próprio ministro ou o pastor presidente da igreja dele pedem;
-// a secretaria (ou a presidência) corrige na ficha e responde.
-import { useState } from 'react'
+// Pedidos de correção no cadastro. Desde a parte 4 das telas novas (18/11/2026) são ESTRUTURADOS: nada de texto livre,
+// porque a pessoa digita errado. Quem pede escolhe o dado numa lista fechada, vê como está e diz como deve ficar; a
+// secretaria (ou a presidência) aceita, e a correção entra sozinha no cadastro, ou recusa com o motivo.
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Selo } from '../../componentes/Telas'
+import type { Igreja, Titulo } from '../../dados/cadastros'
 import {
   listarPedidosCorrecao,
   NOME_DA_SITUACAO_PEDIDO,
-  pedirCorrecao,
+  NOME_DO_CAMPO,
+  pedirCorrecaoDado,
   responderCorrecao,
+  type CampoCorrecao,
   type PedidoCorrecao,
 } from '../../dados/igrejas'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { formatarDataDeInstante } from '../../utilitarios/formatos'
+import { formatarCpf, formatarDataDeInstante } from '../../utilitarios/formatos'
 
 const CLASSE = { pendente: 'etiqueta etiqueta-conferencia', atendido: 'etiqueta etiqueta-ok', recusado: 'etiqueta etiqueta-atraso' }
 
-/** "Pedir correção" (um formulário recolhido). */
-export function PedirCorrecao({
+/** Um dado que pode ser corrigido, com como está hoje (vazio = não informado). */
+export type DadoCorrigivel = { campo: CampoCorrecao; atual: string }
+
+/** Como mostrar um valor: o CPF com os pontos; vazio vira "(vazio)". */
+function valorParaLer(campo: CampoCorrecao | null, valor: string | null): string {
+  if (!valor) return '(vazio)'
+  return campo === 'cpf' ? formatarCpf(valor) : valor
+}
+
+/**
+ * O formulário da correção: escolher o dado, ver como está hoje e dizer como deve ficar.
+ * No título e na igreja, o "como deve ficar" é escolhido na lista (não se digita).
+ */
+export function FormCorrecao({
   pessoaId,
+  dados,
+  titulos,
+  igrejas,
   rotulo,
   aoConcluir,
+  rodape,
 }: {
   pessoaId: string
+  dados: readonly DadoCorrigivel[]
+  titulos: readonly Titulo[]
+  igrejas: readonly Igreja[]
+  /** o nome do formulário (ex.: "Pedir correção no cadastro de Fulano") */
   rotulo: string
   aoConcluir: (r: { erro: string | null }, sucesso: string) => void
+  rodape?: ReactNode
 }) {
-  const [texto, setTexto] = useState('')
+  const [campo, setCampo] = useState<CampoCorrecao>(dados[0]?.campo ?? 'nome')
+  const [valor, setValor] = useState('')
   const [enviando, umaVez] = useUmaVez()
+  const escolhido = dados.find((d) => d.campo === campo) ?? dados[0]
+  const daLista = campo === 'titulo' || campo === 'igreja'
+
+  async function enviar() {
+    const r = daLista ? await pedirCorrecaoDado(pessoaId, campo, '', valor) : await pedirCorrecaoDado(pessoaId, campo, valor)
+    aoConcluir(r, 'Pedido de correção enviado à secretaria.')
+    if (r.erro === null) setValor('')
+  }
+
   return (
-    <details className="acao-recolhida">
-      <summary>{rotulo}</summary>
-      <form
-        aria-label={rotulo}
-        onSubmit={(e) => {
-          e.preventDefault()
-          void umaVez(async () => {
-            const r = await pedirCorrecao(pessoaId, texto)
-            aoConcluir(r, 'Pedido de correção enviado à secretaria.')
-            if (r.erro === null) setTexto('')
-          })
-        }}
-      >
+    <form
+      aria-label={rotulo}
+      onSubmit={(e) => {
+        e.preventDefault()
+        void umaVez(enviar)
+      }}
+    >
+      <label>
+        O que precisa ser corrigido? *
+        <select
+          value={campo}
+          onChange={(e) => {
+            setCampo(e.target.value as CampoCorrecao)
+            setValor('')
+          }}
+        >
+          {dados.map((d) => (
+            <option key={d.campo} value={d.campo}>
+              {NOME_DO_CAMPO[d.campo]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Como está hoje
+        <input value={valorParaLer(campo, escolhido?.atual || null)} disabled />
+      </label>
+      {campo === 'titulo' ? (
         <label>
-          O que precisa ser corrigido? *
-          <textarea
+          Como deve ficar *
+          <select required value={valor} onChange={(e) => setValor(e.target.value)}>
+            <option value="">— Escolha o título —</option>
+            {titulos.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : campo === 'igreja' ? (
+        <label>
+          Como deve ficar *
+          <select required value={valor} onChange={(e) => setValor(e.target.value)}>
+            <option value="">— Escolha a igreja —</option>
+            {igrejas.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <label>
+          Como deve ficar *
+          <input
             required
-            minLength={5}
-            maxLength={1000}
-            rows={3}
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            placeholder="Ex.: o título é Presbítero; o nome tem acento (Sebastião)"
+            maxLength={300}
+            type={campo === 'email' ? 'email' : campo === 'telefone' ? 'tel' : 'text'}
+            inputMode={campo === 'cpf' ? 'numeric' : undefined}
+            placeholder={campo === 'cpf' ? '000.000.000-00' : campo === 'telefone' ? '(94) 9____-____' : undefined}
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
           />
         </label>
+      )}
+      {campo === 'igreja' && (
+        <p className="detalhe">É para corrigir um cadastro errado. Mudou de igreja? Peça a troca de igreja, com a data.</p>
+      )}
+      <div className="acoes">
         <button type="submit" className="botao" disabled={enviando}>
-          Enviar à secretaria
+          Mandar para a secretaria
         </button>
-      </form>
-    </details>
+      </div>
+      {rodape}
+    </form>
   )
+}
+
+/** O que foi pedido, numa linha: "Título: Evangelista → Presbítero" (o pedido antigo mostra o texto). */
+export function ResumoDaCorrecao({ p }: { p: PedidoCorrecao }) {
+  if (!p.campo) return <q className="texto-justificativa">{p.texto}</q>
+  return (
+    <span className="resumo-correcao">
+      <span>{NOME_DO_CAMPO[p.campo]}: </span>
+      <s>{valorParaLer(p.campo, p.valor_atual)}</s> → <strong>{valorParaLer(p.campo, p.valor_pedido)}</strong>
+    </span>
+  )
+}
+
+/** O selo da resposta da secretaria. */
+export function SeloDaCorrecao({ p }: { p: PedidoCorrecao }) {
+  if (p.situacao === 'atendido') {
+    return <Selo tipo="aprovado">Aceita{p.respondido_em ? ` em ${formatarDataDeInstante(p.respondido_em)}` : ''}</Selo>
+  }
+  if (p.situacao === 'recusado') return <Selo tipo="recusado">Recusada{p.resposta ? `: ${p.resposta}` : ''}</Selo>
+  return <Selo tipo="analise">Esperando a secretaria</Selo>
 }
 
 /** A lista dos pedidos, com a resposta da secretaria. `nomes` completa o nome de quem a RLS não deixa ler. */
@@ -72,10 +173,10 @@ export function ListaDePedidos({ pedidos, nomes }: { pedidos: PedidoCorrecao[]; 
         return (
           <li key={p.id} className="lista-item lista-item-estatico" aria-label={`Pedido de correção: ${nome}`}>
             <strong>{nome}</strong>
+            <ResumoDaCorrecao p={p} />
             <span>
               <span className={CLASSE[p.situacao]}>{NOME_DA_SITUACAO_PEDIDO[p.situacao]}</span> pedido em {formatarDataDeInstante(p.criado_em)}
             </span>
-            <q className="texto-justificativa">{p.texto}</q>
             {p.resposta && <span>Resposta da secretaria: {p.resposta}</span>}
           </li>
         )
@@ -97,12 +198,12 @@ export function CorrecoesPendentes() {
       {(pedidos) => (
         <section className="painel" aria-labelledby="titulo-correcoes">
           <h2 id="titulo-correcoes">Correções no cadastro ({pedidos.length})</h2>
-          <p className="detalhe">Corrija na ficha do ministro e marque como atendido. Para recusar, diga o motivo.</p>
+          <p className="detalhe">Aceita, a correção entra sozinha no cadastro. Para recusar, diga o motivo.</p>
           <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
           {pedidos.length === 0 ? (
             <p className="vazio">Nenhum pedido de correção esperando.</p>
           ) : (
-            <ul className="lista" aria-label="Pedidos de correção pendentes">
+            <ul className="lista-linhas bloco" aria-label="Pedidos de correção pendentes">
               {pedidos.map((p) => (
                 <Pendente key={p.id} p={p} aoConcluir={concluir} />
               ))}
@@ -115,40 +216,66 @@ export function CorrecoesPendentes() {
 }
 
 function Pendente({ p, aoConcluir }: { p: PedidoCorrecao; aoConcluir: (r: { erro: string | null }, s: string) => void }) {
+  const [recusando, setRecusando] = useState(false)
   const [resposta, setResposta] = useState('')
   const [enviando, umaVez] = useUmaVez()
   const nome = p.pessoa?.nome ?? 'Ministro'
+  const estruturado = p.campo !== null
   return (
-    <li className="lista-item lista-item-estatico" aria-label={`Correção: ${nome}`}>
-      <strong>
-        <Link to={`/ministros/${p.pessoa_id}`}>{nome}</Link>
-      </strong>
-      <span>
-        Pedido por {p.autor?.nome ?? '—'} em {formatarDataDeInstante(p.criado_em)}
+    <li className="correcao-pendente" aria-label={`Correção: ${nome}`}>
+      <span className="linha-corpo">
+        <strong>
+          <Link to={`/ministros/${p.pessoa_id}`}>{nome}</Link>
+          {p.campo && ` · ${NOME_DO_CAMPO[p.campo]}`}
+        </strong>
+        <ResumoDaCorrecao p={p} />
+        <span>
+          Pedido por {p.autor?.nome ?? '—'} em {formatarDataDeInstante(p.criado_em)}
+        </span>
+        {recusando && (
+          <form
+            className="form-linha form-compacto"
+            aria-label={`Recusar a correção de ${nome}`}
+            onSubmit={(e) => {
+              e.preventDefault()
+              void umaVez(async () => aoConcluir(await responderCorrecao(p.id, false, resposta), `Correção de ${nome}: recusada.`))
+            }}
+          >
+            <label>
+              Motivo *
+              <input required maxLength={1000} value={resposta} onChange={(e) => setResposta(e.target.value)} />
+            </label>
+            <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
+              Recusar a correção
+            </button>
+            <button type="button" className="botao-texto" onClick={() => setRecusando(false)}>
+              Cancelar
+            </button>
+          </form>
+        )}
       </span>
-      <q className="texto-justificativa">{p.texto}</q>
-      <span className="form-linha">
-        <label>
-          Resposta (obrigatória para recusar)
-          <input value={resposta} maxLength={1000} onChange={(e) => setResposta(e.target.value)} />
-        </label>
-        <button
-          type="button"
-          className="botao"
-          disabled={enviando}
-          onClick={() => void umaVez(async () => aoConcluir(await responderCorrecao(p.id, true, resposta), `Correção de ${nome}: atendida.`))}
-        >
-          Atendido
-        </button>
-        <button
-          type="button"
-          className="botao botao-perigo"
-          disabled={enviando || !resposta.trim()}
-          onClick={() => void umaVez(async () => aoConcluir(await responderCorrecao(p.id, false, resposta), `Correção de ${nome}: recusada.`))}
-        >
-          Recusar
-        </button>
-      </span>
+      {!recusando && (
+        <span className="acoes-item">
+          <button type="button" className="botao botao-secundario" disabled={enviando} onClick={() => setRecusando(true)}>
+            Recusar
+          </button>
+          <button
+            type="button"
+            className="botao"
+            disabled={enviando}
+            onClick={() =>
+              void umaVez(async () =>
+                aoConcluir(
+                  await responderCorrecao(p.id, true, ''),
+                  estruturado ? `Correção de ${nome}: aceita e já no cadastro.` : `Correção de ${nome}: atendida.`,
+                ),
+              )
+            }
+          >
+            {estruturado ? 'Aceitar' : 'Atendido'}
+          </button>
+        </span>
+      )}
     </li>
   )
 }

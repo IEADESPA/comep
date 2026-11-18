@@ -4,7 +4,7 @@ import { Aviso, BotaoConfirmar, Carregando, Mensagem, MostrarCarga } from '../..
 import { CamposIdentidade } from '../../componentes/CamposIdentidade'
 import { Icone, Ladrilho } from '../../componentes/Icone'
 import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
-import { AbasDaTela, CabecalhoTela, Chip, FotoOuIniciais, Selo, type Aba } from '../../componentes/Telas'
+import { AbasDaTela, CabecalhoTela, Chip, FotoOuIniciais, type Aba } from '../../componentes/Telas'
 import {
   buscarFicha,
   NOME_DA_FORMA_ADMISSAO,
@@ -12,13 +12,14 @@ import {
   SUGESTOES_FUNCAO,
   type FichaAssociado,
 } from '../../dados/associados'
-import { listarIgrejas, type Igreja } from '../../dados/cadastros'
+import { listarIgrejas, listarTitulos, type Igreja, type Titulo } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import { formatarReais, listarValores, NOME_DA_CATEGORIA, type ValorContribuicao } from '../../dados/configuracoes'
 import { buscarConfigCredencial } from '../../dados/credencial'
 import { minhasFaltas, type MinhasFaltas } from '../../dados/encontros'
 import { situacaoDe, type SituacaoContribuicao } from '../../dados/financeiro'
-import { listarPedidosCorrecao, pedirCorrecao, type PedidoCorrecao } from '../../dados/igrejas'
+import { listarPedidosCorrecao } from '../../dados/igrejas'
+import { FormCorrecao, ResumoDaCorrecao, SeloDaCorrecao, type DadoCorrigivel } from './PedidosCorrecao'
 import { atualizarMeusDados, linkDoArquivo } from '../../dados/pedidos'
 import { NOME_DO_PERFIL, type Perfil } from '../../dados/perfis'
 import {
@@ -35,7 +36,6 @@ import {
 } from '../../dados/portal'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
-import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
 import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
 import { prepararFoto } from '../../utilitarios/imagens'
@@ -78,7 +78,7 @@ function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: 
   const { recarregarConta } = useSessao()
   const [retorno, setRetorno] = useState<Retorno>({})
   const [carga, recarregar] = useCarregar(async () => {
-    const [dados, ficha, trocas, igrejas, valores, situacao, faltas, config] = await Promise.all([
+    const [dados, ficha, trocas, igrejas, valores, situacao, faltas, config, titulos] = await Promise.all([
       buscarMeusDados(pessoaId),
       buscarFicha(pessoaId),
       minhasTrocas(pessoaId),
@@ -87,6 +87,7 @@ function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: 
       situacaoDe(pessoaId),
       minhasFaltas(),
       buscarConfigCredencial(),
+      listarTitulos(),
     ])
     if (dados.erro !== null) return dados
     if (ficha.erro !== null) return ficha
@@ -98,6 +99,8 @@ function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: 
       ficha: ficha.dados,
       trocas: trocas.dados,
       igrejas: igrejas.dados,
+      // a lista dos títulos da correção (o título certo se escolhe, não se digita)
+      titulos: titulos.erro === null ? titulos.dados : [],
       valores: valores.dados.vigentes,
       // estas três só completam a aba "No COMEP": se faltarem, a linha some
       situacao: situacao.dados,
@@ -121,7 +124,7 @@ function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: 
     <div className="tela-nova">
       <CabecalhoTela titulo="Meu perfil" visivel={false} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ dados, ficha, trocas, igrejas, valores, situacao, faltas, fimMandato }) => (
+        {({ dados, ficha, trocas, igrejas, valores, situacao, faltas, fimMandato, titulos }) => (
           <>
             <CabecalhoPerfil dados={dados} ficha={ficha} situacao={situacao} concluir={concluir} />
             <AbasDaTela rotulo="Partes do meu perfil" abas={ficha ? ABAS_ASSOCIADO : ABAS_SEM_CADASTRO} />
@@ -134,7 +137,7 @@ function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: 
             ) : ficha && aba === 'igreja' ? (
               <MinhaIgrejaEHistorico ficha={ficha} trocas={trocas} igrejas={igrejas} concluir={concluir} />
             ) : ficha && aba === 'correcoes' ? (
-              <MinhasCorrecoes pessoaId={pessoaId} dados={dados} ficha={ficha} />
+              <MinhasCorrecoes pessoaId={pessoaId} dados={dados} ficha={ficha} titulos={titulos} igrejas={igrejas} />
             ) : (
               <>
                 <MeusDados
@@ -664,105 +667,64 @@ function TrocarSenha({ email, concluir }: { email: string | null; concluir: Conc
 }
 
 // ---------------------------------------------------------------------
-// Aba "Correções": escolher o dado, ver como está e dizer como deve ficar
-// (o banco ainda guarda o pedido como texto: a secretaria corrige à mão — ver docs/revisoes/fase-5.5.md)
+// Aba "Correções": escolher o dado (lista fechada), ver como está e dizer como deve ficar.
+// Aceita pela secretaria, a correção entra sozinha no cadastro (parte 4 das telas novas, 18/11/2026).
 // ---------------------------------------------------------------------
-
-type DadoCorrigivel = { chave: string; rotulo: string; atual: string }
 
 function dadosCorrigiveis(dados: MeusDadosCompletos, ficha: FichaAssociado): DadoCorrigivel[] {
   const atual = ficha.vinculos.find((v) => v.fim === null)
-  const lista: DadoCorrigivel[] = [
-    { chave: 'nome', rotulo: 'Nome completo', atual: dados.nome },
-    { chave: 'cpf', rotulo: 'CPF', atual: dados.cpf ?? '' },
-    { chave: 'nome_mae', rotulo: 'Nome da mãe', atual: dados.nome_mae ?? '' },
-    { chave: 'nome_pai', rotulo: 'Nome do pai', atual: dados.nome_pai ?? '' },
-    { chave: 'titulo', rotulo: 'Título ministerial', atual: ficha.associado.titulo ?? '' },
-    { chave: 'funcao', rotulo: 'Função na igreja', atual: atual?.funcao ?? '' },
-    {
-      chave: 'admissao',
-      rotulo: 'Data de admissão no COMEP',
-      atual: ficha.associado.admitido_em ? formatarData(ficha.associado.admitido_em) : '',
-    },
+  return [
+    { campo: 'nome', atual: dados.nome },
+    { campo: 'telefone', atual: dados.telefone ?? '' },
+    { campo: 'cpf', atual: dados.cpf ?? '' },
+    { campo: 'nome_mae', atual: dados.nome_mae ?? '' },
+    { campo: 'nome_pai', atual: dados.nome_pai ?? '' },
+    { campo: 'titulo', atual: ficha.associado.titulo ?? '' },
+    { campo: 'funcao', atual: atual?.funcao ?? '' },
+    { campo: 'igreja', atual: atual?.igreja?.nome ?? '' },
   ]
-  return lista
 }
 
-function seloDoPedido(p: PedidoCorrecao) {
-  if (p.situacao === 'atendido') {
-    return <Selo tipo="aprovado">Aceita{p.respondido_em ? ` em ${formatarDataDeInstante(p.respondido_em)}` : ''}</Selo>
-  }
-  if (p.situacao === 'recusado') return <Selo tipo="recusado">Recusada{p.resposta ? `: ${p.resposta}` : ''}</Selo>
-  return <Selo tipo="analise">Esperando a secretaria</Selo>
-}
-
-function MinhasCorrecoes({ pessoaId, dados, ficha }: { pessoaId: string; dados: MeusDadosCompletos; ficha: FichaAssociado }) {
+function MinhasCorrecoes({
+  pessoaId,
+  dados,
+  ficha,
+  titulos,
+  igrejas,
+}: {
+  pessoaId: string
+  dados: MeusDadosCompletos
+  ficha: FichaAssociado
+  titulos: Titulo[]
+  igrejas: Igreja[]
+}) {
   const [carga, recarregar] = useCarregar(() => listarPedidosCorrecao({ pessoaId }))
-  const opcoes = dadosCorrigiveis(dados, ficha)
-  const [qual, setQual] = useState(opcoes[0].chave)
-  const [novo, setNovo] = useState('')
   const [retorno, setRetorno] = useState<Retorno>({})
-  const [enviando, umaVez] = useUmaVez()
-  const escolhido = opcoes.find((o) => o.chave === qual) ?? opcoes[0]
-
-  async function enviar() {
-    const valor = novo.trim()
-    if (!valor) return setRetorno({ erro: 'Escreva como o dado deve ficar.' })
-    if (valor === escolhido.atual.trim()) return setRetorno({ erro: 'O valor novo é igual ao de hoje.' })
-    const texto = `${escolhido.rotulo}: como está hoje "${escolhido.atual || '(vazio)'}"; como deve ficar "${valor}".`
-    const r = await pedirCorrecao(pessoaId, texto)
-    if (r.erro !== null) return setRetorno({ erro: r.erro })
-    setNovo('')
-    setRetorno({ sucesso: 'Pedido de correção enviado à secretaria.' })
-    recarregar()
-  }
 
   return (
     <div className="duas-colunas duas-iguais">
       <section className="bloco" aria-labelledby="titulo-pedir-correcao">
         <h2 id="titulo-pedir-correcao">Pedir uma correção</h2>
-        <form
-          aria-labelledby="titulo-pedir-correcao"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void umaVez(enviar)
+        <FormCorrecao
+          pessoaId={pessoaId}
+          rotulo="Pedir uma correção"
+          dados={dadosCorrigiveis(dados, ficha)}
+          titulos={titulos}
+          igrejas={igrejas}
+          aoConcluir={(r, sucesso) => {
+            setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+            if (r.erro === null) recarregar()
           }}
-        >
-          <label>
-            O que você quer corrigir?
-            <select
-              value={qual}
-              onChange={(e) => {
-                setQual(e.target.value)
-                setNovo('')
-              }}
-            >
-              {opcoes.map((o) => (
-                <option key={o.chave} value={o.chave}>
-                  {o.rotulo}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Como está hoje
-            <input value={escolhido.atual || '(vazio)'} disabled />
-          </label>
-          <label>
-            Como deve ficar
-            <input required maxLength={300} value={novo} onChange={(e) => setNovo(e.target.value)} />
-          </label>
-          <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-          <div className="acoes">
-            <button type="submit" className="botao" disabled={enviando}>
-              Mandar para a secretaria
-            </button>
-          </div>
-          <p className="detalhe">
-            A secretaria confere e corrige o cadastro. O telefone e o que ainda está vazio você muda na aba{' '}
-            <Link to="/meu-perfil">Meus dados</Link>.
-          </p>
-        </form>
+          rodape={
+            <>
+              <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+              <p className="detalhe">
+                A secretaria confere e, aceita, a correção entra sozinha no cadastro. O telefone e o que ainda está vazio você
+                também muda na aba <Link to="/meu-perfil">Meus dados</Link>.
+              </p>
+            </>
+          }
+        />
       </section>
       <section className="bloco" aria-labelledby="titulo-meus-pedidos-correcao">
         <h2 id="titulo-meus-pedidos-correcao">Os meus pedidos</h2>
@@ -775,9 +737,11 @@ function MinhasCorrecoes({ pessoaId, dados, ficha }: { pessoaId: string; dados: 
                 {pedidos.map((p) => (
                   <li key={p.id}>
                     <span className="linha-corpo">
-                      <span className="linha-texto">{p.texto}</span>
+                      <span className="linha-texto">
+                        <ResumoDaCorrecao p={p} />
+                      </span>
                       <span className="linha-selo">
-                        {seloDoPedido(p)}
+                        <SeloDaCorrecao p={p} />
                         <span className="detalhe">pedido em {formatarDataDeInstante(p.criado_em)}</span>
                       </span>
                     </span>

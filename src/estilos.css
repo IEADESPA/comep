@@ -5444,3 +5444,121 @@ li.feito .numero-passo {
   font-size: 16px;
   color: var(--cor-titulo);
 }
+
+/* ---------- A análise do pedido de associação, item por item (parte 4) ---------- */
+
+.cabecalho-analise {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 16px;
+}
+
+.avatar-ministro.avatar-grande {
+  width: 52px;
+  height: 52px;
+  border-radius: 26px;
+  font-size: 18px;
+}
+
+.cabecalho-analise-texto {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cabecalho-analise-texto h1 {
+  margin: 0;
+  font-size: 21px;
+  overflow-wrap: anywhere;
+}
+
+.cabecalho-analise-lado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .cabecalho-analise-texto h1 {
+    font-size: 24px;
+  }
+}
+
+.analise-colunas {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .analise-colunas {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+.lista-itens-pedido > li {
+  align-items: flex-start;
+  padding: 12px 0;
+}
+
+.lista-itens-pedido .acoes-item {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.lista-itens-pedido .form-compacto {
+  margin-top: 4px;
+}
+
+.item-com-foto {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.foto-item {
+  width: 54px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--cor-borda);
+}
+
+.acoes-devolver {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.acoes-devolver .botao {
+  align-self: flex-start;
+}
+
+/* As correções pedidas: "como está → como deve ficar", com Aceitar e Recusar */
+.correcao-pendente {
+  flex-wrap: wrap;
+  align-items: flex-start !important;
+}
+
+.correcao-pendente .acoes-item {
+  flex: none;
+  gap: 8px;
+  align-self: center;
+}
+
+.resumo-correcao {
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.resumo-correcao strong {
+  color: var(--cor-titulo);
+}

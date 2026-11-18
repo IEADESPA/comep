@@ -29,6 +29,24 @@ export type DadosPedido = {
   consente_lgpd: boolean
 }
 
+/** O que a secretaria confere no pedido, item por item (parte 4 das telas novas, 18/11/2026). */
+export type ItemPedido = 'dados_pessoais' | 'igreja_titulo' | 'foto' | 'comprovante'
+export type SituacaoItem = 'analise' | 'aprovado' | 'recusado'
+
+export const ITENS_DO_PEDIDO: readonly { chave: ItemPedido; nome: string }[] = [
+  { chave: 'dados_pessoais', nome: 'Dados pessoais' },
+  { chave: 'igreja_titulo', nome: 'Igreja e título' },
+  { chave: 'foto', nome: 'Foto 3×4' },
+  { chave: 'comprovante', nome: 'Comprovante do título' },
+]
+
+export type ConferenciaItem = {
+  item: ItemPedido
+  situacao: SituacaoItem
+  motivo: string | null
+  conferido_em: string | null
+}
+
 export type Pedido = DadosPedido & {
   id: string
   pessoa_id: string
@@ -47,6 +65,8 @@ export type Pedido = DadosPedido & {
   titulo: { nome: string } | null
   igreja: { nome: string } | null
   aceite_diretor: { nome: string } | null
+  /** a conferência da secretaria (item sem linha = em análise) */
+  itens: ConferenciaItem[]
 }
 
 const CAMPOS_PEDIDO = `
@@ -57,7 +77,8 @@ const CAMPOS_PEDIDO = `
   pessoa:pessoas!pedidos_associacao_pessoa_id_fkey(nome, email, telefone),
   titulo:titulos_ministeriais(nome),
   igreja:igrejas(nome),
-  aceite_diretor:pessoas!pedidos_associacao_aceite_diretor_por_fkey(nome)`
+  aceite_diretor:pessoas!pedidos_associacao_aceite_diretor_por_fkey(nome),
+  itens:pedidos_associacao_itens(item, situacao, motivo, conferido_em)`
 
 const vazioParaNulo = (v: string) => (v.trim() ? v.trim() : null)
 
@@ -171,6 +192,17 @@ export async function buscarPedido(id: string): Promise<Resultado<Pedido | null>
 
 async function atualizarPedido(id: string, mudancas: Record<string, unknown>): Promise<Resultado<null>> {
   const { error } = await cliente().from('pedidos_associacao').update(mudancas).eq('id', id)
+  return error ? falha(error) : ok(null)
+}
+
+/** A secretaria aprova ou recusa (com o motivo) um item do pedido. */
+export async function conferirItemPedido(pedidoId: string, item: ItemPedido, aprovado: boolean, motivo: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('conferir_item_pedido', {
+    p_pedido_id: pedidoId,
+    p_item: item,
+    p_aprovado: aprovado,
+    p_motivo: motivo.trim() || null,
+  })
   return error ? falha(error) : ok(null)
 }
 

@@ -341,3 +341,39 @@ O padrão de navegação aprovado em 18/11/2026 para **todos** os módulos ("o m
 
 - testes de unidade: `testes/unidade/menu.test.ts` (a função acesa por endereço, as subfunções, quem vê cada função, as iniciais e o nº com quatro algarismos);
 - ponta a ponta: `testes/e2e/menu-modulo.spec.ts` (computador e celular: as funções do módulo, a função aberta marcada, a volta ao Início, as subfunções em sanfona e o que o ministro vê) e os testes antigos ajustados às funções (financeiro, caixa, prestação, patrimônio) e à ficha em abas (cadastros, credencial, pedido, configurações, portal, portal-ministro).
+
+## Entrega 5.5.7 — Telas novas, parte 4: a correção estruturada e a análise do pedido item por item (versão 5.5.0-teste.8)
+
+O banco que as telas aprovadas pediam (migração `20261118150000_correcao_e_conferencia.sql`).
+
+**O que entrou:**
+
+- **Correção estruturada no cadastro** (observação do usuário na rodada 5: "nada de texto livre, porque a pessoa digita errado"):
+  - `pedidos_correcao` ganhou o **dado** (lista fechada: nome completo, telefone, e-mail, CPF, nome da mãe, nome do pai, título ministerial, função na igreja e igreja), **como está** (o banco preenche, não a tela) e **como deve ficar**. No título e na igreja, o "como deve ficar" se escolhe na lista;
+  - **aceita, a correção entra sozinha no cadastro** (o título novo entra no histórico; a igreja certa entra hoje, com a mesma função, e a anterior fica no histórico, como na troca); recusada, volta com o motivo;
+  - o pedido em texto livre deixou de ser aceito pela API (`pedir_correcao` sem permissão); os pedidos antigos, em texto, continuam na lista e se respondem como antes ("Atendido");
+  - **Meu perfil › Correções**: o ministro escolhe o dado, vê como está e diz como deve ficar;
+  - **Minha igreja › Ministros**: o pastor presidente pede do mesmo jeito para os ministros da igreja dele;
+  - **Ministros e inscrições › Correções pedidas**: "como está → como deve ficar", com Aceitar e Recusar (com o motivo).
+- **O pedido de associação conferido item por item** (tabela nova `pedidos_associacao_itens`):
+  - os itens: **dados pessoais, igreja e título, foto 3×4 e o comprovante do título**, cada um em análise, aprovado ou recusado com o motivo;
+  - a secretaria confere na **Análise do pedido** (desenho aprovado): o candidato no alto com a barra "x de 4 conferidos", os itens com Aprovar e Recusar (e "Mudar" depois de decidido), os passos e, ao lado, "Mandar para a AGO", que **só se libera com todos aprovados** (o banco também confere), "Devolver ao candidato" (com o motivo de cada item recusado) e "Recusar o pedido";
+  - o candidato vê **o selo em cada item** em Meu pedido, com o motivo do que voltou, e **envia de novo só o que foi recusado** (o formulário mostra só essas partes e as declarações);
+  - ao reenviar, o item recusado volta para a análise; o que estava aprovado e o candidato mudou (a foto, o comprovante, a igreja ou o título) também volta.
+
+**Decisões tomadas sem perguntar:**
+
+- **CPF e filiação** entram na lista, mas só a própria pessoa pede a correção, e o pastor presidente não vê esses pedidos (dado pessoal: só a pessoa e a secretaria).
+- **E-mail:** só de quem ainda não entra no sistema. O e-mail de quem tem login é o do login e não se troca por aqui.
+- **Ninguém aceita a correção do próprio cadastro**, nem confere o próprio pedido de associação (a mesma regra de "ninguém decide o próprio pedido").
+- **Um pedido pendente por dado:** o mesmo dado não fica esperando a secretaria duas vezes; pedir o valor que já está no cadastro é recusado.
+- **Igreja errada × troca de igreja:** a correção da igreja é para cadastro errado; quem mudou de igreja continua usando o pedido de troca, com a data.
+- **Pedidos já aceitos antes da parte 4** (esperando a AGO ou aprovados) contam com os quatro itens aprovados (a migração registra isso, com o diretor que aceitou).
+- **"Devolver ao candidato"** só se libera com algum item recusado; a mensagem para o candidato é montada com o motivo de cada item.
+- **Itens fixos:** quatro (o pedido tem uma foto e um comprovante). Se um dia o pedido tiver mais documentos, a lista cresce em `interno.itens_do_pedido()` e nas telas (`ITENS_DO_PEDIDO`).
+- **Regra nova do usuário (18/11/2026): todo ministro é ligado a uma igreja.** O banco já exigia a igreja no cadastro e no pedido; as telas agora dizem isso.
+
+**Verificação:**
+
+- testes do banco: `testes/banco/correcao_estruturada.test.ts` (11 testes: a lista fechada, o texto livre recusado, como está e como deve ficar, quem pede, quem lê (RLS, inclusive o CPF), aceitar que aplica (telefone, título, CPF, nome, e-mail, igreja), recusar com motivo, o próprio cadastro e nada se apaga) e `testes/banco/pedido_itens.test.ts` (9 testes: quem confere, o motivo, a situação de cada item, "Mandar para a AGO" só com tudo aprovado, quem lê, o reenvio que devolve à análise, o próprio pedido e nada se apaga). Os testes antigos do pedido, da segurança e da igreja ajustados à conferência e à correção estruturada;
+- ponta a ponta: `pedido.spec` (a presidência aprova e recusa item por item, devolve; o candidato vê o selo e reenvia só a foto; a presidência aprova o resto e manda para a AGO) e `portal-ministro.spec` (o pastor presidente pede a correção do título; a presidência aceita e o título novo aparece na ficha).

@@ -10,6 +10,13 @@ const SEM_PERMISSAO = '42501'
 const BLOQUEADO_PELO_BANCO = 'P0001'
 const DUPLICADO = '23505'
 
+/** A secretaria aprova os quatro itens do pedido (parte 4: "Mandar para a AGO" só com todos aprovados). */
+async function aprovarItens(db: PGlite, quem: string, pedidoId: string) {
+  for (const item of ['dados_pessoais', 'igreja_titulo', 'foto', 'comprovante']) {
+    await como(db, quem, () => db.query('select public.conferir_item_pedido($1, $2, true, null)', [pedidoId, item]))
+  }
+}
+
 describe('Fase 1.2 — códigos de acesso, pedido de associação e arquivos', () => {
   let db: PGlite
   let secretaria: string
@@ -304,6 +311,17 @@ describe('Fase 1.2 — códigos de acesso, pedido de associação e arquivos', (
         ),
         erroComCodigo(BLOQUEADO_PELO_BANCO),
       )
+      // a conferência item por item vem antes (parte 4): sem ela, nem com a igreja o pedido vai para a AGO
+      await assert.rejects(
+        como(db, secretaria, () =>
+          db.query(
+            "update public.pedidos_associacao set igreja_id = $2, situacao = 'aguardando_assembleia' where id = $1",
+            [pedido, igrejaA],
+          ),
+        ),
+        erroComCodigo(BLOQUEADO_PELO_BANCO),
+      )
+      await aprovarItens(db, secretaria, pedido)
       await como(db, secretaria, () =>
         db.query(
           "update public.pedidos_associacao set igreja_id = $2, situacao = 'aguardando_assembleia' where id = $1",

@@ -116,11 +116,30 @@ export async function salvarDiretoriaIgreja(
 
 export type SituacaoPedidoCorrecao = 'pendente' | 'atendido' | 'recusado'
 
+/** A lista fechada dos dados que se pedem para corrigir (nada de texto livre: 18/11/2026). */
+export type CampoCorrecao = 'nome' | 'telefone' | 'email' | 'cpf' | 'nome_mae' | 'nome_pai' | 'titulo' | 'funcao' | 'igreja'
+
+export const NOME_DO_CAMPO: Record<CampoCorrecao, string> = {
+  nome: 'Nome completo',
+  telefone: 'Telefone',
+  email: 'E-mail',
+  cpf: 'CPF',
+  nome_mae: 'Nome da mãe',
+  nome_pai: 'Nome do pai',
+  titulo: 'Título ministerial',
+  funcao: 'Função na igreja',
+  igreja: 'Igreja',
+}
+
 export type PedidoCorrecao = {
   id: string
   pessoa_id: string
   igreja_id: string | null
   texto: string
+  /** null = pedido antigo, em texto (antes de 18/11/2026) */
+  campo: CampoCorrecao | null
+  valor_atual: string | null
+  valor_pedido: string | null
   situacao: SituacaoPedidoCorrecao
   resposta: string | null
   criado_em: string
@@ -131,7 +150,7 @@ export type PedidoCorrecao = {
 }
 
 const CAMPOS_PEDIDO =
-  'id, pessoa_id, igreja_id, texto, situacao, resposta, criado_em, respondido_em, ' +
+  'id, pessoa_id, igreja_id, texto, campo, valor_atual, valor_pedido, situacao, resposta, criado_em, respondido_em, ' +
   'pessoa:pessoas!pedidos_correcao_pessoa_id_fkey(nome), autor:pessoas!pedidos_correcao_pedido_por_fkey(nome)'
 
 /** Os pedidos que quem está logado pode ver (os seus, os da sua igreja ou, para a secretaria, todos). */
@@ -143,8 +162,22 @@ export async function listarPedidosCorrecao(filtro: { pessoaId?: string; pendent
   return error ? falha(error) : ok(data)
 }
 
-export async function pedirCorrecao(pessoaId: string, texto: string): Promise<Resultado<null>> {
-  const { error } = await cliente().rpc('pedir_correcao', { p_pessoa_id: pessoaId, p_texto: texto })
+/**
+ * Pede a correção de um dado da lista fechada. O banco guarda como está hoje; no título e na igreja, `referencia`
+ * é o escolhido na lista (o `valor` fica vazio).
+ */
+export async function pedirCorrecaoDado(
+  pessoaId: string,
+  campo: CampoCorrecao,
+  valor: string,
+  referencia: string | null = null,
+): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('pedir_correcao_dado', {
+    p_pessoa_id: pessoaId,
+    p_campo: campo,
+    p_valor: valor.trim() || null,
+    p_referencia: referencia,
+  })
   return error ? falha(error) : ok(null)
 }
 

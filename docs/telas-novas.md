@@ -105,4 +105,6 @@ O site fica por **último**: ele já funciona e está aceitável.
   - parte 1 (versão 5.5.0-teste.5): a moldura (menu curto, topo com busca, claro/escuro e sino; no celular, a barra vermelha em cima), o sino e o Menu do celular, Entrar, Primeiro acesso e Esqueci a senha, e o Início;
   - parte 2 (versão 5.5.0-teste.6): as telas gerais (Meu perfil, Minha credencial, Minhas mensalidades, Minha igreja, Meu pedido e Validar credencial);
   - parte 3 (versão 5.5.0-teste.7): o menu do módulo em todos os módulos e o módulo Ministros e inscrições (a tabela, os pedidos de associação, as correções pedidas, o cadastro passo a passo e a ficha em abas);
-  - o registro de cada parte, com as decisões tomadas sem o desenho e o que depende do banco, está em `docs/revisoes/fase-5.5.md` (entregas 5.5.5 e 5.5.6).
+  - parte 4 (versão 5.5.0-teste.8): o banco da correção estruturada (aceita, entra sozinha no cadastro) e da análise do pedido de associação item por item ("Mandar para a AGO" só com tudo aprovado);
+  - o registro de cada parte, com as decisões tomadas sem o desenho e o que depende do banco, está em `docs/revisoes/fase-5.5.md` (entregas 5.5.5, 5.5.6 e 5.5.7).
+- 18/11/2026: **regra nova do usuário: todo ministro precisa estar ligado a uma igreja** (não existe ministro "desigrejado"). No Cadastrar ministro e no pedido de associação, a igreja é obrigatória (o banco já exigia).
