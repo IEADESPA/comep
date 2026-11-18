@@ -70,7 +70,8 @@ jobs:
     # com usuários fictícios de cada perfil, em tamanho de computador e de celular.
     name: Testes de ponta a ponta (banco de teste)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 145 testes (computador e celular) passaram dos 20 minutos em 18/11/2026; com folga para a nova tentativa
+    timeout-minutes: 30
     # Um de cada vez: todos usam o mesmo banco de teste e os mesmos usuários fictícios
     # (duas execuções ao mesmo tempo mexem no mesmo caixa, no mesmo balanço e nos mesmos perfis).
     concurrency:
