@@ -422,17 +422,22 @@ const FALTA: Record<string, string> = {
 function SituacaoDaCredencial({ l, fimMandato }: { l: LinhaCredencial; fimMandato: string | null }) {
   const ate = l.valida_ate ?? fimMandato
   const [primeira, ...outras] = l.pendencias
+  // a categoria do ministro em readequação aparece sempre (com a pendência, se houver)
+  const readequacao = l.readequacao && <Chip area="assembleias">Em readequação</Chip>
   if (primeira) {
     return (
-      <span title={`Falta: ${l.pendencias.join(', ')}`}>
-        <Chip area="eventos">
-          {FALTA[primeira] ?? primeira}
-          {outras.length > 0 && ` +${outras.length}`}
-        </Chip>
-      </span>
+      <>
+        {readequacao}
+        <span title={`Falta: ${l.pendencias.join(', ')}`}>
+          <Chip area="eventos">
+            {FALTA[primeira] ?? primeira}
+            {outras.length > 0 && ` +${outras.length}`}
+          </Chip>
+        </span>
+      </>
     )
   }
-  if (l.readequacao) return <Chip area="assembleias">Em readequação</Chip>
+  if (readequacao) return readequacao
   if (!l.em_dia) return <Chip area="pessoas">Válida · em atraso</Chip>
   return <Chip area="financas">{ate ? `Válida até ${formatarData(ate)}` : 'Válida'}</Chip>
 }
