@@ -51,10 +51,10 @@ test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async 
   await page.getByRole('button', { name: 'Salvar', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Alterações salvas.' })).toBeVisible()
 
-  // sem os documentos, a igreja nova fica regular até o fim da transição, com a pendência
+  // sem os documentos, a igreja nova fica regular até o fim da transição, com a pendência (a natureza já veio no cadastro)
   await abrirAbaDaIgreja(page, 'Situação')
   await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Regular')
-  await expect(page.getByText(/^faltam 5 itens \(até /)).toBeVisible()
+  await expect(page.getByText(/^faltam 4 itens \(até /)).toBeVisible()
 
   await arquivarIgrejaAberta(page)
   await expect(page.getByRole('status').filter({ hasText: `Igreja "${nome}" arquivada.` })).toBeVisible()
