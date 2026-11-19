@@ -3,6 +3,8 @@
 // (VÁLIDA, EM ATRASO, NÃO VALE) e, ao lado, a situação e os dados. O desenho do cartão aqui é o padrão do COMEP:
 // a página pública não recebe o modelo editado da credencial.
 // Mostra só o necessário: foto, nome, título, nº de registro, igreja (sigla) e a situação DE AGORA.
+// Fase 5.5 (parte 8): o ministro em readequação (rodada 12, opção 1) aparece com a credencial cinza e a faixa de aviso,
+// a igreja sem registro e o prazo. Nunca a frase "não representa o COMEP".
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
@@ -77,6 +79,16 @@ function vereditoDe(v: Validacao): Veredito {
       area: 'pessoas',
     }
   }
+  if (v.readequacao) {
+    return {
+      titulo: 'Credencial válida — ministro em readequação',
+      sub: `A igreja dele ainda não tem registro: participa, mas não vota, não é votado e não tem cargo.${
+        v.prazo_readequacao ? ` Prazo da readequação: até ${formatarData(v.prazo_readequacao)}.` : ''
+      }`,
+      carimbo: 'EM READEQUAÇÃO',
+      area: 'eventos',
+    }
+  }
   return v.em_dia
     ? { titulo: 'Credencial válida', sub: 'Ministro associado e em dia com o COMEP.', carimbo: 'VÁLIDA', area: 'financas' }
     : {
@@ -94,7 +106,7 @@ function Resultado({ v, codigo }: { v: Validacao; codigo: string }) {
   return (
     <section className={`validacao-resultado area-${r.area}`} aria-label="Resultado da validação">
       <div className="credencial-carimbada">
-        <div className="credencial-publica" aria-hidden={!temPessoa}>
+        <div className={v.readequacao ? 'credencial-publica credencial-publica-readequacao' : 'credencial-publica'} aria-hidden={!temPessoa}>
           <div className="credencial-publica-topo">
             <Simbolo tamanho={30} />
             <span>
@@ -121,6 +133,14 @@ function Resultado({ v, codigo }: { v: Validacao; codigo: string }) {
             </span>
             {temPessoa && <QrCode texto={urlValidacao(codigo)} rotulo="QR Code desta credencial" className="credencial-publica-qr" />}
           </div>
+          {v.readequacao && (
+            <div className="credencial-publica-faixa">
+              <span>
+                Em readequação · sem direito a voto
+                {v.prazo_readequacao ? ` · prazo até ${formatarData(v.prazo_readequacao)}` : ''}
+              </span>
+            </div>
+          )}
         </div>
         <span className="carimbo" aria-hidden="true">
           {r.carimbo}
@@ -136,13 +156,25 @@ function Resultado({ v, codigo }: { v: Validacao; codigo: string }) {
             <dt>Título</dt>
             <dd>{v.titulo ?? '—'}</dd>
             <dt>Igreja</dt>
-            <dd>{v.igreja ?? '—'}</dd>
+            <dd>{v.igreja ? `${v.igreja}${v.readequacao ? ' (sem registro)' : ''}` : '—'}</dd>
             <dt>Nº de registro</dt>
             <dd>{numero ?? '—'}</dd>
             {(v.situacao === 'valida' || v.situacao === 'vencida') && (
               <>
                 <dt>Situação</dt>
-                <dd>{v.em_dia ? 'Ativo · em dia (apto a votar e ser votado)' : 'Ativo · contribuição em atraso'}</dd>
+                <dd>
+                  {v.readequacao
+                    ? `Ministro em readequação · participa, mas não vota${v.em_dia ? '' : ' · contribuição em atraso'}`
+                    : v.em_dia
+                      ? 'Ativo · em dia (apto a votar e ser votado)'
+                      : 'Ativo · contribuição em atraso'}
+                </dd>
+                {v.readequacao && v.prazo_readequacao && (
+                  <>
+                    <dt>Prazo</dt>
+                    <dd>Até {formatarData(v.prazo_readequacao)} (a AGO), para a igreja se regularizar</dd>
+                  </>
+                )}
                 <dt>Validade</dt>
                 <dd>
                   {v.valida_ate

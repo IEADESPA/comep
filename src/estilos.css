@@ -3158,11 +3158,28 @@ fieldset .caixa-marcar + .caixa-marcar {
   transform: rotate(180deg);
 }
 
-/* Folhas A4 para imprimir: 5 credenciais por folha. Frente e verso JUNTOS (para dobrar ao meio):
-   linha fina em volta para recortar e marcas da dobra em cima e embaixo, fora do cartão. */
+/* Folhas A4 para imprimir (Fase 5.5, parte 8): 4 credenciais por folha, frente e verso JUNTOS (para dobrar ao
+   meio), 5 mm de espaço entre as credenciais, 2 mm de sangria em volta e as marcas de corte fora da sangria.
+   Começa sempre no alto: as vagas que sobram ficam em branco, sem marcas. */
 .folhas-impressao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.5rem;
   overflow-x: auto;
   padding-bottom: 1rem;
+}
+
+.folha-com-legenda {
+  margin: 0;
+}
+
+.folha-com-legenda figcaption {
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--cor-texto-suave);
 }
 
 .folha-a4 {
@@ -3170,17 +3187,47 @@ fieldset .caixa-marcar + .caixa-marcar {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  /* 5 × 53,98 mm + 4 espaços de 3,3 mm + margens de 6,8 mm = 296,7 mm (cabe na folha de 297 mm) */
-  gap: 3.3mm;
+  align-items: center;
+  gap: 5mm;
   width: 210mm;
   height: 297mm;
-  margin: 0 auto 1.5rem;
-  padding: 6.8mm 0;
+  margin: 0 auto;
+  padding: 8mm 0;
+  overflow: hidden;
   background: #fff;
   box-shadow: 0 2px 14px rgb(0 0 0 / 0.25);
 }
 
+/* O pedaço de folha já cortado: a largura da A4, a altura de quantas cabem (2 = meia folha, A5 deitada) */
+.folha-pedaco-1 {
+  page: pedaco1;
+}
+
+.folha-pedaco-2 {
+  page: pedaco2;
+}
+
+.folha-pedaco-3 {
+  page: pedaco3;
+}
+
+@page pedaco1 {
+  size: 210mm 74.25mm;
+  margin: 0;
+}
+
+@page pedaco2 {
+  size: 210mm 148.5mm;
+  margin: 0;
+}
+
+@page pedaco3 {
+  size: 210mm 222.75mm;
+  margin: 0;
+}
+
 .par-impressao {
+  flex: none;
   display: flex;
   justify-content: center;
   break-inside: avoid;
@@ -3189,25 +3236,192 @@ fieldset .caixa-marcar + .caixa-marcar {
 .par-cartoes {
   position: relative;
   display: flex;
-  outline: 0.2mm solid #a1a1aa;
 }
 
-/* Marcas da dobra (fora do cartão): onde a frente encontra o verso */
-.par-cartoes::before,
-.par-cartoes::after {
-  content: '';
+/* A sangria: o fundo (e o que encosta na borda) passa do corte; as marcas de corte ficam fora dela */
+.credencial-com-sangria {
+  overflow: visible;
+  isolation: isolate;
+}
+
+.cr-sangria {
   position: absolute;
+  z-index: -1;
+}
+
+.marca-corte,
+.marca-dobra {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.marca-corte.corte-h {
+  width: 4mm;
+  height: 0;
+  border-top: 0.2mm solid #18181b;
+}
+
+.marca-corte.corte-v,
+.marca-dobra {
+  width: 0;
+  height: 1.8mm;
+  border-left: 0.2mm solid #18181b;
+}
+
+.marca-dobra {
   left: 50%;
-  height: 2mm;
-  border-left: 0.25mm solid #52525b;
+  border-left-style: dashed;
 }
 
-.par-cartoes::before {
-  top: -2.6mm;
+.corte-cima-esquerda,
+.corte-baixo-esquerda {
+  right: calc(100% + 2.5mm);
 }
 
-.par-cartoes::after {
-  bottom: -2.6mm;
+.corte-cima-direita,
+.corte-baixo-direita {
+  left: calc(100% + 2.5mm);
+}
+
+.corte-cima-esquerda,
+.corte-cima-direita {
+  top: 0;
+}
+
+.corte-baixo-esquerda,
+.corte-baixo-direita {
+  top: 100%;
+}
+
+.corte-esquerda-cima,
+.corte-esquerda-baixo {
+  left: 0;
+}
+
+.corte-direita-cima,
+.corte-direita-baixo {
+  left: 100%;
+}
+
+.corte-esquerda-cima,
+.corte-direita-cima,
+.marca-dobra-cima {
+  bottom: calc(100% + 2.5mm);
+}
+
+.corte-esquerda-baixo,
+.corte-direita-baixo,
+.marca-dobra-baixo {
+  top: calc(100% + 2.5mm);
+}
+
+/* A tela da impressão: as folhas (menores, só na tela) e, ao lado, "Como imprimir" */
+.impressao {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .impressao {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+.impressao-previa {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+  background: var(--cor-fundo);
+}
+
+@media screen {
+  .impressao-previa .folhas-impressao {
+    zoom: 0.5;
+  }
+}
+
+.como-imprimir {
+  margin: 0;
+}
+
+.escolha-pedaco {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 0;
+  border: 0;
+}
+
+.escolha-pedaco legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.opcao-cartao {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.opcao-cartao.escolhida {
+  border-color: var(--cor-marca);
+  background: var(--cor-marca-suave);
+}
+
+.opcao-cartao input {
+  flex: none;
+  width: auto;
+  margin: 3px 0 0;
+}
+
+.opcao-cartao > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.opcao-cartao > span > span {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+.cabem-no-pedaco > button {
+  min-width: 52px;
+  font-size: 16px;
+}
+
+/* Imprimir só o pedaço ou só as folhas (cada um vai num papel) */
+@media print {
+  .imprimir-pedaco .folha-folha,
+  .imprimir-folhas .folha-pedaco {
+    display: none !important;
+  }
+
+  .tela-impressao .impressao {
+    display: block;
+  }
+
+  .tela-impressao .impressao-previa {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .folhas-impressao {
+    display: block;
+  }
 }
 
 .folha-a4 .credencial {
@@ -7483,4 +7697,342 @@ li.feito .numero-passo {
   flex: none;
   width: auto;
   margin: 3px 0 0;
+}
+
+/* Fase 5.5, parte 8: o símbolo da biblioteca e o lugar do logotipo da denominação (no editor) */
+.cr-simbolo svg,
+.cr-marca svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cr-lugar-logotipo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed #2563eb;
+  border-radius: 6%;
+  background: rgb(37 99 235 / 0.05);
+  color: #2563eb;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+}
+
+/* O papel de cada item nas regras do modelo (obrigatório, padrão, opcional) */
+.papel {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.papel-obrigatorio {
+  background: var(--cor-marca-suave);
+  color: var(--cor-marca-texto);
+}
+
+.papel-padrao {
+  background: var(--cor-aviso-fundo);
+  color: var(--cor-atencao-texto);
+}
+
+.papel-opcional {
+  background: var(--cor-ok-fundo);
+  color: var(--cor-ok-texto);
+}
+
+.lista-regras {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-regras li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--cor-fundo);
+  font-size: 13.5px;
+}
+
+.lista-regras li.falta {
+  outline: 1px solid var(--cor-erro);
+}
+
+.falta-texto {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cor-erro);
+}
+
+.regra-obrigatorio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cor-marca-texto);
+}
+
+.regra-padrao {
+  color: var(--cor-atencao-texto);
+}
+
+.regra-opcional {
+  color: var(--cor-ok-forte);
+}
+
+.grade-simbolos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.simbolo-botao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 2px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+}
+
+.simbolo-botao:hover {
+  border-color: var(--cor-marca);
+  color: var(--cor-marca-texto);
+}
+
+.grupo-tradicao {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.grupo-tradicao strong {
+  font-size: 13.5px;
+}
+
+.campo-busca-pequeno input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* No verso, o lembrete de que ali é a área livre */
+.editor-area-livre {
+  position: absolute;
+  z-index: 3;
+  top: 6px;
+  left: 6px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.editor-item .papel {
+  float: right;
+}
+
+/* ---------- Credenciais › Símbolos (a biblioteca) ---------- */
+.biblioteca-simbolos {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+
+.biblioteca-coluna {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.biblioteca-simbolos .painel {
+  margin: 0;
+}
+
+@media (min-width: 1100px) {
+  .biblioteca-simbolos {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  }
+}
+
+.grade-simbolos-pagina {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grade-simbolos-pagina li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  background: var(--cor-superficie);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.tradicoes {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tradicoes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--cor-fundo);
+}
+
+.tradicao-nome {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tradicao-nome .detalhe {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.tradicao-simbolos {
+  display: flex;
+  gap: 6px;
+}
+
+.tradicao-simbolo {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-superficie);
+}
+
+.lista-logotipos {
+  display: grid;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-logotipos li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.lista-logotipos li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.logotipo-miniatura {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.logotipo-vazio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  font-weight: 800;
+}
+
+.logotipo-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.logotipo-texto .detalhe {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+/* Cada folha (e o pedaço) numa página só */
+@media print {
+  .folha-a4,
+  .folha-a4:last-child {
+    break-after: auto;
+  }
+
+  .folha-com-legenda {
+    break-after: page;
+  }
+
+  .folha-com-legenda:last-child {
+    break-after: auto;
+  }
+}
+
+/* Validação pelo QR: o ministro em readequação (rodada 12, opção 1) — cinza, com a faixa de aviso embaixo */
+.credencial-publica-readequacao .credencial-publica-topo {
+  background: linear-gradient(115deg, #3f3f46, #52525b);
+}
+
+.credencial-publica-faixa {
+  flex: none;
+  height: 13%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  background: repeating-linear-gradient(-45deg, #18181b 0 2.1cqi, #f59e0b 2.1cqi 4.2cqi);
+}
+
+.credencial-publica-faixa > span {
+  padding: 0.5cqi 2cqi;
+  background: #f59e0b;
+  color: #18181b;
+  font-size: 2.6cqi;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }

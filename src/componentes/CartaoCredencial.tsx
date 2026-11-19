@@ -11,12 +11,14 @@ import {
   preencher,
   type Elemento,
   type ElementoFaixa,
+  type ElementoSimbolo,
   type ElementoTexto,
   type Face,
   type Lado,
   type ModeloCredencial,
   type ValoresCredencial,
 } from '../utilitarios/modeloCredencial'
+import { SIMBOLOS } from '../utilitarios/simbolos'
 import { QrCode } from './QrCode'
 
 /** A letra pode diminuir até 45% do tamanho escolhido. Não coube nem assim: o nome é abreviado; o resto, cortado. */
@@ -177,14 +179,47 @@ function Faixa({ e, valores, m }: { e: ElementoFaixa; valores: ValoresCredencial
   )
 }
 
-type PropsItem = { e: Elemento; valores: ValoresCredencial; nome: string; foto: string | null; urlQr: string; versao: number; m: Medidas }
+/** Um símbolo da biblioteca (desenho próprio em SVG). */
+function DesenhoDoSimbolo({ chave, cor, traco }: { chave: ElementoSimbolo['simbolo']; cor: string; traco: number }) {
+  const s = SIMBOLOS[chave]
+  const cheio = 'cheio' in s && s.cheio
+  return (
+    <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+      {cheio ? (
+        <path d={s.d} fill={cor} />
+      ) : (
+        <path d={s.d} fill="none" stroke={cor} strokeWidth={traco} strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </svg>
+  )
+}
 
-function Item({ e, valores, nome, foto, urlQr, versao, m }: PropsItem) {
+type PropsItem = {
+  e: Elemento
+  valores: ValoresCredencial
+  nome: string
+  foto: string | null
+  urlQr: string
+  versao: number
+  m: Medidas
+  /** o logotipo da denominação da pessoa (arquivo da pasta do modelo) */
+  logotipo: string | null
+  /** no editor: o lugar do logotipo da denominação aparece tracejado */
+  editor: boolean
+}
+
+function Item({ e, valores, nome, foto, urlQr, versao, m, logotipo, editor }: PropsItem) {
   switch (e.tipo) {
     case 'texto':
       return <Texto e={e} valores={valores} versao={versao} m={m} />
     case 'faixa':
       return <Faixa e={e} valores={valores} m={m} />
+    case 'simbolo':
+      return (
+        <div className="cr-el cr-simbolo" data-item={e.id} aria-hidden="true" style={{ ...caixaDo(e, m), opacity: e.opacidade < 1 ? e.opacidade : undefined }}>
+          <DesenhoDoSimbolo chave={e.simbolo} cor={e.cor} traco={e.traco} />
+        </div>
+      )
     case 'forma':
       return (
         <div
@@ -217,11 +252,19 @@ function Item({ e, valores, nome, foto, urlQr, versao, m }: PropsItem) {
         </div>
       )
     case 'imagem':
+      if (e.arquivo === 'denominacao' && !logotipo) {
+        // sem o logotipo enviado, o lugar fica vazio (no editor, tracejado)
+        return editor ? (
+          <div className="cr-el cr-lugar-logotipo" data-item={e.id} style={{ ...caixaDo(e, m), fontSize: m.letra(4.5) }}>
+            logotipo da denominação
+          </div>
+        ) : null
+      }
       return (
         <img
           className="cr-el cr-imagem"
           data-item={e.id}
-          src={urlImagemModelo(e.arquivo)}
+          src={urlImagemModelo(e.arquivo === 'denominacao' ? (logotipo ?? 'logo') : e.arquivo)}
           alt=""
           style={{
             ...caixaDo(e, m),
@@ -252,10 +295,39 @@ type PropsFace = {
   /** endereço que vai no QR Code */
   urlQr: string
   className?: string
+  /** o logotipo da denominação da igreja da pessoa (arquivo da pasta do modelo); vazio = não enviado */
+  logotipo?: string | null
+  /** no editor: o lugar do logotipo da denominação aparece tracejado */
+  editor?: boolean
+  /**
+   * Na impressão: a sangria (o fundo e o que encosta na borda passam do corte) nos lados de fora do par
+   * (a frente não sangra no lado da dobra; o verso também não).
+   */
+  sangria?: Sangria
+}
+
+export type Sangria = { mm: number; esquerda: boolean; direita: boolean; topo: boolean; base: boolean }
+
+/** O que encosta na borda (fundo de faixa, forma, imagem que cobre, faixa de aviso) passa para a sangria. */
+function comSangria(e: Elemento, c: { largura: number; altura: number }, s: Sangria): Elemento {
+  if (e.tipo === 'texto' || e.tipo === 'qr' || e.tipo === 'foto' || e.tipo === 'simbolo' || e.rotacao) return e
+  if (e.tipo === 'imagem' && e.ajuste !== 'cobrir') return e
+  let { x, y, w, h } = e
+  if (s.esquerda && x <= 0.05) {
+    w += s.mm + x
+    x = -s.mm
+  }
+  if (s.topo && y <= 0.05) {
+    h += s.mm + y
+    y = -s.mm
+  }
+  if (s.direita && x + w >= c.largura - 0.05) w = c.largura + s.mm - x
+  if (s.base && y + h >= c.altura - 0.05) h = c.altura + s.mm - y
+  return { ...e, x, y, w, h }
 }
 
 /** Um lado da credencial, desenhado pelo modelo. */
-export function FaceCredencial({ lado, modelo, valores, nome, foto, urlQr, className }: PropsFace) {
+export function FaceCredencial({ lado, modelo, valores, nome, foto, urlQr, className, logotipo = null, editor = false, sangria }: PropsFace) {
   const raiz = useRef<HTMLElement>(null)
   const face = modelo[lado]
   const cartao = cartaoDe(modelo)
@@ -289,10 +361,11 @@ export function FaceCredencial({ lado, modelo, valores, nome, foto, urlQr, class
   }, [])
 
   const emPe = cartao.altura > cartao.largura
+  const elementos = sangria ? face.elementos.map((e) => comSangria(e, cartao, sangria)) : face.elementos
   return (
     <article
       ref={raiz}
-      className={`credencial credencial-${lado}${emPe ? ' credencial-em-pe' : ''}${className ? ` ${className}` : ''}`}
+      className={`credencial credencial-${lado}${emPe ? ' credencial-em-pe' : ''}${sangria ? ' credencial-com-sangria' : ''}${className ? ` ${className}` : ''}`}
       aria-label={`Credencial de ${nome} — ${lado}`}
       style={
         {
@@ -303,17 +376,35 @@ export function FaceCredencial({ lado, modelo, valores, nome, foto, urlQr, class
         } as CSSProperties
       }
     >
-      {face.marca && (
-        <img
-          className="cr-marca"
-          src={urlImagemModelo('logo')}
-          alt=""
+      {sangria && (
+        <span
+          className="cr-sangria"
           aria-hidden="true"
-          style={{ opacity: face.marca.opacidade, width: medidas.u(Math.min(cartao.largura, cartao.altura) * 0.7) }}
+          style={{
+            background: fundoDaFace(face),
+            left: sangria.esquerda ? medidas.u(-sangria.mm) : 0,
+            right: sangria.direita ? medidas.u(-sangria.mm) : 0,
+            top: sangria.topo ? medidas.u(-sangria.mm) : 0,
+            bottom: sangria.base ? medidas.u(-sangria.mm) : 0,
+          }}
         />
       )}
-      {face.elementos.map((e) => (
-        <Item key={e.id} e={e} valores={valores} nome={nome} foto={foto} urlQr={urlQr} versao={versao} m={medidas} />
+      {face.marca &&
+        (face.marca.simbolo === 'comep' ? (
+          <img
+            className="cr-marca"
+            src={urlImagemModelo('logo')}
+            alt=""
+            aria-hidden="true"
+            style={{ opacity: face.marca.opacidade, width: medidas.u(Math.min(cartao.largura, cartao.altura) * 0.7) }}
+          />
+        ) : (
+          <span className="cr-marca" aria-hidden="true" style={{ opacity: face.marca.opacidade, width: medidas.u(Math.min(cartao.largura, cartao.altura) * 0.7) }}>
+            <DesenhoDoSimbolo chave={face.marca.simbolo} cor={face.marca.cor} traco={1.6} />
+          </span>
+        ))}
+      {elementos.map((e) => (
+        <Item key={e.id} e={e} valores={valores} nome={nome} foto={foto} urlQr={urlQr} versao={versao} m={medidas} logotipo={logotipo} editor={editor} />
       ))}
     </article>
   )
