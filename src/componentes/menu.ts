@@ -378,7 +378,9 @@ export const MODULOS: readonly Modulo[] = [
     funcoes: [
       { chave: 'lista', titulo: 'Credenciais', icone: 'credencial', caminho: '/credenciais' },
       { chave: 'imprimir', titulo: 'Imprimir', icone: 'imprimir', caminho: '/credenciais/imprimir' },
-      { chave: 'modelo', titulo: 'Modelo', icone: 'grade', caminho: '/credenciais/modelo' },
+      // rodadas 8 e 9: um modelo por grupo, com o editor na tela inteira e "Quem recebe"
+      { chave: 'modelos', titulo: 'Modelos', icone: 'grade', caminho: '/credenciais/modelos', tambem: ['/credenciais/modelo'] },
+      { chave: 'validade', titulo: 'Validade e verso', icone: 'relogio', caminho: '/credenciais/validade' },
     ],
   },
   {

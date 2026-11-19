@@ -1,4 +1,6 @@
 // Credencial do associado — Fase 3.1: dados (CPF, filiação, sigla da igreja) e pendências.
+// Fase 5.5 (parte 7): os modelos por grupo (quem recebe, a ordem, o exclusivo de igreja e a readequação).
+import type { TipoModelo } from '../utilitarios/modeloCredencial'
 import { cliente, falha, ok, type Resultado } from './cliente'
 
 /** CPF (só números) e filiação, como estão gravados no cadastro da pessoa. */
@@ -78,13 +80,24 @@ export type DadosCredencial = {
   em_dia: boolean
   jubilado: boolean
   pendencias: string[]
+  /** cargo na diretoria do COMEP hoje (o enum do banco) */
+  cargo?: string | null
+  /** o modelo de credencial desta pessoa (Fase 5.5: um por grupo) */
+  modelo_id?: string | null
+  /** ministro em readequação (a igreja dele é sem registro) */
+  readequacao?: boolean
+  prazo_readequacao?: string | null
 }
+
+export type ModeloDoPacote = { nome: string; tipo: TipoModelo; desenho: unknown }
 
 export type PacoteCredenciais = {
   fim_mandato: string | null
   texto_verso: string
-  /** modelo (desenho) em uso; vazio = o padrão do sistema */
+  /** desenho do modelo padrão (as telas antigas); vazio = o do sistema */
   modelo?: unknown
+  /** o desenho de cada modelo usado nas credenciais (pela chave modelo_id) */
+  modelos?: Record<string, ModeloDoPacote>
   credenciais: DadosCredencial[]
 }
 
@@ -245,4 +258,190 @@ export async function enviarImagemModelo(arquivo: Blob, extensao: 'png' | 'jpg' 
     }
   }
   return ok(nome)
+}
+
+
+// ---------- Os modelos por grupo (Fase 5.5, parte 7) ----------
+
+export type TipoCondicao =
+  | 'cargo'
+  | 'titulo'
+  | 'tempo'
+  | 'pastor_presidente'
+  | 'jubilado'
+  | 'comissao'
+  | 'admissao'
+  | 'igreja'
+  | 'denominacao'
+  | 'tradicao'
+  | 'periodo'
+  | 'mandato'
+
+export type Condicao = { tipo: TipoCondicao; valores?: string[]; anos?: number; de?: string; ate?: string }
+export type Regra = { modo: 'todas' | 'qualquer'; condicoes: Condicao[] }
+
+export type ModeloGrupo = {
+  id: string
+  nome: string
+  descricao: string | null
+  tipo: TipoModelo
+  prioridade: number
+  em_uso: boolean
+  regra: Regra
+  versao_id: string | null
+  desenho: unknown
+  salvo_em: string | null
+  igreja_id: string | null
+  igreja_nome: string | null
+  valor: number | null
+  pedido_por: string | null
+  pedido_por_nome: string | null
+  pago_em: string | null
+  lancamento_id: string | null
+  /** quantas pessoas recebem hoje */
+  pessoas: number
+}
+
+export type PainelModelos = {
+  fim_mandato: string | null
+  readequacao_ate: string | null
+  associados: number
+  /** na ordem: os de grupo e os exclusivos, depois o padrão e o de readequação */
+  modelos: ModeloGrupo[]
+}
+
+export async function painelModelos(): Promise<Resultado<PainelModelos>> {
+  const { data, error } = await cliente().rpc('painel_modelos')
+  return error ? falha(error) : ok(data as PainelModelos)
+}
+
+export type DadosModelo = {
+  nome: string
+  descricao?: string | null
+  regra?: Regra
+  tipo?: 'grupo' | 'exclusivo'
+  igreja_id?: string | null
+  valor?: number | null
+  pedido_por?: string | null
+}
+
+/** Cria (id vazio) ou muda o nome, a descrição, a regra e os dados do exclusivo. Devolve o id. */
+export async function salvarModeloGrupo(id: string | null, dados: DadosModelo): Promise<Resultado<string>> {
+  const { data, error } = await cliente().rpc('salvar_modelo', { p_id: id, p_dados: dados })
+  return error ? falha(error) : ok(data as string)
+}
+
+/** Nova versão do desenho de um modelo; com "usar", passa a valer na hora (e põe o rascunho em uso). */
+export async function salvarVersaoDoModelo(modeloId: string, desenho: unknown, descricao: string, usar: boolean): Promise<Resultado<string>> {
+  const { data, error } = await cliente().rpc('salvar_versao_modelo', {
+    p_modelo_id: modeloId,
+    p_desenho: desenho,
+    p_descricao: descricao.trim(),
+    p_usar: usar,
+  })
+  return error ? falha(error) : ok(data as string)
+}
+
+export async function usarVersaoDoModelo(modeloId: string, versaoId: string | null): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('usar_versao_modelo', { p_modelo_id: modeloId, p_versao_id: versaoId })
+  return error ? falha(error) : ok(null)
+}
+
+export async function porModeloEmUso(id: string, emUso: boolean): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('por_modelo_em_uso', { p_id: id, p_em_uso: emUso })
+  return error ? falha(error) : ok(null)
+}
+
+/** A ordem completa dos modelos de grupo e exclusivos, do primeiro ao último. */
+export async function ordenarModelos(ids: string[]): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('ordenar_modelos', { p_ids: ids })
+  return error ? falha(error) : ok(null)
+}
+
+export async function duplicarModelo(id: string, nome: string): Promise<Resultado<string>> {
+  const { data, error } = await cliente().rpc('duplicar_modelo', { p_id: id, p_nome: nome.trim() })
+  return error ? falha(error) : ok(data as string)
+}
+
+export async function arquivarModeloGrupo(id: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('arquivar_modelo', { p_id: id })
+  return error ? falha(error) : ok(null)
+}
+
+/** O pagamento do modelo exclusivo (tesouraria ou presidência); data vazia = desfazer. */
+export async function registrarPagamentoExclusivo(id: string, pagoEm: string | null, lancamentoId: string | null): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('registrar_pagamento_exclusivo', {
+    p_id: id,
+    p_pago_em: pagoEm || null,
+    p_lancamento_id: lancamentoId,
+  })
+  return error ? falha(error) : ok(null)
+}
+
+export type PessoaDoModelo = { pessoa_id: string; nome: string; numero_registro: number; titulo: string | null; igreja: string | null }
+export type Simulacao = { pessoas: PessoaDoModelo[]; acima: number; regra: Regra }
+
+/** Quem receberia o modelo com esta regra (ainda sem salvar); vazio = a regra salva. */
+export async function simularQuemRecebe(modeloId: string, regra: Regra | null): Promise<Resultado<Simulacao>> {
+  const { data, error } = await cliente().rpc('simular_quem_recebe', { p_modelo_id: modeloId, p_regra: regra })
+  return error ? falha(error) : ok(data as Simulacao)
+}
+
+export type LinhaCredencial = {
+  pessoa_id: string
+  numero_registro: number
+  nome: string
+  igreja_id: string | null
+  igreja: string | null
+  pendencias: string[]
+  em_dia: boolean
+  readequacao: boolean
+  modelo_id: string | null
+  modelo: string | null
+  valida_ate: string | null
+}
+
+export type ListaDeCredenciais = { fim_mandato: string | null; readequacao_ate: string | null; credenciais: LinhaCredencial[] }
+
+/** A lista do módulo Credenciais (secretaria e presidência). */
+export async function listaCredenciais(): Promise<Resultado<ListaDeCredenciais>> {
+  const { data, error } = await cliente().rpc('lista_credenciais')
+  return error ? falha(error) : ok(data as ListaDeCredenciais)
+}
+
+export type VersaoDoModelo = {
+  id: string
+  modelo_id: string
+  descricao: string
+  modelo: unknown
+  criado_em: string
+  criado_por_nome: string | null
+  em_uso: boolean
+}
+
+/** As versões salvas de um modelo, da mais nova para a mais antiga. */
+export async function listarVersoesDoModelo(modeloId: string): Promise<Resultado<VersaoDoModelo[]>> {
+  const { data, error } = await cliente()
+    .from('vw_versoes_modelo')
+    .select('*')
+    .eq('modelo_id', modeloId)
+    .order('criado_em', { ascending: false })
+    .returns<VersaoDoModelo[]>()
+  return error ? falha(error) : ok(data)
+}
+
+export type EntradaDoCaixa = { id: string; data: string; valor: number; descricao: string }
+
+/** Entradas do caixa (para ligar o pagamento do modelo exclusivo); só quem lê o caixa vê. */
+export async function entradasParaLigar(): Promise<Resultado<EntradaDoCaixa[]>> {
+  const { data, error } = await cliente()
+    .from('lancamentos')
+    .select('id, data, valor, descricao')
+    .eq('tipo', 'entrada')
+    .neq('situacao', 'cancelado')
+    .is('arquivado_em', null)
+    .order('data', { ascending: false })
+    .limit(200)
+    .returns<EntradaDoCaixa[]>()
+  return error ? falha(error) : ok(data)
 }
