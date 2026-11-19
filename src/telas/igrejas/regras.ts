@@ -124,3 +124,18 @@ export async function carregarIgrejasComSituacao() {
 }
 
 export const PASSOS_IGREJA = ['Dados da igreja', 'Endereço e contato', 'Pastor e diretoria', 'Documentos', 'Revisar'] as const
+
+/** O documento de cada tipo: o que vale hoje, o seguinte já conferido (o antecipado), o que espera a conferência e o recusado. */
+export function documentosDoTipo(documentos: DocumentoIgreja[], tipo: DocumentoIgreja['tipo'], hoje = hojeIso()) {
+  const doTipo = documentos.filter((d) => d.tipo === tipo).sort((a, b) => b.criado_em.localeCompare(a.criado_em))
+  const esperando = doTipo.find((d) => d.situacao === 'pendente')
+  const recusado = doTipo[0]?.situacao === 'recusado' ? doTipo[0] : undefined
+  const conferidos = doTipo.filter((d) => d.situacao === 'conferido')
+  if (tipo !== 'ata_diretoria' && tipo !== 'alvara') return { atual: conferidos[0], proximo: undefined, esperando, recusado, todos: doTipo }
+  const comValidade = conferidos.filter((d) => d.valido_ate)
+  const atual = comValidade
+    .filter((d) => (d.valido_de ?? '') <= hoje && (d.valido_ate ?? '') >= hoje)
+    .sort((a, b) => (b.valido_de ?? '').localeCompare(a.valido_de ?? ''))[0]
+  const proximo = comValidade.filter((d) => (d.valido_de ?? '') > hoje).sort((a, b) => (a.valido_de ?? '').localeCompare(b.valido_de ?? ''))[0]
+  return { atual, proximo, esperando, recusado, todos: doTipo }
+}

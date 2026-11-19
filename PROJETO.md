@@ -121,6 +121,8 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
   - A igreja ganha o ano de fundação, os membros (aproximado), o CEP, o e-mail, o site e a **convenção** estadual ou nacional (opcional); a denominação ganha a **tradição** (pentecostal, batista, reformada…).
   - **Central de regularização** (módulo Igrejas): as suspensas com a contagem dos 30 dias, o que vence nos próximos 60 dias, a natureza com prazo, o que falta da transição e as sem registro, para chamar para perto. As regras (o fim da transição, os 30 dias e o prazo do Cartão CNPJ) só a presidência muda.
   - **Na agenda**, a secretaria registra o empréstimo direto (já aprovado), sem passar pelo "pedir emprestado".
+  - **O histórico**: a secretaria também registra o documento que já venceu (o alvará do ano passado, a ata da diretoria anterior), que entra conferido e conta para a situação. O pastor presidente manda só o que vale agora ou o seguinte.
+  - **Na Minha igreja** (o pastor presidente): os documentos em cartões, com a validade e a barra do prazo; o cartão abre a página do documento (o atual, "Atualizar" com o passo a passo do envio antecipado, e o histórico); a aba Filiais; e, suspensa, só "o caminho de volta", com a contagem dos 30 dias. Os avisos de 60 e 30 dias antes chegam pelo sino. O ministro que ainda não preside uma igreja no COMEP vê, no Início, o convite para cadastrá-la.
 
 ### 4.4 Financeiro
 

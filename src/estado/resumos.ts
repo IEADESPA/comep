@@ -1,5 +1,5 @@
 // Resumos das telas novas (Fase 5.5): o "Precisa de você" do Início, a agenda dos próximos dias e os
-// avisos do sino. Tudo vem das funções que o sistema já tinha (src/dados): nada novo no banco.
+// avisos do sino. Tudo vem das funções do sistema (src/dados); a tabela de notificações ainda não existe.
 // Cada parte que falhar (ou que o perfil não pode ver) só fica de fora; o resto aparece.
 import type { Area, NomeIcone } from '../componentes/Icone'
 import { ITENS_MENU, perfisEfetivos, podeVer } from '../componentes/menu'
@@ -9,7 +9,7 @@ import type { Resultado } from '../dados/cliente'
 import { listarEncontros, minhaParticipacao, minhasFaltas, NOME_DO_TIPO, SIGLA_DO_TIPO, listarJustificativas } from '../dados/encontros'
 import { listarEventos } from '../dados/eventos'
 import { cobrancasEmAbertoDe, informesPendentes, situacaoDe } from '../dados/financeiro'
-import { listarPedidosCorrecao } from '../dados/igrejas'
+import { itensDaAnalise, listarDocumentosIgreja, listarPedidosCorrecao, minhaIgreja, type MinhaIgrejaResumo } from '../dados/igrejas'
 import { listarEmprestimos } from '../dados/patrimonio'
 import { listarPedidos, meuPedido } from '../dados/pedidos'
 import { listarPedidosAge } from '../dados/pedidosAge'
@@ -17,6 +17,7 @@ import type { MinhaConta, Perfil } from '../dados/perfis'
 import { trocasPendentes } from '../dados/portal'
 import { listarVotacoes } from '../dados/votacoes'
 import { diaMes, formatarData, horaCurta, hojeIso } from '../utilitarios/formatos'
+import { diasEntre, documentoDoItem, listaCurta, NOME_DO_ITEM, somarDias, vencimentoMaisProximo } from '../utilitarios/regularizacao'
 
 /** Busca e devolve só os dados (ou null, se deu erro): uma parte que falha não derruba as outras. */
 async function seguro<T>(busca: () => Promise<Resultado<T>>): Promise<T | null> {
@@ -36,6 +37,16 @@ const vejo = (caminho: string, perfis: readonly Perfil[]) => {
 const tem = (perfis: readonly Perfil[], ...quais: Perfil[]) => quais.some((p) => perfis.includes(p))
 
 const plural = (n: number, um: string, varios: string) => (n === 1 ? `1 ${um}` : `${n} ${varios}`)
+
+/** A igreja do pastor (a que ele preside, mesmo suspensa, ou a que cadastrou e está em análise): só para o ministro. */
+async function igrejaDoPastor(perfis: readonly Perfil[]): Promise<MinhaIgrejaResumo | null> {
+  return perfisEfetivos(perfis).has('ministro') ? seguro(minhaIgreja) : null
+}
+
+const diasPara = (hoje: string, ate: string) => {
+  const n = diasEntre(hoje, ate)
+  return n === 0 ? 'hoje' : n === 1 ? 'amanhã' : `em ${n} dias`
+}
 
 // ---------------------------------------------------------------------
 // "Precisa de você" (diretoria) / "Para você" (ministro)
@@ -215,6 +226,36 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
       para: `/eventos/${e.id}`,
     })
   }
+  // A regularização da igreja (Fase 5.5): suspensa, vencendo nos próximos 60 dias ou em análise
+  const igreja = await igrejaDoPastor(perfis)
+  if (igreja?.cadastro === 'em_analise') {
+    itens.push({ chave: 'igreja-analise', area: 'pessoas', icone: 'igreja', forte: igreja.nome, texto: 'a secretaria está conferindo o cadastro', acao: 'Acompanhar', para: '/cadastrar-minha-igreja' })
+  } else if (igreja?.situacao.situacao === 'suspensa' && !igreja.situacao.perfil_bloqueado && igreja.situacao.prazo_ate) {
+    const dias = diasEntre(hoje, igreja.situacao.prazo_ate) + 1
+    itens.unshift({
+      chave: 'igreja-suspensa',
+      area: 'pessoas',
+      icone: 'alerta',
+      forte: 'A igreja está suspensa:',
+      texto: `${dias === 1 ? 'falta 1 dia' : `faltam ${dias} dias`} para mandar ${listaCurta(igreja.situacao.vencidos)}`,
+      acao: 'Mandar agora',
+      para: '/minha-igreja',
+      principal: true,
+    })
+  } else if (igreja) {
+    const vence = vencimentoMaisProximo(igreja.situacao)
+    if (vence && diasEntre(hoje, vence.ate) <= 60) {
+      itens.push({
+        chave: 'igreja-vence',
+        area: 'eventos',
+        icone: 'relogio',
+        forte: `${NOME_DO_ITEM[vence.item]}:`,
+        texto: `vence ${diasPara(hoje, vence.ate)} (${formatarData(vence.ate)})`,
+        acao: 'Mandar o novo',
+        para: vence.item === 'natureza_juridica' ? '/minha-igreja/documentos/cartao_cnpj/atualizar' : `/minha-igreja/documentos/${documentoDoItem(vence.item)}/atualizar`,
+      })
+    }
+  }
   if (situacao && !situacao.jubilado) {
     if (situacao.em_dia) {
       const proximaCobranca = (abertas ?? []).find((c) => c.vencimento >= hoje)
@@ -344,6 +385,50 @@ export async function avisosDoSino(conta: MinhaConta): Promise<AvisoDoSino[]> {
       quando: a.criado_em,
       para: '/avisos',
     })
+  }
+  // A igreja do pastor (Fase 5.5): os avisos de 60 e 30 dias antes de vencer, a suspensão e o item que voltou da análise
+  const igreja = await igrejaDoPastor(perfis)
+  if (igreja?.cadastro === 'em_analise') {
+    const [conferidos, documentos] = await Promise.all([seguro(() => itensDaAnalise(igreja.igreja_id)), seguro(() => listarDocumentosIgreja(igreja.igreja_id))])
+    const voltaram = (conferidos ?? []).filter((i) => i.situacao === 'recusado').length + (documentos ?? []).filter((d) => d.situacao === 'recusado').length
+    if (voltaram > 0) {
+      const quando = [...(conferidos ?? []).map((i) => i.decidido_em ?? ''), ...(documentos ?? []).map((d) => d.conferido_em ?? '')].sort().pop() ?? agora
+      itens.push({
+        chave: `igreja-analise:${quando}`,
+        area: 'pessoas',
+        icone: 'alerta',
+        titulo: 'A secretaria devolveu um item',
+        texto: `${igreja.nome}: ${voltaram === 1 ? '1 item voltou' : `${voltaram} itens voltaram`} com o motivo. Mande de novo só o que voltou.`,
+        quando,
+        para: '/cadastrar-minha-igreja',
+      })
+    }
+  } else if (igreja?.situacao.situacao === 'suspensa' && igreja.situacao.suspensa_desde && !igreja.situacao.perfil_bloqueado) {
+    itens.push({
+      chave: `igreja-suspensa:${igreja.situacao.suspensa_desde}`,
+      area: 'pessoas',
+      icone: 'alerta',
+      titulo: 'A igreja está suspensa',
+      texto: `Mande ${listaCurta(igreja.situacao.vencidos)} até ${formatarData(igreja.situacao.prazo_ate)}: depois, o perfil de pastor presidente é bloqueado.`,
+      quando: `${igreja.situacao.suspensa_desde}T08:00:00-03:00`,
+      para: '/minha-igreja',
+    })
+  } else if (igreja) {
+    // os avisos de 60 e 30 dias antes vão ao pastor presidente (a responsabilidade é dele, não da secretaria)
+    const vence = vencimentoMaisProximo(igreja.situacao)
+    const dias = vence ? diasEntre(hoje, vence.ate) : null
+    if (vence && dias !== null && dias <= 60) {
+      const marco = dias <= 30 ? 30 : 60
+      itens.push({
+        chave: `igreja-vence:${vence.item}:${vence.ate}:${marco}`,
+        area: 'eventos',
+        icone: 'relogio',
+        titulo: `${NOME_DO_ITEM[vence.item]} vence ${diasPara(hoje, vence.ate)}`,
+        texto: `Vale até ${formatarData(vence.ate)}. Mande o novo antes de vencer: ele entra sozinho no dia certo, e a igreja não fica suspensa.`,
+        quando: `${somarDias(vence.ate, -marco)}T08:00:00-03:00`,
+        para: vence.item === 'natureza_juridica' ? '/minha-igreja/documentos/cartao_cnpj/atualizar' : `/minha-igreja/documentos/${documentoDoItem(vence.item)}/atualizar`,
+      })
+    }
   }
   if (pedido && pedido.situacao === 'pendencia') {
     itens.push({

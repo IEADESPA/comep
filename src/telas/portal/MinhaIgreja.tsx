@@ -1,117 +1,179 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useLocation, useParams } from 'react-router'
 import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { Icone, Ladrilho } from '../../componentes/Icone'
 import { AbasDaTela, CabecalhoTela, Chip, Selo, type Aba, type TipoSelo } from '../../componentes/Telas'
 import { buscarIgreja, listarIgrejas, listarTitulos, type Igreja, type Titulo } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import { listarItens, type ItemLista } from '../../dados/configuracoes'
-import { listarDiretoriaIgreja, listarDocumentosIgreja, listarPedidosCorrecao, type PedidoCorrecao } from '../../dados/igrejas'
+import {
+  DOCUMENTOS_DA_REGULARIDADE,
+  listarDiretoriaIgreja,
+  listarDocumentosIgreja,
+  listarPedidosCorrecao,
+  minhaIgreja,
+  type MinhaIgrejaResumo,
+  type PedidoCorrecao,
+  type TipoDocumentoIgreja,
+} from '../../dados/igrejas'
 import { listarEmprestimos, type Emprestimo, type SituacaoEmprestimo } from '../../dados/patrimonio'
 import { atualizarContatoIgreja, ministrosDaMinhaIgreja, type MinistroDaMinhaIgreja } from '../../dados/portal'
 import { useSessao } from '../../estado/contexto'
 import { agendaProxima } from '../../estado/resumos'
 import { useCarregar } from '../../estado/useCarregar'
 import { diaEMes, formatarCnpj, formatarData, hojeIso } from '../../utilitarios/formatos'
-import { FormDocumento, LinhaDocumento, type Concluir } from '../igrejas/componentes'
-import { diretoriaEmVigor } from '../igrejas/regras'
+import { SeloNivel, type Concluir } from '../igrejas/componentes'
+import { FiliaisDaIgreja } from '../igrejas/Filiais'
+import { CartoesDocumentos, DiretoriaDaMinhaIgreja, IgrejaSuspensa, PaginaDocumento, type DadosDaMinhaIgreja } from './DocumentosDaIgreja'
 import { FormCorrecao, ListaDePedidos } from './PedidosCorrecao'
 
 /**
  * /minha-igreja — o pastor presidente representa a igreja diante do COMEP (14/11/2026).
- * Telas novas (Fase 5.5, aprovada: "as cinco abas da igreja"): Dados, Documentos, Diretoria, Ministros e Agenda,
- * cada uma com endereço próprio (/minha-igreja, /minha-igreja/documentos…).
+ * Telas novas (Fase 5.5): as abas Dados, Documentos (em cartões, com a validade; o cartão abre a página do documento),
+ * Diretoria, Ministros, Filiais e Agenda, cada uma com endereço próprio. Suspensa, a igreja mostra só o caminho de
+ * volta, com a contagem dos 30 dias (rodada 12).
  */
 
 const ABAS: readonly Aba[] = [
   { para: '/minha-igreja', nome: 'Dados' },
-  { para: '/minha-igreja/documentos', nome: 'Documentos' },
+  { para: '/minha-igreja/documentos', nome: 'Documentos', curto: 'Docs' },
   { para: '/minha-igreja/diretoria', nome: 'Diretoria' },
   { para: '/minha-igreja/ministros', nome: 'Ministros' },
+  { para: '/minha-igreja/filiais', nome: 'Filiais' },
   { para: '/minha-igreja/agenda', nome: 'Agenda' },
 ]
 
+type CargaMinhaIgreja = {
+  minha: MinhaIgrejaResumo | null
+  base: Omit<DadosDaMinhaIgreja, 'ministros'> | null
+  regular: { ministros: MinistroDaMinhaIgreja[]; bairros: ItemLista[]; pedidos: PedidoCorrecao[]; titulos: Titulo[]; igrejas: Igreja[] } | null
+}
+
+const opcoesDe = (ministros: MinistroDaMinhaIgreja[]) => ministros.map((m) => ({ pessoa_id: m.pessoa_id, nome: m.nome, numero: m.numero_registro }))
+
 export function MinhaIgreja() {
-  const { aba = 'dados' } = useParams()
-  const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string; aba?: string }>({})
+  const { aba = 'dados', tipo, parte = 'atual' } = useParams()
+  const location = useLocation()
+  const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string; caminho?: string }>({})
   const [carga, recarregar] = useCarregar(async () => {
-    const ministros = await ministrosDaMinhaIgreja()
-    if (ministros.erro !== null) return ministros
-    const igrejaId = ministros.dados[0]?.igreja_id
-    if (!igrejaId) {
-      return ok({
-        ministros: [] as MinistroDaMinhaIgreja[],
-        igreja: null,
-        bairros: [] as ItemLista[],
-        pedidos: [] as PedidoCorrecao[],
-        titulos: [] as Titulo[],
-        igrejas: [] as Igreja[],
-      })
-    }
-    const [igreja, bairros, pedidos, titulos, igrejas] = await Promise.all([
-      buscarIgreja(igrejaId),
+    const minha = await minhaIgreja()
+    if (minha.erro !== null) return minha
+    const vazio: CargaMinhaIgreja = { minha: minha.dados, base: null, regular: null }
+    if (!minha.dados || minha.dados.cadastro !== 'completo') return ok<CargaMinhaIgreja>(vazio)
+    const id = minha.dados.igreja_id
+    const [igreja, documentos, diretoria] = await Promise.all([buscarIgreja(id), listarDocumentosIgreja(id), listarDiretoriaIgreja(id)])
+    if (igreja.erro !== null) return igreja
+    if (documentos.erro !== null) return documentos
+    if (diretoria.erro !== null) return diretoria
+    if (!igreja.dados) return ok<CargaMinhaIgreja>(vazio)
+    const base = { igreja: igreja.dados, situacao: minha.dados.situacao, documentos: documentos.dados, diretoria: diretoria.dados }
+    // suspensa, só o caminho de volta (o banco não abre o resto)
+    if (minha.dados.situacao.situacao !== 'regular') return ok<CargaMinhaIgreja>({ minha: minha.dados, base, regular: null })
+    const [ministros, bairros, pedidos, titulos, igrejas] = await Promise.all([
+      ministrosDaMinhaIgreja(),
       listarItens('bairros'),
       listarPedidosCorrecao(),
       listarTitulos(),
       listarIgrejas(),
     ])
-    if (igreja.erro !== null) return igreja
+    if (ministros.erro !== null) return ministros
     if (bairros.erro !== null) return bairros
     if (pedidos.erro !== null) return pedidos
-    return ok({
-      ministros: ministros.dados,
-      igreja: igreja.dados,
-      bairros: bairros.dados,
-      pedidos: pedidos.dados,
-      // as listas da correção (o título e a igreja certos se escolhem, não se digitam)
-      titulos: titulos.erro === null ? titulos.dados : [],
-      igrejas: igrejas.erro === null ? igrejas.dados : [],
+    return ok<CargaMinhaIgreja>({
+      minha: minha.dados,
+      base,
+      regular: {
+        ministros: ministros.dados,
+        bairros: bairros.dados,
+        pedidos: pedidos.dados,
+        // as listas da correção (o título e a igreja certos se escolhem, não se digitam)
+        titulos: titulos.erro === null ? titulos.dados : ([] as Titulo[]),
+        igrejas: igrejas.erro === null ? igrejas.dados : ([] as Igreja[]),
+      },
     })
   })
-  const concluir = (r: { erro: string | null }, sucesso: string) => {
-    setRetorno(r.erro !== null ? { erro: r.erro, aba } : { sucesso, aba })
+  const concluir: Concluir = (r, sucesso) => {
+    setRetorno(r.erro !== null ? { erro: r.erro, caminho: location.pathname } : { sucesso, caminho: location.pathname })
     if (r.erro === null) recarregar()
   }
-  const mensagem = retorno.aba === aba ? retorno : {}
+  const daNavegacao = (location.state as { mensagem?: string } | null)?.mensagem
+  const mensagem = retorno.caminho === location.pathname ? retorno : { sucesso: daNavegacao }
+  const tipoDoc = DOCUMENTOS_DA_REGULARIDADE.includes(tipo as TipoDocumentoIgreja) ? (tipo as TipoDocumentoIgreja) : null
 
   return (
     <div className="tela-nova">
       <CabecalhoTela titulo="Minha igreja" visivel={false} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ ministros, igreja, bairros, pedidos, titulos, igrejas }) =>
-          !igreja ? (
-            <Aviso titulo="Nenhuma igreja encontrada">
-              <p>
-                Este painel é do pastor presidente. Se você preside uma igreja e ela não aparece aqui, peça à secretaria
-                para marcar você como pastor presidente na sua ficha.
-              </p>
-            </Aviso>
-          ) : (
+        {({ minha, base, regular }) => {
+          if (!minha || !base) {
+            return minha?.cadastro === 'em_analise' ? (
+              <Aviso titulo="A sua igreja está em análise">
+                <p>
+                  A secretaria está conferindo o cadastro, item por item. <Link to="/cadastrar-minha-igreja">Acompanhar</Link>
+                </p>
+              </Aviso>
+            ) : (
+              <Aviso titulo="Nenhuma igreja encontrada">
+                <p>
+                  Este painel é do pastor presidente. Se você preside uma igreja e ela não aparece aqui, peça à secretaria para marcar
+                  você como pastor presidente na sua ficha.
+                </p>
+              </Aviso>
+            )
+          }
+          if (minha.situacao.situacao === 'suspensa') {
+            return (
+              <>
+                <Mensagem sucesso={mensagem.sucesso} erro={mensagem.erro} />
+                <IgrejaSuspensa dados={{ ...base, ministros: [] }} concluir={concluir} />
+              </>
+            )
+          }
+          if (!regular) {
+            return (
+              <Aviso titulo="A igreja não está regular">
+                <p>Fale com a secretaria do COMEP.</p>
+              </Aviso>
+            )
+          }
+          const dados: DadosDaMinhaIgreja = { ...base, ministros: opcoesDe(regular.ministros) }
+          if (tipoDoc) {
+            return (
+              <>
+                <Mensagem sucesso={mensagem.sucesso} erro={mensagem.erro} />
+                <PaginaDocumento tipo={tipoDoc} parte={parte} dados={dados} concluir={concluir} />
+              </>
+            )
+          }
+          const { igreja } = base
+          return (
             <>
-              <TopoDaIgreja igreja={igreja} ministros={ministros} />
+              <TopoDaIgreja igreja={igreja} ministros={regular.ministros} />
               <AbasDaTela rotulo="Partes da minha igreja" abas={ABAS} />
               <Mensagem sucesso={mensagem.sucesso} erro={mensagem.erro} />
               {aba === 'documentos' ? (
-                <DocumentosDaMinhaIgreja igreja={igreja} ministros={ministros} concluir={concluir} />
+                <CartoesDocumentos dados={dados} concluir={concluir} />
               ) : aba === 'diretoria' ? (
-                <DiretoriaDaMinhaIgreja igreja={igreja} ministros={ministros} concluir={concluir} />
+                <DiretoriaDaMinhaIgreja dados={dados} concluir={concluir} />
               ) : aba === 'ministros' ? (
                 <MinistrosDaIgreja
-                  ministros={ministros}
-                  pedidos={pedidos}
-                  titulos={titulos}
-                  igrejas={igrejas}
+                  ministros={regular.ministros}
+                  pedidos={regular.pedidos}
+                  titulos={regular.titulos}
+                  igrejas={regular.igrejas}
                   nomeDaIgreja={igreja.nome}
                   concluir={concluir}
                 />
+              ) : aba === 'filiais' ? (
+                <FiliaisDaIgreja igrejaId={igreja.id} ministros={dados.ministros} bairros={regular.bairros} podeMudar />
               ) : aba === 'agenda' ? (
                 <AgendaDaIgreja igreja={igreja} />
               ) : (
-                <DadosDaIgreja igreja={igreja} bairros={bairros} concluir={concluir} />
+                <DadosDaIgreja igreja={igreja} bairros={regular.bairros} concluir={concluir} />
               )}
             </>
           )
-        }
+        }}
       </MostrarCarga>
     </div>
   )
@@ -129,6 +191,7 @@ function TopoDaIgreja({ igreja, ministros }: { igreja: Igreja; ministros: Minist
         <h2 id="titulo-dados-igreja">{igreja.nome}</h2>
         {linha && <span className="detalhe">{linha}</span>}
         <span className="chips">
+          <SeloNivel nivel="regular" />
           <Chip area="pessoas">
             {ministros.length} {ministros.length === 1 ? 'ministro associado' : 'ministros associados'}
           </Chip>
@@ -261,132 +324,6 @@ function DadosDaIgreja({
           </button>
         </div>
       </form>
-    </section>
-  )
-}
-
-// ---------------------------------------------------------------------
-// Abas "Documentos" e "Diretoria": o documento vai com as partes e a validade; a diretoria vai com a ata
-// ---------------------------------------------------------------------
-
-function useDocumentosEDiretoria(igrejaId: string) {
-  return useCarregar(async () => {
-    const [documentos, diretoria] = await Promise.all([listarDocumentosIgreja(igrejaId), listarDiretoriaIgreja(igrejaId)])
-    if (documentos.erro !== null) return documentos
-    if (diretoria.erro !== null) return diretoria
-    return ok({ documentos: documentos.dados, diretoria: diretoria.dados })
-  })
-}
-
-const opcoesDe = (ministros: MinistroDaMinhaIgreja[]) => ministros.map((m) => ({ pessoa_id: m.pessoa_id, nome: m.nome, numero: m.numero_registro }))
-
-function DocumentosDaMinhaIgreja({ igreja, ministros, concluir }: { igreja: Igreja; ministros: MinistroDaMinhaIgreja[]; concluir: Concluir }) {
-  const [carga, recarregar] = useDocumentosEDiretoria(igreja.id)
-  return (
-    <section className="aba-conteudo" aria-labelledby="titulo-documentos-minha-igreja">
-      <h3 id="titulo-documentos-minha-igreja" className="somente-leitor">
-        Documentos da igreja
-      </h3>
-      <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ documentos, diretoria }) => (
-          <>
-            {documentos.length === 0 ? (
-              <p className="vazio">Nenhum documento enviado.</p>
-            ) : (
-              <ul className="bloco lista-linhas lista-itens-pedido" aria-label="Documentos da igreja">
-                {documentos.map((d) => (
-                  <LinhaDocumento key={d.id} d={d} podeConferir={false} aoConcluir={concluir} />
-                ))}
-              </ul>
-            )}
-            <details className="acao-recolhida">
-              <summary>Mandar um documento</summary>
-              <FormDocumento
-                igrejaId={igreja.id}
-                naturezaDaIgreja={igreja.natureza_juridica}
-                ministros={opcoesDe(ministros)}
-                diretoriaAtual={diretoriaEmVigor(documentos, diretoria).membros}
-                textoBotao="Mandar para a secretaria conferir"
-                aoConcluir={(r, s) => {
-                  concluir(r, `${s} A secretaria vai conferir.`)
-                  if (r.erro === null) recarregar()
-                }}
-              />
-            </details>
-            <p className="detalhe">
-              O pastor presidente manda e a secretaria confere. Mandado antes de vencer (o alvará do ano seguinte, a ata da próxima
-              diretoria), o documento fica guardado e entra sozinho no dia certo.
-            </p>
-          </>
-        )}
-      </MostrarCarga>
-    </section>
-  )
-}
-
-function DiretoriaDaMinhaIgreja({ igreja, ministros, concluir }: { igreja: Igreja; ministros: MinistroDaMinhaIgreja[]; concluir: Concluir }) {
-  const [carga, recarregar] = useDocumentosEDiretoria(igreja.id)
-  return (
-    <section className="aba-conteudo" aria-labelledby="titulo-diretoria-minha-igreja">
-      <h3 id="titulo-diretoria-minha-igreja" className="somente-leitor">
-        Diretoria da igreja
-      </h3>
-      <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ documentos, diretoria }) => {
-          const { vigente, proxima, membros } = diretoriaEmVigor(documentos, diretoria)
-          const esperando = documentos.filter((d) => d.tipo === 'ata_diretoria' && d.situacao === 'pendente')
-          return (
-            <>
-              <section className="bloco" aria-label="Diretoria em vigor">
-                <h2>Diretoria em vigor</h2>
-                {membros.length === 0 ? (
-                  <p className="vazio">A diretoria da igreja ainda não foi informada com a ata.</p>
-                ) : (
-                  <ul className="lista-linhas" aria-label="Diretoria da igreja">
-                    {membros.map((m) => (
-                      <li key={m.id}>
-                        <span className="linha-corpo">
-                          <strong>{m.cargo}</strong>
-                          <span>{m.nome}</span>
-                        </span>
-                        {m.pessoa_id ? <Chip area="pessoas">ministro da igreja</Chip> : <Chip area="assembleias">nome completo</Chip>}
-                        {m.fim && <span className="detalhe">até {formatarData(m.fim)}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {vigente && (
-                  <p className="detalhe">
-                    Mandato de {formatarData(vigente.valido_de)} a {formatarData(vigente.valido_ate)}: vale o menor mandato. Vencido sem a ata
-                    nova, a igreja fica suspensa no mesmo dia.
-                  </p>
-                )}
-                {proxima && <p className="detalhe">A próxima diretoria já foi conferida: entra sozinha em {formatarData(proxima.valido_de)}.</p>}
-                {esperando.length > 0 && (
-                  <p className="linha-selo">
-                    <Selo tipo="analise">Ata nova esperando a secretaria</Selo>
-                  </p>
-                )}
-              </section>
-              <details className="acao-recolhida">
-                <summary>{membros.length > 0 ? 'Mandar a ata nova, com a diretoria' : 'Informar a diretoria (com a ata)'}</summary>
-                <FormDocumento
-                  igrejaId={igreja.id}
-                  tipoFixo="ata_diretoria"
-                  naturezaDaIgreja={igreja.natureza_juridica}
-                  ministros={opcoesDe(ministros)}
-                  diretoriaAtual={membros}
-                  textoBotao="Mandar para a secretaria conferir"
-                  aoConcluir={(r) => {
-                    concluir(r, 'Ata e diretoria enviadas: a secretaria vai conferir.')
-                    if (r.erro === null) recarregar()
-                  }}
-                />
-              </details>
-            </>
-          )
-        }}
-      </MostrarCarga>
     </section>
   )
 }

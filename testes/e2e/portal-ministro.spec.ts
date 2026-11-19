@@ -152,16 +152,22 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   // Fase 5.1: a igreja como instituição — o pastor presidente envia o estatuto, informa a diretoria e pede uma correção
   await expect(page.getByText(/2 ministros associados/)).toBeVisible()
   // Fase 5.5: o documento vai com as partes (até 25 MB cada); a diretoria vai com a ata, com o mandato
+  // os documentos em cartões (parte 6): o cartão abre a página do documento; "Atualizar" é o passo a passo
   await page.goto('minha-igreja/documentos')
-  await page.getByText('Mandar um documento').click()
-  const envio = page.getByRole('form', { name: 'Mandar um documento' })
-  await envio.getByRole('combobox', { name: 'Documento' }).selectOption({ label: 'Estatuto da igreja' })
+  const cartoes = page.getByRole('list', { name: 'Documentos da igreja' })
+  await expect(cartoes.getByRole('link', { name: 'Estatuto da igreja' })).toContainText('Falta mandar')
+  await cartoes.getByRole('link', { name: 'Estatuto da igreja' }).click()
+  await page.getByRole('navigation', { name: 'Partes do documento' }).getByRole('link', { name: 'Atualizar (próximo)' }).click()
+  const envio = page.getByRole('form', { name: 'Atualizar: Estatuto da igreja' })
   await envio.getByLabel('Escolher os arquivos do documento').setInputFiles([pdfFicticio('estatuto-parte-1.pdf'), pdfFicticio('estatuto-parte-2.pdf')])
   await expect(envio.getByRole('list', { name: 'Partes escolhidas' }).getByRole('listitem')).toHaveCount(2)
+  await envio.getByRole('button', { name: /^Continuar/ }).click()
   await envio.getByRole('button', { name: 'Mandar para a secretaria conferir' }).click()
   await expect(mensagemNaTela(page, 'Estatuto da igreja: enviado. A secretaria vai conferir.')).toBeVisible()
-  await expect(page.getByRole('list', { name: 'Documentos da igreja' })).toContainText('Esperando a conferência')
-  await expect(page.getByRole('list', { name: 'Documentos da igreja' })).toContainText('em 2 partes')
+  await expect(page.getByText(/esperando a conferência$/)).toBeVisible()
+  await page.getByRole('navigation', { name: 'Partes do documento' }).getByRole('link', { name: 'Histórico' }).click()
+  await expect(page.getByRole('list', { name: 'Histórico do documento' })).toContainText('Esperando a conferência')
+  await expect(page.getByRole('list', { name: 'Histórico do documento' }).getByRole('link', { name: 'Parte 2' })).toBeVisible()
 
   await page.goto('minha-igreja/diretoria')
   await page.getByText('Informar a diretoria (com a ata)').click()

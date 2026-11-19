@@ -37,7 +37,8 @@ describe('os módulos na página inicial', () => {
     const { grupos, administracao } = modulosDoInicio(['presidencia', 'ministro', 'presidente_igreja'])
     const caminhos = new Set([...grupos.flatMap((g) => g.modulos), ...administracao].map((m) => m.caminho))
     for (const item of ITENS_MENU) {
-      if (['/painel', '/meu-perfil', '/meu-pedido'].includes(item.caminho)) continue
+      // o cadastro da igreja pelo pastor se abre pelo convite do Início, não pela grade dos módulos
+      if (['/painel', '/meu-perfil', '/meu-pedido', '/cadastrar-minha-igreja'].includes(item.caminho)) continue
       assert.ok(caminhos.has(item.caminho), item.caminho)
     }
   })
