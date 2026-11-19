@@ -106,7 +106,7 @@ export function CartoesDocumentos({ dados, concluir }: { dados: DadosDaMinhaIgre
                     </span>
                   </>
                 )}
-                {!comPrazo && atual && <span className="detalhe">Não tem validade. Só troca se mudar.</span>}
+                {tipo === 'cartao_cnpj' && atual && <span className="detalhe">Não tem validade. Só troca se mudar.</span>}
                 {proximo ? (
                   <span className="cartao-doc-proximo">
                     <Icone nome="check" tamanho={16} traco={2.6} /> O próximo já foi conferido: entra sozinho em {formatarData(proximo.valido_de)}.
@@ -115,7 +115,7 @@ export function CartoesDocumentos({ dados, concluir }: { dados: DadosDaMinhaIgre
                   <span className="cartao-doc-proximo espera">O próximo está com a secretaria, esperando a conferência.</span>
                 ) : null}
                 <span className="link-forte">
-                  {comPrazo ? (atual ? 'Mandar o próximo (antes de vencer)' : 'Mandar agora') : atual ? 'Ver o documento' : 'Mandar agora'}
+                  {!atual ? 'Mandar agora' : comPrazo && !proximo && !esperando ? 'Mandar o próximo (antes de vencer)' : 'Ver o documento'}
                 </span>
               </Link>
             </li>
