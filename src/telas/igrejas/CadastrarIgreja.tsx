@@ -315,7 +315,7 @@ export function PassoAPassoIgreja({ quem, listas, eu }: { quem: 'secretaria' | '
     setEnviando(null)
     const aviso = falhas.length > 0 ? ` Mas não foi possível enviar: ${falhas.join('; ')}. Mande de novo.` : ''
     if (pastor) {
-      navigate('/minha-igreja', { replace: true, state: { mensagem: `Cadastro enviado para a secretaria conferir.${aviso}` } })
+      navigate('/cadastrar-minha-igreja', { replace: true, state: { mensagem: `Cadastro enviado para a secretaria conferir.${aviso}` } })
     } else {
       navigate(`/igrejas/${id}`, { replace: true, state: { mensagem: `Igreja cadastrada.${aviso}` } })
     }

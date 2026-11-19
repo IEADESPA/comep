@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
-import { Aviso, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { Aviso, BotaoConfirmar, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { Ladrilho } from '../../componentes/Icone'
 import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
 import { Selo } from '../../componentes/Telas'
-import { buscarIgreja, type Igreja } from '../../dados/cadastros'
+import { arquivarIgreja, buscarIgreja, type Igreja } from '../../dados/cadastros'
 import { ok } from '../../dados/cliente'
 import {
   ativarIgreja,
@@ -39,7 +39,8 @@ type Retorno = { sucesso?: string; erro?: string }
 
 /** /igrejas/conferir */
 export function ParaConferir() {
-  const [retorno, setRetorno] = useState<Retorno>({})
+  const location = useLocation()
+  const [retorno, setRetorno] = useState<Retorno>({ sucesso: (location.state as { mensagem?: string } | null)?.mensagem })
   const [carga, recarregar] = useCarregar(async () => {
     const [novas, docs] = await Promise.all([igrejasEmAnalise(), documentosParaConferir()])
     if (novas.erro !== null) return novas
@@ -273,6 +274,26 @@ function Analise({ id }: { id: string }) {
                       <p className="detalhe">{resumoDoDocumento(ata)}</p>
                     </section>
                   )}
+                  <section className="bloco" aria-labelledby="titulo-recusar-cadastro">
+                    <h2 id="titulo-recusar-cadastro">Recusar o cadastro</h2>
+                    <p className="detalhe">
+                      Para quando a igreja não vai entrar (cadastro repetido, de outra cidade…). Nada se apaga: o cadastro é arquivado. Avise o
+                      pastor do motivo.
+                    </p>
+                    <BotaoConfirmar
+                      texto="Recusar o cadastro"
+                      confirmar="Confirmar: recusar e arquivar"
+                      aviso={`Recusar o cadastro de "${igreja.nome}"?`}
+                      desabilitado={ativando}
+                      aoConfirmar={() =>
+                        void umaVez(async () => {
+                          const r = await arquivarIgreja(igreja.id)
+                          if (r.erro !== null) return setRetorno({ erro: r.erro })
+                          navigate('/igrejas/conferir', { replace: true, state: { mensagem: `Cadastro de "${igreja.nome}" recusado e arquivado.` } })
+                        })
+                      }
+                    />
+                  </section>
                 </div>
               </div>
             </>

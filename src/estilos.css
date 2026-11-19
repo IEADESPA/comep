@@ -6078,3 +6078,173 @@ li.feito .numero-passo {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* ---------- Minha igreja (parte 6): os documentos em cartões, a igreja suspensa e o convite no Início ---------- */
+
+.cartoes-docs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .cartoes-docs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cartao-doc {
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+  color: var(--cor-texto);
+  text-decoration: none;
+}
+
+.cartao-doc:hover {
+  border-color: var(--cor-marca);
+}
+
+.cartao-doc-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cartao-doc-topo strong {
+  font-size: 15px;
+  color: var(--cor-titulo);
+}
+
+.barra-prazo {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cor-fundo);
+  overflow: hidden;
+}
+
+.barra-prazo > span {
+  display: block;
+  height: 100%;
+  background: var(--area-financas);
+}
+
+.barra-prazo > span.perto {
+  background: var(--area-eventos);
+}
+
+.cartao-doc-proximo {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 2px dashed var(--area-financas);
+  background: var(--area-financas-fundo);
+  color: var(--cor-texto);
+  font-size: 13px;
+}
+
+.cartao-doc-proximo > svg {
+  flex: none;
+  color: var(--area-financas);
+}
+
+.cartao-doc-proximo.espera {
+  border-color: var(--area-eventos);
+  background: var(--area-eventos-fundo);
+}
+
+/* A igreja suspensa: a contagem dos 30 dias e o lugar para mandar */
+.contagem-dias {
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.contagem-dias strong {
+  font-family: var(--letra-titulo);
+  font-size: 56px;
+  line-height: 1;
+  color: var(--area-pessoas);
+}
+
+.contagem-dias > span:first-of-type {
+  font-weight: 700;
+  color: var(--cor-titulo);
+}
+
+.zona-mande {
+  border: 2px dashed var(--cor-marca);
+  background: var(--cor-marca-suave);
+}
+
+.zona-mande h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cor-titulo);
+}
+
+/* O convite para cadastrar a igreja (Início do ministro) */
+.convite-igreja {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 22px;
+  padding: 18px 22px;
+  border-radius: 18px;
+  background: var(--cor-vermelho);
+  color: #ffffff;
+}
+
+.convite-igreja-icone {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #b91c1c;
+}
+
+.convite-igreja-texto {
+  flex: 1 1 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.convite-igreja-texto h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #ffffff;
+}
+
+.convite-igreja-texto span {
+  font-size: 14.5px;
+  color: var(--cor-vermelho-suave);
+}
+
+.convite-igreja-acoes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.convite-igreja .botao-texto {
+  color: #ffffff;
+}

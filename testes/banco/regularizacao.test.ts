@@ -270,6 +270,48 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
     })
   })
 
+  describe('o histórico (parte 6): a secretaria registra o documento que já venceu', () => {
+    it('o alvará vencido entra pela secretaria (conferido) e suspende a igreja; pelo pastor, não', async () => {
+      const igreja = (await um<{ id: string }>("insert into public.igrejas (nome, denominacao_id) values ('Igreja Histórico', $1) returning id", [denominacao])).id
+      const pastor = await criarUsuario(db, 'phist@teste.local', 'Pastor do Histórico')
+      await associar(pastor, igreja, true)
+      await regularizarNoBanco(igreja)
+      await db.query("update public.igreja_documentos set arquivado_em = now() where igreja_id = $1 and tipo = 'alvara'", [igreja])
+      await assert.rejects(
+        enviar(pastor, igreja, { tipo: 'alvara', valido_de: await hoje(-366), valido_ate: await hoje(-1), partes: [{ caminho: await arquivo(pastor, igreja) }] }),
+        erroComCodigo(BLOQUEADO_PELO_BANCO),
+      )
+      const id = await enviar(secretaria, igreja, {
+        tipo: 'alvara',
+        valido_de: await hoje(-366),
+        valido_ate: await hoje(-1),
+        partes: [{ caminho: await arquivo(secretaria, igreja) }],
+      })
+      assert.equal((await um<{ s: string }>('select situacao::text as s from public.igreja_documentos where id = $1', [id])).s, 'conferido')
+      const s = await situacao(igreja)
+      assert.equal(s.situacao, 'suspensa')
+      assert.equal(s.suspensa_desde, await hoje(0))
+      // a ata da diretoria anterior também entra, para o histórico
+      await enviar(secretaria, igreja, {
+        tipo: 'ata_diretoria',
+        partes: [{ caminho: await arquivo(secretaria, igreja) }],
+        diretoria: [{ cargo: 'Presidente', nome: 'Presidente Anterior Fictício', inicio: await hoje(-2000), fim: await hoje(-600) }],
+      })
+      assert.deepEqual((await situacao(igreja)).vencidos, ['alvara'])
+    })
+  })
+
+  describe('os ajudantes internos (parte 6)', () => {
+    it('quem tem login não chama direto o que só as outras funções usam (tornar pastor presidente, a natureza)', async () => {
+      await assert.rejects(
+        chamar(ministroA, 'select interno.tornar_pastor_presidente($1, $2)', [pessoa[ministroA], igrejaX]),
+        erroComCodigo(SEM_PERMISSAO),
+      )
+      await assert.rejects(chamar(secretaria, 'select interno.ajustar_prazo_natureza($1)', [igrejaA]), erroComCodigo(SEM_PERMISSAO))
+      await assert.rejects(chamar(secretaria, 'select interno.efeitos_do_documento($1)', [igrejaA]), erroComCodigo(SEM_PERMISSAO))
+    })
+  })
+
   describe('a diretoria por cargo e o menor mandato', () => {
     it('a ata vale até o MENOR mandato; o cargo é de um ministro associado ou um nome completo', async () => {
       const caminho = await arquivo(pastorA, igrejaA)

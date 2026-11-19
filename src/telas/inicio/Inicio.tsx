@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { Aviso, Carregando } from '../../componentes/Basicos'
 import { Icone, Ladrilho } from '../../componentes/Icone'
@@ -5,6 +6,7 @@ import { ehDaDiretoria, perfisEfetivos } from '../../componentes/menu'
 import { ok } from '../../dados/cliente'
 import { buscarConfigCredencial } from '../../dados/credencial'
 import { situacaoDe } from '../../dados/financeiro'
+import { minhaIgreja } from '../../dados/igrejas'
 import { meuPedido } from '../../dados/pedidos'
 import { NOME_DO_PERFIL, type MinhaConta } from '../../dados/perfis'
 import { useSessao } from '../../estado/contexto'
@@ -82,6 +84,7 @@ function InicioDaConta({ conta }: { conta: MinhaConta }) {
         <InicioSemPerfil pessoaId={conta.pessoaId} />
       ) : (
         <>
+          {ministro && !conta.perfis.includes('presidente_igreja') && <ConviteIgreja pessoaId={conta.pessoaId} />}
           <div className="inicio-blocos">
             <ParaVoce conta={conta} titulo={diretoria ? 'Precisa de você' : 'Para você'} />
             {diretoria ? <Agenda conta={conta} /> : ministro ? <CredencialNoInicio conta={conta} /> : null}
@@ -90,6 +93,56 @@ function InicioDaConta({ conta }: { conta: MinhaConta }) {
         </>
       )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------
+// O convite para o pastor cadastrar a igreja dele (rodada 9: o aviso no Início). Quem não é pastor presidente
+// fecha o convite, e ele não volta neste aparelho.
+// ---------------------------------------------------------------------
+
+const CHAVE_CONVITE = 'comep:convite-cadastrar-igreja'
+
+function conviteFechado(pessoaId: string): boolean {
+  try {
+    return (localStorage.getItem(CHAVE_CONVITE) ?? '').split(',').includes(pessoaId)
+  } catch {
+    return false
+  }
+}
+
+function ConviteIgreja({ pessoaId }: { pessoaId: string }) {
+  const [fechado, setFechado] = useState(() => conviteFechado(pessoaId))
+  const [carga] = useCarregar(minhaIgreja)
+  // a igreja dele já está no COMEP (ou em análise): o aviso é outro, no "Para você"
+  if (fechado || carga.situacao !== 'ok' || carga.dados !== null) return null
+  const fechar = () => {
+    try {
+      const atuais = (localStorage.getItem(CHAVE_CONVITE) ?? '').split(',').filter(Boolean)
+      localStorage.setItem(CHAVE_CONVITE, [...atuais, pessoaId].join(','))
+    } catch {
+      // sem guardar no aparelho, o convite só some até a próxima visita
+    }
+    setFechado(true)
+  }
+  return (
+    <section className="convite-igreja" aria-labelledby="titulo-convite-igreja">
+      <span className="convite-igreja-icone" aria-hidden="true">
+        <Icone nome="igreja" tamanho={28} />
+      </span>
+      <span className="convite-igreja-texto">
+        <h2 id="titulo-convite-igreja">A igreja que você preside ainda não está no COMEP?</h2>
+        <span>Cadastre a instituição aqui mesmo, com os documentos em PDF. A secretaria confere e você não precisa ir à sede.</span>
+      </span>
+      <span className="convite-igreja-acoes">
+        <Link to="/cadastrar-minha-igreja" className="botao botao-branco">
+          Cadastrar a minha igreja
+        </Link>
+        <button type="button" className="botao-texto" onClick={fechar}>
+          Não sou pastor presidente
+        </button>
+      </span>
+    </section>
   )
 }
 

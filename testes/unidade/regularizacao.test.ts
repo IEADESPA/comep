@@ -5,12 +5,15 @@ import { describe, it } from 'node:test'
 import {
   coordenadasDoLink,
   diasEntre,
+  documentoDoItem,
   fimDoMandato,
+  listaCurta,
   menorMandato,
   somarDias,
   tamanhoDoArquivo,
   tempoQueFalta,
   textoDoPrazo,
+  vencimentoMaisProximo,
 } from '../../src/utilitarios/regularizacao.ts'
 
 describe('o mandato da diretoria', () => {
@@ -75,5 +78,31 @@ describe('a localização da filial, pelo link do Google Maps', () => {
     assert.equal(coordenadasDoLink('https://maps.app.goo.gl/AbCdEf123'), null)
     assert.equal(coordenadasDoLink('Rua das Flores, 100'), null)
     assert.equal(coordenadasDoLink('-96.1, -49.9'), null)
+  })
+})
+
+describe('os avisos (parte 6)', () => {
+  const base = { situacao: 'regular' as const, vencidos: [], pendencias: [], perfil_bloqueado: false }
+
+  it('o que vence primeiro: o alvará, a ata, a natureza ou o fim da transição', () => {
+    assert.deepEqual(vencimentoMaisProximo({ ...base, alvara_ate: '2026-12-31', mandato_ate: '2028-12-31', proximo_vencimento: '2026-12-31' }), {
+      item: 'alvara',
+      ate: '2026-12-31',
+    })
+    assert.deepEqual(vencimentoMaisProximo({ ...base, alvara_ate: '2027-12-31', mandato_ate: '2026-12-01', proximo_vencimento: '2026-12-01' }), {
+      item: 'ata_diretoria',
+      ate: '2026-12-01',
+    })
+    assert.deepEqual(vencimentoMaisProximo({ ...base, pendencias: ['estatuto'], proximo_vencimento: '2027-04-28' }), { item: 'estatuto', ate: '2027-04-28' })
+    // suspensa, o aviso é outro (a contagem dos 30 dias)
+    assert.equal(vencimentoMaisProximo({ ...base, situacao: 'suspensa', proximo_vencimento: '2026-12-31' }), null)
+  })
+
+  it('a natureza se resolve com o Cartão CNPJ novo; a lista curta no meio da frase', () => {
+    assert.equal(documentoDoItem('natureza_juridica'), 'cartao_cnpj')
+    assert.equal(documentoDoItem('alvara'), 'alvara')
+    assert.equal(listaCurta(['alvara']), 'o alvará')
+    assert.equal(listaCurta(['estatuto', 'alvara']), 'o estatuto e o alvará')
+    assert.equal(listaCurta(['estatuto', 'cartao_cnpj', 'alvara']), '3 itens')
   })
 })

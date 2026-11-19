@@ -1,5 +1,6 @@
 // A regularização das igrejas (Fase 5.5, parte 5): contas de datas e textos que as telas usam.
 // As regras valem no banco (interno.situacao_igreja); aqui é só o que a tela mostra e calcula antes de mandar.
+import type { SituacaoIgreja, TipoDocumentoIgreja } from '../dados/igrejas'
 
 /** Os itens que deixam a igreja regular (e o que suspende quando vence). */
 export type ItemRegularidade = 'estatuto' | 'cartao_cnpj' | 'natureza_juridica' | 'ata_diretoria' | 'alvara'
@@ -118,3 +119,15 @@ export function tamanhoDoArquivo(bytes: number): string {
 
 /** O limite de cada arquivo (parte) de um documento da igreja. */
 export const LIMITE_DA_PARTE = 25 * 1024 * 1024
+
+/** O que vence primeiro na igreja regular (para os avisos de 60 e 30 dias). */
+export function vencimentoMaisProximo(s: SituacaoIgreja): { item: ItemRegularidade; ate: string } | null {
+  if (s.situacao !== 'regular' || !s.proximo_vencimento) return null
+  const ate = s.proximo_vencimento
+  const item: ItemRegularidade | undefined =
+    s.alvara_ate === ate ? 'alvara' : s.mandato_ate === ate ? 'ata_diretoria' : s.natureza_prazo === ate ? 'natureza_juridica' : s.pendencias[0]
+  return item ? { item, ate } : null
+}
+
+/** O documento que resolve o item (a natureza se resolve com o Cartão CNPJ novo). */
+export const documentoDoItem = (item: ItemRegularidade): TipoDocumentoIgreja => (item === 'natureza_juridica' ? 'cartao_cnpj' : item)

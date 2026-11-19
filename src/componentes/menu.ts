@@ -83,6 +83,18 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     area: 'pessoas',
   },
   {
+    // o ministro associado cadastra a igreja que ele preside (a secretaria confere): o aviso fica no Início
+    caminho: '/cadastrar-minha-igreja',
+    titulo: 'Cadastrar a minha igreja',
+    descricao: 'A igreja que você preside ainda não está no COMEP? Cadastre aqui, com os documentos',
+    perfis: MINISTRO,
+    fase: 5.5,
+    pronto: true,
+    icone: 'igreja',
+    area: 'pessoas',
+    curto: 'Minha igreja',
+  },
+  {
     caminho: '/inscricoes',
     titulo: 'Inscrições',
     descricao: 'Pedidos de associação para análise',
