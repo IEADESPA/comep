@@ -1,29 +1,33 @@
 // Fase 3.2/3.3 — Credenciais: a do próprio associado e, para a secretaria/presidência, a de todos.
-// Ver (digital), imprimir (tamanho real, CR80) e conferir a página de validação.
+// Ver (digital), imprimir (tamanho real) e conferir a página de validação.
+// Fase 5.5 (parte 7): cada credencial sai no MODELO da pessoa (um por grupo; o de readequação para o ministro da igreja
+// sem registro); a lista do módulo é a tabela aprovada (rodada 7), com a caixinha para marcar quem vai para a impressão.
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { FaceCredencial } from '../../componentes/CartaoCredencial'
 import { Icone } from '../../componentes/Icone'
+import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
 import { PendenciasCredencial } from '../../componentes/PendenciasCredencial'
 import { QrCode } from '../../componentes/QrCode'
 import { CabecalhoTela, Chip } from '../../componentes/Telas'
 import {
   dadosCredenciais,
-  listarPendencias,
+  listaCredenciais,
   publicarFoto,
   substituirCredencial,
   urlValidacao,
   type DadosCredencial,
+  type LinhaCredencial,
   type PacoteCredenciais,
 } from '../../dados/credencial'
 import { linkDoArquivo } from '../../dados/pedidos'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { contemTexto, formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
+import { contemTexto, formatarData, formatarDataDeInstante, hojeIso, iniciaisDe, numeroDoRegistro } from '../../utilitarios/formatos'
 import { imprimir } from '../../utilitarios/exportar'
-import { normalizarModelo, valoresDaCredencial, type ModeloCredencial } from '../../utilitarios/modeloCredencial'
+import { modeloDaCredencial, valoresDaCredencial, type ModeloCredencial } from '../../utilitarios/modeloCredencial'
 
 /** Foto para mostrar (link temporário da pasta privada) e, de quebra, publica a cópia para o QR Code. */
 function useFoto(c: DadosCredencial | undefined, publicar: boolean): string | null {
@@ -56,7 +60,7 @@ function FrenteEVerso({ modelo, textoVerso, c, foto }: { modelo: ModeloCredencia
 /** Frente e verso, lado a lado (computador) ou um embaixo do outro (celular). */
 export function CredencialNaTela({ pacote, c }: { pacote: PacoteCredenciais; c: DadosCredencial }) {
   const foto = useFoto(c, true)
-  const modelo = useMemo(() => normalizarModelo(pacote.modelo), [pacote.modelo])
+  const modelo = useMemo(() => modeloDaCredencial(pacote, c), [pacote, c])
   return (
     <div className="credencial-dupla" aria-label={`Credencial de ${c.nome}`}>
       <FrenteEVerso modelo={modelo} textoVerso={pacote.texto_verso} c={c} foto={foto} />
@@ -84,7 +88,7 @@ export function SituacaoAgora({ c }: { c: DadosCredencial }) {
       <p className="detalhe">
         {c.valida_ate
           ? `Válida até ${formatarData(c.valida_ate)}, o fim do mandato da diretoria. A digital passa sozinha para o mandato seguinte. A impressa vale até a data que está nela: depois da posse da nova diretoria, imprima de novo (a antiga perde a validade).`
-          : 'Válida enquanto o associado estiver ativo. (O fim do mandato da diretoria ainda não foi informado em Configurações → Credencial.)'}
+          : 'Válida enquanto o associado estiver ativo. (O fim do mandato da diretoria ainda não foi informado em Credenciais › Validade e verso.)'}
       </p>
       <p>
         <a href={urlValidacao(c.codigo)} target="_blank" rel="noreferrer">
@@ -133,7 +137,7 @@ function ConteudoMinha({ pessoaId }: { pessoaId: string }) {
  */
 function MinhaCredencialNaTela({ pacote, c }: { pacote: PacoteCredenciais; c: DadosCredencial }) {
   const foto = useFoto(c, true)
-  const modelo = useMemo(() => normalizarModelo(pacote.modelo), [pacote.modelo])
+  const modelo = useMemo(() => modeloDaCredencial(pacote, c), [pacote, c])
   const [verso, setVerso] = useState(false)
   const [qrAberto, setQrAberto] = useState(false)
   const vencida = c.valida_ate !== null && c.valida_ate < hojeIso()
@@ -221,119 +225,205 @@ export function ImprimirMinhaCredencial() {
 // /credenciais — secretaria e presidência
 // ---------------------------------------------------------------------
 
+type FiltroLista = 'todas' | 'completas' | 'pendentes' | 'readequacao'
+
+const FILTROS_LISTA: { chave: FiltroLista; nome: string }[] = [
+  { chave: 'todas', nome: 'Todas' },
+  { chave: 'completas', nome: 'Completas' },
+  { chave: 'pendentes', nome: 'Com pendência' },
+  { chave: 'readequacao', nome: 'Em readequação' },
+]
+
+function passaNoFiltro(l: LinhaCredencial, f: FiltroLista): boolean {
+  if (f === 'completas') return l.pendencias.length === 0
+  if (f === 'pendentes') return l.pendencias.length > 0
+  if (f === 'readequacao') return l.readequacao
+  return true
+}
+
+/** A lista do módulo (rodada 7, aprovada como está): a tabela com a caixinha de quem vai para a impressão. */
 export function ListaCredenciais() {
   const navegar = useNavigate()
-  const [carga, recarregar] = useCarregar(listarPendencias)
+  const [carga, recarregar] = useCarregar(listaCredenciais)
   const [busca, setBusca] = useState('')
-  const [filtro, setFiltro] = useState<'todas' | 'completas' | 'pendentes'>('todas')
+  const [filtro, setFiltro] = useState<FiltroLista>('todas')
   const [escolhidas, setEscolhidas] = useState<string[]>([])
 
+  const sub =
+    carga.situacao === 'ok'
+      ? [
+          `${carga.dados.credenciais.length} ${carga.dados.credenciais.length === 1 ? 'credencial' : 'credenciais'}`,
+          `${carga.dados.credenciais.filter((l) => l.pendencias.length === 0).length} completas`,
+          carga.dados.fim_mandato ? `válidas até ${formatarData(carga.dados.fim_mandato)}` : 'válidas enquanto o associado estiver ativo',
+        ].join(' · ')
+      : 'A credencial de cada associado ativo'
+
+  const imprimirMarcadas = () => navegar('/credenciais/imprimir', { state: { pessoas: escolhidas } })
+
   return (
-    <>
-      <h1>Credenciais</h1>
-      <p className="detalhe">
-        Credencial de cada associado ativo: veja a digital, imprima no tamanho de cartão (85,6 × 54 mm) e confira a página
-        do QR Code. A impressa traz a validade (o fim do mandato da diretoria) e é impressa de novo a cada mandato; a
-        digital se atualiza sozinha.
-      </p>
+    <div className="tela-nova">
+      <CabecalhoFuncao modulo="Credenciais" titulo="Credenciais" sub={sub} />
+      <div className="busca-com-acao">
+        <label className="campo-busca">
+          <Icone nome="busca" tamanho={18} />
+          <input
+            type="search"
+            aria-label="Buscar associado"
+            placeholder="Buscar por nome, igreja ou nº"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </label>
+        <button type="button" className="botao" disabled={escolhidas.length === 0} onClick={imprimirMarcadas}>
+          Imprimir as marcadas ({escolhidas.length})
+        </button>
+      </div>
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {(todos) => {
-          const visiveis = todos.filter(
-            (a) =>
-              (filtro === 'todas' || (filtro === 'completas' ? a.pendencias.length === 0 : a.pendencias.length > 0)) &&
-              (contemTexto(a.nome, busca) ||
-                contemTexto(a.igreja, busca) ||
-                (/^\d+$/.test(busca.trim()) && Number(busca.trim()) === a.numero_registro)),
+        {({ credenciais: todas, fim_mandato }) => {
+          const termo = busca.trim()
+          const achadas = todas.filter(
+            (l) => contemTexto(l.nome, termo) || contemTexto(l.igreja, termo) || (/^\d+$/.test(termo) && Number(termo) === l.numero_registro),
           )
-          const completas = todos.filter((a) => a.pendencias.length === 0).length
-          const todasMarcadas = visiveis.length > 0 && visiveis.every((a) => escolhidas.includes(a.pessoa_id))
+          const visiveis = achadas.filter((l) => passaNoFiltro(l, filtro))
+          const todasMarcadas = visiveis.length > 0 && visiveis.every((l) => escolhidas.includes(l.pessoa_id))
           return (
             <>
-              <div className="form-linha">
-                <label>
-                  Buscar associado
-                  <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome, igreja ou nº" />
-                </label>
-                <label className="campo-medio">
-                  Mostrar
-                  <select value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)}>
-                    <option value="todas">Todas ({todos.length})</option>
-                    <option value="completas">Completas ({completas})</option>
-                    <option value="pendentes">Com pendência ({todos.length - completas})</option>
-                  </select>
-                </label>
-              </div>
-              <div className="acoes">
-                <label className="caixa-marcar">
-                  <input
-                    type="checkbox"
-                    checked={todasMarcadas}
-                    onChange={(e) =>
-                      setEscolhidas(
-                        e.target.checked
-                          ? [...new Set([...escolhidas, ...visiveis.map((a) => a.pessoa_id)])]
-                          : escolhidas.filter((id) => !visiveis.some((a) => a.pessoa_id === id)),
-                      )
-                    }
-                  />
-                  Marcar todas as mostradas
-                </label>
-                <button
-                  type="button"
-                  className="botao"
-                  disabled={escolhidas.length === 0}
-                  onClick={() => navegar('/credenciais/imprimir', { state: { pessoas: escolhidas } })}
-                >
-                  Imprimir as marcadas ({escolhidas.length})
-                </button>
-                <Link className="botao botao-secundario" to="/credenciais/modelo">
-                  Editar o modelo (desenho) da credencial
-                </Link>
+              <div className="pilulas" role="group" aria-label="Mostrar">
+                {FILTROS_LISTA.filter((f) => f.chave !== 'readequacao' || todas.some((l) => l.readequacao)).map((f) => (
+                  <button
+                    key={f.chave}
+                    type="button"
+                    className={filtro === f.chave ? 'pilula ativa' : 'pilula'}
+                    aria-pressed={filtro === f.chave}
+                    onClick={() => setFiltro(f.chave)}
+                  >
+                    {f.nome} <strong>{todas.filter((l) => passaNoFiltro(l, f.chave)).length}</strong>
+                  </button>
+                ))}
               </div>
               {visiveis.length === 0 ? (
                 <p className="vazio">Nenhum associado encontrado.</p>
               ) : (
-                <ul className="lista" aria-label="Credenciais">
-                  {visiveis.map((a) => (
-                    <li key={a.pessoa_id} className="lista-item lista-item-estatico linha-credencial" aria-label={a.nome}>
-                      <label className="caixa-marcar">
-                        <input
-                          type="checkbox"
-                          aria-label={`Marcar ${a.nome} para imprimir`}
-                          checked={escolhidas.includes(a.pessoa_id)}
-                          onChange={(e) =>
-                            setEscolhidas((atual) =>
-                              e.target.checked ? [...atual, a.pessoa_id] : atual.filter((id) => id !== a.pessoa_id),
-                            )
+                <div className="tabela-ministros tabela-credenciais">
+                  <div className="tabela-credenciais-cabecalho so-computador">
+                    <label className="caixa-marcar">
+                      <input
+                        type="checkbox"
+                        aria-label="Marcar todas as mostradas"
+                        checked={todasMarcadas}
+                        onChange={(e) =>
+                          setEscolhidas(
+                            e.target.checked
+                              ? [...new Set([...escolhidas, ...visiveis.map((l) => l.pessoa_id)])]
+                              : escolhidas.filter((id) => !visiveis.some((l) => l.pessoa_id === id)),
+                          )
+                        }
+                      />
+                    </label>
+                    <span aria-hidden="true">Ministro</span>
+                    <span aria-hidden="true">Nº</span>
+                    <span aria-hidden="true">Igreja</span>
+                    <span aria-hidden="true">Situação</span>
+                  </div>
+                  <ul aria-label="Credenciais">
+                    {visiveis.map((l) => (
+                      <li key={l.pessoa_id} aria-label={l.nome}>
+                        <LinhaDaCredencial
+                          l={l}
+                          fimMandato={fim_mandato}
+                          marcada={escolhidas.includes(l.pessoa_id)}
+                          aoMarcar={(sim) =>
+                            setEscolhidas((atual) => (sim ? [...atual, l.pessoa_id] : atual.filter((id) => id !== l.pessoa_id)))
                           }
                         />
-                        <strong>
-                          <span className="numero">Nº {a.numero_registro}</span> {a.nome}
-                        </strong>
-                      </label>
-                      <span>{a.igreja ?? 'Sem igreja'}</span>
-                      <span>
-                        {a.pendencias.length === 0 ? (
-                          <span className="etiqueta etiqueta-ok">Completa</span>
-                        ) : (
-                          <span className="etiqueta etiqueta-atraso" title={a.pendencias.join(', ')}>
-                            Falta: {a.pendencias.join(', ')}
-                          </span>
-                        )}
-                      </span>
-                      <Link to={`/credenciais/${a.pessoa_id}`} className="botao-texto alinhar-esquerda">
-                        Ver a credencial
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {visiveis.length > 0 && visiveis.length < todas.length && (
+                <p className="detalhe">
+                  {visiveis.length} de {todas.length}
+                </p>
               )}
             </>
           )
         }}
       </MostrarCarga>
-    </>
+    </div>
   )
+}
+
+function LinhaDaCredencial({
+  l,
+  fimMandato,
+  marcada,
+  aoMarcar,
+}: {
+  l: LinhaCredencial
+  fimMandato: string | null
+  marcada: boolean
+  aoMarcar: (sim: boolean) => void
+}) {
+  const numero = numeroDoRegistro(l.numero_registro)
+  return (
+    <div className="linha-credencial-nova">
+      <label className="caixa-marcar">
+        <input type="checkbox" aria-label={`Marcar ${l.nome} para imprimir`} checked={marcada} onChange={(e) => aoMarcar(e.target.checked)} />
+      </label>
+      <Link to={`/credenciais/${l.pessoa_id}`} className="linha-credencial-link" aria-label={`Ver a credencial de ${l.nome}`}>
+        <span className="avatar-ministro" aria-hidden="true">
+          {iniciaisDe(l.nome)}
+        </span>
+        <span className="linha-ministro-nome">
+          <strong>{l.nome}</strong>
+          <span className="so-celular">
+            nº {numero}
+            {l.igreja && ` · ${l.igreja}`}
+          </span>
+          {l.modelo && <span className="so-computador">Modelo: {l.modelo}</span>}
+        </span>
+        <span className="linha-ministro-coluna so-computador">
+          <span className="somente-leitor">nº </span>
+          {numero}
+        </span>
+        <span className="linha-ministro-coluna so-computador">{l.igreja ?? 'Sem igreja'}</span>
+        <span className="linha-ministro-situacao">
+          <SituacaoDaCredencial l={l} fimMandato={fimMandato} />
+        </span>
+        <span className="so-computador linha-ministro-seta">
+          <Icone nome="seta" tamanho={18} />
+        </span>
+      </Link>
+    </div>
+  )
+}
+
+const FALTA: Record<string, string> = {
+  'Sem foto': 'Falta a foto',
+  'Sem CPF': 'Falta o CPF',
+  'Sem título': 'Falta o título',
+  'Sem igreja': 'Falta a igreja',
+  'Sem o nome da mãe': 'Falta o nome da mãe',
+  'Sem a função na igreja': 'Falta a função na igreja',
+}
+
+function SituacaoDaCredencial({ l, fimMandato }: { l: LinhaCredencial; fimMandato: string | null }) {
+  const ate = l.valida_ate ?? fimMandato
+  const [primeira, ...outras] = l.pendencias
+  if (primeira) {
+    return (
+      <span title={`Falta: ${l.pendencias.join(', ')}`}>
+        <Chip area="eventos">
+          {FALTA[primeira] ?? primeira}
+          {outras.length > 0 && ` +${outras.length}`}
+        </Chip>
+      </span>
+    )
+  }
+  if (l.readequacao) return <Chip area="assembleias">Em readequação</Chip>
+  if (!l.em_dia) return <Chip area="pessoas">Válida · em atraso</Chip>
+  return <Chip area="financas">{ate ? `Válida até ${formatarData(ate)}` : 'Válida'}</Chip>
 }
 
 export function CredencialDe() {
@@ -474,7 +564,6 @@ export function ImprimirCredenciais() {
 
 function TelaImpressao({ pessoas, voltar }: { pessoas: string[]; voltar: string }) {
   const [carga, recarregar] = useCarregar(() => dadosCredenciais(pessoas))
-  const modelo = useMemo(() => normalizarModelo(carga.situacao === 'ok' ? carga.dados.modelo : null), [carga])
   return (
     <>
       <div className="nao-imprimir">
@@ -514,7 +603,7 @@ function TelaImpressao({ pessoas, voltar }: { pessoas: string[]; voltar: string 
               {Array.from({ length: Math.ceil(pacote.credenciais.length / POR_FOLHA) }, (_, f) => (
                 <section key={f} className="folha-a4" aria-label={`Folha ${f + 1}`}>
                   {pacote.credenciais.slice(f * POR_FOLHA, (f + 1) * POR_FOLHA).map((c) => (
-                    <ParParaImprimir key={c.pessoa_id} modelo={modelo} textoVerso={pacote.texto_verso} c={c} />
+                    <ParParaImprimir key={c.pessoa_id} modelo={modeloDaCredencial(pacote, c)} textoVerso={pacote.texto_verso} c={c} />
                   ))}
                 </section>
               ))}
@@ -550,7 +639,7 @@ function AvisosDaImpressao({ pacote }: { pacote: PacoteCredenciais }) {
         <ul>
           {semValidade && (
             <li>
-              O fim do mandato não foi informado (Configurações → Credencial): a credencial sai com "Válida até: enquanto
+              O fim do mandato não foi informado (Credenciais › Validade e verso): a credencial sai com "Válida até: enquanto
               ativo".
             </li>
           )}

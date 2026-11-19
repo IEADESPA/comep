@@ -1,4 +1,4 @@
-import { BrowserRouter, Outlet, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { FaixaAmbiente } from './componentes/Basicos'
 import { Layout } from './componentes/Layout'
 import { ITENS_MENU } from './componentes/menu'
@@ -10,7 +10,9 @@ import { Auditoria } from './telas/administracao/Auditoria'
 import { Configuracoes } from './telas/administracao/Configuracoes'
 import { NovaSenha, PrimeiroAcesso } from './telas/acesso/PrimeiroAcesso'
 import { CredencialDe, ImprimirCredenciais, ImprimirMinhaCredencial, ListaCredenciais, MinhaCredencial } from './telas/credencial/Credenciais'
-import { EditorModelo } from './telas/credencial/EditorModelo'
+import { EditorTelaInteira } from './telas/credencial/EditorModelo'
+import { GaleriaModelos, PaginaOrdem, QuemRecebe } from './telas/credencial/Modelos'
+import { ValidadeEVerso } from './telas/credencial/ValidadeEVerso'
 import { DetalheEncontro, EditarEncontro, ListaEncontros, NovoEncontro } from './telas/assembleias/Assembleias'
 import { FaltasEJustificativas, ListaDePresenca } from './telas/assembleias/Presenca'
 import { ConducaoAssembleia } from './telas/assembleias/Conducao'
@@ -94,6 +96,10 @@ export default function App() {
 
           {/* Portal do membro (exige login) */}
           <Route element={<RotaProtegida />}>
+            {/* O editor do modelo da credencial ocupa a tela inteira (rodada 8, opção 1): fora da moldura */}
+            <Route path="credenciais/modelos/:id/editar" element={<Area caminho="/credenciais" />}>
+              <Route index element={<EditorTelaInteira />} />
+            </Route>
             <Route element={<Layout />}>
               <Route path="painel" element={<Inicio />} />
               <Route path="modulos" element={<Modulos />} />
@@ -119,7 +125,12 @@ export default function App() {
               <Route path="credenciais" element={<Area caminho="/credenciais" />}>
                 <Route index element={<ListaCredenciais />} />
                 <Route path="imprimir" element={<ImprimirCredenciais />} />
-                <Route path="modelo" element={<EditorModelo />} />
+                <Route path="modelos" element={<GaleriaModelos />} />
+                <Route path="modelos/ordem" element={<PaginaOrdem />} />
+                <Route path="modelos/:id/quem-recebe" element={<QuemRecebe />} />
+                {/* o editor antigo (um modelo só) virou a galeria dos modelos */}
+                <Route path="modelo" element={<Navigate to="/credenciais/modelos" replace />} />
+                <Route path="validade" element={<ValidadeEVerso />} />
                 <Route path=":pessoaId" element={<CredencialDe />} />
               </Route>
               <Route path="assembleias" element={<Area caminho="/assembleias" />}>

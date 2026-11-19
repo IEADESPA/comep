@@ -485,3 +485,53 @@ As telas do pastor presidente do lote das Igrejas e da regularização (rodadas 
   - **o envio antecipado**: o cartão do alvará abre a página do documento; o passo a passo do "Atualizar" já traz 01/01 a 31/12 do ano seguinte e diz que "entra sozinho"; a presidência confere e o cartão mostra "O próximo já foi conferido: entra sozinho em 01/01";
   - **o cadastro pelo pastor**: o convite no Início, os 5 passos com os documentos, a conferência item por item (um item recusado, mandado de novo só ele), "Ativar a igreja" e a Minha igreja do pastor;
   - e o `portal-ministro.spec` passou para os cartões (o estatuto em 2 partes pelo passo a passo do "Atualizar", e o histórico com as partes).
+
+## Entrega 5.5.10 — Telas novas, parte 7: os modelos da credencial e o módulo Credenciais (versão 5.5.0-teste.11)
+
+O lote das Credenciais (rodadas 7 a 12, aprovadas em 18/11/2026; as regras de negócio estão no `PROJETO.md`, seção 4.5). Migração `20261119170000_credencial_modelos.sql`.
+
+**O que entrou no banco:**
+
+- **Os modelos** (`credencial_modelos`): nome, descrição, tipo (padrão, de grupo, exclusivo de igreja ou de readequação), a **ordem** (prioridade), a regra de **quem recebe** (as condições, com **todas** ou **qualquer uma**), o desenho em uso (uma versão) e se está **em uso** ou é rascunho. As versões do desenho (`modelos_credencial`) ganharam o modelo a que pertencem e continuam sem mudar nem se apagar.
+- **A migração não quebra nada**: o desenho em uso de antes virou o **modelo padrão**; as versões já salvas ficaram com ele; as funções antigas (`salvar_modelo_credencial`, `usar_modelo_credencial`, `arquivar_modelo_credencial`) passaram a mexer no padrão; `dados_credenciais` continua trazendo `modelo` (o do padrão) e ganhou, por pessoa, o `modelo_id`, a readequação, o prazo e o cargo, e o mapa `modelos` com o desenho de cada modelo usado.
+- **A escolha** (`interno.escolher_modelo`, calculada na leitura, como a situação da igreja): o ministro em readequação recebe **sempre** o modelo de readequação; depois, o primeiro modelo da ordem, em uso, cuja regra serve; o exclusivo só depois de pago e só para os ministros da igreja; sem nenhum, o padrão.
+- **As condições** (conferidas por `interno.normalizar_regra`): cargo na diretoria (mandato vigente no dia), título, tempo de COMEP (pela data de admissão), pastor presidente, jubilado, comissão (sem escolher = qualquer comissão), forma de admissão, igreja, denominação, tradição, entre duas datas e só durante o mandato. No máximo 12 por modelo, sem repetir.
+- **O modelo exclusivo**: a igreja (com registro), o valor, quem pediu e o pagamento (data e a entrada do caixa, opcional), registrado pela tesouraria ou pela presidência.
+- **A readequação**: o prazo (`config_igrejas.readequacao_ate`, 28/04/2027, só a presidência muda, na Central de regularização); a validação pública (`validar_credencial`, que o visitante usa) só ganhou dois campos: `readequacao` e `prazo_readequacao`. Na lista das pendências da credencial, a igreja sem registro não aparece mais como "Igreja sem CNPJ".
+- **As leituras**: `painel_modelos` (a galeria, com quantas pessoas recebem hoje), `simular_quem_recebe` (quem receberia com a regra da tela, antes de salvar, e quantos ficam com um modelo de cima) e `lista_credenciais` (a lista do módulo, com em dia, readequação e o modelo de cada um).
+
+**As telas (módulo Credenciais, no menu da coluna: Credenciais, Imprimir, Modelos, Validade e verso):**
+
+- **Credenciais** (rodada 7, aprovada como está): a tabela com a caixinha de quem vai para a impressão, a busca, os filtros (todas, completas, com pendência e, quando houver, em readequação) e a situação de cada uma ("Válida até…", "Válida · em atraso", "Falta a foto", "Em readequação"); embaixo do nome, o modelo da pessoa.
+- **Validade e verso** (rodada 7, como está): saiu de Configurações (que agora leva lá). A validade, corrigir a data e registrar a posse; o texto do verso, com a prévia.
+- **Modelos** (rodada 8): a galeria, com a ordem, "Em uso" ou "Rascunho", a prévia, quantas pessoas, "Quem recebe", "Duplicar" e "Editar"; "Começar de um modelo pronto" (clássico vermelho, grafite e dourado, azul institucional, vinho com selo, em branco), para um grupo ou exclusivo de uma igreja.
+- **Quem recebe** (rodada 9): a ordem dos modelos à esquerda (arrastar ou as setas), as condições no meio (todas ou qualquer uma, em grupos: da pessoa, da igreja e do tempo), o bloco do exclusivo (igreja, quem pediu, valor, pagamento e a entrada do caixa) e, à direita, quem recebe hoje (ou como vai ficar), com a prévia.
+- **O editor na tela inteira** (rodada 8, opção 1): a barra vermelha (voltar, o nome, frente e verso, desfazer, o zoom, "Ver com", testar a impressão e "Salvar e usar"), o trilho (Prontos, Textos, Dados, Imagens, Formas, Fundo, Camadas e Versões), o cartão com as réguas e as guias de corte, sangria e área segura, e à direita "Item" e "Cartão" (o tamanho em mm, os cantos, a sangria e a área segura).
+- **A credencial do ministro em readequação** (rodada 12, opção 1): o desenho do sistema para o modelo de readequação, cinza, com a faixa listrada no rodapé ("Em readequação · sem direito a voto"), "{igreja} · sem registro" e o prazo. Cada credencial (a minha, a de um ministro e a impressão) sai no modelo da pessoa.
+
+**Decisões tomadas sem o desenho:**
+
+- **O pagamento do exclusivo é da tesouraria ou da presidência** (é dinheiro, como a confirmação dos comprovantes); a secretaria vê a situação. A ligação ao caixa é a mais simples e segura com o que existe: a tesouraria lança a entrada no Caixa (como qualquer receita) e liga a entrada ao modelo, como o patrimônio já liga a compra. A tesouraria ainda não abre o módulo Credenciais: por enquanto quem registra na tela é a presidência; quando o Financeiro novo chegar, o pagamento entra lá também.
+- **O exclusivo vale só depois de pago.** Antes, a tela mostra "Falta o pagamento" e quem vai receber depois de pago.
+- **Sem condição, ninguém recebe** o modelo de grupo (para um modelo novo não tomar o lugar do padrão de todo mundo por engano).
+- **"Só durante o mandato"** guarda a data do fim do mandato do dia em que se salvou: a posse da diretoria seguinte não estica o modelo.
+- **O cargo na diretoria** já é "enquanto durar o mandato": saiu do cargo, a próxima credencial sai no modelo seguinte (a impressa vale até a validade dela).
+- **O modelo de readequação** vale antes de todos (o readequado nunca recebe outro, nem o da diretoria), mas aparece no fim da lista da ordem, como no desenho ("fica no fim e não pode ser trocado").
+- **O rascunho** fica com o último desenho salvo (mesmo sem "usar"), para a galeria mostrar o que está sendo feito; o modelo em uso só muda com "Usar".
+- **Duplicar** cria um rascunho de grupo com a mesma regra e o mesmo desenho (o exclusivo duplicado vira de grupo, sem a igreja).
+- **Versões** entrou como mais um item do trilho do editor (o desenho não mostrava onde ficavam as versões salvas): abrir, usar e arquivar.
+- **A faixa de aviso** virou um item do editor (Formas e Textos › "Faixa de aviso"), com os botões "onde vai a faixa" (rodapé, topo, esquerda, direita); em pé, o texto fica na vertical.
+- **A ordem** se muda arrastando ou pelas setas (subir e descer), para quem usa o teclado.
+- **Mudou o tamanho do cartão**, os itens acompanham na mesma proporção, e a faixa continua no lado dela.
+- **A marca d'água** é o símbolo do COMEP; a biblioteca de símbolos e os logotipos das denominações chegam na parte 8.
+- **As letras do editor**: Plus Jakarta Sans (só negrito, como nos títulos do sistema), Inter, a sem serifa do aparelho e a com serifa.
+
+**O que fica para a parte 8:** a impressão nova (4 por folha, espaço, sangria, marcas fora da sangria, vagas em branco, folha nova ou pedaço cortado), a biblioteca de símbolos (gerais e por tradição) com os logotipos das denominações e as regras obrigatório, padrão e opcional, e a faixa da readequação na conferência pelo QR Code.
+
+**Verificação:**
+
+- testes do banco: `testes/banco/credencial_modelos.test.ts` (11 testes): a migração (o padrão com o desenho de antes e a readequação); o RLS (a secretaria, a presidência e a tesouraria leem; o ministro e o visitante, não; ninguém grava direto; nada se apaga); a regra conferida; a ordem (o primeiro que serve, rascunho não conta, reordenar); todas ou qualquer uma e a simulação; as outras condições; o exclusivo (só os da igreja, só depois de pago, quem registra o pagamento, a entrada do caixa, a igreja e o valor que não mudam depois); o readequado sempre com o modelo dele (e a lista e os dados da credencial com a categoria e o prazo); a validação pública continua (sem login) e mostra a readequação; as versões de cada modelo; e as funções antigas no padrão. Os testes antigos do modelo (`credencial_modelo.test.ts`) continuam passando sem mudança;
+- testes de unidade: `testes/unidade/modeloCredencial.test.ts` ganhou o tamanho do cartão, o desenho da readequação (sem a frase proibida), a faixa nos quatro lados, os modelos prontos, o desenho de cada credencial e os dados novos;
+- no total, 578 testes (banco e unidade), todos passando;
+- ponta a ponta: `credencial-modelo.spec` (refeito: criar de um modelo pronto, o editor na tela inteira no computador, quem recebe com a igreja fictícia, a ordem, a credencial de um ministro no modelo novo e arquivar; no celular, o aviso do editor e "Pôr em uso"), `configuracoes.spec` (Validade e verso) e os da credencial, das igrejas, da diretoria e do menu, verdes no computador e no celular;
+- o verificador do Supabase (`db advisors`) no comep-teste: só o aviso conhecido (`auth_leaked_password_protection`).

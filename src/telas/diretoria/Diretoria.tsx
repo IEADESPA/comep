@@ -122,7 +122,7 @@ export function Diretoria() {
                   <p className="aviso-texto">
                     O fim do mandato nas credenciais ({fimCredencial ? formatarData(fimCredencial) : 'em branco'}) não é o da diretoria em
                     exercício ({formatarData(fimDiretoria)}). Na posse da nova diretoria, registre o novo mandato em{' '}
-                    <Link to="/configuracoes#credencial">Configurações → Credencial</Link>.
+                    <Link to="/credenciais/validade">Credenciais › Validade e verso</Link>.
                   </p>
                 )}
               </section>

@@ -44,6 +44,18 @@ const CAMINHOS = {
   baixo: 'M6 9l6 6 6-6',
   cima: 'M6 15l6-6 6 6',
   editar: 'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z',
+  // editor da credencial (Fase 5.5, parte 7)
+  texto: 'M5 6V4h14v2M12 4v16M9 20h6',
+  dados: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  imagem: 'M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM20 15l-5-5L5 20',
+  formas: 'M4 4h7v7H4zM17.5 4a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM7.5 13L11 20H4zM14 14h6v6h-6z',
+  fundo: 'M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z',
+  camadas: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',
+  desfazer: 'M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11',
+  refazer: 'M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13',
+  copiar: 'M9 9h11v11H9zM5 15H4V4h11v1',
+  ordem: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
+  estrela: 'M12 3l2.7 5.6 6.2.9-4.5 4.4 1 6.1L12 17l-5.5 3 1-6.1L3 9.5l6.2-.9z',
 } as const
 
 export type NomeIcone = keyof typeof CAMINHOS
