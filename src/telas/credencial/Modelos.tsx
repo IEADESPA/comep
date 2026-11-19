@@ -27,6 +27,7 @@ import {
   salvarVersaoDoModelo,
   simularQuemRecebe,
   urlValidacao,
+  usarVersaoDoModelo,
   type Condicao,
   type EntradaDoCaixa,
   type ModeloGrupo,
@@ -343,6 +344,9 @@ function NovoModelo({ opcoes, aoFechar, aoErro }: { opcoes: Opcoes | null; aoFec
             if (r.erro !== null) return aoErro(r.erro)
             const versao = await salvarVersaoDoModelo(r.dados, escolhido.modelo, `Começou do modelo pronto "${escolhido.nome}"`, false)
             if (versao.erro !== null) return aoErro(versao.erro)
+            // o desenho do rascunho (ainda sem ninguém recebendo)
+            const atual = await usarVersaoDoModelo(r.dados, versao.dados)
+            if (atual.erro !== null) return aoErro(atual.erro)
             navegar(`/credenciais/modelos/${r.dados}/editar`)
           })
         }}

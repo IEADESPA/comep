@@ -88,7 +88,7 @@ export function SituacaoAgora({ c }: { c: DadosCredencial }) {
       <p className="detalhe">
         {c.valida_ate
           ? `Válida até ${formatarData(c.valida_ate)}, o fim do mandato da diretoria. A digital passa sozinha para o mandato seguinte. A impressa vale até a data que está nela: depois da posse da nova diretoria, imprima de novo (a antiga perde a validade).`
-          : 'Válida enquanto o associado estiver ativo. (O fim do mandato da diretoria ainda não foi informado em Configurações → Credencial.)'}
+          : 'Válida enquanto o associado estiver ativo. (O fim do mandato da diretoria ainda não foi informado em Credenciais › Validade e verso.)'}
       </p>
       <p>
         <a href={urlValidacao(c.codigo)} target="_blank" rel="noreferrer">
@@ -639,7 +639,7 @@ function AvisosDaImpressao({ pacote }: { pacote: PacoteCredenciais }) {
         <ul>
           {semValidade && (
             <li>
-              O fim do mandato não foi informado (Configurações → Credencial): a credencial sai com "Válida até: enquanto
+              O fim do mandato não foi informado (Credenciais › Validade e verso): a credencial sai com "Válida até: enquanto
               ativo".
             </li>
           )}

@@ -211,15 +211,21 @@ export async function situacaoDasIgrejas(): Promise<Resultado<SituacaoNaLista[]>
   return error ? falha(error) : ok((data ?? []) as SituacaoNaLista[])
 }
 
-export type RegrasIgrejas = { transicao_ate: string; dias_para_mandar: number; dias_cartao_cnpj: number }
+export type RegrasIgrejas = {
+  transicao_ate: string
+  dias_para_mandar: number
+  dias_cartao_cnpj: number
+  /** o prazo da readequação dos ministros das igrejas sem registro (Fase 5.5, parte 7) */
+  readequacao_ate: string
+}
 
 export async function regrasDasIgrejas(): Promise<Resultado<RegrasIgrejas>> {
   const { data, error } = await cliente()
     .from('config_igrejas')
-    .select('transicao_ate, dias_para_mandar, dias_cartao_cnpj')
+    .select('transicao_ate, dias_para_mandar, dias_cartao_cnpj, readequacao_ate')
     .maybeSingle<RegrasIgrejas>()
   if (error) return falha(error)
-  return ok(data ?? { transicao_ate: '2027-04-28', dias_para_mandar: 30, dias_cartao_cnpj: 90 })
+  return ok(data ?? { transicao_ate: '2027-04-28', dias_para_mandar: 30, dias_cartao_cnpj: 90, readequacao_ate: '2027-04-28' })
 }
 
 /** Só a presidência muda (o banco confere). */

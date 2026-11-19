@@ -190,6 +190,10 @@ function Regras({ regras, podeMudar, aoSalvar }: { regras: RegrasIgrejas; podeMu
                 onChange={(e) => setDados({ ...dados, dias_cartao_cnpj: Number(e.target.value) })}
               />
             </label>
+            <label>
+              Prazo da readequação (ministros das igrejas sem registro)
+              <input type="date" required value={dados.readequacao_ate} onChange={(e) => setDados({ ...dados, readequacao_ate: e.target.value })} />
+            </label>
           </div>
           <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
           <div className="acoes">
@@ -206,6 +210,8 @@ function Regras({ regras, podeMudar, aoSalvar }: { regras: RegrasIgrejas; podeMu
           <dd>{regras.dias_para_mandar}</dd>
           <dt>Dias para o Cartão CNPJ novo</dt>
           <dd>{regras.dias_cartao_cnpj}</dd>
+          <dt>Prazo da readequação</dt>
+          <dd>{formatarData(regras.readequacao_ate)}</dd>
         </dl>
       )}
       {!podeMudar && <p className="detalhe">Só a presidência muda estas regras.</p>}

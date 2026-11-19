@@ -371,8 +371,8 @@ function Editor({ m, aoMudar }: { m: ModeloGrupo; aoMudar: () => void }) {
         <label className="editor-zoom">
           <span className="somente-leitor">Zoom</span>
           <select value={String(zoom)} onChange={(e) => setZoom(e.target.value === 'ajustar' ? 'ajustar' : Number(e.target.value))}>
-            <option value="ajustar">Ajustar à tela</option>
-            <option value="1">100% (tamanho real)</option>
+            <option value="ajustar">Ajustar</option>
+            <option value="1">100%</option>
             <option value="1.5">150%</option>
             <option value="2">200%</option>
             <option value="3">300%</option>
@@ -381,7 +381,7 @@ function Editor({ m, aoMudar }: { m: ModeloGrupo; aoMudar: () => void }) {
         <label className="editor-ver-com">
           Ver com:
           <select value={previa.escolha} onChange={(e) => previa.escolher(e.target.value)}>
-            <option value="exemplo">Dados de exemplo</option>
+            <option value="exemplo">Exemplo</option>
             {previa.associados.map((a) => (
               <option key={a.pessoa_id} value={a.pessoa_id}>
                 {a.nome}
@@ -1677,8 +1677,13 @@ function Salvar({
     const gravado = normalizarModelo(modelo, m.tipo === 'readequacao' ? MODELO_READEQUACAO : MODELO_PADRAO)
     void umaVez(async () => {
       const r = await salvarVersaoDoModelo(m.id, gravado, descricao || 'Mudanças no desenho', usar)
-      if (r.erro !== null) setErro(r.erro)
-      else aoSalvar(usar, gravado)
+      if (r.erro !== null) return setErro(r.erro)
+      // o rascunho (ninguém recebe ainda) fica com o desenho novo, mesmo sem "usar"
+      if (!usar && !m.em_uso && (m.tipo === 'grupo' || m.tipo === 'exclusivo')) {
+        const atual = await usarVersaoDoModelo(m.id, r.dados)
+        if (atual.erro !== null) return setErro(atual.erro)
+      }
+      aoSalvar(usar, gravado)
     })
   }
   return (
