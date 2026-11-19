@@ -599,6 +599,11 @@ function TelaImpressao({ pessoas, voltar, modulo = 'Credenciais' }: { pessoas: s
           <Link to={voltar}>← Voltar</Link>
         </p>
         <CabecalhoFuncao modulo={modulo} titulo="Imprimir" sub="Lado a lado, para dobrar · tamanho real" />
+        <div className="so-celular">
+          <Aviso titulo="A impressão é feita no computador">
+            <p>A folha precisa sair no tamanho real (escala 100%). No celular, dá para conferir como vai ficar.</p>
+          </Aviso>
+        </div>
       </div>
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(pacote) => {

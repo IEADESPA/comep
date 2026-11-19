@@ -8036,3 +8036,8 @@ li.feito .numero-passo {
   text-transform: uppercase;
   white-space: nowrap;
 }
+
+.editor-zoom select {
+  min-width: 108px;
+  max-width: 120px;
+}
