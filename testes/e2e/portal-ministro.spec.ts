@@ -4,10 +4,13 @@ import { expect, test } from '@playwright/test'
 import {
   abrirFichaDoMinistro,
   arquivarAssociadoDeTeste,
+  arquivarIgrejaAberta,
   arquivoDaSessao,
+  cadastrarIgreja,
   cadastrarMinistro,
   criarAssociadoComLogin,
   mensagemNaTela,
+  pdfFicticio,
   preencherLogin,
   sufixoUnico,
   trocarPara,
@@ -113,11 +116,7 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
 
   // A presidência cadastra a igreja e um ministro auxiliar dela
   await trocarPara(page, 'presidencia')
-  await page.goto('igrejas/nova')
-  await page.getByLabel(/^Nome da igreja/).fill(igreja)
-  await page.getByRole('button', { name: 'Cadastrar igreja' }).click()
-  await expect(mensagemNaTela(page, 'Igreja cadastrada.')).toBeVisible()
-  const enderecoIgreja = page.url()
+  const enderecoIgreja = await cadastrarIgreja(page, { nome: igreja })
   await cadastrarMinistro(page, {
     nome: auxiliar,
     telefone: '(94) 92222-2222',
@@ -152,23 +151,31 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
 
   // Fase 5.1: a igreja como instituição — o pastor presidente envia o estatuto, informa a diretoria e pede uma correção
   await expect(page.getByText(/2 ministros associados/)).toBeVisible()
+  // Fase 5.5: o documento vai com as partes (até 25 MB cada); a diretoria vai com a ata, com o mandato
   await page.goto('minha-igreja/documentos')
-  await page.getByText('Enviar um documento').click()
-  await page.getByRole('combobox', { name: 'Documento' }).selectOption({ label: 'Estatuto da igreja' })
-  await page.locator('input[type=file][accept^="application/pdf"]').setInputFiles({
-    name: 'estatuto.pdf',
-    mimeType: 'application/pdf',
-    buffer: Buffer.from('%PDF-1.4 documento fictício do teste automático'),
-  })
-  await expect(mensagemNaTela(page, 'Estatuto da igreja enviado: a secretaria vai conferir.')).toBeVisible()
+  await page.getByText('Mandar um documento').click()
+  const envio = page.getByRole('form', { name: 'Mandar um documento' })
+  await envio.getByRole('combobox', { name: 'Documento' }).selectOption({ label: 'Estatuto da igreja' })
+  await envio.getByLabel('Escolher os arquivos do documento').setInputFiles([pdfFicticio('estatuto-parte-1.pdf'), pdfFicticio('estatuto-parte-2.pdf')])
+  await expect(envio.getByRole('list', { name: 'Partes escolhidas' }).getByRole('listitem')).toHaveCount(2)
+  await envio.getByRole('button', { name: 'Mandar para a secretaria conferir' }).click()
+  await expect(mensagemNaTela(page, 'Estatuto da igreja: enviado. A secretaria vai conferir.')).toBeVisible()
   await expect(page.getByRole('list', { name: 'Documentos da igreja' })).toContainText('Esperando a conferência')
+  await expect(page.getByRole('list', { name: 'Documentos da igreja' })).toContainText('em 2 partes')
 
   await page.goto('minha-igreja/diretoria')
-  await page.getByText('Informar a diretoria da igreja').click()
-  await page.getByLabel('Nome 1').fill(presidente)
-  await page.getByRole('button', { name: 'Salvar a diretoria' }).click()
-  await expect(mensagemNaTela(page, 'Diretoria da igreja salva. A anterior fica no histórico.')).toBeVisible()
-  await expect(page.getByRole('list', { name: 'Diretoria da igreja' })).toContainText(`Presidente: ${presidente}`)
+  await page.getByText('Informar a diretoria (com a ata)').click()
+  const ata = page.getByRole('form', { name: 'Mandar: Ata da diretoria' })
+  await ata.getByLabel('Posse (data da ata) *').fill(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Belem' }))
+  // a lista mostra o nome e o nº de registro: escolhe pela opção que tem o nome
+  const quemOcupa = ata.getByLabel('Quem ocupa o cargo 1')
+  await quemOcupa.selectOption((await quemOcupa.locator('option', { hasText: presidente }).getAttribute('value')) ?? '')
+  await ata.getByLabel('Nome completo 4').fill('Tesoureira Fictícia de Teste')
+  await expect(ata.getByText(/^A diretoria vale até/)).toBeVisible()
+  await ata.getByLabel('Escolher os arquivos do documento').setInputFiles(pdfFicticio('ata.pdf'))
+  await ata.getByRole('button', { name: 'Mandar para a secretaria conferir' }).click()
+  await expect(mensagemNaTela(page, 'Ata e diretoria enviadas: a secretaria vai conferir.')).toBeVisible()
+  await expect(page.getByText('Ata nova esperando a secretaria')).toBeVisible()
 
   await page.goto('minha-igreja/ministros')
   // a correção é estruturada: escolhe o dado, vê como está e escolhe como deve ficar (nada de texto livre)
@@ -183,11 +190,17 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
 
   // A presidência confere o estatuto e atende a correção
   await trocarPara(page, 'presidencia')
-  await page.goto('igrejas')
+  await page.goto('igrejas/conferir')
   await expect(page.getByRole('list', { name: 'Documentos para conferir' })).toContainText(igreja)
-  await page.goto(enderecoIgreja)
-  await page.getByRole('list', { name: 'Documentos da igreja' }).getByRole('button', { name: 'Conferido' }).click()
+  await page.goto(`${enderecoIgreja}/documentos`)
+  await page.getByRole('listitem', { name: 'Estatuto da igreja' }).getByRole('button', { name: 'Conferir' }).click()
   await expect(mensagemNaTela(page, 'Estatuto da igreja: conferido.')).toBeVisible()
+  // a mudança da diretoria: como estava e como fica; conferida, vira a diretoria em vigor
+  await page.goto(`${enderecoIgreja}/diretoria`)
+  await page.getByRole('region', { name: 'Mudança da diretoria para conferir' }).getByRole('button', { name: 'Conferir e aceitar' }).click()
+  await expect(mensagemNaTela(page, 'Diretoria conferida e aceita.')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Diretoria em vigor' })).toContainText(presidente)
+  await expect(page.getByRole('list', { name: 'Diretoria em vigor' })).toContainText('Tesoureira Fictícia de Teste')
   await page.goto('ministros/correcoes')
   const correcao = page.getByRole('listitem', { name: `Correção: ${auxiliar}` })
   await expect(correcao).toContainText('Título ministerial: Evangelista → Presbítero')
@@ -201,8 +214,6 @@ test('o pastor presidente vê os ministros da igreja dele e atualiza o contato d
   await arquivarAssociadoDeTeste(page, auxiliar)
   await arquivarAssociadoDeTeste(page, presidente)
   await page.goto(enderecoIgreja)
-  await expect(page.getByLabel('Telefone')).toHaveValue('(94) 93333-3333')
-  await page.getByText('Arquivar igreja', { exact: true }).last().click()
-  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/igrejas$/)
+  await expect(page.getByLabel('Telefone', { exact: true })).toHaveValue('(94) 93333-3333')
+  await arquivarIgrejaAberta(page)
 })

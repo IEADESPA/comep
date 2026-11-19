@@ -325,7 +325,7 @@ function resultadosDaBusca(texto: string, perfis: readonly Perfil[]): Resultado[
   }
   const q = encodeURIComponent(busca)
   if (pode('/ministros')) telas.push({ chave: 'ministro', para: `/ministros?busca=${q}`, texto: `Buscar ministro: “${busca}”`, icone: 'ministros', area: 'pessoas' })
-  if (pode('/igrejas')) telas.push({ chave: 'igreja', para: `/igrejas?busca=${q}`, texto: `Buscar igreja: “${busca}”`, icone: 'igreja', area: 'pessoas' })
+  if (pode('/igrejas')) telas.push({ chave: 'igreja', para: `/igrejas/lista?busca=${q}`, texto: `Buscar igreja: “${busca}”`, icone: 'igreja', area: 'pessoas' })
   return telas
 }
 

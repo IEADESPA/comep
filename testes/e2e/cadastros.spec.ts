@@ -1,7 +1,18 @@
 // Fase 1.1 — cadastros da secretaria/presidência: igrejas, associados, perfis de acesso e auditoria.
 // Usa dados FICTÍCIOS do banco de teste. O que o teste cria, ele mesmo arquiva no fim (nada se apaga).
 import { expect, test } from '@playwright/test'
-import { abrirAbaDaFicha, abrirFuncao, arquivarCadastroAberto, arquivoDaSessao, cadastrarMinistro, cnpjAleatorio, sufixoUnico } from './ajuda'
+import {
+  abrirAbaDaFicha,
+  abrirAbaDaIgreja,
+  abrirFuncao,
+  arquivarCadastroAberto,
+  arquivarIgrejaAberta,
+  arquivoDaSessao,
+  cadastrarMinistro,
+  cnpjAleatorio,
+  DENOMINACAO_DE_TESTE,
+  sufixoUnico,
+} from './ajuda'
 
 const IGREJA_A = 'Igreja Fictícia A (teste)'
 const IGREJA_B = 'Igreja Fictícia B (teste)'
@@ -13,33 +24,41 @@ test.use({ storageState: arquivoDaSessao('presidencia') })
 test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async ({ page }, info) => {
   const nome = `Igreja E2E ${sufixoUnico(info.project.name)}`
 
+  // Igrejas › Cadastrar igreja (Fase 5.5): a igreja com registro, em 5 passos
   await page.goto('igrejas')
-  await page.getByRole('link', { name: 'Nova igreja' }).click()
+  await abrirFuncao(page, 'Cadastrar igreja')
+  await expect(page).toHaveURL(/\/igrejas\/nova$/)
   await page.getByLabel(/^Nome da igreja/).fill(nome)
-  await page.getByLabel(/^Denominação/).selectOption({ label: 'Denominação Fictícia (teste) (DFT)' })
+  await page.getByLabel(/^Denominação/).selectOption({ label: DENOMINACAO_DE_TESTE })
 
-  // CNPJ com dígito errado é recusado antes de salvar
+  // CNPJ com dígito errado é recusado antes de continuar
   await page.getByLabel(/^CNPJ/).fill('11.222.333/0001-82')
-  await page.getByRole('button', { name: 'Cadastrar igreja' }).click()
-  await expect(page.getByRole('alert')).toContainText('CNPJ inválido')
+  await page.getByRole('button', { name: /^Continuar/ }).click()
+  await expect(page.getByRole('alert')).toContainText('CNPJ válido')
 
   await page.getByLabel(/^CNPJ/).fill(cnpjAleatorio())
   const sigla = `E2E${Date.now().toString(36).slice(-6).toUpperCase()}${info.project.name.slice(0, 1).toUpperCase()}`
   await page.getByLabel(/^Sigla/).fill(sigla)
-  await page.getByRole('button', { name: 'Cadastrar igreja' }).click()
+  // os passos: endereço e contato, pastor e diretoria, documentos (dá para mandar depois) e revisar
+  for (let passo = 0; passo < 4; passo++) await page.getByRole('button', { name: /^Continuar/ }).click()
+  await expect(page.getByText('Faltam: Estatuto da igreja, Cartão CNPJ, Ata da diretoria.')).toBeVisible()
+  await page.getByRole('button', { name: 'Cadastrar a igreja' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Igreja cadastrada.' })).toBeVisible()
   await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
   await expect(page.getByLabel(/^Sigla/)).toHaveValue(sigla)
 
   await page.getByLabel(/^Bairro/).selectOption({ label: 'Bairro Fictício' })
-  await page.getByRole('button', { name: 'Salvar alterações' }).click()
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Alterações salvas.' })).toBeVisible()
 
-  await page.getByText('Arquivar igreja', { exact: true }).last().click()
-  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/igrejas$/)
+  // sem os documentos, a igreja nova fica regular até o fim da transição, com a pendência (a natureza já veio no cadastro)
+  await abrirAbaDaIgreja(page, 'Situação')
+  await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Regular')
+  await expect(page.getByText(/^faltam 4 itens \(até /)).toBeVisible()
+
+  await arquivarIgrejaAberta(page)
   await expect(page.getByRole('status').filter({ hasText: `Igreja "${nome}" arquivada.` })).toBeVisible()
-  await expect(page.getByRole('list', { name: 'Igrejas' }).getByText(nome)).toHaveCount(0)
+  await expect(page.getByRole('list', { name: 'Igrejas', exact: true }).getByText(nome)).toHaveCount(0)
 
   await page.goto('auditoria')
   await page.getByLabel('Mostrar').selectOption({ label: 'Igrejas' })

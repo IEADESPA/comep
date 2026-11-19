@@ -175,7 +175,8 @@ export async function buscarEmprestimo(id: string): Promise<Resultado<Emprestimo
   return error ? falha(error) : ok(data)
 }
 
-export type IgrejaDoPedido = { id: string; nome: string; ministros: number; em_dia: number }
+/** situacao: regular, suspensa ou sem_registro (Fase 5.5): só a regular pega empréstimo. */
+export type IgrejaDoPedido = { id: string; nome: string; ministros: number; em_dia: number; situacao?: string }
 
 export async function igrejasDoPedido(): Promise<Resultado<IgrejaDoPedido[]>> {
   const { data, error } = await cliente().rpc('igrejas_do_pedido')
@@ -189,6 +190,8 @@ export type NovoPedido = {
   devolucao: string
   finalidade: string
   aceite: boolean
+  /** a secretaria (ou a presidência) registra direto, já aprovado */
+  registrar_direto?: boolean
   itens: { item_id: string; quantidade: number }[]
 }
 

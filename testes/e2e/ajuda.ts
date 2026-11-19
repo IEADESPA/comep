@@ -197,6 +197,52 @@ export async function cadastrarMinistro(page: Page, dados: MinistroDeTeste): Pro
   await expect(page.getByRole('heading', { name: dados.nome, level: 1 })).toBeVisible()
 }
 
+// ---------- Igrejas (Fase 5.5, parte 5: o cadastro completo em 5 passos e a ficha em abas) ----------
+
+/** A denominação fictícia do banco de teste. */
+export const DENOMINACAO_DE_TESTE = 'Denominação Fictícia (teste) (DFT)'
+
+/**
+ * Igrejas › Cadastrar igreja: o cadastro completo (com o CNPJ e a natureza), passando os 5 passos sem os documentos
+ * (dá para mandar depois; até o fim da transição a igreja fica regular, com a pendência). Termina na ficha e devolve
+ * o endereço dela.
+ */
+export async function cadastrarIgreja(page: Page, dados: { nome: string; sigla?: string; cnpj?: string }): Promise<string> {
+  await page.goto('igrejas/nova')
+  await page.getByLabel(/^Nome da igreja/).fill(dados.nome)
+  await page.getByLabel(/^Denominação/).selectOption({ label: DENOMINACAO_DE_TESTE })
+  await page.getByLabel(/^CNPJ/).fill(dados.cnpj ?? cnpjAleatorio())
+  if (dados.sigla) await page.getByLabel(/^Sigla/).fill(dados.sigla)
+  for (let passo = 0; passo < 4; passo++) await page.getByRole('button', { name: /^Continuar/ }).click()
+  await page.getByRole('button', { name: 'Cadastrar a igreja' }).click()
+  await expect(mensagemNaTela(page, 'Igreja cadastrada.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: dados.nome, level: 1 })).toBeVisible()
+  return page.url()
+}
+
+/** As abas da igreja aberta pela secretaria: Dados, Documentos, Diretoria, Ministros, Filiais, Agenda e Situação. */
+export async function abrirAbaDaIgreja(page: Page, aba: string): Promise<void> {
+  await page.getByRole('navigation', { name: 'Partes da igreja' }).getByRole('link', { name: aba, exact: true }).click()
+}
+
+/** Limpeza da igreja aberta: aba Situação → Arquivar a igreja (nada se apaga; antes, os ministros saem dela). */
+export async function arquivarIgrejaAberta(page: Page): Promise<void> {
+  await abrirAbaDaIgreja(page, 'Situação')
+  await page.getByText('Arquivar a igreja', { exact: true }).last().click()
+  await page.getByRole('button', { name: 'Confirmar o arquivamento' }).click()
+  await expect(page).toHaveURL(/\/igrejas\/lista$/)
+}
+
+/** Escolhe na lista a opção que tem o texto (o nome do ministro vem com o nº de registro). */
+export async function escolherOpcaoCom(lista: Locator, texto: string): Promise<void> {
+  await lista.selectOption((await lista.locator('option', { hasText: texto }).first().getAttribute('value')) ?? '')
+}
+
+/** Um PDF fictício (o conteúdo não importa: o banco guarda o arquivo como veio). */
+export function pdfFicticio(nome: string) {
+  return { name: nome, mimeType: 'application/pdf', buffer: Buffer.from(`%PDF-1.4 documento fictício do teste automático: ${nome}`) }
+}
+
 /** As abas da ficha do ministro: Dados, Igreja, Título, Contribuição, Credencial, Acesso e Situação. */
 export async function abrirAbaDaFicha(page: Page, aba: string): Promise<void> {
   await page.getByRole('navigation', { name: 'Partes da ficha' }).getByRole('link', { name: aba, exact: true }).click()

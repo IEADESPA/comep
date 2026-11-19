@@ -80,6 +80,10 @@ export async function criarBanco(): Promise<PGlite> {
       throw new Error(`Falha ao aplicar a migração ${arquivo}: ${(erro as Error).message}`)
     }
   }
+  // A regularização das igrejas (Fase 5.5) suspende, depois do fim da transição (AGO de 28/04/2027), a igreja que nunca
+  // mandou os documentos. Os testes antigos criam igrejas sem documentos: aqui a transição fica aberta, para eles não
+  // quebrarem com a passagem do tempo. Os testes da regularização (regularizacao.test.ts) mudam a data quando precisam.
+  await db.exec("update public.config_igrejas set transicao_ate = '2999-12-31'")
   return db
 }
 
