@@ -448,3 +448,40 @@ O lote das Igrejas e da regularização (rodadas 8 a 14, aprovadas em 18/11/2026
 - no total, 557 testes (banco e unidade), todos passando;
 - ponta a ponta: `igrejas.spec` (o painel, a tabela por situação, a Central de regularização, a igreja sem registro e a tradição), `cadastros.spec` (o cadastro em 5 passos, a ficha e o arquivamento), `configuracoes.spec` e `portal-ministro.spec` (o estatuto em 2 partes, a ata com a diretoria e o mandato, a conferência da mudança da diretoria);
 - o verificador do Supabase (`db advisors`) no comep-teste: só o aviso conhecido (`auth_leaked_password_protection`).
+
+## Entrega 5.5.9 — Telas novas, parte 6: as telas do pastor presidente (versão 5.5.0-teste.10)
+
+As telas do pastor presidente do lote das Igrejas e da regularização (rodadas 9, 12, 13 e 14). Migração `20261119140000_regularizacao_historico.sql`.
+
+**O que entrou:**
+
+- **Minha igreja › Documentos em cartões** (opção 2 da rodada 12): o estatuto, o Cartão CNPJ, a ata da diretoria e o alvará, cada um com o selo da secretaria, o que ele diz (a natureza, o mandato, a validade), a **barra do prazo** e "faltam N dias" (em amarelo nos últimos 60). Quando o seguinte já foi conferido: "O próximo já foi conferido: entra sozinho em 01/01". Embaixo, os outros documentos.
+- **A página do documento** (o cartão abre; rodada 14), em abas com endereço próprio:
+  - **O atual**: o período, a natureza, quando foi conferido e o arquivo (as partes);
+  - **Atualizar (próximo)**: o **passo a passo do envio antecipado** (rodada 13, opção 3), com a faixa da dica de governança: 1 o arquivo, 2 as datas novas (o alvará começa no dia seguinte ao fim do atual; a ata traz a diretoria atual para mudar só quem mudou) e 3 conferir e mandar ("fica guardado e entra sozinho em…");
+  - **Histórico**: todos os do tipo (em vigor, próximo, anterior, esperando a conferência, recusado), com os arquivos.
+- **A igreja suspensa** (opção 3 da rodada 12, "o caminho de volta"): os 3 passos (mande, a secretaria confere, a igreja volta a ser regular), o lugar para **mandar o documento vencido** ("Mande aqui o alvará", "Mande aqui a ata nova"), a **contagem dos 30 dias**, o porquê, o que está bloqueado (com o dia em que o perfil é bloqueado) e a dica de governança. Enquanto a igreja está suspensa, a Minha igreja mostra só isso.
+- **A aba Filiais** (opção 2: os cartões), com o filtro por tipo, "Nova filial", editar e arquivar; o responsável é escolhido entre os ministros da igreja; a localização sai do link do Google Maps colado.
+- **O cadastro da igreja pelo próprio pastor** (rodada 9): o **convite no Início** do ministro que ainda não preside uma igreja no COMEP; os mesmos 5 passos da secretaria (ele é o pastor presidente); e o **acompanhamento** (`/cadastrar-minha-igreja`) com o selo da secretaria em cada item, o motivo do que voltou e "Enviar de novo" só no que voltou. Ativada a igreja, ele vira o pastor presidente. A secretaria também pode **recusar o cadastro** (arquivar), na análise.
+- **Os avisos de 60 e 30 dias antes, no sino** (com o que já existe: a tabela de notificações ainda não existe): o documento que vence primeiro avisa aos 60 dias e de novo aos 30 (o aviso dos 30 é outro, então volta a aparecer como novo); a igreja suspensa e o item que voltou da análise também avisam. No Início, em "Para você", a suspensão (o primeiro item, em vermelho), o vencimento dos próximos 60 dias e a igreja em análise.
+- **O histórico** (migração): a secretaria (e a presidência) registram também o documento que já venceu — o alvará do ano passado, a ata da diretoria anterior —, que entra conferido e conta para a situação. O pastor continua mandando só o que vale agora ou o seguinte.
+
+**Decisões tomadas sem o desenho:**
+
+- **O convite no Início** aparece para todo ministro associado que não preside uma igreja no COMEP, com "Não sou pastor presidente" para fechar (fica guardado no aparelho). O desenho mostrava só o caso do pastor; o sistema não sabe, sozinho, quem é pastor de uma igreja que ainda não está cadastrada.
+- **O endereço do cadastro pelo pastor** é `/cadastrar-minha-igreja` (a Minha igreja é do perfil de pastor presidente, que ele ainda não tem). Ativada a igreja, ele passa para a Minha igreja.
+- **Suspensa, a lista dos ministros da igreja não abre** (o banco tira do pastor tudo, menos os documentos): na ata nova, as opções de "ministro" são os que já estavam na diretoria; os outros entram pelo nome completo.
+- **"Enviar de novo" a diretoria** manda a ata de novo, com a diretoria (a diretoria vai sempre com a ata).
+- **O alvará**: no envio de agora, vale de hoje até 31/12; no antecipado, do dia seguinte ao fim do atual até 31/12 do ano seguinte (as duas datas se mudam).
+- **Os avisos dos 60 e 30 dias** contam o que vence primeiro (o alvará, a ata, o prazo da natureza ou o fim da transição); o documento seguinte já conferido "emenda" e tira o aviso.
+- **A barra do prazo** mostra quanto do período do documento já passou.
+
+**Verificação:**
+
+- testes do banco: `testes/banco/regularizacao.test.ts` ganhou o teste do histórico (a secretaria registra o alvará vencido, conferido, e a igreja fica suspensa; pelo pastor, recusado; a ata anterior também entra) — 36 testes;
+- no total, NNN testes (banco e unidade), todos passando;
+- ponta a ponta: `testes/e2e/regularizacao.spec.ts`:
+  - **a suspensão**: a presidência registra pela igreja o alvará que venceu ontem; a igreja fica suspensa hoje; o pastor vê o aviso no Início e, na Minha igreja, o caminho de volta com "30 dias para mandar"; manda o alvará novo; a presidência confere e a igreja volta a ser regular;
+  - **o envio antecipado**: o cartão do alvará abre a página do documento; o passo a passo do "Atualizar" já traz 01/01 a 31/12 do ano seguinte e diz que "entra sozinho"; a presidência confere e o cartão mostra "O próximo já foi conferido: entra sozinho em 01/01";
+  - **o cadastro pelo pastor**: o convite no Início, os 5 passos com os documentos, a conferência item por item (um item recusado, mandado de novo só ele), "Ativar a igreja" e a Minha igreja do pastor;
+  - e o `portal-ministro.spec` passou para os cartões (o estatuto em 2 partes pelo passo a passo do "Atualizar", e o histórico com as partes).
