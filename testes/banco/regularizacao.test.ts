@@ -301,6 +301,17 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
     })
   })
 
+  describe('os ajudantes internos (parte 6)', () => {
+    it('quem tem login não chama direto o que só as outras funções usam (tornar pastor presidente, a natureza)', async () => {
+      await assert.rejects(
+        chamar(ministroA, 'select interno.tornar_pastor_presidente($1, $2)', [pessoa[ministroA], igrejaX]),
+        erroComCodigo(SEM_PERMISSAO),
+      )
+      await assert.rejects(chamar(secretaria, 'select interno.ajustar_prazo_natureza($1)', [igrejaA]), erroComCodigo(SEM_PERMISSAO))
+      await assert.rejects(chamar(secretaria, 'select interno.efeitos_do_documento($1)', [igrejaA]), erroComCodigo(SEM_PERMISSAO))
+    })
+  })
+
   describe('a diretoria por cargo e o menor mandato', () => {
     it('a ata vale até o MENOR mandato; o cargo é de um ministro associado ou um nome completo', async () => {
       const caminho = await arquivo(pastorA, igrejaA)

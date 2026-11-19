@@ -199,3 +199,13 @@ begin
   return v_id;
 end;
 $$;
+
+-- Os ajudantes que só as outras funções do banco chamam (como dono) não precisam ficar abertos a quem tem login.
+-- Tornar alguém pastor presidente, mudar a natureza, conferir repetidos: só por dentro de cadastrar_igreja,
+-- ativar_igreja, enviar_documento_igreja e conferir_documento_igreja, que conferem quem pode.
+revoke execute on function interno.tornar_pastor_presidente(uuid, uuid) from authenticated;
+revoke execute on function interno.ajustar_prazo_natureza(uuid) from authenticated;
+revoke execute on function interno.efeitos_do_documento(uuid) from authenticated;
+revoke execute on function interno.conferir_repetidos_igreja(text, text, uuid) from authenticated;
+revoke execute on function interno.dados_da_igreja(jsonb, boolean) from authenticated;
+revoke execute on function interno.cobertura_documento(uuid, public.tipo_documento_igreja, date) from authenticated;
