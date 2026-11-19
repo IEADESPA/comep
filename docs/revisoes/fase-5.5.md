@@ -478,8 +478,8 @@ As telas do pastor presidente do lote das Igrejas e da regularização (rodadas 
 
 **Verificação:**
 
-- testes do banco: `testes/banco/regularizacao.test.ts` ganhou o teste do histórico (a secretaria registra o alvará vencido, conferido, e a igreja fica suspensa; pelo pastor, recusado; a ata anterior também entra) — 36 testes;
-- no total, NNN testes (banco e unidade), todos passando;
+- testes do banco: `testes/banco/regularizacao.test.ts` ganhou o teste do histórico (a secretaria registra o alvará vencido, conferido, e a igreja fica suspensa; pelo pastor, recusado; a ata anterior também entra) e o dos ajudantes internos fechados para quem tem login;
+- no total, 561 testes (banco e unidade), todos passando (o `regularizacao.test.ts` do banco com 37 e o de unidade com 9);
 - ponta a ponta: `testes/e2e/regularizacao.spec.ts`:
   - **a suspensão**: a presidência registra pela igreja o alvará que venceu ontem; a igreja fica suspensa hoje; o pastor vê o aviso no Início e, na Minha igreja, o caminho de volta com "30 dias para mandar"; manda o alvará novo; a presidência confere e a igreja volta a ser regular;
   - **o envio antecipado**: o cartão do alvará abre a página do documento; o passo a passo do "Atualizar" já traz 01/01 a 31/12 do ano seguinte e diz que "entra sozinho"; a presidência confere e o cartão mostra "O próximo já foi conferido: entra sozinho em 01/01";
