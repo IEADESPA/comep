@@ -115,7 +115,7 @@ export const ITENS_MENU: readonly ItemMenu[] = [
   {
     caminho: '/igrejas',
     titulo: 'Igrejas',
-    descricao: 'Cadastro de igrejas e denominações',
+    descricao: 'Igrejas, regularização e denominações',
     perfis: DIRETORIA_CADASTRO,
     fase: 1,
     pronto: true,
@@ -289,7 +289,15 @@ export function moduloAberto(caminhoAtual: string): ItemMenu | null {
 // do sistema. Fora dos módulos (Início, Módulos, Meu perfil e as telas pessoais) continua o menu curto.
 
 /** As contagens que aparecem ao lado de uma função quando há pendência (src/estado/pendencias.ts). */
-export type ChavePendencia = 'pedidosAssociacao' | 'correcoes' | 'comprovantes' | 'despesas' | 'emprestimos' | 'justificativas'
+export type ChavePendencia =
+  | 'pedidosAssociacao'
+  | 'correcoes'
+  | 'comprovantes'
+  | 'despesas'
+  | 'emprestimos'
+  | 'justificativas'
+  | 'igrejasConferir'
+  | 'igrejasSuspensas'
 
 export type Subfuncao = {
   titulo: string
@@ -368,9 +376,30 @@ export const MODULOS: readonly Modulo[] = [
     area: 'pessoas',
     item: '/igrejas',
     bases: ['/igrejas'],
+    // rodada 12 (18/11/2026): o painel é a tela inicial; a tabela serve às subfunções (todas e por situação)
     funcoes: [
-      { chave: 'igrejas', titulo: 'Igrejas', icone: 'igreja', caminho: '/igrejas' },
+      {
+        chave: 'igrejas',
+        titulo: 'Igrejas',
+        icone: 'igreja',
+        caminho: '/igrejas',
+        subfuncoes: [
+          { titulo: 'Todas', caminho: '/igrejas/lista' },
+          { titulo: 'Regulares', caminho: '/igrejas/lista/regulares' },
+          { titulo: 'Suspensas', caminho: '/igrejas/lista/suspensas' },
+          { titulo: 'Sem registro', caminho: '/igrejas/lista/sem-registro' },
+        ],
+      },
+      { chave: 'conferir', titulo: 'Para conferir', icone: 'check', caminho: '/igrejas/conferir', pendencia: 'igrejasConferir' },
+      {
+        chave: 'regularizacao',
+        titulo: 'Central de regularização',
+        icone: 'alerta',
+        caminho: '/igrejas/regularizacao',
+        pendencia: 'igrejasSuspensas',
+      },
       { chave: 'cadastrar', titulo: 'Cadastrar igreja', icone: 'mais', caminho: '/igrejas/nova' },
+      { chave: 'denominacoes', titulo: 'Denominações', icone: 'grade', caminho: '/igrejas/denominacoes' },
     ],
   },
   {

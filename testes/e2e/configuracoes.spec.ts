@@ -1,7 +1,7 @@
 // Fase 1.2 (parte 1): configurações, pastor presidente/jubilado e as duas colunas independentes.
 // Dados FICTÍCIOS no banco de teste; o que o teste cria, ele mesmo arquiva no fim (nada se apaga).
 import { expect, test } from '@playwright/test'
-import { abrirAbaDaFicha, arquivarCadastroAberto, arquivoDaSessao, cadastrarMinistro, sufixoUnico } from './ajuda'
+import { abrirAbaDaFicha, arquivarCadastroAberto, arquivarIgrejaAberta, arquivoDaSessao, cadastrarIgreja, cadastrarMinistro, sufixoUnico } from './ajuda'
 
 const mensagem = (page: import('@playwright/test').Page, texto: string) =>
   page.getByRole('status').filter({ hasText: texto })
@@ -112,11 +112,7 @@ test('pastor presidente paga como presidente de igreja; a jubilação é da asse
   const nome = `Pastor E2E ${sufixo}`
 
   // Igreja só deste teste (assim a vaga de pastor presidente está livre)
-  await page.goto('igrejas/nova')
-  await page.getByLabel(/^Nome da igreja/).fill(igreja)
-  await page.getByRole('button', { name: 'Cadastrar igreja' }).click()
-  await expect(mensagem(page, 'Igreja cadastrada.')).toBeVisible()
-  const enderecoIgreja = page.url()
+  const enderecoIgreja = await cadastrarIgreja(page, { nome: igreja })
 
   await cadastrarMinistro(page, { nome, igreja, pastorPresidente: true })
 
@@ -138,9 +134,7 @@ test('pastor presidente paga como presidente de igreja; a jubilação é da asse
   // Limpeza: arquiva o associado e a igreja de teste
   await arquivarCadastroAberto(page)
   await page.goto(enderecoIgreja)
-  await page.getByText('Arquivar igreja', { exact: true }).last().click()
-  await page.getByRole('button', { name: 'Confirmar arquivamento' }).click()
-  await expect(page).toHaveURL(/\/igrejas$/)
+  await arquivarIgrejaAberta(page)
 })
 
 test('no computador, o menu não rola junto com o conteúdo', async ({ page }, info) => {

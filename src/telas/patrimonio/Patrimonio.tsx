@@ -3,7 +3,7 @@
 // ou a presidência aprova conferindo a agenda; a equipe registra a retirada e a devolução. O que não volta sai do
 // patrimônio (baixa). As regras de apoio ainda vão ser definidas pela diretoria: ficam em "Regras" (a presidência muda).
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Aviso, BotaoConfirmarNaLinha, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
 import { ok } from '../../dados/cliente'
@@ -248,8 +248,21 @@ function TelaPedido({
   daEquipe: boolean
 }) {
   const navegar = useNavigate()
+  const [parametros] = useSearchParams()
+  const { estado } = useSessao()
+  const perfisDaConta = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
+  // a secretaria e a presidência (que aprovam) registram direto, já aprovado (a ficha da igreja › Agenda abre com ?direto=1)
+  const podeRegistrarDireto = perfisDaConta.includes('secretaria') || perfisDaConta.includes('presidencia')
+  const igrejaDaFicha = parametros.get('igreja')
   // destino: "igreja:<id>" ou "evento:<id>"
-  const [destino, setDestino] = useState(igrejas.length === 1 && eventos.length === 0 ? `igreja:${igrejas[0].id}` : '')
+  const [destino, setDestino] = useState(
+    igrejaDaFicha && igrejas.some((g) => g.id === igrejaDaFicha)
+      ? `igreja:${igrejaDaFicha}`
+      : igrejas.length === 1 && eventos.length === 0
+        ? `igreja:${igrejas[0].id}`
+        : '',
+  )
+  const [direto, setDireto] = useState(podeRegistrarDireto && parametros.get('direto') === '1')
   const primeiroDia = daEquipe ? hojeIso() : somarDias(hojeIso(), config.antecedencia_dias)
   const [retirada, setRetirada] = useState('')
   const [devolucao, setDevolucao] = useState('')
@@ -302,11 +315,19 @@ function TelaPedido({
             devolucao,
             finalidade,
             aceite: ehIgreja && aceite,
+            registrar_direto: ehIgreja && direto,
             itens: escolhidos,
           })
           if (r.erro !== null) return setErro(r.erro)
           navegar(`/patrimonio/emprestimos/${r.dados}`, {
-            state: { mensagem: tipo === 'evento' ? 'Reserva feita para o evento do COMEP.' : 'Pedido enviado. A secretaria vai conferir a agenda e responder.' },
+            state: {
+              mensagem:
+                tipo === 'evento'
+                  ? 'Reserva feita para o evento do COMEP.'
+                  : direto
+                    ? 'Empréstimo registrado, já aprovado.'
+                    : 'Pedido enviado. A secretaria vai conferir a agenda e responder.',
+            },
           })
         })
       }}
@@ -324,8 +345,10 @@ function TelaPedido({
             {igrejas.length > 0 && (
               <optgroup label="Igreja">
                 {igrejas.map((g) => (
-                  <option key={g.id} value={`igreja:${g.id}`}>
+                  // só a igreja regular pega empréstimo (suspensa ou sem registro, não há como fazer o contrato)
+                  <option key={g.id} value={`igreja:${g.id}`} disabled={g.situacao !== undefined && g.situacao !== 'regular'}>
                     {g.nome}
+                    {g.situacao === 'suspensa' ? ' — suspensa' : g.situacao === 'sem_registro' ? ' — sem registro' : ''}
                     {daEquipe && ` — ${g.ministros} ministro(s) associado(s), ${g.em_dia} em dia`}
                   </option>
                 ))}
@@ -433,12 +456,18 @@ function TelaPedido({
             <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
             Li e aceito o termo de compromisso em nome da igreja
           </label>
+          {podeRegistrarDireto && (
+            <label className="caixa-marcar">
+              <input type="checkbox" checked={direto} onChange={(e) => setDireto(e.target.checked)} />
+              Registrar direto, já aprovado (a secretaria registra, sem passar pelo pedido)
+            </label>
+          )}
         </section>
       )}
       <Mensagem erro={erro} />
       <div className="acoes">
         <button type="submit" className="botao" disabled={enviando || !periodoValido || dias > config.prazo_maximo_dias}>
-          {destino.startsWith('evento:') ? 'Reservar para o evento' : 'Enviar o pedido'}
+          {destino.startsWith('evento:') ? 'Reservar para o evento' : direto ? 'Registrar o empréstimo' : 'Enviar o pedido'}
         </button>
       </div>
     </form>

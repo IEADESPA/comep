@@ -379,3 +379,72 @@ O banco que as telas aprovadas pediam (migração `20261118150000_correcao_e_con
 - ponta a ponta: `pedido.spec` (a presidência aprova e recusa item por item, devolve; o candidato vê o selo e reenvia só a foto; a presidência aprova o resto e manda para a AGO) e `portal-ministro.spec` (o pastor presidente pede a correção do título; a presidência aceita e o título novo aparece na ficha).
 
 **Correção depois da integração (18/11/2026):** a publicação da main com a parte 4 parou em dois testes dos perfis de acesso, só no celular. Não era a parte 4: a tela "Perfis de acesso" buscava as pessoas de uma vez, e o servidor devolve no máximo mil linhas. O banco de teste passou de mil pessoas (1.478, a maioria criada pelos próprios testes), e quem vinha depois na ordem alfabética sumia da lista. A lista agora vem de mil em mil (`listarPessoasComPerfis`, com `todasAsLinhas`). E, como desenhar as 1.478 deixava a tela lenta (os testes passavam perto do limite de tempo), a tela mostra sem busca só quem já tem algum perfil e, com busca, até 50 pessoas.
+
+## Entrega 5.5.8 — Telas novas, parte 5: o banco da regularização e as telas da secretaria (versão 5.5.0-teste.9)
+
+O lote das Igrejas e da regularização (rodadas 8 a 14, aprovadas em 18/11/2026; as regras de negócio estão no `PROJETO.md`, seção 4.3). Migrações `20261119100000_regularizacao_tipos.sql` (o tipo novo de documento, o alvará) e `20261119100100_regularizacao_igrejas.sql`.
+
+**O que entrou no banco:**
+
+- **A igreja** ganhou o cadastro (completo, sem registro ou em análise), a natureza jurídica (e o prazo da associação privada), o ano de fundação, os membros (aproximado), o CEP, o e-mail, o site, a convenção e quem a cadastrou. A **denominação** ganhou a tradição (lista fechada de 10).
+- **Os documentos** (`igreja_documentos`): o alvará de licenciamento; a validade (de quando até quando); a natureza do Cartão CNPJ; a ata que muda a natureza. Nada se substitui: o documento que vale hoje se calcula pelas datas, e o histórico fica. Só o que espera a conferência é trocado pelo novo (e fica guardado).
+- **As partes** (`igreja_documento_partes`): até 20 arquivos de até 25 MB cada (o limite da pasta subiu de 5 para 25 MB). Os documentos antigos viraram documentos de uma parte.
+- **A diretoria vai com a ata** (`igreja_diretoria`): cada cargo com o ministro associado ou o nome completo, e a posse e o fim de cada cargo. A ata vale do primeiro dia da diretoria até o **menor mandato**; mandato sem prazo não entra, e mais de 20 anos também não.
+- **A igreja nova cadastrada pelo pastor** (`igreja_analise_itens`): os dados, o endereço e contato e a diretoria se conferem item por item; os documentos, um a um. "Ativar a igreja" só com tudo aprovado; ativada, o pastor que cadastrou vira o pastor presidente dela.
+- **As filiais** (`igreja_filiais`): congregação, ponto de culto ou célula, o bairro, o responsável (ministro associado da igreja) e a localização opcional.
+- **As regras** (`config_igrejas`, só a presidência muda): o fim da transição (28/04/2027), os 30 dias para mandar o documento vencido e os 90 dias do Cartão CNPJ novo.
+- **O empréstimo do patrimônio** só para a igreja regular, também quando a secretaria pede; e a secretaria (ou a presidência) **registra direto**, já aprovado (a agenda da igreja).
+
+**Por que a situação é calculada na leitura (e não por uma rotina):**
+
+- A situação (`interno.situacao_igreja`) se calcula toda vez que alguém olha, pela data do dia, como o mandato da diretoria do COMEP já era calculado (`interno.fim_efetivo`). Assim a **suspensão no dia**, o **fim dos 30 dias** e a **entrada do documento antecipado** acontecem sozinhos, sem ninguém clicar e sem uma rotina agendada (o plano gratuito não garante o `pg_cron`, e uma rotina que falha num dia deixaria a igreja errada).
+- O perfil de pastor presidente segue a situação: `tenho_perfil` e `meus_perfis` tiram o perfil quando o pastor está bloqueado, e ele volta sozinho quando a igreja se regulariza. As "igrejas que eu presido" passaram a ser só as regulares (todos os direitos); a suspensa, nos 30 dias, só manda e lê os documentos e a diretoria (`interno.igrejas_que_cuido`).
+
+**As telas da secretaria (módulo Igrejas, no menu do módulo):**
+
+- **Igrejas** (o painel, opção 3 da rodada 12): os números grandes (regulares, suspensas, sem registro, filiais), quem precisa de atenção e as sem registro para chamar para perto. As subfunções **Todas, Regulares, Suspensas e Sem registro** abrem a tabela (opção 1), com a situação e o que falta de cada igreja.
+- **Para conferir**: as igrejas novas (com a barra "x de N conferidos") e os documentos mandados pelos pastores (Conferir e Recusar com o motivo).
+- **A análise da igreja nova**, item por item, com "Ativar a igreja".
+- **Central de regularização**: as suspensas com a contagem dos 30 dias, o que vence em 60 dias, a associação privada com o prazo, o que falta da transição, as sem registro e as regras.
+- **Cadastrar igreja**: "a igreja tem registro?"; sim, os 5 passos (dados com a natureza, endereço e contato, pastor e diretoria com o mandato, documentos em partes, revisar); ainda não, o cadastro simples com as limitações.
+- **A igreja em abas**: Dados, Documentos (a secretaria confere e também manda pela igreja), Diretoria (a mudança para conferir, como estava e como fica; a em vigor; a próxima já conferida), Ministros, Filiais, Agenda (o empréstimo registrado direto) e Situação (o nível, o que falta, regularizar a sem registro e arquivar).
+- **Denominações** (saíram de Configurações), com a tradição.
+- No pastor presidente, até a parte 6: a Minha igreja manda os documentos com as partes e a validade, e a diretoria com a ata.
+
+**Decisões tomadas sem o desenho:**
+
+- **As datas**: o documento "vale até D" vale no dia D; a igreja fica suspensa a partir de D+1 (o desenho: "venceu em 31/12, suspensa desde 01/01"). Os 30 dias vão até D+30; o perfil é bloqueado a partir de D+31.
+- **"Mandou dentro dos 30 dias"** = há um documento do mesmo tipo esperando a conferência. Se a secretaria recusar depois do prazo, o perfil é bloqueado. Bloqueado, só a secretaria manda o documento pela igreja.
+- **Suspensa, o pastor não faz mais nada pela igreja** (empréstimo, correções dos ministros, contato, filiais): o banco só deixa mandar e ler os documentos e a diretoria.
+- **A natureza jurídica vencida** funciona como o documento vencido: suspensa no mesmo dia, 30 dias para o Cartão CNPJ novo e, depois, o perfil bloqueado. Assim a igreja fica com as limitações da sem registro (sem empréstimo, e o perfil acaba), mas o pastor ainda manda o cartão pela própria aba.
+- **A transição**: o documento que nunca veio não suspende até 28/04/2027 (a igreja aparece regular, com "faltam … (até 28/04/2027)"). A igreja cadastrada depois disso, sem o documento, fica suspensa desde o cadastro, com os 30 dias. Nos testes do banco (`testes/banco/ambiente.ts`) a transição fica aberta, para os testes antigos (igrejas sem documentos) não quebrarem com a passagem do tempo.
+- **O alvará** entrou no cadastro como o 4º documento (o desenho da rodada 9 tinha três). Ele vale para ser regular, mas o cadastro termina sem ele (e sem os outros): a tela avisa e eles vão depois, na ficha.
+- **O documento mandado pela secretaria (ou pela presidência) já entra conferido**, menos quando ela preside aquela igreja. Ninguém confere o documento que mandou.
+- **O pastor presidente escolhido no cadastro** (ministro associado) passa a ser ligado à igreja nova; o vínculo anterior termina hoje e fica no histórico. Se ele já é pastor presidente de outra igreja, o banco recusa.
+- **A diretoria informada antes desta parte** (sem ata) aparece como "informada antes" e não dá validade: é preciso registrar a ata.
+- **O fim do mandato** = a posse mais os anos, menos um dia (posse 01/01/2025, 4 anos: até 31/12/2028).
+- **Igreja sem registro**: o banco recusa marcar um pastor presidente nela (assim a contribuição fica a do ministro comum); os ministros dela podem ser ligados. Ela também é arquivada pela aba Situação.
+- **Arquivar a igreja** só sem ministros (a tela pede para movê-los antes, na ficha de cada um).
+- **Filiais**: só a igreja com registro tem; o nome não se repete na igreja; o responsável é ministro associado **da igreja**.
+- **A Central de regularização** ficou sem o "registrar conversa" com a igreja sem registro (o desenho da opção 2 tinha): fica para quando houver onde guardar as conversas.
+- **"Para conferir"**: os documentos da igreja nova se conferem na análise dela, e não na lista geral.
+- **Configurações › Denominações** virou um aviso com o link para o módulo Igrejas.
+- **O texto da situação** na tabela fica curto ("faltam 5 itens (até 28/04/2027)"); a lista do que falta aparece na aba Situação.
+
+**O que fica para a parte 6:** as telas do pastor presidente (os documentos em cartões e a página do documento com o envio antecipado, a igreja suspensa com o caminho de volta, a aba Filiais, o cadastro da igreja pelo próprio pastor e os avisos de 60 e 30 dias no sino).
+
+**Verificação:**
+
+- testes do banco: `testes/banco/regularizacao.test.ts` (35 testes). Cobrem:
+  - a situação pela data: regular; o alvará vencido ontem (suspensa hoje, com os 30 dias, e o perfil ainda valendo só para mandar); 31 dias depois, o perfil bloqueado (e o `meus_perfis` só com "ministro"); a secretaria manda o alvará e o perfil volta; quem mandou dentro do prazo não é bloqueado;
+  - o documento antecipado: conferido, emenda no atual; no dia em que o atual vence, o seguinte já vale; com um dia de buraco, suspensa;
+  - o menor mandato, as partes, os 25 MB e as recusas (sem prazo, mais de 20 anos, nome incompleto, ministro que não é associado);
+  - a natureza jurídica (o prazo do primeiro mandato, os 90 dias da ata que muda, o cartão novo, a mudança na ficha e o prazo vencido);
+  - a transição; a igreja sem registro (sem empréstimo, sem pastor presidente, regularizar); o cadastro completo (o pastor presidente que passa para a igreja nova, CNPJ e sigla repetidos);
+  - a igreja nova do pastor (em análise, um de cada vez, ninguém se liga a ela, os documentos, a conferência item por item, a correção do que voltou e "Ativar a igreja");
+  - ninguém confere o que mandou; as filiais (quem cria e quem vê); a tradição; o empréstimo registrado direto; quem lê a situação e as partes; nada se apaga;
+- os testes antigos da igreja (`igreja_instituicao.test.ts`) passaram para o envio novo (com as partes) e para a diretoria com a ata;
+- testes de unidade: `testes/unidade/regularizacao.test.ts` (o fim do mandato, o menor mandato, os prazos, o tamanho do arquivo e a localização tirada do link do Google Maps);
+- no total, 557 testes (banco e unidade), todos passando;
+- ponta a ponta: `igrejas.spec` (o painel, a tabela por situação, a Central de regularização, a igreja sem registro e a tradição), `cadastros.spec` (o cadastro em 5 passos, a ficha e o arquivamento), `configuracoes.spec` e `portal-ministro.spec` (o estatuto em 2 partes, a ata com a diretoria e o mandato, a conferência da mudança da diretoria);
+- o verificador do Supabase (`db advisors`) no comep-teste: só o aviso conhecido (`auth_leaked_password_protection`).

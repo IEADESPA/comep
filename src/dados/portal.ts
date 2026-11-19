@@ -185,18 +185,38 @@ export async function ministrosDaMinhaIgreja(): Promise<Resultado<MinistroDaMinh
 }
 
 /** O pastor presidente atualiza o contato e a sigla da igreja (o banco recusa o resto: nome, CNPJ…). */
+/** O pastor presidente atualiza o contato da igreja (o resto é com a secretaria; suspensa, não muda nada). */
 export async function atualizarContatoIgreja(
   igrejaId: string,
-  dados: { endereco: string; bairro_id: string; telefone: string; sigla: string },
+  dados: {
+    endereco: string
+    bairro_id: string
+    telefone: string
+    sigla: string
+    cep: string
+    email: string
+    site: string
+    convencao: string
+    membros: string
+  },
 ): Promise<Resultado<null>> {
-  const { error } = await cliente()
+  const texto = (v: string) => v.trim() || null
+  const site = dados.site.trim()
+  const { data, error } = await cliente()
     .from('igrejas')
     .update({
-      endereco: dados.endereco.trim() || null,
+      endereco: texto(dados.endereco),
       bairro_id: dados.bairro_id || null,
-      telefone: dados.telefone.trim() || null,
-      sigla: dados.sigla.trim() || null,
+      telefone: texto(dados.telefone),
+      sigla: texto(dados.sigla)?.toUpperCase() ?? null,
+      cep: dados.cep.replace(/\D/g, '') || null,
+      email: texto(dados.email)?.toLowerCase() ?? null,
+      site: site ? (/^https?:\/\//i.test(site) ? site : `https://${site}`) : null,
+      convencao: texto(dados.convencao),
+      membros: dados.membros.trim() ? Number(dados.membros.replace(/\D/g, '')) : null,
     })
     .eq('id', igrejaId)
-  return error ? falha(error, 'Já existe outra igreja com essa sigla.') : ok(null)
+    .select('id')
+  if (error) return falha(error, 'Já existe outra igreja com essa sigla.')
+  return data.length === 0 ? { dados: null, erro: 'A igreja está suspensa: por enquanto, só a aba para mandar o documento funciona.' } : ok(null)
 }

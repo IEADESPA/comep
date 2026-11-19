@@ -31,10 +31,12 @@ describe('Fase 5.1 — a igreja como instituição', () => {
   }
   const enviarArquivo = (quem: string, caminho: string) =>
     chamar(quem, "insert into storage.objects (bucket_id, name) values ('igrejas', $1)", [caminho])
+  // desde a parte 5 (Fase 5.5) o documento vai com as partes (enviar_documento_igreja); o envio antigo saiu da API
   const registrar = (quem: string, igreja: string, tipo: string, caminho: string, descricao: string | null = null) =>
-    chamar(quem, 'select public.registrar_documento_igreja($1, $2::public.tipo_documento_igreja, $3, $4) as id', [igreja, tipo, caminho, descricao]).then(
-      (r) => (r.rows[0] as { id: string }).id,
-    )
+    chamar(quem, 'select public.enviar_documento_igreja($1, $2::jsonb) as id', [
+      igreja,
+      JSON.stringify({ tipo, descricao, partes: [{ caminho, nome: 'arquivo.pdf', tamanho: 1000 }] }),
+    ]).then((r) => (r.rows[0] as { id: string }).id)
 
   before(async () => {
     db = await criarBanco()
@@ -65,7 +67,7 @@ describe('Fase 5.1 — a igreja como instituição', () => {
       await assert.rejects(registrar(ministroA, igrejaA, 'estatuto', `${igrejaA}/estatuto-1.pdf`), erroComCodigo(SEM_PERMISSAO))
     })
 
-    it('um em vigor por tipo (o anterior fica guardado); "outro" pede a descrição', async () => {
+    it('o que espera a conferência é trocado pelo novo (o anterior fica guardado); "outro" pede a descrição', async () => {
       await enviarArquivo(pastorA, `${igrejaA}/estatuto-2.pdf`)
       const novo = await registrar(pastorA, igrejaA, 'estatuto', `${igrejaA}/estatuto-2.pdf`)
       const r = await db.query<{ id: string; arquivado: boolean }>(
@@ -77,7 +79,10 @@ describe('Fase 5.1 — a igreja como instituição', () => {
         { id: novo, arquivado: false },
       ])
       estatuto = novo
-      await assert.rejects(registrar(pastorA, igrejaA, 'outro', `${igrejaA}/estatuto-2.pdf`), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      await enviarArquivo(pastorA, `${igrejaA}/outro-1.pdf`)
+      await assert.rejects(registrar(pastorA, igrejaA, 'outro', `${igrejaA}/outro-1.pdf`), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      // o mesmo arquivo não serve a dois documentos
+      await assert.rejects(registrar(pastorA, igrejaA, 'outro', `${igrejaA}/estatuto-2.pdf`, 'Cópia'), erroComCodigo(BLOQUEADO_PELO_BANCO))
     })
 
     it('a secretaria confere ou recusa (com motivo); o pastor presidente não confere; conferido não muda', async () => {
@@ -102,28 +107,35 @@ describe('Fase 5.1 — a igreja como instituição', () => {
     })
   })
 
+  // desde a parte 5 (Fase 5.5) a diretoria vai com a ata (o mandato de cada cargo): testes/banco/regularizacao.test.ts
   describe('diretoria da igreja', () => {
-    const salvar = (quem: string, igreja: string, membros: { cargo: string; nome: string }[], inicio = '2025-01-01', fim = '2028-12-31') =>
-      chamar(quem, 'select public.salvar_diretoria_igreja($1, $2::date, $3::date, $4::jsonb) as n', [igreja, inicio, fim, JSON.stringify(membros)])
+    let n = 0
+    const salvar = async (quem: string, igreja: string, membros: { cargo: string; nome: string }[], inicio = '2025-01-01', fim = '2028-12-31') => {
+      const caminho = `${igreja}/ata-${++n}.pdf`
+      await enviarArquivo(quem, caminho).catch(() => undefined)
+      return chamar(quem, 'select public.enviar_documento_igreja($1, $2::jsonb) as id', [
+        igreja,
+        JSON.stringify({ tipo: 'ata_diretoria', partes: [{ caminho }], diretoria: membros.map((m) => ({ ...m, inicio, fim })) }),
+      ])
+    }
 
-    it('o pastor presidente registra a diretoria da sua igreja; mudar guarda a anterior', async () => {
+    it('o pastor presidente manda a ata com a diretoria da sua igreja; a ata anterior fica no histórico', async () => {
       await salvar(pastorA, igrejaA, [
         { cargo: 'Presidente', nome: 'Pastor Presidente A' },
         { cargo: 'Tesoureiro', nome: 'Irmão Fictício' },
       ])
-      await salvar(pastorA, igrejaA, [{ cargo: 'Presidente', nome: 'Pastor Presidente A' }])
-      const r = await um<{ atuais: number; antigos: number }>(
-        `select count(*) filter (where arquivado_em is null)::int as atuais, count(*) filter (where arquivado_em is not null)::int as antigos
-         from public.igreja_diretoria where igreja_id = $1`,
+      await salvar(pastorA, igrejaA, [{ cargo: 'Presidente', nome: 'Pastor Presidente A' }], '2025-02-01')
+      const r = await um<{ atas: number; cargos: number }>(
+        `select count(distinct documento_id)::int as atas, count(*)::int as cargos from public.igreja_diretoria where igreja_id = $1`,
         [igrejaA],
       )
-      assert.deepEqual(r, { atuais: 1, antigos: 2 })
+      assert.deepEqual(r, { atas: 2, cargos: 3 })
     })
 
     it('o pastor de outra igreja não muda; sem membros ou com o fim antes do início: recusado', async () => {
-      await assert.rejects(salvar(pastorB, igrejaA, [{ cargo: 'Presidente', nome: 'Outro' }]), erroComCodigo(SEM_PERMISSAO))
+      await assert.rejects(salvar(pastorB, igrejaA, [{ cargo: 'Presidente', nome: 'Outro Nome' }]), erroComCodigo(SEM_PERMISSAO))
       await assert.rejects(salvar(pastorA, igrejaA, []), erroComCodigo(BLOQUEADO_PELO_BANCO))
-      await assert.rejects(salvar(pastorA, igrejaA, [{ cargo: 'Presidente', nome: 'X Y' }], '2028-01-01', '2025-01-01'), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      await assert.rejects(salvar(pastorA, igrejaA, [{ cargo: 'Presidente', nome: 'Fulano de Tal' }], '2028-01-01', '2025-01-01'), erroComCodigo(BLOQUEADO_PELO_BANCO))
       assert.equal((await chamar(pastorB, 'select id from public.igreja_diretoria')).rows.length, 0)
     })
   })
@@ -164,7 +176,8 @@ describe('Fase 5.1 — a igreja como instituição', () => {
         ministros: 2,
         ministros_em_dia: 2,
         documentos_ok: ['estatuto'],
-        documentos_pendentes: 0,
+        // as duas atas mandadas pelo pastor esperam a conferência
+        documentos_pendentes: 2,
         diretoria: true,
       })
       await assert.rejects(chamar(ministroA, 'select * from public.resumo_das_igrejas()'), erroComCodigo(SEM_PERMISSAO))

@@ -5562,3 +5562,519 @@ li.feito .numero-passo {
 .resumo-correcao strong {
   color: var(--cor-titulo);
 }
+
+/* ---------- Igrejas e a regularização (Fase 5.5, partes 5 e 6) ---------- */
+
+/* Os números grandes do alto (regulares, suspensas, sem registro, filiais) */
+.numeros-grandes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.numeros-grandes li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+}
+
+.numeros-grandes span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.numeros-grandes strong {
+  font-family: var(--letra-titulo);
+  font-size: 30px;
+  line-height: 1.1;
+  color: var(--area-cor);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 900px) {
+  .numeros-grandes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.numeros-chips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A tabela das igrejas (opção 1 da rodada 12) */
+.tabela-igrejas {
+  overflow: hidden;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+}
+
+.tabela-igrejas ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tabela-igrejas li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.tabela-igrejas-cabecalho,
+.linha-igreja {
+  display: grid;
+  gap: 6px 12px;
+  align-items: center;
+  padding: 10px 14px;
+}
+
+.tabela-igrejas-cabecalho {
+  background: var(--cor-fundo);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.linha-igreja {
+  grid-template-columns: minmax(0, 1fr) auto;
+  color: var(--cor-texto);
+  text-decoration: none;
+  min-height: 52px;
+}
+
+.linha-igreja:hover {
+  background: var(--cor-fundo);
+}
+
+.linha-igreja-nome {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.linha-igreja-nome strong {
+  font-size: 14.5px;
+  color: var(--cor-titulo);
+}
+
+.linha-igreja-nome span,
+.linha-igreja-docs {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+.linha-igreja-docs {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 900px) {
+  .tabela-igrejas-cabecalho,
+  .linha-igreja {
+    grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 2.4fr) 60px;
+  }
+
+  .linha-igreja-docs {
+    grid-column: auto;
+  }
+}
+
+/* As faixas de resultado (a diretoria vale até…, suspensa desde…) */
+.faixa-resultado {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--area-eventos-fundo);
+}
+
+.faixa-resultado strong {
+  font-size: 15px;
+  color: var(--area-eventos);
+}
+
+.faixa-resultado span {
+  font-size: 13.5px;
+  color: var(--cor-texto);
+}
+
+.faixa-resultado.faixa-ok {
+  background: var(--area-financas-fundo);
+}
+
+.faixa-resultado.faixa-ok strong {
+  color: var(--area-financas);
+}
+
+.faixa-resultado.faixa-perigo {
+  background: var(--area-pessoas-fundo);
+}
+
+.faixa-resultado.faixa-perigo strong {
+  color: var(--area-pessoas);
+}
+
+/* A pergunta "a igreja tem registro?" em dois cartões */
+.pergunta-registro {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.pergunta-registro legend {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.opcao-cartao {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+  background: var(--cor-superficie);
+  cursor: pointer;
+}
+
+.opcao-cartao.escolhida {
+  border: 2px solid var(--cor-marca);
+  background: var(--cor-marca-suave);
+}
+
+.opcao-cartao > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opcao-cartao > span span {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+@media (min-width: 900px) {
+  .pergunta-registro {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.opcoes-radio {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.opcoes-radio legend {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+/* O que fica limitado (igreja sem registro) */
+.lista-limites {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lista-limites li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.lista-limites li > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.lista-limites li > span span {
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+.limite-bom > svg {
+  color: var(--area-financas);
+}
+
+.limite-ruim > svg {
+  color: var(--area-pessoas);
+}
+
+/* O cadastro em 5 passos */
+.sub-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sub-bloco h3,
+.cartao-documento h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.cartao-documento h3 span {
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.documentos-cadastro {
+  display: grid;
+  gap: 12px;
+}
+
+.cartao-documento {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 14px;
+}
+
+@media (min-width: 1100px) {
+  .documentos-cadastro {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.revisar-cadastro {
+  margin: 0;
+}
+
+.revisar-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.revisar-linha dt {
+  font-weight: 700;
+  color: var(--cor-titulo);
+}
+
+.revisar-linha dd {
+  grid-column: 1;
+  margin: 0;
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+
+.revisar-linha .botao-link {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+/* As partes do documento (até 25 MB cada) */
+.escolher-arquivos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lista-partes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lista-partes li {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--cor-fundo);
+  font-size: 13.5px;
+}
+
+.lista-partes li > svg {
+  color: var(--area-financas);
+}
+
+.lista-partes-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista-partes-tamanho {
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.zona-envio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px;
+  border: 2px dashed var(--cor-campo-borda);
+  border-radius: 14px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.zona-envio > svg {
+  color: var(--cor-marca-texto);
+}
+
+.zona-envio span {
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.escolher-arquivos:focus-within .zona-envio {
+  outline: 3px solid var(--cor-marca);
+  outline-offset: 2px;
+}
+
+.partes-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* A diretoria e o mandato ("mesmo mandato para todos", com a exceção) */
+.form-diretoria,
+.form-documento {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mandato-padrao {
+  display: grid;
+  gap: 12px;
+  align-items: end;
+}
+
+@media (min-width: 900px) {
+  .mandato-padrao {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.linhas-diretoria > li {
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.linha-cargo {
+  flex: 1 1 420px;
+  min-width: 0;
+  display: grid;
+  gap: 8px 12px;
+}
+
+@media (min-width: 900px) {
+  .linha-cargo {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+.linha-cargo-lado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* A mudança da diretoria para conferir (como estava → como fica) */
+.lista-mudancas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lista-mudancas li {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 14px;
+}
+
+@media (max-width: 599.98px) {
+  .lista-mudancas li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+.linha-titulo-igreja {
+  min-height: 0 !important;
+  padding-top: 12px !important;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* As filiais em cartões (opção 2 da rodada 12) */
+.cartoes-filiais {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.cartoes-filiais > li {
+  gap: 8px;
+}
+
+.cartoes-filiais > li > strong {
+  font-size: 15px;
+  color: var(--cor-titulo);
+}
+
+@media (min-width: 900px) {
+  .cartoes-filiais {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .cartoes-filiais {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

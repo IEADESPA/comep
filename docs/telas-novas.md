@@ -66,6 +66,17 @@ O site fica por **último**: ele já funciona e está aceitável.
 | 20 | **Telas de quem ainda não é membro** | Meu pedido de associação, validar credencial (QR Code) |
 | 21 | **Site** (por último) | Página inicial, como se associar, agenda e evento, convocação, diretoria, igrejas |
 
+**Módulos novos aprovados em 18/11/2026** (entram na lista; o desenho de cada um vem nas rodadas seguintes):
+
+| Módulo | O que entra |
+| --- | --- |
+| **Central de regularização** (dentro do módulo Igrejas) | As suspensas com a contagem dos 30 dias, o que vence em 60 dias, a natureza jurídica com prazo, o que falta da transição e as igrejas sem registro, para chamar para perto. Depois, a biblioteca de modelos (estatuto, ata). |
+| **Relações institucionais** | Ofícios (só para fora, em nome do COMEP, com modelos e número automático), demandas ao poder público (com apoio mínimo dos ministros em dia e a reunião mensal), conselhos municipais (a cadeira é da associação) e utilidade pública. |
+| **Relatórios** | Todos os gráficos e relatórios do conselho, ajustáveis; o relatório de representatividade fica nele. Rodada 16, com o portal da transparência e a página pública "Igrejas cadastradas". |
+| **Mapa** | As igrejas, as filiais e as ações sociais como pontos no mapa da cidade (a localização das filiais já é guardada). |
+| **Formação** | A formação das diretorias e os treinamentos básicos, com o histórico ministerial e os certificados. |
+| **Agenda evangélica** | Os eventos do COMEP, os empréstimos (com a agenda de cada item) e os eventos gerais das igrejas (cerca de 10 por igreja; o evento que pede patrocínio sempre). |
+
 ## Andamento
 
 - 17/11/2026: lista combinada.
@@ -108,3 +119,17 @@ O site fica por **último**: ele já funciona e está aceitável.
   - parte 4 (versão 5.5.0-teste.8): o banco da correção estruturada (aceita, entra sozinha no cadastro) e da análise do pedido de associação item por item ("Mandar para a AGO" só com tudo aprovado);
   - o registro de cada parte, com as decisões tomadas sem o desenho e o que depende do banco, está em `docs/revisoes/fase-5.5.md` (entregas 5.5.5, 5.5.6 e 5.5.7).
 - 18/11/2026: **regra nova do usuário: todo ministro precisa estar ligado a uma igreja** (não existe ministro "desigrejado"). No Cadastrar ministro e no pedido de associação, a igreja é obrigatória (o banco já exigia).
+- 18/11/2026: **rodada 6 aprovada** (Ministros e inscrições: a tabela, a ficha em abas e a análise do pedido item por item; o Cadastrar ministro foi refeito na rodada 7, passo a passo).
+- 18/11/2026: **rodada 7 aprovada** (o Cadastrar ministro passo a passo e o módulo Credenciais). O editor do modelo da credencial ficou para ser refeito.
+- 18/11/2026: **rodada 8 aprovada**: os modelos da credencial no editor de tela inteira, a impressão com marcas de corte, o módulo Igrejas e a igreja aberta pela secretaria (na agenda, a secretaria registra direto, sem "pedir emprestado"). O cadastro da igreja deve ser completo, com os documentos, e o próprio pastor também cadastra.
+- 18/11/2026: **rodada 9 aprovada**: "Quem recebe" cada modelo, a impressão (4 por folha, 5 mm, sangria), o cadastro completo da igreja em 5 passos, o pastor que cadastra a igreja dele e a análise da igreja nova item por item. O Financeiro em abas foi reprovado.
+- 18/11/2026: **rodada 10 aprovada**: a navegação de TODOS os módulos ("o módulo toma a coluna"), a impressão em folha nova, o mandato pelo menor prazo, a igreja sem registro, os arquivos de até 25 MB em partes e a biblioteca de símbolos.
+- 18/11/2026: **rodada 11 aprovada**: as 6 funções do Financeiro, o "mesmo mandato para todos" com exceção e a natureza jurídica.
+- 18/11/2026: **rodada 12 aprovada**: a igreja suspensa (o caminho de volta, com a contagem dos 30 dias), os documentos com a validade em cartões, o painel do módulo Igrejas com a Central de regularização, a credencial do ministro em readequação e as filiais em cartões.
+- 18/11/2026: **rodada 13 aprovada**: o Patrimônio completo (bens em cartões, o histórico e a agenda do bem, as etiquetas, o contrato passo a passo e a devolução), o Conselho Fiscal (o ano e a página do mês) e o documento antecipado (o passo a passo, aberto pelo cartão do documento).
+- 18/11/2026: **rodada 14 aprovada**: a página do bem, o contrato com a digital, a devolução em 3 etapas, as etiquetas (a mesma em todos os bens de quantidade), o Conselho Fiscal, a página do documento em abas e o módulo Relações institucionais.
+- 18/11/2026: **rodada 15 aprovada**: a presença na assembleia (QR, código da portaria e a secretaria), a condução com o roteiro e o telão, o fechamento com o gerador de texto da ata, as notificações, os ofícios e as demandas (que passam pela secretaria e pela reunião mensal).
+- 19/11/2026: **a construção do lote das Igrejas e da regularização** (só no site de teste):
+  - parte 5 (versão 5.5.0-teste.9): o banco da regularização (a situação calculada pela data, os 30 dias, o documento antecipado, o menor mandato, a natureza jurídica, a igreja sem registro, a igreja nova em análise e as filiais) e as telas da secretaria: o painel do módulo, a tabela por situação, a Central de regularização, o "Para conferir", a análise da igreja nova, o cadastro completo em 5 passos e o simples, a igreja em abas (com a Situação e a conferência da diretoria) e as Denominações com a tradição;
+  - parte 6 (versão 5.5.0-teste.10): as telas do pastor presidente (os documentos em cartões e a página do documento com o envio antecipado, a igreja suspensa, as filiais e o cadastro da igreja pelo próprio pastor);
+  - o registro de cada parte, com as decisões tomadas sem o desenho, está em `docs/revisoes/fase-5.5.md` (entregas 5.5.8 e 5.5.9).

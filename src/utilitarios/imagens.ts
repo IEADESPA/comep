@@ -80,3 +80,22 @@ export async function prepararImagemModelo(arquivo: File): Promise<{ blob: Blob;
     return { erro: 'Não foi possível ler esta imagem. Tente outra.' }
   }
 }
+
+const LIMITE_DOCUMENTO = 25 * 1024 * 1024 // 25 MB por arquivo (Fase 5.5: o documento vai em quantas partes precisar)
+
+/** Documento da igreja: a foto é reduzida no aparelho (1600 px, sem perder a leitura); o PDF vai como está, até 25 MB. */
+export async function prepararDocumento(arquivo: File): Promise<ArquivoPronto> {
+  if (arquivo.type === 'application/pdf') {
+    if (arquivo.size > LIMITE_DOCUMENTO) {
+      const mb = (arquivo.size / (1024 * 1024)).toFixed(1).replace('.', ',')
+      return { erro: `"${arquivo.name}" tem ${mb} MB e o limite é 25 MB por arquivo. Mande o documento em partes.` }
+    }
+    return { blob: arquivo, extensao: 'pdf' }
+  }
+  if (!arquivo.type.startsWith('image/')) return { erro: `"${arquivo.name}" precisa ser um PDF ou uma foto (JPG ou PNG).` }
+  try {
+    return { blob: await comprimirImagem(arquivo, 1600, 0.85), extensao: 'jpg' }
+  } catch {
+    return { erro: `Não foi possível ler a foto "${arquivo.name}". Tente outra.` }
+  }
+}

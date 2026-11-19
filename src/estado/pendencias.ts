@@ -1,13 +1,13 @@
 // O número ao lado de uma função no menu do módulo (telas novas, Fase 5.5): o que espera alguém da diretoria
-// (pedidos de associação, correções, comprovantes, despesas, empréstimos, justificativas). Tudo vem das funções
-// que o sistema já tinha (src/dados): nada novo no banco. Uma contagem que falha só fica sem número.
+// (pedidos de associação, correções, comprovantes, despesas, empréstimos, justificativas, igrejas para conferir e
+// suspensas). Uma contagem que falha só fica sem número.
 import { useEffect, useState } from 'react'
 import type { ChavePendencia, Modulo } from '../componentes/menu'
 import { despesasAguardando } from '../dados/caixa'
 import type { Resultado } from '../dados/cliente'
 import { listarJustificativas } from '../dados/encontros'
 import { informesPendentes } from '../dados/financeiro'
-import { listarPedidosCorrecao } from '../dados/igrejas'
+import { documentosParaConferir, igrejasEmAnalise, listarPedidosCorrecao, situacaoDasIgrejas } from '../dados/igrejas'
 import { listarEmprestimos } from '../dados/patrimonio'
 import { listarPedidos } from '../dados/pedidos'
 import type { Perfil } from '../dados/perfis'
@@ -48,6 +48,21 @@ const CONTAGENS: Record<ChavePendencia, { quem: readonly Perfil[]; contar: () =>
   justificativas: {
     quem: ['secretaria', 'presidencia'],
     contar: () => quantos(listarJustificativas, (l) => l.filter((j) => j.situacao === 'pendente').length),
+  },
+  // Igrejas (Fase 5.5): a igreja nova e os documentos para conferir; as suspensas, na Central de regularização
+  igrejasConferir: {
+    quem: ['secretaria', 'presidencia'],
+    contar: async () => {
+      const [novas, docs] = await Promise.all([
+        quantos(igrejasEmAnalise),
+        quantos(documentosParaConferir, (l) => l.filter((d) => d.igreja?.cadastro !== 'em_analise').length),
+      ])
+      return novas === null && docs === null ? null : (novas ?? 0) + (docs ?? 0)
+    },
+  },
+  igrejasSuspensas: {
+    quem: ['secretaria', 'presidencia'],
+    contar: () => quantos(situacaoDasIgrejas, (l) => l.filter((s) => s.situacao.situacao === 'suspensa').length),
   },
 }
 

@@ -81,14 +81,13 @@ export function Configuracoes() {
       </nav>
 
       <DadosDoSite podeEditar={editaListas} />
-      <ListaConfiguravel
-        tabela="denominacoes"
-        ancora="denominacoes"
-        titulo="Denominações (tipos de igreja)"
-        descricao="Ex.: Assembleia de Deus, Batista, Presbiteriana, Pentecostal…"
-        comSigla
-        podeEditar={editaListas}
-      />
+      {/* as denominações foram para o módulo Igrejas, com a tradição (telas novas, Fase 5.5) */}
+      <section className="painel" id="denominacoes" aria-labelledby="titulo-denominacoes-config">
+        <h2 id="titulo-denominacoes-config">Denominações (tipos de igreja)</h2>
+        <p className="detalhe">
+          As denominações agora ficam no módulo Igrejas, com a tradição de cada uma: <Link to="/igrejas/denominacoes">Igrejas › Denominações</Link>.
+        </p>
+      </section>
       <ListaConfiguravel
         tabela="bairros"
         ancora="bairros"
