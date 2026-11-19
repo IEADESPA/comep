@@ -51,6 +51,14 @@ test('modelos da credencial: criar de um pronto, desenhar, dizer quem recebe, co
       const item = page.getByRole('region', { name: 'Item escolhido' })
       await item.getByLabel(/^Texto \(os dados/).fill(marca)
       await expect(page.locator('.editor-palco .credencial')).toContainText(marca)
+      // um símbolo da biblioteca (desenho próprio em SVG) e as regras: o obrigatório não sai
+      await page.getByRole('navigation', { name: 'Ferramentas do editor' }).getByRole('button', { name: 'Símbolos' }).click()
+      await page.getByRole('button', { name: 'Acrescentar o símbolo Chama' }).first().click()
+      await expect(page.locator('.editor-palco .cr-simbolo')).toHaveCount(1)
+      await page.locator('.editor-palco [data-alvo="nome"]').click()
+      await expect(item.getByRole('button', { name: 'Tirar da credencial' })).toBeDisabled()
+      await page.getByRole('navigation', { name: 'Ferramentas do editor' }).getByRole('button', { name: 'Regras' }).click()
+      await expect(page.getByRole('list', { name: 'Obrigatórios' })).toContainText('QR Code de conferência')
       // o tamanho do cartão: o padrão de cartão de crédito
       await page.getByRole('tab', { name: 'Cartão' }).click()
       await expect(page.getByRole('radio', { name: /Cartão de crédito \(CR80\)/ })).toBeChecked()
@@ -102,6 +110,17 @@ test('modelos da credencial: criar de um pronto, desenhar, dizer quem recebe, co
     // 6. Arquiva o modelo do teste (continua guardado): as credenciais voltam ao padrão
     await arquivarSeExistir(page, nome)
   }
+})
+
+test('a biblioteca de símbolos: os gerais, os de cada tradição e os logotipos das denominações', async ({ page }) => {
+  await page.goto('credenciais/simbolos')
+  await expect(page.getByRole('heading', { name: 'Biblioteca de símbolos', level: 1 })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Gerais da fé' })).toContainText('Chama')
+  await expect(page.getByRole('list', { name: 'Por tradição' }).getByRole('listitem', { name: 'Pentecostal', exact: true })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Por tradição' }).getByRole('listitem', { name: 'Batista', exact: true })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Logotipos das denominações' })).toContainText('Denominação Fictícia (teste)')
+  await page.getByLabel('Buscar símbolo').fill('águas')
+  await expect(page.getByRole('list', { name: 'Por tradição' }).getByRole('listitem')).toHaveCount(1)
 })
 
 test('o ministro não abre os modelos da credencial', async ({ browser }) => {

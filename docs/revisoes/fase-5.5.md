@@ -535,3 +535,32 @@ O lote das Credenciais (rodadas 7 a 12, aprovadas em 18/11/2026; as regras de ne
 - no total, 578 testes (banco e unidade), todos passando;
 - ponta a ponta: `credencial-modelo.spec` (refeito: criar de um modelo pronto, o editor na tela inteira no computador, quem recebe com a igreja fictícia, a ordem, a credencial de um ministro no modelo novo e arquivar; no celular, o aviso do editor e "Pôr em uso"), `configuracoes.spec` (Validade e verso) e os da credencial, das igrejas, da diretoria e do menu, verdes no computador e no celular;
 - o verificador do Supabase (`db advisors`) no comep-teste: só o aviso conhecido (`auth_leaked_password_protection`).
+
+## Entrega 5.5.11 — Telas novas, parte 8: a impressão nova, os símbolos e a readequação na conferência (versão 5.5.0-teste.12)
+
+O fim do lote das Credenciais (rodadas 8 a 12; as regras estão no `PROJETO.md`, seção 4.5). Migração `20261119200000_credencial_logotipos.sql`.
+
+**O que entrou:**
+
+- **A impressão nova** (Credenciais › Imprimir; rodadas 8 a 11, `imprimir-4` com os ajustes de `imprimir-2` e `imprimir-3`): só lado a lado, para dobrar; **4 por folha A4**, com **5 mm de espaço** entre as credenciais e **2 mm de sangria** (o fundo e o que encosta na borda passam do corte nos lados de fora; na dobra, não); as **marcas de corte fora da sangria** e a dobra marcada tracejada em cima e embaixo. Começa **sempre no alto**: as vagas que sobram saem em branco, sem a palavra "livre" e sem marcas. "Tem um pedaço de folha que sobrou?": **Não** (só folhas A4) ou **Sim** (cabem 1, 2 ou 3 no pedaço; 2 = meia folha, A5 deitada): as primeiras vão no pedaço e o resto em folhas inteiras. Ao lado, "Como imprimir" com as marcadas, o que vai no pedaço e nas folhas, o papel e o botão. A conta das folhas fica em `src/utilitarios/impressao.ts`.
+- **A biblioteca de símbolos** (rodadas 10 e 11): desenhos **próprios em SVG** (`src/utilitarios/simbolos.ts`), nunca emojis: os 12 gerais da fé e os de cada tradição — pentecostal, quadrangular, neopentecostal, batista, reformada e presbiteriana, metodista e wesleyana, luterana, anglicana, adventista e congregacional (as denominações grandes de cada uma aparecem como exemplo). No editor, o trilho ganhou **Símbolos** (com a busca) e a marca d'água pode ser um símbolo da biblioteca, com a cor.
+- **Credenciais › Símbolos**: a biblioteca e os **logotipos das denominações**. O logotipo oficial é de cada denominação: a secretaria **envia o arquivo que a denominação fornecer** (o sistema não copia logotipos da internet). No modelo, o item "logotipo da denominação" mostra, em cada credencial, o da denominação da igreja da pessoa (sem logotipo, o lugar fica vazio; no editor, tracejado).
+- **As regras do modelo** (rodada 11): no editor, **Regras** mostra o que é **obrigatório** (não sai: nome, nº de registro, validade, QR Code, foto e o nome e o símbolo do COMEP), o que é **padrão** e o que é **opcional**; cada item mostra o papel dele em Camadas e na aba Item. O obrigatório não sai ("Tirar da credencial" desligado e o Delete recusado), a não ser que haja outro igual na frente ou no verso. No verso aparece "verso: área livre".
+- **A readequação na conferência pelo QR** (rodada 12, opção 1): a página de validação mostra a credencial **cinza com a faixa de aviso** ("Em readequação · sem direito a voto · prazo até 28/04/2027"), "Credencial válida — ministro em readequação", a igreja "(sem registro)", a situação ("participa, mas não vota") e o prazo. A Minha credencial e a credencial aberta pela secretaria também mostram a situação de readequação.
+
+**Decisões tomadas sem o desenho:**
+
+- **O pedaço e as folhas se imprimem à parte** ("Imprimir o pedaço" e "Imprimir a folha"), porque vão em papéis diferentes na impressora; com só o pedaço ou só folhas, um botão só. O pedaço de 1 e o de 3 usam papel de tamanho personalizado (210 × 74,25 mm e 210 × 222,75 mm: um quarto e três quartos da A4).
+- **Modelos de tamanhos diferentes** na mesma impressão: a folha leva quantos couberem pela altura (no máximo 4); o crachá em pé leva 3.
+- **A sangria** estica o fundo do lado e o que encosta na borda (faixas, formas, imagem que cobre, a faixa de aviso), nunca os textos, o QR Code, a foto e os símbolos.
+- **"+ Enviar símbolo"** (o desenho tinha) ficou de fora: um símbolo enviado seria uma imagem qualquer, e a imagem já entra pelo editor (Imagens › Enviar uma imagem); a biblioteca é só de desenhos próprios.
+- **Os símbolos das tradições que o desenho não trazia** (neopentecostal, anglicana, adventista e congregacional) são desenhos novos e genéricos (cruz com o círculo, Bíblia aberta, trombeta, lâmpada acesa), nunca o logotipo de uma denominação.
+- **No celular**, a impressão avisa que é feita no computador (rodada 7), mas continua mostrando como vai ficar; o editor só avisa.
+
+**Verificação:**
+
+- testes do banco: `testes/banco/credencial_logotipos.test.ts` (4 testes): sem logotipo, a credencial não traz nenhum; só a secretaria (ou a presidência) envia, e o arquivo precisa estar na pasta do modelo; a credencial de cada pessoa traz o logotipo da denominação da igreja dela; ninguém muda o logotipo direto na tabela;
+- testes de unidade: `testes/unidade/impressao.test.ts` (5 testes: 4 por folha com o espaço, a sangria e as margens; sempre do alto; o pedaço; o papel do pedaço; o crachá em pé);
+- no total, 587 testes (banco e unidade), todos passando;
+- ponta a ponta: `credencial-impressao.spec` (novo: imprimir 2 num pedaço já cortado, com as medidas no papel — 9 mm entre os cortes, a dobra sem espaço, 85,6 mm, 16 marcas de corte, 4 da dobra e 4 sangrias — e, com 1 no pedaço, a outra na folha; e a credencial do ministro de uma igreja sem registro, cinza, com a faixa, conferida pelo QR sem login, com o prazo e sem a frase proibida) e `credencial-modelo.spec` (o símbolo da biblioteca no editor, o obrigatório que não sai, as regras e a página Credenciais › Símbolos);
+- o verificador do Supabase (`db advisors`) no comep-teste: só o aviso conhecido (`auth_leaked_password_protection`).

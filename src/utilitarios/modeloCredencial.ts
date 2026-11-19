@@ -7,6 +7,7 @@
 // Fase 5.5 (parte 7): vários modelos (um por grupo); o do ministro em readequação tem a faixa de aviso.
 import type { DadosCredencial, PacoteCredenciais } from '../dados/credencial'
 import { formatarCnpj, formatarCpf, formatarData, formatarDataDeInstante } from './formatos.ts'
+import { ehSimbolo, SIMBOLOS, type ChaveSimbolo } from './simbolos.ts'
 
 export const LARGURA_MM = 85.6
 export const ALTURA_MM = 53.98
@@ -86,7 +87,7 @@ export type ElementoQr = Caixa & { tipo: 'qr'; cor: string }
 
 export type ElementoImagem = Caixa & {
   tipo: 'imagem'
-  /** 'logo' (o logo do sistema) ou o arquivo enviado no editor */
+  /** 'logo' (o logo do sistema), 'denominacao' (o logotipo da denominação de cada pessoa) ou o arquivo enviado no editor */
   arquivo: string
   ajuste: 'conter' | 'cobrir'
   raio: number
@@ -107,10 +108,20 @@ export type ElementoFaixa = Caixa & {
   tamanho: number
 }
 
-export type Elemento = ElementoTexto | ElementoForma | ElementoFoto | ElementoQr | ElementoImagem | ElementoFaixa
+/** Um símbolo da biblioteca (desenho próprio em SVG, nunca emoji): utilitarios/simbolos.ts. */
+export type ElementoSimbolo = Caixa & {
+  tipo: 'simbolo'
+  simbolo: ChaveSimbolo
+  cor: string
+  /** espessura do traço (na grade de 24) */
+  traco: number
+  opacidade: number
+}
+
+export type Elemento = ElementoTexto | ElementoForma | ElementoFoto | ElementoQr | ElementoImagem | ElementoFaixa | ElementoSimbolo
 export type TipoElemento = Elemento['tipo']
-/** A marca d'água: o símbolo (por enquanto, o do COMEP) bem claro no meio do lado. */
-export type MarcaDagua = { simbolo: 'comep'; opacidade: number }
+/** A marca d'água: o símbolo do COMEP ou um da biblioteca, bem claro no meio do lado. */
+export type MarcaDagua = { simbolo: 'comep' | ChaveSimbolo; opacidade: number; cor: string }
 export type Face = {
   fundo: string
   /** segunda cor do fundo (degradê); vazio = cor única */
@@ -406,8 +417,8 @@ export const MODELO_PADRAO: ModeloCredencial = {
 
 const COR = /^#[0-9a-f]{6}$/i
 const ID = /^[a-z0-9-]{1,40}$/i
-/** Logo do sistema ou imagem enviada no editor (pasta pública "credencial-modelo", nome aleatório) */
-const ARQUIVO = /^(logo|[0-9a-f-]{36}\.(png|jpg|webp))$/
+/** Logo do sistema, logotipo da denominação de cada pessoa ou imagem enviada no editor (pasta pública "credencial-modelo") */
+const ARQUIVO = /^(logo|denominacao|[0-9a-f-]{36}\.(png|jpg|webp))$/
 /** Imagem de fundo: só a enviada no editor */
 const ARQUIVO_FUNDO = /^[0-9a-f-]{36}\.(png|jpg|webp)$/
 
@@ -516,6 +527,15 @@ function elemento(b: Bruto, id: string, c: Cartao): Elemento | null {
         corBorda: cor(b.corBorda, TINTA),
         opacidade: num(b.opacidade, 0, 1, 1),
       }
+    case 'simbolo':
+      return {
+        ...base,
+        tipo: 'simbolo',
+        simbolo: ehSimbolo(b.simbolo) ? b.simbolo : 'cruz',
+        cor: cor(b.cor, TINTA),
+        traco: num(b.traco, 0.5, 4, 1.8),
+        opacidade: num(b.opacidade, 0, 1, 1),
+      }
     case 'faixa':
       return {
         ...base,
@@ -547,7 +567,13 @@ function face(bruto: unknown, padrao: Face, c: Cartao): Face {
       elementos.push(e)
     }
   }
-  const marca = ehObjeto(bruto.marca) ? { simbolo: 'comep' as const, opacidade: num(bruto.marca.opacidade, 0.02, 0.5, 0.08) } : null
+  const marca: MarcaDagua | null = ehObjeto(bruto.marca)
+    ? {
+        simbolo: ehSimbolo(bruto.marca.simbolo) ? bruto.marca.simbolo : 'comep',
+        opacidade: num(bruto.marca.opacidade, 0.02, 0.5, 0.08),
+        cor: cor(bruto.marca.cor, TINTA),
+      }
+    : null
   return {
     fundo: cor(bruto.fundo, BRANCO),
     fundo2: bruto.fundo2 === null || bruto.fundo2 === undefined ? null : cor(bruto.fundo2, BRANCO),
@@ -608,7 +634,7 @@ export function cqiDaLetra(pt: number, largura: number = LARGURA_MM): string {
 // Editor (Fase 3.4; tela inteira na Fase 5.5): itens novos, nomes para a lista e a conferência antes de salvar
 // ---------------------------------------------------------------------
 
-export type ItemNovo = 'texto' | 'dado' | 'foto' | 'qr' | 'imagem' | 'retangulo' | 'circulo' | 'linha' | 'faixa'
+export type ItemNovo = 'texto' | 'dado' | 'foto' | 'qr' | 'imagem' | 'retangulo' | 'circulo' | 'linha' | 'faixa' | 'simbolo'
 
 export const ITENS_NOVOS: readonly { tipo: ItemNovo; rotulo: string }[] = [
   { tipo: 'texto', rotulo: 'Texto' },
@@ -620,6 +646,7 @@ export const ITENS_NOVOS: readonly { tipo: ItemNovo; rotulo: string }[] = [
   { tipo: 'circulo', rotulo: 'Círculo' },
   { tipo: 'linha', rotulo: 'Linha' },
   { tipo: 'faixa', rotulo: 'Faixa de aviso' },
+  { tipo: 'simbolo', rotulo: 'Símbolo' },
 ]
 
 /** Item novo, no meio do cartão, pronto para mover. */
@@ -643,6 +670,8 @@ export function novoElemento(tipo: ItemNovo, id: string): Elemento {
       return forma(id, 25, 27, 36, 0.3, CINZA_ESCURO)
     case 'faixa':
       return { ...FAIXA, id, x: 0, y: 23, w: LARGURA_MM, h: 7 }
+    case 'simbolo':
+      return { id, tipo: 'simbolo', x: 37, y: 21, w: 12, h: 12, rotacao: 0, simbolo: 'chama', cor: VERMELHO, traco: 1.8, opacidade: 1 }
   }
 }
 
@@ -698,10 +727,68 @@ export function nomeDoElemento(e: Elemento): string {
     case 'qr':
       return 'QR Code'
     case 'imagem':
-      return e.arquivo === 'logo' ? 'Logo do sistema' : 'Imagem enviada'
+      return e.arquivo === 'logo' ? 'Logo do sistema' : e.arquivo === 'denominacao' ? 'Logotipo da denominação' : 'Imagem enviada'
     case 'faixa':
       return 'Faixa de aviso'
+    case 'simbolo':
+      return `Símbolo: ${SIMBOLOS[e.simbolo].nome}`
   }
+}
+
+// ---------------------------------------------------------------------
+// As regras do modelo (rodada 11): o que é obrigatório (não sai), o que é padrão (vem pronto, muda de lugar e de cor)
+// e o que é opcional (à vontade). O verso é onde se personaliza à vontade.
+// ---------------------------------------------------------------------
+
+export type Papel = 'obrigatorio' | 'padrao' | 'opcional'
+
+/** Os obrigatórios: cada um precisa aparecer pelo menos uma vez (na frente ou no verso). */
+export const OBRIGATORIOS = [
+  { chave: 'nome', nome: 'Nome' },
+  { chave: 'numero', nome: 'Nº de registro' },
+  { chave: 'validade', nome: 'Validade' },
+  { chave: 'qr', nome: 'QR Code de conferência' },
+  { chave: 'foto', nome: 'Foto 3×4' },
+  { chave: 'comep', nome: 'Nome e símbolo do COMEP' },
+] as const
+
+export const PADRAO_ITENS = ['Faixa do alto', 'Título ou cargo', 'Igreja', 'Assinatura do presidente', 'Texto do verso'] as const
+export const OPCIONAIS_ITENS = ['Símbolos', 'Logotipo da denominação', "Fundo e marca d'água", 'Textos livres e versículo', 'Faixa de aviso'] as const
+
+export type ChaveObrigatorio = (typeof OBRIGATORIOS)[number]['chave']
+
+/** De qual obrigatório o item é (null: não é obrigatório). */
+export function obrigatorioDo(e: Elemento): ChaveObrigatorio | null {
+  if (e.tipo === 'qr') return 'qr'
+  if (e.tipo === 'foto') return 'foto'
+  if (e.tipo === 'imagem' && e.arquivo === 'logo') return 'comep'
+  if (e.tipo !== 'texto') return null
+  if (e.texto.includes('{nome}')) return 'nome'
+  if (e.texto.includes('{numero}')) return 'numero'
+  if (e.texto.includes('{validade}')) return 'validade'
+  if (/\bCOMEP\b/.test(e.texto) && !e.texto.includes('{')) return 'comep'
+  return null
+}
+
+/** O papel do item nas regras do modelo. */
+export function papelDoItem(e: Elemento): Papel {
+  if (obrigatorioDo(e)) return 'obrigatorio'
+  if (e.tipo === 'forma' && (e.id === 'faixa-topo' || e.id === 'rodape' || e.id.startsWith('assinatura'))) return 'padrao'
+  if (e.tipo === 'texto' && /\{(titulo|titulo_funcao|funcao|cargo|igreja|igreja_nome|cnpj|texto_verso)\}|Presidente do COMEP/.test(e.texto)) return 'padrao'
+  return 'opcional'
+}
+
+/** Os obrigatórios que faltam no modelo. */
+export function obrigatoriosQueFaltam(m: ModeloCredencial): ChaveObrigatorio[] {
+  const tem = new Set([...m.frente.elementos, ...m.verso.elementos].map(obrigatorioDo))
+  return OBRIGATORIOS.filter((o) => !tem.has(o.chave)).map((o) => o.chave)
+}
+
+/** O item pode sair? O obrigatório só sai se houver outro do mesmo tipo (na frente ou no verso). */
+export function podeTirar(m: ModeloCredencial, e: Elemento): boolean {
+  const qual = obrigatorioDo(e)
+  if (!qual) return true
+  return [...m.frente.elementos, ...m.verso.elementos].some((x) => x !== e && obrigatorioDo(x) === qual)
 }
 
 const CHAVES = new Set<string>(CAMPOS.map((c) => c.chave))
@@ -743,6 +830,8 @@ export function conferirModelo(m: ModeloCredencial): string[] {
   if (!todos.some((e) => e.tipo === 'foto')) avisos.push('A foto do associado não aparece.')
   if (!usa('nome')) avisos.push('O nome do associado não aparece.')
   if (!usa('validade')) avisos.push('A validade ("Válida até") não aparece: a credencial impressa precisa dela.')
+  if (!usa('numero')) avisos.push('O nº de registro não aparece.')
+  if (!todos.some((e) => obrigatorioDo(e) === 'comep')) avisos.push('O nome ou o símbolo do COMEP não aparece.')
   return avisos
 }
 
@@ -822,7 +911,7 @@ function recolorir(base: ModeloCredencial, p: Paleta): ModeloCredencial {
   }
   m.frente.elementos = m.frente.elementos.map(pintar)
   m.verso.elementos = m.verso.elementos.map(pintar)
-  if (p.marca) m.frente.marca = { simbolo: 'comep', opacidade: 0.06 }
+  if (p.marca) m.frente.marca = { simbolo: 'comep', opacidade: 0.06, cor: p.escuro }
   return m
 }
 

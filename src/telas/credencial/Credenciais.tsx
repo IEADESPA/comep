@@ -2,7 +2,7 @@
 // Ver (digital), imprimir (tamanho real) e conferir a página de validação.
 // Fase 5.5 (parte 7): cada credencial sai no MODELO da pessoa (um por grupo; o de readequação para o ministro da igreja
 // sem registro); a lista do módulo é a tabela aprovada (rodada 7), com a caixinha para marcar quem vai para a impressão.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { FaceCredencial } from '../../componentes/CartaoCredencial'
@@ -27,7 +27,8 @@ import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { contemTexto, formatarData, formatarDataDeInstante, hojeIso, iniciaisDe, numeroDoRegistro } from '../../utilitarios/formatos'
 import { imprimir } from '../../utilitarios/exportar'
-import { modeloDaCredencial, valoresDaCredencial, type ModeloCredencial } from '../../utilitarios/modeloCredencial'
+import { ESPACO_MM, montarFolhas, papelDoPedaco, POR_FOLHA_A4, resumoDasFolhas, SANGRIA_MM } from '../../utilitarios/impressao'
+import { cartaoDe, modeloDaCredencial, valoresDaCredencial, type ModeloCredencial } from '../../utilitarios/modeloCredencial'
 
 /** Foto para mostrar (link temporário da pasta privada) e, de quebra, publica a cópia para o QR Code. */
 function useFoto(c: DadosCredencial | undefined, publicar: boolean): string | null {
@@ -79,7 +80,11 @@ export function SituacaoAgora({ c }: { c: DadosCredencial }) {
         ) : (
           <span className="etiqueta etiqueta-ok">Credencial ativa</span>
         )}{' '}
-        {c.em_dia ? (
+        {c.readequacao ? (
+          <span className="etiqueta">
+            Ministro em readequação: participa, mas não vota{c.prazo_readequacao ? ` (prazo até ${formatarData(c.prazo_readequacao)})` : ''}
+          </span>
+        ) : c.em_dia ? (
           <span className="etiqueta etiqueta-ok">{c.jubilado ? 'Isento (jubilado): vota, não é votado' : 'Em dia: apto a votar e ser votado'}</span>
         ) : (
           <span className="etiqueta etiqueta-atraso">Em atraso: inapto para votar até regularizar</span>
@@ -141,7 +146,13 @@ function MinhaCredencialNaTela({ pacote, c }: { pacote: PacoteCredenciais; c: Da
   const [verso, setVerso] = useState(false)
   const [qrAberto, setQrAberto] = useState(false)
   const vencida = c.valida_ate !== null && c.valida_ate < hojeIso()
-  const situacao = vencida ? 'Vencida: aguardando a renovação' : c.em_dia ? 'Válida · em dia' : 'Válida · contribuição em atraso'
+  const situacao = vencida
+    ? 'Vencida: aguardando a renovação'
+    : c.readequacao
+      ? `Válida · em readequação${c.prazo_readequacao ? ` (prazo até ${formatarData(c.prazo_readequacao)})` : ''}`
+      : c.em_dia
+        ? 'Válida · em dia'
+        : 'Válida · contribuição em atraso'
 
   useEffect(() => {
     if (!qrAberto) return
@@ -218,7 +229,7 @@ function MinhaCredencialNaTela({ pacote, c }: { pacote: PacoteCredenciais; c: Da
 export function ImprimirMinhaCredencial() {
   const { estado } = useSessao()
   if (estado.situacao !== 'logado' || estado.conta?.tipo !== 'ok') return <Carregando />
-  return <TelaImpressao pessoas={[estado.conta.conta.pessoaId]} voltar="/minha-credencial" />
+  return <TelaImpressao pessoas={[estado.conta.conta.pessoaId]} voltar="/minha-credencial" modulo="Minha credencial" />
 }
 
 // ---------------------------------------------------------------------
@@ -411,17 +422,22 @@ const FALTA: Record<string, string> = {
 function SituacaoDaCredencial({ l, fimMandato }: { l: LinhaCredencial; fimMandato: string | null }) {
   const ate = l.valida_ate ?? fimMandato
   const [primeira, ...outras] = l.pendencias
+  // a categoria do ministro em readequação aparece sempre (com a pendência, se houver)
+  const readequacao = l.readequacao && <Chip area="assembleias">Em readequação</Chip>
   if (primeira) {
     return (
-      <span title={`Falta: ${l.pendencias.join(', ')}`}>
-        <Chip area="eventos">
-          {FALTA[primeira] ?? primeira}
-          {outras.length > 0 && ` +${outras.length}`}
-        </Chip>
-      </span>
+      <>
+        {readequacao}
+        <span title={`Falta: ${l.pendencias.join(', ')}`}>
+          <Chip area="eventos">
+            {FALTA[primeira] ?? primeira}
+            {outras.length > 0 && ` +${outras.length}`}
+          </Chip>
+        </span>
+      </>
     )
   }
-  if (l.readequacao) return <Chip area="assembleias">Em readequação</Chip>
+  if (readequacao) return readequacao
   if (!l.em_dia) return <Chip area="pessoas">Válida · em atraso</Chip>
   return <Chip area="financas">{ate ? `Válida até ${formatarData(ate)}` : 'Válida'}</Chip>
 }
@@ -529,11 +545,12 @@ function ConteudoDe({ pessoaId }: { pessoaId: string }) {
 }
 
 // ---------------------------------------------------------------------
-// Impressão no tamanho real: folhas A4 com 5 credenciais. Frente e verso JUNTOS, lado a lado:
-// recorta-se em volta, dobra-se ao meio, põe-se na capa plástica e plastifica-se.
+// Impressão (Fase 5.5, parte 8; rodadas 8 a 11): só lado a lado, para dobrar. 4 por folha A4, com 5 mm de espaço
+// e 2 mm de sangria; as marcas de corte fora da sangria. Começa sempre no alto; as vagas que sobram saem em branco.
+// Com um pedaço de folha já cortado, as primeiras vão nele e o resto em folhas inteiras.
+// Depois: recorta-se nas marcas, dobra-se ao meio (a frente e o verso continuam juntos), põe-se na capa plástica e
+// plastifica-se.
 // ---------------------------------------------------------------------
-
-const POR_FOLHA = 5
 
 export function ImprimirCredenciais() {
   const [parametros] = useSearchParams()
@@ -548,71 +565,172 @@ export function ImprimirCredenciais() {
   // aberta pelo menu do módulo (Credenciais › Imprimir), ainda sem ninguém marcado
   if (pessoas.length === 0) {
     return (
-      <>
-        <h1>Impressão das credenciais</h1>
+      <div className="tela-nova">
+        <CabecalhoFuncao modulo="Credenciais" titulo="Imprimir" sub="Lado a lado, para dobrar · 4 por folha" />
         <Aviso titulo="Escolha quem vai para a impressão">
           <p>
             Na lista das <Link to="/credenciais">Credenciais</Link>, marque as pessoas e use "Imprimir as marcadas". Para uma só,
             abra a credencial dela e use "Ver a impressão".
           </p>
         </Aviso>
-      </>
+      </div>
     )
   }
   return <TelaImpressao key={pessoas.join(',')} pessoas={pessoas} voltar="/credenciais" />
 }
 
-function TelaImpressao({ pessoas, voltar }: { pessoas: string[]; voltar: string }) {
+type OQueImprimir = 'tudo' | 'pedaco' | 'folhas'
+
+function TelaImpressao({ pessoas, voltar, modulo = 'Credenciais' }: { pessoas: string[]; voltar: string; modulo?: string }) {
   const [carga, recarregar] = useCarregar(() => dadosCredenciais(pessoas))
+  const [usarPedaco, setUsarPedaco] = useState(false)
+  const [cabem, setCabem] = useState(2)
+  const [parte, setParte] = useState<OQueImprimir>('tudo')
+
+  // imprime só a parte escolhida (o pedaço e as folhas vão em papéis diferentes) e volta a mostrar tudo
+  useEffect(() => {
+    if (parte === 'tudo') return
+    const tempo = window.setTimeout(() => {
+      imprimir()
+      setParte('tudo')
+    }, 50)
+    return () => window.clearTimeout(tempo)
+  }, [parte])
+
   return (
-    <>
+    <div className={`tela-nova tela-impressao imprimir-${parte}`}>
       <div className="nao-imprimir">
         <p>
           <Link to={voltar}>← Voltar</Link>
         </p>
-        <h1>Impressão das credenciais</h1>
-        <div className="aviso-texto">
-          <p>
-            <strong>Tamanho real:</strong> cada lado tem <strong>85,6 × 54 mm</strong> (o tamanho de cartão de crédito, o
-            mesmo das capas plásticas). Frente e verso saem <strong>juntos</strong>, para dobrar. Cabem {POR_FOLHA}{' '}
-            credenciais por folha A4.
-          </p>
-          <p>
-            Na janela de impressão: papel <strong>A4</strong>, escala <strong>100%</strong> (não "ajustar à página") e com
-            gráficos de fundo.
-          </p>
-          <p>
-            Recorte na linha em volta (frente e verso continuam juntos), <strong>dobre ao meio</strong> nas marcas de cima e
-            de baixo, com o desenho para fora, ponha na capa plástica e plastifique.
-          </p>
-        </div>
-        <div className="acoes acoes-relatorio">
-          <button type="button" className="botao" onClick={imprimir}>
-            Imprimir
-          </button>
+        <CabecalhoFuncao modulo={modulo} titulo="Imprimir" sub="Lado a lado, para dobrar · tamanho real" />
+        <div className="so-celular">
+          <Aviso titulo="A impressão é feita no computador">
+            <p>A folha precisa sair no tamanho real (escala 100%). No celular, dá para conferir como vai ficar.</p>
+          </Aviso>
         </div>
       </div>
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {(pacote) =>
-          pacote.credenciais.length === 0 ? (
-            <p className="vazio">Nenhuma credencial para imprimir.</p>
-          ) : (
-            <>
-            <AvisosDaImpressao pacote={pacote} />
-            <div className="folhas-impressao">
-              {Array.from({ length: Math.ceil(pacote.credenciais.length / POR_FOLHA) }, (_, f) => (
-                <section key={f} className="folha-a4" aria-label={`Folha ${f + 1}`}>
-                  {pacote.credenciais.slice(f * POR_FOLHA, (f + 1) * POR_FOLHA).map((c) => (
-                    <ParParaImprimir key={c.pessoa_id} modelo={modeloDaCredencial(pacote, c)} textoVerso={pacote.texto_verso} c={c} />
-                  ))}
-                </section>
-              ))}
+        {(pacote) => {
+          if (pacote.credenciais.length === 0) return <p className="vazio">Nenhuma credencial para imprimir.</p>
+          const pares = pacote.credenciais.map((c) => ({ c, modelo: modeloDaCredencial(pacote, c) }))
+          const folhas = montarFolhas(pares, (p) => cartaoDe(p.modelo).altura, usarPedaco ? cabem : null)
+          const pedaco = folhas.find((f) => f.tipo === 'pedaco')
+          const inteiras = folhas.filter((f) => f.tipo === 'folha')
+          return (
+            <div className="impressao">
+              <div className="impressao-previa">
+                <AvisosDaImpressao pacote={pacote} />
+                <div className="folhas-impressao">
+                  {folhas.map((f, i) => {
+                    const n = inteiras.indexOf(f) + 1
+                    const rotulo = f.tipo === 'pedaco' ? 'Pedaço que sobrou' : `Folha ${n}`
+                    return (
+                      <figure key={`${f.tipo}-${i}`} className={`folha-com-legenda folha-${f.tipo}`}>
+                        <section
+                          className={f.tipo === 'pedaco' ? `folha-a4 folha-pedaco folha-pedaco-${cabem}` : 'folha-a4'}
+                          aria-label={rotulo}
+                          style={{ height: `${f.altura}mm` }}
+                        >
+                          {f.itens.map((p) => (
+                            <ParParaImprimir key={p.c.pessoa_id} modelo={p.modelo} textoVerso={pacote.texto_verso} c={p.c} />
+                          ))}
+                        </section>
+                        <figcaption className="nao-imprimir">
+                          {rotulo} · {f.itens.length}
+                        </figcaption>
+                      </figure>
+                    )
+                  })}
+                </div>
+              </div>
+              <aside className="painel como-imprimir nao-imprimir" aria-labelledby="titulo-como-imprimir">
+                <h2 id="titulo-como-imprimir">Como imprimir</h2>
+                <p className="detalhe">
+                  Lado a lado, para dobrar · {ESPACO_MM} mm de espaço e {SANGRIA_MM} mm de sangria · sempre a partir do alto da folha
+                </p>
+                <fieldset className="escolha-pedaco">
+                  <legend>Tem um pedaço de folha que sobrou?</legend>
+                  <label className={!usarPedaco ? 'opcao-cartao escolhida' : 'opcao-cartao'}>
+                    <input type="radio" name="pedaco" checked={!usarPedaco} onChange={() => setUsarPedaco(false)} />
+                    <span>
+                      <strong>Não, só folhas inteiras</strong>
+                      <span>A4</span>
+                    </span>
+                  </label>
+                  <label className={usarPedaco ? 'opcao-cartao escolhida' : 'opcao-cartao'}>
+                    <input type="radio" name="pedaco" checked={usarPedaco} onChange={() => setUsarPedaco(true)} />
+                    <span>
+                      <strong>Sim, usar o pedaço primeiro</strong>
+                      <span>o que sobrou de uma folha já cortada</span>
+                    </span>
+                  </label>
+                </fieldset>
+                {usarPedaco && (
+                  <div className="segmentado cabem-no-pedaco" role="group" aria-label="Cabem no pedaço">
+                    {[1, 2, 3].map((n) => (
+                      <button key={n} type="button" aria-pressed={cabem === n} onClick={() => setCabem(n)}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <dl className="dados-curtos">
+                  <dt>Marcadas</dt>
+                  <dd>
+                    {pacote.credenciais.length} {pacote.credenciais.length === 1 ? 'credencial' : 'credenciais'}
+                  </dd>
+                  {pedaco && (
+                    <>
+                      <dt>No pedaço</dt>
+                      <dd>
+                        {pedaco.itens.length} ({cabem === 2 ? 'meia folha, A5 deitada' : `${cabem} de 4 da folha`})
+                      </dd>
+                    </>
+                  )}
+                  <dt>{pedaco ? 'Em folha nova' : 'Folhas'}</dt>
+                  <dd>{pedaco ? inteiras.reduce((s, f) => s + f.itens.length, 0) : resumoDasFolhas(folhas)}</dd>
+                </dl>
+                {pedaco ? (
+                  <p className="detalhe">
+                    Coloque o pedaço na impressora e escolha o papel {papelDoPedaco(cabem)}.
+                    {inteiras.length > 0 && ' Depois vem a folha inteira (A4).'}
+                  </p>
+                ) : (
+                  inteiras.some((f) => f.itens.length < POR_FOLHA_A4) && (
+                    <p className="detalhe">
+                      A parte de baixo sai em branco, sem marcas: depois de cortar, o pedaço que sobra serve para mais{' '}
+                      {POR_FOLHA_A4 - inteiras[inteiras.length - 1].itens.length}.
+                    </p>
+                  )
+                )}
+                <p className="detalhe">
+                  Na janela de impressão: escala <strong>100%</strong> (não "ajustar à página") e com gráficos de fundo. Recorte nas
+                  marcas, <strong>dobre ao meio</strong> na linha tracejada, com o desenho para fora, ponha na capa plástica e
+                  plastifique.
+                </p>
+                <div className="acoes">
+                  {pedaco && inteiras.length > 0 ? (
+                    <>
+                      <button type="button" className="botao" onClick={() => setParte('pedaco')}>
+                        Imprimir o pedaço
+                      </button>
+                      <button type="button" className="botao botao-secundario" onClick={() => setParte('folhas')}>
+                        Imprimir {inteiras.length === 1 ? 'a folha' : `as ${inteiras.length} folhas`}
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="botao" onClick={imprimir}>
+                      {pedaco ? 'Imprimir o pedaço' : `Imprimir ${inteiras.length === 1 ? '1 folha' : `${inteiras.length} folhas`}`}
+                    </button>
+                  )}
+                </div>
+              </aside>
             </div>
-            </>
           )
-        }
+        }}
       </MostrarCarga>
-    </>
+    </div>
   )
 }
 
@@ -655,14 +773,35 @@ function AvisosDaImpressao({ pacote }: { pacote: PacoteCredenciais }) {
   )
 }
 
-/** Frente e verso colados (sem espaço entre eles): a linha do meio é a dobra, marcada em cima e embaixo. */
+/**
+ * Frente e verso colados (sem espaço entre eles): a linha do meio é a dobra. Em volta, a sangria (o fundo passa do
+ * corte) e, fora dela, as marcas de corte; a dobra é marcada tracejada em cima e embaixo.
+ */
 function ParParaImprimir({ modelo, textoVerso, c }: { modelo: ModeloCredencial; textoVerso: string; c: DadosCredencial }) {
   // publica a foto também aqui: o QR Code da impressa mostra a foto na validação
   const foto = useFoto(c, true)
+  const valores = useMemo(() => valoresDaCredencial(c, textoVerso), [c, textoVerso])
+  const cartao = cartaoDe(modelo)
+  const url = urlValidacao(c.codigo)
+  const comum = { modelo, valores, nome: c.nome, foto, urlQr: url, logotipo: c.denominacao_logotipo ?? null }
   return (
-    <div className="par-impressao">
+    <div
+      className="par-impressao"
+      style={{ padding: `${SANGRIA_MM}mm`, '--largura-par': `${cartao.largura * 2}mm`, '--altura-par': `${cartao.altura}mm` } as CSSProperties}
+    >
       <div className="par-cartoes" role="group" aria-label={`Credencial de ${c.nome} para dobrar`}>
-        <FrenteEVerso modelo={modelo} textoVerso={textoVerso} c={c} foto={foto} />
+        <FaceCredencial lado="frente" {...comum} sangria={{ mm: SANGRIA_MM, esquerda: true, direita: false, topo: true, base: true }} />
+        <FaceCredencial lado="verso" {...comum} sangria={{ mm: SANGRIA_MM, esquerda: false, direita: true, topo: true, base: true }} />
+        <span className="marca-corte corte-h corte-cima-esquerda" aria-hidden="true" />
+        <span className="marca-corte corte-h corte-cima-direita" aria-hidden="true" />
+        <span className="marca-corte corte-h corte-baixo-esquerda" aria-hidden="true" />
+        <span className="marca-corte corte-h corte-baixo-direita" aria-hidden="true" />
+        <span className="marca-corte corte-v corte-esquerda-cima" aria-hidden="true" />
+        <span className="marca-corte corte-v corte-esquerda-baixo" aria-hidden="true" />
+        <span className="marca-corte corte-v corte-direita-cima" aria-hidden="true" />
+        <span className="marca-corte corte-v corte-direita-baixo" aria-hidden="true" />
+        <span className="marca-dobra marca-dobra-cima" aria-hidden="true" />
+        <span className="marca-dobra marca-dobra-baixo" aria-hidden="true" />
       </div>
     </div>
   )

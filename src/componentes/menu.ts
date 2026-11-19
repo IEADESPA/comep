@@ -380,6 +380,8 @@ export const MODULOS: readonly Modulo[] = [
       { chave: 'imprimir', titulo: 'Imprimir', icone: 'imprimir', caminho: '/credenciais/imprimir' },
       // rodadas 8 e 9: um modelo por grupo, com o editor na tela inteira e "Quem recebe"
       { chave: 'modelos', titulo: 'Modelos', icone: 'grade', caminho: '/credenciais/modelos', tambem: ['/credenciais/modelo'] },
+      // rodada 11: a biblioteca de símbolos e os logotipos das denominações
+      { chave: 'simbolos', titulo: 'Símbolos', icone: 'estrela', caminho: '/credenciais/simbolos' },
       { chave: 'validade', titulo: 'Validade e verso', icone: 'relogio', caminho: '/credenciais/validade' },
     ],
   },

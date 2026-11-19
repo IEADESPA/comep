@@ -12,6 +12,7 @@ import { NovaSenha, PrimeiroAcesso } from './telas/acesso/PrimeiroAcesso'
 import { CredencialDe, ImprimirCredenciais, ImprimirMinhaCredencial, ListaCredenciais, MinhaCredencial } from './telas/credencial/Credenciais'
 import { EditorTelaInteira } from './telas/credencial/EditorModelo'
 import { GaleriaModelos, PaginaOrdem, QuemRecebe } from './telas/credencial/Modelos'
+import { BibliotecaDeSimbolos } from './telas/credencial/Simbolos'
 import { ValidadeEVerso } from './telas/credencial/ValidadeEVerso'
 import { DetalheEncontro, EditarEncontro, ListaEncontros, NovoEncontro } from './telas/assembleias/Assembleias'
 import { FaltasEJustificativas, ListaDePresenca } from './telas/assembleias/Presenca'
@@ -130,6 +131,7 @@ export default function App() {
                 <Route path="modelos/:id/quem-recebe" element={<QuemRecebe />} />
                 {/* o editor antigo (um modelo só) virou a galeria dos modelos */}
                 <Route path="modelo" element={<Navigate to="/credenciais/modelos" replace />} />
+                <Route path="simbolos" element={<BibliotecaDeSimbolos />} />
                 <Route path="validade" element={<ValidadeEVerso />} />
                 <Route path=":pessoaId" element={<CredencialDe />} />
               </Route>

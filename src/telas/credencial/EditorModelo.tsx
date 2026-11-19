@@ -44,6 +44,12 @@ import {
   normalizarModelo,
   novoElemento,
   novoId,
+  OBRIGATORIOS,
+  obrigatoriosQueFaltam,
+  OPCIONAIS_ITENS,
+  PADRAO_ITENS,
+  papelDoItem,
+  podeTirar,
   posicaoDaFaixa,
   posicionarFaixa,
   PRONTOS,
@@ -56,8 +62,10 @@ import {
   type ItemNovo,
   type Lado,
   type ModeloCredencial,
+  type Papel,
   type PosicaoFaixa,
 } from '../../utilitarios/modeloCredencial'
+import { GERAIS, POR_TRADICAO, SIMBOLOS, type ChaveSimbolo } from '../../utilitarios/simbolos'
 
 type Retorno = { sucesso?: string; erro?: string }
 
@@ -175,18 +183,22 @@ function CarregarEditor({ id }: { id: string }) {
   )
 }
 
-type Ferramenta = 'prontos' | 'textos' | 'dados' | 'imagens' | 'formas' | 'fundo' | 'camadas' | 'versoes'
+type Ferramenta = 'prontos' | 'textos' | 'dados' | 'imagens' | 'simbolos' | 'formas' | 'fundo' | 'camadas' | 'regras' | 'versoes'
 
 const FERRAMENTAS: readonly { chave: Ferramenta; nome: string; icone: NomeIcone }[] = [
   { chave: 'prontos', nome: 'Prontos', icone: 'grade' },
   { chave: 'textos', nome: 'Textos', icone: 'texto' },
   { chave: 'dados', nome: 'Dados', icone: 'dados' },
   { chave: 'imagens', nome: 'Imagens', icone: 'imagem' },
+  { chave: 'simbolos', nome: 'Símbolos', icone: 'estrela' },
   { chave: 'formas', nome: 'Formas', icone: 'formas' },
   { chave: 'fundo', nome: 'Fundo', icone: 'fundo' },
   { chave: 'camadas', nome: 'Camadas', icone: 'camadas' },
+  { chave: 'regras', nome: 'Regras', icone: 'cadeado' },
   { chave: 'versoes', nome: 'Versões', icone: 'relogio' },
 ]
+
+const NOME_DO_PAPEL: Record<Papel, string> = { obrigatorio: 'obrigatório', padrao: 'padrão', opcional: 'opcional' }
 
 type Zoom = 'ajustar' | number
 
@@ -285,6 +297,11 @@ function Editor({ m, aoMudar }: { m: ModeloGrupo; aoMudar: () => void }) {
   }
 
   function remover(e: Elemento) {
+    // o obrigatório não sai (só se houver outro do mesmo tipo na frente ou no verso)
+    if (!podeTirar(modelo, e)) {
+      setRetorno({ erro: `${nomeDoElemento(e)} é obrigatório na credencial: não sai. Mude de lugar, de tamanho ou de cor.` })
+      return
+    }
     mudarItens((lista) => lista.filter((x) => x.id !== e.id))
     setSelecionado(null)
   }
@@ -416,7 +433,9 @@ function Editor({ m, aoMudar }: { m: ModeloGrupo; aoMudar: () => void }) {
           {ferramenta === 'imagens' && (
             <GavetaImagens adicionar={adicionar} aoErro={(erro) => setRetorno({ erro })} />
           )}
+          {ferramenta === 'simbolos' && <GavetaSimbolos adicionar={adicionar} />}
           {ferramenta === 'formas' && <GavetaFormas adicionar={adicionar} />}
+          {ferramenta === 'regras' && <GavetaRegras modelo={modelo} />}
           {ferramenta === 'fundo' && <GavetaFundo modelo={modelo} face={face} mudarFace={mudarFace} lado={lado} aoErro={(erro) => setRetorno({ erro })} />}
           {ferramenta === 'camadas' && (
             <GavetaCamadas face={face} selecionado={selecionado} aoSelecionar={(id) => { setSelecionado(id); setAba('item') }} camada={camada} />
@@ -505,6 +524,7 @@ function Editor({ m, aoMudar }: { m: ModeloGrupo; aoMudar: () => void }) {
                 alterar={(mudanca, chave) => alterar(escolhido.id, mudanca, chave)}
                 aoDuplicar={() => duplicar(escolhido)}
                 aoRemover={() => remover(escolhido)}
+                podeSair={podeTirar(modelo, escolhido)}
                 aoSubir={() => camada(escolhido, 1)}
                 aoDescer={() => camada(escolhido, -1)}
                 aoErro={(erro) => setRetorno({ erro })}
@@ -592,7 +612,7 @@ function usePrevia() {
     escolha,
     escolher: (v: string) => void escolher(v),
     associados,
-    props: { valores, nome: dados.c.nome, foto: dados.foto, urlQr: urlValidacao(dados.c.codigo) },
+    props: { valores, nome: dados.c.nome, foto: dados.foto, urlQr: urlValidacao(dados.c.codigo), logotipo: dados.c.denominacao_logotipo ?? null },
   }
 }
 
@@ -776,7 +796,7 @@ function Palco({
           <div className="editor-palco-cheio" style={{ padding: sangria + 12 }}>
             <div className="guia-sangria" style={{ inset: 12 }} aria-hidden="true" />
             <div className="editor-palco" style={{ width: largura, height: altura }}>
-              <FaceCredencial lado={lado} modelo={modelo} {...previa.props} />
+              <FaceCredencial lado={lado} modelo={modelo} {...previa.props} editor />
               <div className="guia-segura" style={{ inset: segura }} aria-hidden="true" />
               <div
                 ref={camada}
@@ -813,6 +833,11 @@ function Palco({
                   </div>
                 ))}
               </div>
+              {lado === 'verso' && (
+                <span className="editor-area-livre" aria-hidden="true">
+                  verso: área livre
+                </span>
+              )}
               {escolhido && (
                 <span className="editor-posicao" style={{ left: `calc(${pct(escolhido.x + escolhido.w, cartao.largura)} + 6px)`, top: pct(escolhido.y, cartao.altura) }}>
                   X {fmt(escolhido.x)} · Y {fmt(escolhido.y)} mm
@@ -963,6 +988,90 @@ function GavetaImagens({ adicionar, aoErro }: { adicionar: (t: ItemNovo, ajuste?
   )
 }
 
+function GavetaSimbolos({ adicionar }: { adicionar: (t: ItemNovo, ajuste?: Partial<Elemento>) => void }) {
+  const [busca, setBusca] = useState('')
+  const termo = busca.trim().toLocaleLowerCase('pt-BR')
+  const serve = (k: ChaveSimbolo) => !termo || SIMBOLOS[k].nome.toLocaleLowerCase('pt-BR').includes(termo)
+  const botao = (k: ChaveSimbolo) => (
+    <button key={k} type="button" className="simbolo-botao" aria-label={`Acrescentar o símbolo ${SIMBOLOS[k].nome}`} onClick={() => adicionar('simbolo', { simbolo: k } as Partial<Elemento>)}>
+      <DesenhoSimbolo chave={k} />
+      <span>{SIMBOLOS[k].nome}</span>
+    </button>
+  )
+  return (
+    <>
+      <TituloGaveta titulo="Símbolos">Desenhos do próprio sistema (nunca emojis). A cor e o traço mudam na aba Item.</TituloGaveta>
+      <label className="campo-busca-pequeno">
+        <span className="somente-leitor">Buscar símbolo</span>
+        <input type="search" placeholder="Buscar símbolo" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      </label>
+      <h3 className="gaveta-subtitulo">Gerais da fé</h3>
+      <div className="grade-simbolos">{GERAIS.filter(serve).map(botao)}</div>
+      <h3 className="gaveta-subtitulo">Por tradição</h3>
+      {POR_TRADICAO.filter((g) => g.simbolos.some(serve) || g.nome.toLocaleLowerCase('pt-BR').includes(termo)).map((g) => (
+        <div key={g.chave} className="grupo-tradicao">
+          <strong>{g.nome}</strong>
+          <div className="grade-simbolos">{g.simbolos.map(botao)}</div>
+        </div>
+      ))}
+      <h3 className="gaveta-subtitulo">Logotipo da denominação</h3>
+      <button type="button" className="botao botao-secundario" onClick={() => adicionar('imagem', { arquivo: 'denominacao', w: 16, h: 16, x: 64, y: 5 } as Partial<Elemento>)}>
+        + Logotipo da denominação (o de cada ministro)
+      </button>
+      <p className="detalhe">
+        Cada credencial mostra o logotipo da denominação da igreja da pessoa, enviado pela secretaria em Credenciais ›
+        Símbolos. Sem o logotipo, o lugar fica vazio.
+      </p>
+    </>
+  )
+}
+
+function DesenhoSimbolo({ chave }: { chave: ChaveSimbolo }) {
+  const s = SIMBOLOS[chave]
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {'cheio' in s && s.cheio ? (
+        <path d={s.d} fill="currentColor" />
+      ) : (
+        <path d={s.d} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </svg>
+  )
+}
+
+/** As regras do modelo (rodada 11): obrigatório (não sai), padrão (vem pronto) e opcional (à vontade). */
+function GavetaRegras({ modelo }: { modelo: ModeloCredencial }) {
+  const faltam = new Set(obrigatoriosQueFaltam(modelo))
+  return (
+    <>
+      <TituloGaveta titulo="Regras do modelo">A frente segue o padrão do COMEP; o verso é onde se personaliza à vontade.</TituloGaveta>
+      <h3 className="gaveta-subtitulo regra-obrigatorio">
+        <Icone nome="cadeado" tamanho={14} /> Obrigatórios: não saem
+      </h3>
+      <ul className="lista-regras" aria-label="Obrigatórios">
+        {OBRIGATORIOS.map((o) => (
+          <li key={o.chave} className={faltam.has(o.chave) ? 'falta' : undefined}>
+            {o.nome}
+            {faltam.has(o.chave) ? <span className="falta-texto">falta</span> : <span className="na-credencial">na credencial</span>}
+          </li>
+        ))}
+      </ul>
+      <h3 className="gaveta-subtitulo regra-padrao">Padrão: vêm prontos, mudam de lugar e cor</h3>
+      <ul className="lista-regras" aria-label="Padrão">
+        {PADRAO_ITENS.map((n) => (
+          <li key={n}>{n}</li>
+        ))}
+      </ul>
+      <h3 className="gaveta-subtitulo regra-opcional">Opcionais: à vontade</h3>
+      <ul className="lista-regras" aria-label="Opcionais">
+        {OPCIONAIS_ITENS.map((n) => (
+          <li key={n}>{n}</li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
 function GavetaFormas({ adicionar }: { adicionar: (t: ItemNovo, ajuste?: Partial<Elemento>) => void }) {
   return (
     <>
@@ -1051,19 +1160,43 @@ function GavetaFundo({
         <input
           type="checkbox"
           checked={face.marca !== null}
-          onChange={(e) => mudarFace((f) => ({ ...f, marca: e.target.checked ? { simbolo: 'comep', opacidade: 0.08 } : null }))}
+          onChange={(e) =>
+            mudarFace((f) => ({ ...f, marca: e.target.checked ? { simbolo: 'comep', opacidade: 0.08, cor: '#b91c1c' } : null }))
+          }
         />
-        Símbolo do COMEP no meio
+        Marca d'água no meio
       </label>
       {face.marca && (
-        <CampoNumero
-          rotulo="Transparência da marca (%)"
-          valor={Math.round(face.marca.opacidade * 100)}
-          min={2}
-          max={50}
-          passo={1}
-          aoMudar={(n) => mudarFace((f) => ({ ...f, marca: { simbolo: 'comep', opacidade: n / 100 } }), `${lado}:marca`)}
-        />
+        <>
+          <label>
+            Desenho da marca
+            <select
+              value={face.marca.simbolo}
+              onChange={(e) => mudarFace((f) => (f.marca ? { ...f, marca: { ...f.marca, simbolo: e.target.value as 'comep' | ChaveSimbolo } } : f))}
+            >
+              <option value="comep">Símbolo do COMEP</option>
+              {(Object.keys(SIMBOLOS) as ChaveSimbolo[]).map((k) => (
+                <option key={k} value={k}>
+                  {SIMBOLOS[k].nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          {face.marca.simbolo !== 'comep' && (
+            <label className="campo-cor">
+              Cor da marca
+              <input type="color" value={face.marca.cor} onChange={(e) => mudarFace((f) => (f.marca ? { ...f, marca: { ...f.marca, cor: e.target.value } } : f), `${lado}:marca-cor`)} />
+            </label>
+          )}
+          <CampoNumero
+            rotulo="Transparência da marca (%)"
+            valor={Math.round(face.marca.opacidade * 100)}
+            min={2}
+            max={50}
+            passo={1}
+            aoMudar={(n) => mudarFace((f) => (f.marca ? { ...f, marca: { ...f.marca, opacidade: n / 100 } } : f), `${lado}:marca`)}
+          />
+        </>
       )}
       <h3 className="gaveta-subtitulo">Imagem de fundo</h3>
       {face.imagem ? (
@@ -1121,6 +1254,7 @@ function GavetaCamadas({
               onClick={() => aoSelecionar(e.id)}
             >
               {nomeDoElemento(e)}
+              <span className={`papel papel-${papelDoItem(e)}`}>{NOME_DO_PAPEL[papelDoItem(e)]}</span>
             </button>
             <span className="ordem-setas">
               <button type="button" className="botao-icone" aria-label={`Trazer para cima: ${nomeDoElemento(e)}`} onClick={() => camada(e, 1)}>
@@ -1305,6 +1439,7 @@ function Propriedades({
   alterar,
   aoDuplicar,
   aoRemover,
+  podeSair,
   aoSubir,
   aoDescer,
   aoErro,
@@ -1315,6 +1450,7 @@ function Propriedades({
   alterar: Alterar
   aoDuplicar: () => void
   aoRemover: () => void
+  podeSair: boolean
   aoSubir: () => void
   aoDescer: () => void
   aoErro: (erro: string) => void
@@ -1326,6 +1462,7 @@ function Propriedades({
       <div className="titulo-com-acao">
         <h2>{nomeDoElemento(e)}</h2>
         {ehDado && <span className="etiqueta">dado do ministro</span>}
+        <span className={`papel papel-${papelDoItem(e)}`}>{NOME_DO_PAPEL[papelDoItem(e)]}</span>
       </div>
       {e.tipo === 'texto' && <PropriedadesTexto e={e} alterar={alterar} cores={cores} />}
       {e.tipo === 'faixa' && <PropriedadesFaixa e={e} cartao={cartao} alterar={alterar} cores={cores} />}
@@ -1335,7 +1472,7 @@ function Propriedades({
         <CampoNumero rotulo="Largura (mm)" valor={e.w} min={l.w[0]} max={l.w[1]} aoMudar={(w) => alterar({ w }, 'w')} />
         <CampoNumero rotulo="Altura (mm)" valor={e.h} min={l.h[0]} max={l.h[1]} aoMudar={(h) => alterar({ h }, 'h')} />
         <CampoNumero rotulo="Girar (graus)" valor={e.rotacao} min={-180} max={180} passo={1} aoMudar={(rotacao) => alterar({ rotacao }, 'rotacao')} />
-        {(e.tipo === 'texto' || e.tipo === 'forma' || e.tipo === 'imagem') && (
+        {(e.tipo === 'texto' || e.tipo === 'forma' || e.tipo === 'imagem' || e.tipo === 'simbolo') && (
           <CampoNumero
             rotulo="Transparência (%)"
             valor={Math.round(e.opacidade * 100)}
@@ -1368,7 +1505,26 @@ function Propriedades({
           </button>
         </>
       )}
-      {e.tipo === 'imagem' && <PropriedadesImagem e={e} alterar={alterar} aoErro={aoErro} />}
+      {e.tipo === 'imagem' && e.arquivo !== 'denominacao' && <PropriedadesImagem e={e} alterar={alterar} aoErro={aoErro} />}
+      {e.tipo === 'imagem' && e.arquivo === 'denominacao' && (
+        <p className="detalhe">Mostra o logotipo da denominação da igreja de cada ministro (Credenciais › Símbolos). Sem o logotipo, fica vazio.</p>
+      )}
+      {e.tipo === 'simbolo' && (
+        <>
+          <label>
+            Símbolo
+            <select value={e.simbolo} onChange={(ev) => alterar({ simbolo: ev.target.value as ChaveSimbolo })}>
+              {(Object.keys(SIMBOLOS) as ChaveSimbolo[]).map((k) => (
+                <option key={k} value={k}>
+                  {SIMBOLOS[k].nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <CampoCor rotulo="Cor" valor={e.cor} cores={cores} aoMudar={(cor) => alterar({ cor }, 'cor')} />
+          <CampoNumero rotulo="Traço" valor={e.traco} min={0.5} max={4} passo={0.1} aoMudar={(traco) => alterar({ traco }, 'traco')} />
+        </>
+      )}
       <div className="acoes editor-acoes-item">
         <button type="button" className="botao botao-secundario" onClick={aoSubir}>
           Trazer para cima
@@ -1379,10 +1535,11 @@ function Propriedades({
         <button type="button" className="botao botao-secundario" onClick={aoDuplicar}>
           Duplicar
         </button>
-        <button type="button" className="botao botao-perigo" onClick={aoRemover}>
+        <button type="button" className="botao botao-perigo" onClick={aoRemover} disabled={!podeSair} title={podeSair ? undefined : 'Obrigatório: não sai'}>
           Tirar da credencial
         </button>
       </div>
+      {!podeSair && <p className="detalhe">Obrigatório: não sai da credencial (pode mudar de lugar, de tamanho e de cor).</p>}
     </section>
   )
 }

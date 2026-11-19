@@ -87,6 +87,8 @@ export type DadosCredencial = {
   /** ministro em readequação (a igreja dele é sem registro) */
   readequacao?: boolean
   prazo_readequacao?: string | null
+  /** o logotipo da denominação da igreja da pessoa (enviado pela secretaria), ou vazio */
+  denominacao_logotipo?: string | null
 }
 
 export type ModeloDoPacote = { nome: string; tipo: TipoModelo; desenho: unknown }
@@ -128,6 +130,9 @@ export type Validacao = {
   /** é de um mandato anterior (a credencial já foi renovada) */
   renovada?: boolean
   substituida_em?: string
+  /** ministro em readequação (a igreja dele é sem registro): a conferência mostra a faixa e o prazo */
+  readequacao?: boolean
+  prazo_readequacao?: string | null
 }
 
 /** Página pública do QR Code: funciona sem login. */
@@ -444,4 +449,31 @@ export async function entradasParaLigar(): Promise<Resultado<EntradaDoCaixa[]>> 
     .limit(200)
     .returns<EntradaDoCaixa[]>()
   return error ? falha(error) : ok(data)
+}
+
+// ---------- Os logotipos das denominações (Fase 5.5, parte 8) ----------
+
+export type LogotipoDenominacao = {
+  id: string
+  nome: string
+  tradicao: string | null
+  logotipo: string | null
+  logotipo_em: string | null
+}
+
+/** As denominações e o logotipo de cada uma (o arquivo que a denominação forneceu, enviado pela secretaria). */
+export async function logotiposDasDenominacoes(): Promise<Resultado<LogotipoDenominacao[]>> {
+  const { data, error } = await cliente()
+    .from('denominacoes')
+    .select('id, nome, tradicao, logotipo, logotipo_em')
+    .is('arquivado_em', null)
+    .order('nome')
+    .returns<LogotipoDenominacao[]>()
+  return error ? falha(error) : ok(data)
+}
+
+/** Liga o arquivo enviado (enviarImagemModelo) à denominação; vazio = tirar o logotipo. */
+export async function enviarLogotipoDenominacao(denominacaoId: string, arquivo: string | null): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('enviar_logotipo_denominacao', { p_denominacao_id: denominacaoId, p_arquivo: arquivo })
+  return error ? falha(error) : ok(null)
 }
