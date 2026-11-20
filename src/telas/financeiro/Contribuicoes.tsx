@@ -20,6 +20,7 @@ import {
   situacaoDeTodos,
   type SituacaoContribuicao,
 } from '../../dados/financeiro'
+import { lembrarContribuicoesEmAtraso } from '../../dados/notificacoes'
 import { contribuicoesPorIgreja } from '../../dados/prestacao'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
@@ -97,7 +98,10 @@ export function PainelContribuicoes({
 
             <div className="fin-duas">
               <section className="bloco" aria-labelledby="titulo-atencao-contribuicoes">
-                <h2 id="titulo-atencao-contribuicoes">Precisam de atenção</h2>
+                <div className="titulo-com-acao">
+                  <h2 id="titulo-atencao-contribuicoes">Precisam de atenção</h2>
+                  {opera && emAtraso.length > 0 && <LembrarTodos concluir={concluir} />}
+                </div>
                 {atencao.length === 0 ? (
                   <p className="vazio">Ninguém em atraso e nenhum comprovante para conferir.</p>
                 ) : (
@@ -116,6 +120,32 @@ export function PainelContribuicoes({
 }
 
 const MOSTRAR = 8
+
+/**
+ * "Lembrar todos" (rodada 11; ficou para a parte 11, com a tabela das notificações): o lembrete vai para o sino de
+ * quem está em atraso e ainda não mandou o comprovante (e para o celular, se a pessoa ativou). Uma vez por dia.
+ */
+function LembrarTodos({ concluir }: { concluir: Concluir }) {
+  const [enviando, setEnviando] = useState(false)
+  async function lembrar() {
+    setEnviando(true)
+    const r = await lembrarContribuicoesEmAtraso()
+    setEnviando(false)
+    if (r.erro !== null) concluir(r, '')
+    else
+      concluir(
+        r,
+        r.dados === 0
+          ? 'Ninguém para lembrar agora: quem está em atraso já recebeu o lembrete hoje ou já mandou o comprovante.'
+          : `Lembrete mandado para ${plural(r.dados, 'ministro', 'ministros')}: aparece no sino e, para quem ativou, no celular.`,
+      )
+  }
+  return (
+    <button type="button" className="botao botao-secundario" disabled={enviando} onClick={() => void lembrar()}>
+      {enviando ? 'Mandando…' : 'Lembrar todos'}
+    </button>
+  )
+}
 
 function ListaAtencao({ pessoas, opera, pessoaId, concluir }: { pessoas: Pessoa[]; opera: boolean; pessoaId: string; concluir: Concluir }) {
   const [todas, setTodas] = useState(false)

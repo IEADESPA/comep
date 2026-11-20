@@ -1,24 +1,23 @@
-// Resumos das telas novas (Fase 5.5): o "Precisa de você" do Início, a agenda dos próximos dias e os
-// avisos do sino. Tudo vem das funções do sistema (src/dados); a tabela de notificações ainda não existe.
+// Resumos das telas novas (Fase 5.5): o "Precisa de você" do Início e a agenda dos próximos dias. Tudo vem das
+// funções do sistema (src/dados). Os avisos do sino vêm da tabela de notificações (parte 11: useSino.ts).
 // Cada parte que falhar (ou que o perfil não pode ver) só fica de fora; o resto aparece.
 import type { Area, NomeIcone } from '../componentes/Icone'
 import { ITENS_MENU, perfisEfetivos, podeVer } from '../componentes/menu'
-import { listarAvisos } from '../dados/avisos'
 import { despesasAguardando } from '../dados/caixa'
 import type { Resultado } from '../dados/cliente'
 import { listarEsclarecimentos, mesesDoConselho } from '../dados/conselhoFiscal'
-import { listarEncontros, minhaParticipacao, minhasFaltas, NOME_DO_TIPO, SIGLA_DO_TIPO, listarJustificativas } from '../dados/encontros'
+import { listarEncontros, minhaParticipacao, minhasFaltas, SIGLA_DO_TIPO, listarJustificativas } from '../dados/encontros'
 import { listarEventos } from '../dados/eventos'
 import { cobrancasEmAbertoDe, exercicioDe, informesPendentes, situacaoDe } from '../dados/financeiro'
-import { itensDaAnalise, listarDocumentosIgreja, listarPedidosCorrecao, minhaIgreja, type MinhaIgrejaResumo } from '../dados/igrejas'
+import { listarPedidosCorrecao, minhaIgreja, type MinhaIgrejaResumo } from '../dados/igrejas'
 import { listarEmprestimos } from '../dados/patrimonio'
-import { listarPedidos, meuPedido } from '../dados/pedidos'
+import { listarPedidos } from '../dados/pedidos'
 import { listarPedidosAge } from '../dados/pedidosAge'
 import type { MinhaConta, Perfil } from '../dados/perfis'
 import { trocasPendentes } from '../dados/portal'
 import { listarVotacoes } from '../dados/votacoes'
 import { diaMes, formatarData, horaCurta, hojeIso } from '../utilitarios/formatos'
-import { diasEntre, documentoDoItem, listaCurta, NOME_DO_ITEM, somarDias, vencimentoMaisProximo } from '../utilitarios/regularizacao'
+import { diasEntre, documentoDoItem, listaCurta, NOME_DO_ITEM, vencimentoMaisProximo } from '../utilitarios/regularizacao'
 
 /** Busca e devolve só os dados (ou null, se deu erro): uma parte que falha não derruba as outras. */
 async function seguro<T>(busca: () => Promise<Resultado<T>>): Promise<T | null> {
@@ -333,127 +332,4 @@ export async function agendaProxima(perfis: readonly Perfil[]): Promise<ItemAgen
       })),
   ]
   return itens.sort((a, b) => a.inicio.localeCompare(b.inicio)).slice(0, 4)
-}
-
-// ---------------------------------------------------------------------
-// O sino: avisos montados com o que já existe (votação aberta, AGE para assinar, assembleia convocada,
-// aviso novo no mural, pendência no pedido de associação). "Lido" fica guardado no aparelho.
-// ---------------------------------------------------------------------
-
-export type AvisoDoSino = { chave: string; area: Area; icone: NomeIcone; titulo: string; texto: string; quando: string; para: string }
-
-export async function avisosDoSino(conta: MinhaConta): Promise<AvisoDoSino[]> {
-  const { perfis, pessoaId } = conta
-  const ministro = perfisEfetivos(perfis).has('ministro')
-  const agora = new Date().toISOString()
-  const hoje = hojeIso()
-  const [votacoes, pedidosAge, encontros, avisos, pedido] = await Promise.all([
-    vejo('/votacoes', perfis) ? seguro(listarVotacoes) : null,
-    vejo('/assembleias', perfis) ? seguro(listarPedidosAge) : null,
-    ministro ? seguro(listarEncontros) : null,
-    vejo('/avisos', perfis) ? seguro(listarAvisos) : null,
-    perfis.length === 0 ? seguro(() => meuPedido(pessoaId)) : null,
-  ])
-
-  const itens: AvisoDoSino[] = []
-  for (const v of (votacoes ?? []).filter((x) => x.posso_votar && !x.eu_votei && !x.fechada)) {
-    itens.push({
-      chave: `votacao:${v.id}`,
-      area: 'assembleias',
-      icone: 'votar',
-      titulo: v.tipo === 'enquete' ? 'Enquete aberta' : 'Votação aberta',
-      texto: `${v.titulo}${v.fecha_em ? ` Vote até ${diaMes(v.fecha_em)}.` : ''}`,
-      quando: v.aberta_em ?? v.criado_em,
-      para: `/votacoes/${v.id}`,
-    })
-  }
-  for (const p of (pedidosAge ?? []).filter((x) => x.posso_assinar && !x.eu_assinei)) {
-    itens.push({
-      chave: `age:${p.id}`,
-      area: 'assembleias',
-      icone: 'pedido',
-      titulo: 'Pedido de AGE',
-      texto: `${p.titulo}: falta a sua assinatura.`,
-      quando: p.criado_em,
-      para: `/assembleias/pedidos/${p.id}`,
-    })
-  }
-  for (const e of (encontros ?? []).filter((x) => x.situacao === 'convocado' && x.inicio >= agora && x.convocado_em)) {
-    itens.push({
-      chave: `encontro:${e.id}`,
-      area: 'assembleias',
-      icone: 'assembleia',
-      titulo: e.tipo === 'reuniao_mensal' ? 'Reunião mensal convocada' : `${SIGLA_DO_TIPO[e.tipo]} convocada`,
-      texto: `${NOME_DO_TIPO[e.tipo]} em ${diaMes(e.inicio)}, às ${horaCurta(e.inicio)}.`,
-      quando: e.convocado_em ?? e.criado_em,
-      para: `/assembleias/${e.id}`,
-    })
-  }
-  for (const a of (avisos ?? []).filter((x) => x.valido_ate === null || x.valido_ate >= hoje).slice(0, 3)) {
-    itens.push({
-      chave: `aviso:${a.id}`,
-      area: 'eventos',
-      icone: 'aviso',
-      titulo: 'Aviso no mural',
-      texto: a.titulo,
-      quando: a.criado_em,
-      para: '/avisos',
-    })
-  }
-  // A igreja do pastor (Fase 5.5): os avisos de 60 e 30 dias antes de vencer, a suspensão e o item que voltou da análise
-  const igreja = await igrejaDoPastor(perfis)
-  if (igreja?.cadastro === 'em_analise') {
-    const [conferidos, documentos] = await Promise.all([seguro(() => itensDaAnalise(igreja.igreja_id)), seguro(() => listarDocumentosIgreja(igreja.igreja_id))])
-    const voltaram = (conferidos ?? []).filter((i) => i.situacao === 'recusado').length + (documentos ?? []).filter((d) => d.situacao === 'recusado').length
-    if (voltaram > 0) {
-      const quando = [...(conferidos ?? []).map((i) => i.decidido_em ?? ''), ...(documentos ?? []).map((d) => d.conferido_em ?? '')].sort().pop() ?? agora
-      itens.push({
-        chave: `igreja-analise:${quando}`,
-        area: 'pessoas',
-        icone: 'alerta',
-        titulo: 'A secretaria devolveu um item',
-        texto: `${igreja.nome}: ${voltaram === 1 ? '1 item voltou' : `${voltaram} itens voltaram`} com o motivo. Mande de novo só o que voltou.`,
-        quando,
-        para: '/cadastrar-minha-igreja',
-      })
-    }
-  } else if (igreja?.situacao.situacao === 'suspensa' && igreja.situacao.suspensa_desde && !igreja.situacao.perfil_bloqueado) {
-    itens.push({
-      chave: `igreja-suspensa:${igreja.situacao.suspensa_desde}`,
-      area: 'pessoas',
-      icone: 'alerta',
-      titulo: 'A igreja está suspensa',
-      texto: `Mande ${listaCurta(igreja.situacao.vencidos)} até ${formatarData(igreja.situacao.prazo_ate)}: depois, o perfil de pastor presidente é bloqueado.`,
-      quando: `${igreja.situacao.suspensa_desde}T08:00:00-03:00`,
-      para: '/minha-igreja',
-    })
-  } else if (igreja) {
-    // os avisos de 60 e 30 dias antes vão ao pastor presidente (a responsabilidade é dele, não da secretaria)
-    const vence = vencimentoMaisProximo(igreja.situacao)
-    const dias = vence ? diasEntre(hoje, vence.ate) : null
-    if (vence && dias !== null && dias <= 60) {
-      const marco = dias <= 30 ? 30 : 60
-      itens.push({
-        chave: `igreja-vence:${vence.item}:${vence.ate}:${marco}`,
-        area: 'eventos',
-        icone: 'relogio',
-        titulo: `${NOME_DO_ITEM[vence.item]} vence ${diasPara(hoje, vence.ate)}`,
-        texto: `Vale até ${formatarData(vence.ate)}. Mande o novo antes de vencer: ele entra sozinho no dia certo, e a igreja não fica suspensa.`,
-        quando: `${somarDias(vence.ate, -marco)}T08:00:00-03:00`,
-        para: vence.item === 'natureza_juridica' ? '/minha-igreja/documentos/cartao_cnpj/atualizar' : `/minha-igreja/documentos/${documentoDoItem(vence.item)}/atualizar`,
-      })
-    }
-  }
-  if (pedido && pedido.situacao === 'pendencia') {
-    itens.push({
-      chave: `pedido:${pedido.id}:pendencia:${pedido.enviado_em ?? ''}`,
-      area: 'pessoas',
-      icone: 'alerta',
-      titulo: 'O seu pedido tem pendência',
-      texto: pedido.mensagem_pendencia ?? 'A secretaria pediu uma correção no seu pedido de associação.',
-      quando: pedido.enviado_em ?? pedido.criado_em,
-      para: '/meu-pedido',
-    })
-  }
-  return itens.sort((a, b) => b.quando.localeCompare(a.quando)).slice(0, 10)
 }
