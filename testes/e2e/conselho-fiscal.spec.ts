@@ -3,7 +3,7 @@
 // Usa os dois meses antes do atual (dentro do exercício de hoje). Os lançamentos do teste são de R$ 1,00 e são
 // cancelados no fim: o mês muda de novo, e a próxima execução aprova outra vez (a aprovação antiga fica arquivada).
 import { expect, test, type Page } from '@playwright/test'
-import { abrirFuncao, funcoesDoModulo, mensagemNaTela, nomeDaFuncao, pdfFicticio, sufixoUnico, trocarPara } from './ajuda'
+import { abrirFuncao, funcoesDoModulo, mensagemNaTela, nomeDaFuncao, sufixoUnico, trocarPara } from './ajuda'
 
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
@@ -100,22 +100,23 @@ test('o Conselho aprova um mês, pede esclarecimento noutro, a tesouraria respon
   await expect(page.getByText(`O parecer de ${b.nome} fica para depois da resposta da tesouraria.`)).toBeVisible()
   await expect(linhaB.getByTitle('Pergunta esperando a tesouraria')).toBeVisible()
 
-  // 3. A tesouraria responde, com o comprovante (que vai também para o lançamento)
+  // 3. A tesouraria responde (o envio do comprovante junto é conferido nos testes do banco: aqui não, para não
+  //    acumular arquivos do usuário fictício a cada execução)
   await trocarPara(page, 'tesouraria')
   await page.goto('conselho-fiscal')
   await abrirFuncao(page, 'Esclarecimentos')
   const pergunta = page.getByRole('listitem', { name: new RegExp(`^Pergunta sobre ${entradaB}`) })
   await expect(pergunta).toContainText(`De onde veio esta oferta? (${sufixo})`)
   await pergunta.getByLabel('Resposta *').fill('Oferta da reunião mensal, com o recibo.')
-  await pergunta.getByLabel('Comprovante (opcional)').setInputFiles(pdfFicticio('recibo-oferta.pdf'))
+  await expect(pergunta.getByLabel('Comprovante (opcional)')).toBeVisible()
   await pergunta.getByRole('button', { name: 'Mandar a resposta' }).click()
   await expect(mensagemNaTela(page, 'Resposta mandada ao Conselho Fiscal.')).toBeVisible()
 
-  // 4. O Conselho vê a resposta e o comprovante, e aprova o mês B
+  // 4. O Conselho vê a resposta e aprova o mês B
   await trocarPara(page, 'conselho')
   await page.goto(`conselho-fiscal/meses/${b.iso}`)
   await expect(page.getByRole('list', { name: 'Perguntas do mês' })).toContainText('Oferta da reunião mensal, com o recibo.')
-  await expect(page.getByRole('list', { name: 'Lançamentos do mês' }).getByRole('listitem', { name: entradaB }).getByRole('link', { name: 'comprovante' })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Lançamentos do mês' }).getByRole('listitem', { name: entradaB })).toContainText('respondido')
   await page.getByRole('button', { name: `Dar o parecer de ${b.nome}` }).click()
   await page.getByRole('button', { name: 'Assinar o parecer' }).click()
   await expect(mensagemNaTela(page, `As contas de ${b.nome} de ${b.iso.slice(0, 4)} foram aprovadas.`)).toBeVisible()
