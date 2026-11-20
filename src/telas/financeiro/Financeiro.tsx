@@ -1,7 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { Navigate, useParams } from 'react-router'
 import { Carregando, Mensagem } from '../../componentes/Basicos'
+import { Chip } from '../../componentes/Telas'
+import { ok, type Resultado } from '../../dados/cliente'
+import { mesesDoConselho, NOME_DA_SITUACAO_MES } from '../../dados/conselhoFiscal'
 import type { Perfil } from '../../dados/perfis'
+import { AREA_DA_SITUACAO } from '../conselho/regras'
 import { useSessao } from '../../estado/contexto'
 import { ContasESaldos, ExtratoCaixa, Transferencias } from './Caixa'
 import { CabecalhoFinanceiro } from './comum'
@@ -16,6 +20,23 @@ import { PrestacaoBalanco, PrestacaoExercicio, PrestacaoMesAMes } from './Presta
 // esquerda ("o módulo toma a coluna"), cada uma com as subfunções em sanfona (src/componentes/menu.ts). Cada
 // subfunção tem endereço próprio: /financeiro/<função>[/<subfunção>].
 // A tesouraria e a presidência operam; o Conselho Fiscal só vê (Art. 14) e não confere os comprovantes.
+
+/** No mês a mês, a situação de cada mês no Conselho Fiscal (Fase 5.5, parte 10). */
+const COLUNA_DO_CONSELHO = {
+  titulo: 'Conselho Fiscal',
+  valor: async (exercicio: number): Promise<Resultado<Record<string, ReactNode>>> => {
+    const r = await mesesDoConselho(exercicio)
+    if (r.erro !== null) return r
+    return ok(
+      Object.fromEntries(
+        r.dados.map((m) => {
+          const area = AREA_DA_SITUACAO[m.situacao]
+          return [m.competencia.slice(0, 7), area ? <Chip key={m.competencia} area={area}>{NOME_DA_SITUACAO_MES[m.situacao]}</Chip> : '—']
+        }),
+      ),
+    )
+  },
+}
 
 type Contexto = { pessoaId: string; perfis: Perfil[]; opera: boolean; concluir: Concluir }
 
@@ -82,7 +103,12 @@ const TELAS: Record<string, Tela> = {
     sub: 'O balanço do exercício (abril a março) em quatro passos: a tesouraria fecha, a diretoria analisa, o Conselho Fiscal dá o parecer e a assembleia aprecia.',
     conteudo: (c) => <PrestacaoExercicio perfis={c.perfis} pessoaId={c.pessoaId} />,
   },
-  'prestacao/mes-a-mes': { funcao: 'Prestação de contas', titulo: 'Mês a mês', conteudo: () => <PrestacaoMesAMes /> },
+  'prestacao/mes-a-mes': {
+    funcao: 'Prestação de contas',
+    titulo: 'Mês a mês',
+    sub: 'As receitas e as despesas de cada mês e o parecer do Conselho Fiscal sobre ele.',
+    conteudo: () => <PrestacaoMesAMes colunaExtra={COLUNA_DO_CONSELHO} />,
+  },
   'prestacao/balanco': { funcao: 'Prestação de contas', titulo: 'Balanço e parecer', conteudo: () => <PrestacaoBalanco /> },
 }
 

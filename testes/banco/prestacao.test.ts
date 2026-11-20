@@ -203,6 +203,15 @@ describe('Fase 2.3 — prestação de contas', () => {
 
     it('parecer do Conselho Fiscal e aprovação da assembleia; aprovado é final, com todo o histórico', async () => {
       await chamar(presidente, "select public.analisar_balanco($1, 'Agora está completo')", [balanco2024])
+      // Fase 5.5: o parecer do ano só sai com os 12 meses aprovados pelo Conselho Fiscal
+      await assert.rejects(
+        chamar(conselheiro, "select public.parecer_balanco($1, 'favoravel', 'Contas em ordem')", [balanco2024]),
+        erroComCodigo(BLOQUEADO_PELO_BANCO),
+      )
+      await chamar(conselheiro, 'select public.aprovar_meses_sem_movimento(2024)')
+      for (const mes of ['2024-05-01', '2024-06-01', '2024-07-01', '2024-08-01']) {
+        await chamar(conselheiro, "select public.decidir_mes($1, 'aprovado', null)", [mes])
+      }
       await chamar(conselheiro, "select public.parecer_balanco($1, 'favoravel', 'Contas em ordem')", [balanco2024])
       assert.equal(await situacao(balanco2024), 'aguardando_assembleia')
       await assert.rejects(
@@ -229,6 +238,7 @@ describe('Fase 2.3 — prestação de contas', () => {
       const id = (r.rows[0] as { id: string }).id
       await assert.rejects(chamar(presidente, "select public.analisar_balanco($1, 'ok')", [id]), erroComCodigo(SEM_PERMISSAO))
       await chamar(vice, "select public.analisar_balanco($1, 'Analisado')", [id])
+      await chamar(conselheiro, 'select public.aprovar_meses_sem_movimento(2023)')
       await chamar(conselheiro, "select public.parecer_balanco($1, 'desfavoravel', 'Faltam comprovantes')", [id])
       await chamar(presidente, "select public.assembleia_balanco($1, false, current_date, 'Ata da AGE')", [id])
       const b = await db.query<{ situacao: string; motivo: string }>(

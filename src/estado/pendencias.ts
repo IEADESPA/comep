@@ -5,13 +5,15 @@ import { useEffect, useState } from 'react'
 import type { ChavePendencia, Modulo } from '../componentes/menu'
 import { despesasAguardando } from '../dados/caixa'
 import type { Resultado } from '../dados/cliente'
+import { listarEsclarecimentos, mesesDoConselho } from '../dados/conselhoFiscal'
 import { listarJustificativas } from '../dados/encontros'
-import { informesPendentes } from '../dados/financeiro'
+import { exercicioDe, informesPendentes } from '../dados/financeiro'
 import { documentosParaConferir, igrejasEmAnalise, listarPedidosCorrecao, situacaoDasIgrejas } from '../dados/igrejas'
 import { listarEmprestimos } from '../dados/patrimonio'
 import { listarPedidos } from '../dados/pedidos'
 import type { Perfil } from '../dados/perfis'
 import { trocasPendentes } from '../dados/portal'
+import { hojeIso } from '../utilitarios/formatos'
 
 export type Pendencias = Partial<Record<ChavePendencia, number>>
 
@@ -63,6 +65,19 @@ const CONTAGENS: Record<ChavePendencia, { quem: readonly Perfil[]; contar: () =>
   igrejasSuspensas: {
     quem: ['secretaria', 'presidencia'],
     contar: () => quantos(situacaoDasIgrejas, (l) => l.filter((s) => s.situacao.situacao === 'suspensa').length),
+  },
+  // Conselho Fiscal (Fase 5.5, parte 10): os meses do exercício que esperam o Conselho; as perguntas que esperam a tesouraria
+  mesesParaAnalisar: {
+    quem: ['conselho_fiscal'],
+    contar: () =>
+      quantos(
+        () => mesesDoConselho(exercicioDe(hojeIso())),
+        (l) => l.filter((m) => m.situacao === 'para_analisar' || m.situacao === 'mudou').length,
+      ),
+  },
+  esclarecimentos: {
+    quem: ['tesouraria', 'presidencia'],
+    contar: () => quantos(() => listarEsclarecimentos(), (l) => l.filter((e) => !e.respondido_em).length),
   },
 }
 

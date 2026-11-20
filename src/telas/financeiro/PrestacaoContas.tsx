@@ -18,14 +18,12 @@ import {
   lancamentosDoExercicio,
   NOME_DA_SITUACAO_BALANCO,
   NOME_DO_PARECER,
-  parecerBalanco,
   resumoExercicio,
   type Balanco,
   type ContribuicaoIgreja,
   type EventoBalanco,
   type LancamentoRelatorio,
   type Resumo,
-  type TipoParecer,
   type TotalCategoria,
 } from '../../dados/prestacao'
 import { useCarregar } from '../../estado/useCarregar'
@@ -192,7 +190,6 @@ function PainelBalanco({
   const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
   const [texto, setTexto] = useState('')
   const [motivo, setMotivo] = useState('')
-  const [parecer, setParecer] = useState<TipoParecer>('favoravel')
   const [decisao, setDecisao] = useState<'aprovado' | 'reprovado'>('aprovado')
   const [data, setData] = useState(hojeIso())
   const [ata, setAta] = useState('')
@@ -325,42 +322,13 @@ function PainelBalanco({
             </>
           ))}
 
-        {conselho &&
-          situacao === 'aguardando_parecer' &&
-          (fecheiEu ? (
-            <p className="detalhe">Você fechou este balanço: o parecer fica com os outros membros do Conselho Fiscal.</p>
-          ) : (
-            <>
-              <form
-                aria-label="Parecer do Conselho Fiscal"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  if (balanco) void agir(() => parecerBalanco(balanco.id, parecer, texto), 'Parecer do Conselho Fiscal registrado.')
-                }}
-              >
-                <label>
-                  Parecer *
-                  <select value={parecer} onChange={(e) => setParecer(e.target.value as TipoParecer)}>
-                    {(Object.keys(NOME_DO_PARECER) as TipoParecer[]).map((p) => (
-                      <option key={p} value={p}>
-                        {NOME_DO_PARECER[p]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Texto do parecer *
-                  <textarea required rows={4} value={texto} onChange={(e) => setTexto(e.target.value)} />
-                </label>
-                <div className="acoes">
-                  <button type="submit" className="botao" disabled={enviando}>
-                    Registrar o parecer
-                  </button>
-                </div>
-              </form>
-              {devolver}
-            </>
-          ))}
+        {/* Fase 5.5, parte 10: o parecer sai dos meses aprovados, no módulo Conselho Fiscal */}
+        {situacao === 'aguardando_parecer' && (
+          <p className="detalhe">
+            {conselho ? 'O parecer do ano é dado no módulo Conselho Fiscal, a partir dos meses aprovados: ' : 'O Conselho Fiscal dá o parecer a partir dos meses aprovados: '}
+            <Link to={`/conselho-fiscal/parecer?exercicio=${exercicio}`}>{conselho ? 'dar o parecer do ano' : 'ver o parecer do ano'}</Link>.
+          </p>
+        )}
 
         {presidencia && situacao === 'aguardando_assembleia' && (
           <form

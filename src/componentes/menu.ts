@@ -145,6 +145,17 @@ export const ITENS_MENU: readonly ItemMenu[] = [
     area: 'financas',
   },
   {
+    // Fase 5.5, parte 10: o Conselho Fiscal aprova as contas mês a mês; a tesouraria e a presidência veem e respondem
+    caminho: '/conselho-fiscal',
+    titulo: 'Conselho Fiscal',
+    descricao: 'As contas dos meses, os esclarecimentos e o parecer do ano',
+    perfis: ['conselho_fiscal', 'tesouraria', 'presidencia'],
+    fase: 5.5,
+    pronto: true,
+    icone: 'check',
+    area: 'financas',
+  },
+  {
     caminho: '/assembleias',
     titulo: 'Assembleias',
     descricao: 'Assembleias, reuniões mensais, convocações e pauta',
@@ -310,6 +321,8 @@ export type ChavePendencia =
   | 'justificativas'
   | 'igrejasConferir'
   | 'igrejasSuspensas'
+  | 'mesesParaAnalisar'
+  | 'esclarecimentos'
 
 export type Subfuncao = {
   titulo: string
@@ -495,6 +508,28 @@ export const MODULOS: readonly Modulo[] = [
           { titulo: 'Balanço e parecer', caminho: '/financeiro/prestacao/balanco' },
         ],
       },
+    ],
+  },
+  {
+    // rodadas 13 e 14 (18/11/2026): o painel do exercício como início e a página do mês com o comprovante de cada lançamento
+    chave: 'conselho',
+    titulo: 'Conselho Fiscal',
+    icone: 'check',
+    area: 'financas',
+    item: '/conselho-fiscal',
+    bases: ['/conselho-fiscal'],
+    funcoes: [
+      {
+        chave: 'meses',
+        titulo: 'Contas dos meses',
+        icone: 'financeiro',
+        caminho: '/conselho-fiscal',
+        tambem: ['/conselho-fiscal/meses'],
+        pendencia: 'mesesParaAnalisar',
+      },
+      { chave: 'esclarecimentos', titulo: 'Esclarecimentos', icone: 'aviso', caminho: '/conselho-fiscal/esclarecimentos', pendencia: 'esclarecimentos' },
+      { chave: 'parecer', titulo: 'Parecer do ano', icone: 'check', caminho: '/conselho-fiscal/parecer' },
+      { chave: 'documentos', titulo: 'Documentos', icone: 'pedido', caminho: '/conselho-fiscal/documentos' },
     ],
   },
   {
@@ -695,7 +730,7 @@ export const GRUPOS_DIRETORIA: readonly Grupo[] = [
   { titulo: 'Pessoal', caminhos: ['/minha-credencial', '/minhas-mensalidades', '/minha-igreja'] },
   { titulo: 'Pessoas', caminhos: ['/ministros', '/inscricoes', '/credenciais', '/igrejas'] },
   { titulo: 'Assembleias e governo', caminhos: ['/assembleias', '/votacoes', '/diretoria', '/comissoes'] },
-  { titulo: 'Finanças', caminhos: ['/financeiro', '/patrimonio'] },
+  { titulo: 'Finanças', caminhos: ['/financeiro', '/conselho-fiscal', '/patrimonio'] },
   { titulo: 'Eventos e avisos', caminhos: ['/eventos', '/avisos'] },
 ]
 
