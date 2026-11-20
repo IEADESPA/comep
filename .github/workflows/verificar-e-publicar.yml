@@ -70,8 +70,10 @@ jobs:
     # com usuários fictícios de cada perfil, em tamanho de computador e de celular.
     name: Testes de ponta a ponta (banco de teste)
     runs-on: ubuntu-latest
-    # 145 testes (computador e celular) passaram dos 20 minutos em 18/11/2026; com folga para a nova tentativa
-    timeout-minutes: 30
+    # 145 testes (computador e celular) passaram dos 20 minutos em 18/11/2026; com folga para a nova tentativa.
+    # Em 20/11/2026, com o Financeiro e o Conselho Fiscal, a verificação da main foi cortada aos 30 minutos
+    # com os testes ainda passando (o PR #49 levou 26 minutos): o limite subiu para 45.
+    timeout-minutes: 45
     # Um de cada vez: todos usam o mesmo banco de teste e os mesmos usuários fictícios
     # (duas execuções ao mesmo tempo mexem no mesmo caixa, no mesmo balanço e nos mesmos perfis).
     concurrency:
