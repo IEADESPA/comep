@@ -120,7 +120,7 @@ export type Balanco = {
   motivo_devolucao: string | null
   fechado: { id: string; nome: string } | null
   analisado: { nome: string } | null
-  parecerista: { nome: string } | null
+  parecerista: { id: string; nome: string } | null
 }
 
 export type EventoBalanco = { id: string; acao: string; texto: string | null; criado_em: string; pessoa: { nome: string } | null }
@@ -134,7 +134,7 @@ export async function buscarBalanco(
       `id, exercicio, situacao, resumo, nota_tesouraria, fechado_em, analise_diretoria, analisado_em, parecer,
        parecer_texto, parecer_em, assembleia_data, assembleia_ata, aprovado_assembleia, motivo_devolucao,
        fechado:pessoas!balancos_fechado_por_fkey(id, nome), analisado:pessoas!balancos_analisado_por_fkey(nome),
-       parecerista:pessoas!balancos_parecer_por_fkey(nome)`,
+       parecerista:pessoas!balancos_parecer_por_fkey(id, nome)`,
     )
     .eq('exercicio', exercicio)
     .is('arquivado_em', null)

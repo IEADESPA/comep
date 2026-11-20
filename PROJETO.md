@@ -275,6 +275,11 @@ Decisões de 12/11/2026 (administrador técnico, com base na credencial que já 
 - **Mandato:** 4 anos, com reeleição permitida; cargos voluntários e sem salário (Art. 12).
 - **Eleições:** registradas na assembleia; só candidatos e eleitores em dia (Art. 11).
 - **Perfis automáticos:** os perfis de acesso da diretoria vêm do mandato vigente.
+- **O Conselho Fiscal mês a mês (Fase 5.5, entrega 5.5.13):** o Conselho aprova as contas de cada mês do exercício (abril a março), vendo cada lançamento com o comprovante.
+  - Ele aprova, aprova com ressalva ou pede esclarecimento à tesouraria, sobre o mês ou sobre um lançamento. Enquanto houver pergunta sem resposta, o mês não se aprova. A tesouraria responde no próprio módulo, com o comprovante que faltava.
+  - A aprovação guarda os números do mês. Se eles mudarem depois, a aprovação deixa de valer e o mês volta para a análise; a antiga fica arquivada.
+  - Uma pessoa do Conselho decide; os outros membros assinam junto. Quem tem perfil da diretoria não decide.
+  - O parecer do ano (Art. 14) só sai com os 12 meses aprovados, e o texto vem dos meses e das ressalvas. Os meses sem movimento se aprovam de uma vez.
 - Histórico de todas as diretorias.
 
 ### 4.11 Configurações (sistema personalizável)

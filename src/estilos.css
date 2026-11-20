@@ -8818,3 +8818,289 @@ li.feito .numero-passo {
 .fin-linha-extrato > .linha-corpo {
   flex: 1 1 220px;
 }
+
+/* ---------- Conselho Fiscal (Fase 5.5, parte 10; rodadas 13 e 14): o exercício mês a mês ---------- */
+
+.cf-meses {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (min-width: 900px) {
+  .cf-meses {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+.cf-meses li > a,
+.cf-meses li > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cf-mes-quadro {
+  position: relative;
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--area-fundo, var(--cor-fundo));
+  border: 2px solid var(--area-cor, var(--cor-borda));
+}
+
+.cf-meses-pequenos .cf-mes-quadro {
+  height: 28px;
+}
+
+.cf-mes-futuro .cf-mes-quadro {
+  background: var(--cor-fundo);
+  border-color: var(--cor-borda);
+}
+
+.cf-meses li > a:hover .cf-mes-quadro {
+  box-shadow: 0 0 0 2px var(--cor-marca);
+}
+
+.cf-mes-pergunta {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--area-eventos);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.cf-mes-nome {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--cor-texto-suave);
+}
+
+.cf-legenda {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.cf-legenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cf-legenda li > span {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--area-fundo);
+  border: 2px solid var(--area-cor);
+}
+
+.cf-sem-movimento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.cf-assinaturas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.cf-assinaturas li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cf-assinaturas li > svg {
+  color: var(--area-cor);
+}
+
+.cf-situacao-mes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.cf-saldos-mes strong {
+  font-size: 20px;
+}
+
+.cf-mes {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .cf-mes {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+.cf-mes-principal,
+.cf-mes-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cf-lancamentos ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cf-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 6px;
+  border-radius: 8px;
+}
+
+.cf-linha + .cf-linha {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.cf-linha-duvida {
+  background: var(--area-eventos-fundo);
+}
+
+.cf-linha-escolhida {
+  background: var(--cor-marca-suave);
+}
+
+.cf-linha-data {
+  width: 44px;
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.cf-linha-corpo {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cf-linha-corpo strong {
+  font-size: 14px;
+  color: var(--cor-titulo);
+}
+
+.cf-linha-corpo span {
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.cf-linha-corpo:hover strong {
+  text-decoration: underline;
+}
+
+.cf-linha-comprovante {
+  font-size: 13px;
+}
+
+.cf-linha-marca {
+  width: 28px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.cf-duvida {
+  width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--area-eventos);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.cf-comprovante-imagem img {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.cf-perguntas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cf-pergunta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+}
+
+.cf-pergunta-aberta {
+  border-color: var(--area-eventos);
+  background: var(--area-eventos-fundo);
+}
+
+.cf-pergunta-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.cf-pergunta-texto {
+  margin: 0;
+  font-size: 14px;
+}

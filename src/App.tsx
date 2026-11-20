@@ -26,6 +26,7 @@ import { DetalheVotacao, EditarVotacao, ListaVotacoes, NovaVotacao } from './tel
 import { Diretoria } from './telas/diretoria/Diretoria'
 import { ValidarCredencial } from './telas/credencial/ValidarCredencial'
 import { Entrar } from './telas/Entrar'
+import { DocumentosConselho, Esclarecimentos, MesDoConselhoPagina, PainelConselho, ParecerDoAno } from './telas/conselho/ConselhoFiscal'
 import { Financeiro } from './telas/financeiro/Financeiro'
 import { MinhasMensalidades } from './telas/financeiro/MinhasMensalidades'
 import { CadastrarIgreja } from './telas/igrejas/CadastrarIgreja'
@@ -117,6 +118,14 @@ export default function App() {
                 <Route index element={<Financeiro />} />
                 <Route path=":parte" element={<Financeiro />} />
                 <Route path=":parte/:sub" element={<Financeiro />} />
+              </Route>
+              {/* O Conselho Fiscal mês a mês (Fase 5.5, parte 10) */}
+              <Route path="conselho-fiscal" element={<Area caminho="/conselho-fiscal" />}>
+                <Route index element={<PainelConselho />} />
+                <Route path="meses/:mes" element={<MesDoConselhoPagina />} />
+                <Route path="esclarecimentos" element={<Esclarecimentos />} />
+                <Route path="parecer" element={<ParecerDoAno />} />
+                <Route path="documentos" element={<DocumentosConselho />} />
               </Route>
 
               <Route path="minha-credencial" element={<Area caminho="/minha-credencial" />}>

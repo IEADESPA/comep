@@ -119,6 +119,12 @@ begin
 
   perform set_config('request.jwt.claim.sub', v_conselho::text, true);
   perform set_config('request.jwt.claims', json_build_object('sub', v_conselho, 'role', 'authenticated')::text, true);
+  -- Fase 5.5: o Conselho Fiscal aprova os 12 meses antes do parecer do ano
+  v_mes := '2025-04-01';
+  while v_mes <= '2026-03-01' loop
+    perform public.decidir_mes(v_mes, 'aprovado', null);
+    v_mes := (v_mes + interval '1 month')::date;
+  end loop;
   perform public.parecer_balanco(v_balanco, 'favoravel',
     'O Conselho Fiscal examinou o balanço, os lançamentos e os comprovantes do exercício 2025/2026 e é de parecer FAVORÁVEL à aprovação das contas pela Assembleia Geral. ' || c_marca);
 

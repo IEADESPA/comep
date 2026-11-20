@@ -6,9 +6,10 @@ import { ITENS_MENU, perfisEfetivos, podeVer } from '../componentes/menu'
 import { listarAvisos } from '../dados/avisos'
 import { despesasAguardando } from '../dados/caixa'
 import type { Resultado } from '../dados/cliente'
+import { listarEsclarecimentos, mesesDoConselho } from '../dados/conselhoFiscal'
 import { listarEncontros, minhaParticipacao, minhasFaltas, NOME_DO_TIPO, SIGLA_DO_TIPO, listarJustificativas } from '../dados/encontros'
 import { listarEventos } from '../dados/eventos'
-import { cobrancasEmAbertoDe, informesPendentes, situacaoDe } from '../dados/financeiro'
+import { cobrancasEmAbertoDe, exercicioDe, informesPendentes, situacaoDe } from '../dados/financeiro'
 import { itensDaAnalise, listarDocumentosIgreja, listarPedidosCorrecao, minhaIgreja, type MinhaIgrejaResumo } from '../dados/igrejas'
 import { listarEmprestimos } from '../dados/patrimonio'
 import { listarPedidos, meuPedido } from '../dados/pedidos'
@@ -92,6 +93,8 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
     emprestimos,
     despesas,
     informes,
+    mesesConselho,
+    perguntasConselho,
   ] = await Promise.all([
     vejo('/votacoes', perfis) ? seguro(listarVotacoes) : null,
     vejo('/assembleias', perfis) ? seguro(listarPedidosAge) : null,
@@ -107,6 +110,8 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
     cadastro ? seguro(listarEmprestimos) : null,
     tem(perfis, 'presidencia') ? seguro(despesasAguardando) : null,
     financas ? seguro(informesPendentes) : null,
+    tem(perfis, 'conselho_fiscal') ? seguro(() => mesesDoConselho(exercicioDe(hoje))) : null,
+    financas ? seguro(() => listarEsclarecimentos()) : null,
   ])
 
   const itens: ItemParaVoce[] = []
@@ -125,6 +130,15 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
   }
   if (informes) {
     contagem('informes', 'financas', 'mensalidade', informes.length, 'comprovante de pagamento para conferir', 'comprovantes de pagamento para conferir', '/financeiro/comprovantes')
+  }
+  // O Conselho Fiscal (Fase 5.5, parte 10): os meses para analisar; para a tesouraria, as perguntas dele
+  if (mesesConselho) {
+    const n = mesesConselho.filter((m) => m.situacao === 'para_analisar' || m.situacao === 'mudou').length
+    contagem('conselho-meses', 'financas', 'check', n, 'mês com as contas para analisar', 'meses com as contas para analisar', '/conselho-fiscal')
+  }
+  if (perguntasConselho) {
+    const n = perguntasConselho.filter((e) => !e.respondido_em).length
+    contagem('conselho-perguntas', 'financas', 'aviso', n, 'pergunta do Conselho Fiscal para responder', 'perguntas do Conselho Fiscal para responder', '/conselho-fiscal/esclarecimentos')
   }
   if (emprestimos) {
     const esperando = emprestimos.filter((e) => e.situacao === 'solicitado').length
