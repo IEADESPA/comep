@@ -139,4 +139,5 @@ O site fica por **último**: ele já funciona e está aceitável.
   - o registro de cada parte, com as decisões tomadas sem o desenho, está em `docs/revisoes/fase-5.5.md` (entregas 5.5.10 e 5.5.11).
 - 20/11/2026: **a construção do lote do Financeiro e do Conselho Fiscal** (só no site de teste):
   - parte 9 (versão 5.5.0-teste.13): as 6 funções do Financeiro no desenho aprovado na rodada 11 — Contribuições (o painel), Comprovantes (a lista), Caixa (o extrato), Despesas (os cartões), Orçamento (os cartões por categoria, com o plano anual de trabalho em atividades e o "Mandar para a assembleia") e Prestação de contas (as etapas e os números), cada uma com as subfunções na coluna;
-  - o registro, com as decisões tomadas sem o desenho, está em `docs/revisoes/fase-5.5.md` (entrega 5.5.12).
+  - parte 10 (versão 5.5.0-teste.14): o módulo Conselho Fiscal (rodadas 13 e 14) — o painel do exercício como início, a página do mês com o comprovante de cada lançamento, aprovar ou pedir esclarecimento, as respostas da tesouraria, o parecer do ano a partir dos meses aprovados e os documentos;
+  - o registro, com as decisões tomadas sem o desenho, está em `docs/revisoes/fase-5.5.md` (entregas 5.5.12 e 5.5.13).

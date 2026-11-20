@@ -40,11 +40,20 @@ async function analisar(page: Page, texto: string) {
   await expect(mensagemNaTela(page, 'Análise da diretoria registrada.')).toBeVisible()
 }
 
+/** Fase 5.5, parte 10: o parecer do ano é dado no módulo Conselho Fiscal, a partir dos 12 meses aprovados. */
 async function darParecer(page: Page, texto: string) {
-  await abrir(page, 'conselho', RESERVADO)
+  await trocarPara(page, 'conselho')
+  await page.goto(`conselho-fiscal/parecer?exercicio=${RESERVADO}`)
+  await expect(page.getByRole('heading', { name: /^Os meses: \d+ de 12 aprovados$/ })).toBeVisible()
+  // o exercício reservado não tem movimento: os meses se aprovam de uma vez (só na primeira vez)
+  const semMovimento = page.getByRole('button', { name: 'Aprovar os meses sem movimento' })
+  if (await semMovimento.isVisible()) {
+    await semMovimento.click()
+    await expect(mensagemNaTela(page, /sem movimento\.$/)).toBeVisible()
+  }
   await page.getByRole('combobox', { name: 'Parecer *' }).selectOption('Favorável com ressalvas')
   await page.getByLabel('Texto do parecer *').fill(texto)
-  await page.getByRole('button', { name: 'Registrar o parecer' }).click()
+  await page.getByRole('button', { name: 'Assinar o parecer do ano' }).click()
   await expect(mensagemNaTela(page, 'Parecer do Conselho Fiscal registrado.')).toBeVisible()
 }
 

@@ -602,3 +602,39 @@ O lote do Financeiro (rodadas 9 a 11, aprovadas em 18/11/2026; as regras estão 
 - no total, 597 testes (banco e unidade), todos passando;
 - ponta a ponta: `financeiro.spec`, `caixa.spec`, `prestacao.spec` (refeito: as etapas, o mês a mês, o balanço para imprimir, o orçamento por categoria, o plano anual, mandar e voltar) e `menu-modulo.spec`, verdes no computador e no celular;
 - o verificador do Supabase (`db advisors`) no comep-teste: só o aviso conhecido (`auth_leaked_password_protection`).
+
+## Entrega 5.5.13 — Telas novas, parte 10: o Conselho Fiscal mês a mês (versão 5.5.0-teste.14)
+
+O fim do lote do Financeiro e do Conselho Fiscal (rodadas 13 e 14, aprovadas em 18/11/2026; as regras estão no `PROJETO.md`, seção 4.10). Migração `20261120100000_conselho_fiscal_meses.sql`.
+
+**As telas (módulo Conselho Fiscal, no menu da coluna: Contas dos meses, Esclarecimentos, Parecer do ano e Documentos):**
+
+- **Contas dos meses** (rodada 13, opção 3, como tela inicial; `fiscal-2`): o exercício em números (meses aprovados, com ressalva, para analisar e o saldo), os 12 meses num quadro colorido (aprovado, com ressalva, para analisar, esperando a tesouraria, mês aberto), "Aprovar os meses sem movimento" e o cartão do parecer do ano com os membros.
+- **A página do mês** (rodada 13, opção 2 melhorada; `fiscal-2`): os saldos (no início, entrou, saiu, no fim), cada lançamento com o comprovante, a dúvida marcada em destaque, o comprovante aberto ao lado (a imagem, ou o PDF) com "Perguntar à tesouraria", e "Dar o parecer de outubro": aprovar, aprovar com ressalva ou pedir esclarecimento. Aprovado, mostra quem assinou e "Assinar também"; o mês anterior e o seguinte.
+- **Esclarecimentos**: as perguntas esperando a tesouraria e as respondidas; a tesouraria (ou a presidência) responde ali, com o comprovante que faltava.
+- **Parecer do ano** (Art. 14): os 12 meses, o balanço e o parecer. O formulário só aparece com os 12 meses aprovados, com o texto montado a partir dos meses e das ressalvas; "Devolver à tesouraria para correção"; os membros assinam.
+- **Documentos**: os pareceres dos meses e o parecer do ano, para imprimir ou salvar em PDF.
+- No Financeiro: a **Prestação de contas** leva o Conselho ao parecer do ano (o formulário saiu de lá), e o **Mês a mês** ganhou a coluna do Conselho Fiscal. No Início, "Precisa de você" mostra os meses para analisar (Conselho) e as perguntas para responder (tesouraria e presidência), e o menu mostra os mesmos números.
+
+**O que entrou no banco:**
+
+- `conselho_meses`: a aprovação de cada mês com a **fotografia dos números** (entradas, saídas, quantos lançamentos e os saldos). Se os números do mês mudarem depois (um lançamento novo, cancelado ou autorizado com a data dele), a aprovação **deixa de valer** ("mudou depois da aprovação") e o mês volta para a análise; aprovado de novo, a antiga fica arquivada;
+- `esclarecimentos`: a pergunta (sobre o mês ou um lançamento dele), a resposta, quem e quando, e o arquivo da resposta, que vai também para o lançamento se ele estava sem comprovante (e o exercício não está fechado);
+- `conselho_assinaturas`: quem assinou cada mês e o parecer do ano (o do ano vale a partir do parecer em vigor);
+- as funções `meses_do_conselho`, `decidir_mes`, `assinar_mes`, `aprovar_meses_sem_movimento`, `pedir_esclarecimento`, `responder_esclarecimento`, `assinar_parecer` e `membros_conselho_fiscal`;
+- `parecer_balanco` agora exige os 12 meses do exercício aprovados (e quem dá o parecer assina).
+
+**Decisões tomadas sem o desenho:**
+
+- **O ano do Conselho é o exercício** (abril a março), não o ano civil do desenho: o balanço e o parecer são por exercício.
+- **"Não aprovar" virou "Pedir esclarecimento"** (o desenho dizia "não aprovar — pedir explicação à tesouraria"): o mês fica esperando a tesouraria e não se aprova enquanto houver pergunta sem resposta.
+- **Uma pessoa do Conselho decide o mês**, e os outros membros assinam junto ("Assinar também"); a página mostra quem falta. Quem tem perfil da diretoria não decide (como no parecer do balanço; o banco já não deixa a mesma pessoa ter os dois perfis).
+- **A aprovação não trava a tesouraria**: o lançamento atrasado entra normalmente, e o mês volta para a análise do Conselho (em vez de bloquear o caixa).
+- **Os meses sem movimento** (por exemplo, antes de o sistema começar) se aprovam de uma vez, com a marca "sem movimento".
+- **A marca de conferido (✓)** aparece nos lançamentos do mês aprovado; antes disso, a linha mostra o "?" da pergunta ou "respondido".
+- **A tesouraria e a presidência abrem o módulo** (só leitura e as respostas): é lá que elas respondem.
+
+**Verificação:**
+
+- testes do banco: `testes/banco/conselho_fiscal.test.ts` (7 testes): os 12 meses com os números e os saldos; quem decide (só o Conselho, mês terminado, ressalva com texto); a fotografia, a assinatura do outro membro e não aprovar duas vezes; o mês que mudou volta para a análise e a aprovação antiga fica arquivada; a pergunta, a resposta só da tesouraria, o arquivo que vai para o lançamento e o mês aprovado que não aceita pergunta; os meses sem movimento e o parecer do ano só com os 12 meses, com as assinaturas; os membros. O `prestacao.test.ts` aprova os meses antes do parecer;
+- ponta a ponta: `conselho-fiscal.spec` (novo: o Conselho aprova o mês anterior, pede esclarecimento sobre um lançamento do outro, a tesouraria responde com o comprovante, o Conselho aprova; o mês a mês mostra o parecer; o ministro não abre; o parecer e os documentos do exercício da semente) e o `prestacao.spec` (o parecer dado no módulo Conselho Fiscal, depois de aprovar os meses sem movimento).

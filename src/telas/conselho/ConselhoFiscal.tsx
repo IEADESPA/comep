@@ -510,7 +510,7 @@ function LancamentoEscolhido({ x, competencia, mes, quem, concluir }: { x: Linha
       )}
       {podePerguntar && !x.transferencia && (
         <form
-          aria-label="Perguntar à tesouraria"
+          aria-label="A pergunta sobre o lançamento"
           onSubmit={(e) => {
             e.preventDefault()
             void umaVez(async () => {
@@ -840,7 +840,7 @@ function ConteudoParecer({ exercicio, quem, concluir }: { exercicio: number; que
         const situacao = balanco?.situacao ?? null
         return (
           <>
-            <section className="bloco" aria-labelledby="titulo-meses-parecer" data-situacao={situacao ?? 'sem_balanco'}>
+            <section className="bloco" aria-labelledby="titulo-meses-parecer">
               <h2 id="titulo-meses-parecer">Os meses: {aprovados.length} de 12 aprovados</h2>
               <ul className="cf-meses cf-meses-pequenos" aria-label="Os meses do exercício">
                 {meses.map((m) => {
@@ -865,7 +865,7 @@ function ConteudoParecer({ exercicio, quem, concluir }: { exercicio: number; que
               )}
             </section>
 
-            <section className="bloco" aria-labelledby="titulo-balanco-parecer">
+            <section className="bloco" aria-labelledby="titulo-balanco-parecer" data-situacao={situacao ?? 'sem_balanco'}>
               <h2 id="titulo-balanco-parecer">O balanço e o parecer</h2>
               <p>
                 <strong>{situacao ? NOME_DA_SITUACAO_BALANCO[situacao] : 'O balanço ainda não foi fechado pela tesouraria'}</strong>
