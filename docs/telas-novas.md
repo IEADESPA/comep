@@ -137,3 +137,6 @@ O site fica por **último**: ele já funciona e está aceitável.
   - parte 7 (versão 5.5.0-teste.11): o banco dos modelos por grupo (quem recebe, a ordem, o exclusivo de igreja e a readequação) e o módulo no menu da coluna: a lista em tabela, Validade e verso (saiu de Configurações), a galeria dos modelos, "Quem recebe" e o editor na tela inteira, com o tamanho do cartão em mm; a credencial do ministro em readequação, cinza, com a faixa;
   - parte 8 (versão 5.5.0-teste.12): a impressão nova (4 por folha, folha nova ou pedaço cortado), a biblioteca de símbolos e os logotipos, e a faixa da readequação na conferência pelo QR;
   - o registro de cada parte, com as decisões tomadas sem o desenho, está em `docs/revisoes/fase-5.5.md` (entregas 5.5.10 e 5.5.11).
+- 20/11/2026: **a construção do lote do Financeiro e do Conselho Fiscal** (só no site de teste):
+  - parte 9 (versão 5.5.0-teste.13): as 6 funções do Financeiro no desenho aprovado na rodada 11 — Contribuições (o painel), Comprovantes (a lista), Caixa (o extrato), Despesas (os cartões), Orçamento (os cartões por categoria, com o plano anual de trabalho em atividades e o "Mandar para a assembleia") e Prestação de contas (as etapas e os números), cada uma com as subfunções na coluna;
+  - o registro, com as decisões tomadas sem o desenho, está em `docs/revisoes/fase-5.5.md` (entrega 5.5.12).

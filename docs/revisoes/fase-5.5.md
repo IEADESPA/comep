@@ -564,3 +564,41 @@ O fim do lote das Credenciais (rodadas 8 a 12; as regras estão no `PROJETO.md`,
 - no total, 587 testes (banco e unidade), todos passando;
 - ponta a ponta: `credencial-impressao.spec` (novo: imprimir 2 num pedaço já cortado, com as medidas no papel — 9 mm entre os cortes, a dobra sem espaço, 85,6 mm, 16 marcas de corte, 4 da dobra e 4 sangrias — e, com 1 no pedaço, a outra na folha; e a credencial do ministro de uma igreja sem registro, cinza, com a faixa, conferida pelo QR sem login, com o prazo e sem a frase proibida) e `credencial-modelo.spec` (o símbolo da biblioteca no editor, o obrigatório que não sai, as regras e a página Credenciais › Símbolos);
 - o verificador do Supabase (`db advisors`) no comep-teste: só o aviso conhecido (`auth_leaked_password_protection`).
+
+## Entrega 5.5.12 — Telas novas, parte 9: o Financeiro nas 6 funções (versão 5.5.0-teste.13)
+
+O lote do Financeiro (rodadas 9 a 11, aprovadas em 18/11/2026; as regras estão no `PROJETO.md`, seção 4.4). Migração `20261119220000_financeiro_telas.sql`.
+
+**As telas (módulo Financeiro, no menu da coluna, cada função com as subfunções em sanfona):**
+
+- **Contribuições** (opção 3, o painel e quem precisa de atenção): os três medidores (em dia de quem paga, recebido no exercício, em aberto), "Precisam de atenção" (o comprovante para conferir e quem está em atraso, com "Conferir" ou "Registrar pagamento recebido"), "Por igreja" (quantos estão em dia) e "Todos os ministros", com a busca. Subfunções: **Por igreja** (a tabela do exercício), **Cobranças do ano** (gerar as cobranças) e **Valores e planos** (quem escolheu a anuidade, os valores, a taxa de inscrição e os vencimentos).
+- **Comprovantes** (opção 1, a lista): o pagamento informado, o comprovante ao lado, "Recusar" (com o motivo) e "Confirmar". Subfunção **Já conferidos**.
+- **Caixa** (opção 2, o extrato): os lançamentos do mês por dia, com o saldo depois de cada linha, o saldo no começo e no fim do mês, o mês anterior e o seguinte; à direita, o saldo de hoje por conta e os botões "+ Lançar entrada", "− Lançar despesa" e "Transferência entre contas". Subfunções: **Contas e saldos** e **Transferências**.
+- **Despesas a autorizar** (opção 1, os cartões): a categoria, "Esperando você" (ou "Esperando o presidente"), o valor, quem lançou, o comprovante, "Recusar" e "Autorizar"; embaixo, as autorizadas no mês. Subfunções: **Autorizadas** e **Recusadas**.
+- **Orçamento** (opção 2, os cartões por categoria): a situação (ainda não preparado, rascunho, na assembleia ou aprovado), "Plano anual de trabalho" e "Mandar para a assembleia"; os cartões de receitas e de despesas, com a barra do ano de referência e o previsto; o resultado previsto. Subfunção **Plano anual de trabalho**.
+- **Prestação de contas** (opção 1, as etapas e os números): as quatro etapas do balanço, o passo de quem está vendo, os quatro números (saldo inicial, receitas, despesas, saldo final) e as categorias; as planilhas. Subfunções: **Mês a mês** e **Balanço e parecer** (o documento para imprimir).
+- Em cima de cada função, no computador, os três números do Financeiro: o saldo de hoje, o recebido no exercício e o que está em aberto.
+
+**O que entrou no banco:**
+
+- `numeros_do_financeiro()` (os números do alto, numa chamada só) e `caixa_no_periodo(início, fim)` (o saldo de todas as contas no começo e no fim do período e as contas abertas nele, com a mesma regra dos saldos);
+- a vista `vw_lancamentos` (security_invoker): o lançamento com a conta, a categoria e os nomes de quem lançou e de quem autorizou;
+- o orçamento vai para a assembleia: `mandar_orcamento` (com a AGO ou AGE, se já marcada), `voltar_orcamento` e a regra de que a aprovação só vem depois de mandado (o orçamento já aprovado antes conta como mandado); `salvar_orcamento` com o plano `null` mantém o texto;
+- o plano anual de trabalho em atividades (`plano_atividades`: o mês dentro do exercício, o que é, quem cuida, a categoria e quanto custa), com `salvar_atividade_plano` e `arquivar_atividade_plano` (nada se apaga). O plano só muda com o orçamento em rascunho.
+
+**Decisões tomadas sem o desenho:**
+
+- **O Financeiro abre no que espera alguém**, como antes: nos comprovantes para conferir (tesouraria e presidência) e na prestação de contas (Conselho Fiscal).
+- **"Lembrar todos" ficou de fora**: ainda não existe a tabela das notificações (é o módulo seguinte da ordem combinada).
+- **"Todos os ministros", embaixo do painel**: o painel aprovado só mostra quem precisa de atenção, e a tesouraria precisa achar qualquer um (por exemplo, para registrar um pagamento adiantado).
+- **No extrato, a transferência é uma linha só** ("Conta → Dinheiro", sem mudar o saldo total), e a abertura de uma conta no mês aparece como "Saldo de abertura".
+- **O orçamento compara** o próximo exercício com o atual (até agora); o atual e os passados, com eles mesmos (previsto × realizado). A tela abre no atual enquanto o orçamento dele não foi aprovado; depois, no próximo.
+- **A ordem das etapas segue o estatuto** (a diretoria analisa antes do parecer do Conselho Fiscal), como o sistema já fazia; o desenho trazia as duas trocadas.
+- **Os valores, a taxa de inscrição, os vencimentos, as contas e as categorias** aparecem também no Financeiro (Valores e planos; Contas e saldos), sem sair de Configurações (o mesmo componente, em `ConfigFinanceiro.tsx`).
+
+**Verificação:**
+
+- testes do banco: `testes/banco/financeiro_telas.test.ts` (10 testes): os números (e o ministro não vê); o saldo no começo e no fim do mês, com a conta aberta no meio, a transferência e a despesa esperando; os nomes na vista e o ministro sem linhas; o plano que não se apaga ao salvar o previsto; mandado não muda e volta para o rascunho; a assembleia escolhida; a aprovação só depois de mandado; as atividades (dentro do exercício, sem transferência, só a tesouraria e a presidência, arquivar). O `prestacao.test.ts` ganhou a regra do "mandar" antes de aprovar;
+- no total, 597 testes (banco e unidade), todos passando;
+- ponta a ponta: `financeiro.spec`, `caixa.spec`, `prestacao.spec` (refeito: as etapas, o mês a mês, o balanço para imprimir, o orçamento por categoria, o plano anual, mandar e voltar) e `menu-modulo.spec`, verdes no computador e no celular;
+- o verificador do Supabase (`db advisors`) no comep-teste: só o aviso conhecido (`auth_leaked_password_protection`).

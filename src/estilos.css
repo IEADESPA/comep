@@ -8803,3 +8803,18 @@ li.feito .numero-passo {
     border: 0;
   }
 }
+
+.fin-saldo-hoje h2.fin-rotulo {
+  font-size: 12px;
+}
+
+.fin-saldos .saldo {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.fin-linha-pessoa > .linha-corpo,
+.fin-informe > .linha-corpo,
+.fin-linha-extrato > .linha-corpo {
+  flex: 1 1 220px;
+}

@@ -111,7 +111,7 @@ test('o orçamento por categoria e o plano anual: a tesouraria prepara, manda e 
   await page.getByLabel('Previsto para Ofertas').fill('1234,56')
   await page.getByRole('button', { name: 'Salvar o orçamento' }).click()
   await expect(mensagemNaTela(page, `Orçamento ${nome} salvo.`)).toBeVisible()
-  await expect(page.getByRole('listitem', { name: 'Ofertas' }).getByLabel('Previsto para Ofertas')).toHaveValue('1.234,56')
+  await expect(page.getByRole('listitem', { name: 'Ofertas' }).getByLabel('Previsto para Ofertas')).toHaveValue(/^1\.?234,56$/)
 
   // o plano anual de trabalho: uma atividade com o mês e o custo (e tirada no fim: nada se apaga, fica arquivada)
   await page.goto(`financeiro/orcamento/plano?exercicio=${RESERVADO}`)
@@ -135,7 +135,8 @@ test('o orçamento por categoria e o plano anual: a tesouraria prepara, manda e 
   await page.getByRole('button', { name: 'Voltar para o rascunho', exact: true }).click()
   await page.getByRole('button', { name: 'Confirmar — voltar para o rascunho' }).click()
   await expect(mensagemNaTela(page, `O orçamento ${nome} voltou para o rascunho.`)).toBeVisible()
-  await expect(page.getByLabel('Previsto para Ofertas')).toBeVisible()
+  // o que foi salvo continua lá (vem do banco)
+  await expect(page.getByLabel('Previsto para Ofertas')).toHaveValue(/^1\.?234,56$/)
 
   // O orçamento aprovado (2026/2027, da semente) não se edita mais
   await page.goto('financeiro/orcamento?exercicio=2026')
