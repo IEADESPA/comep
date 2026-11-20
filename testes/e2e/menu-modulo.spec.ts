@@ -58,26 +58,29 @@ test.describe('presidência', () => {
 
   test('as subfunções abrem embaixo da função aberta (sanfona)', async ({ page }) => {
     await page.goto('financeiro/contribuicoes')
-    await expect(page.getByRole('heading', { name: 'Contribuições', level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Situação dos ministros', level: 1 })).toBeVisible()
     const subfuncoes = page.getByRole('list', { name: 'Subfunções', exact: true })
 
     if (noCelular(page)) {
       // no celular, a lista mostra as funções e as subfunções
       const funcoes = await funcoesDoModulo(page)
-      await expect(funcoes.getByRole('link', { name: 'Situação dos associados' })).toHaveAttribute('aria-current', 'page')
-      await funcoes.getByRole('link', { name: 'Cobranças do exercício' }).click()
+      await expect(funcoes.getByRole('link', { name: 'Situação dos ministros' })).toHaveAttribute('aria-current', 'page')
+      await funcoes.getByRole('link', { name: 'Cobranças do ano' }).click()
     } else {
-      await expect(subfuncoes.getByRole('link', { name: 'Situação dos associados' })).toHaveAttribute('aria-current', 'page')
-      await subfuncoes.getByRole('link', { name: 'Cobranças do exercício' }).click()
+      await expect(subfuncoes.getByRole('link', { name: 'Situação dos ministros' })).toHaveAttribute('aria-current', 'page')
+      await subfuncoes.getByRole('link', { name: 'Cobranças do ano' }).click()
     }
     await expect(page).toHaveURL(/\/financeiro\/contribuicoes\/cobrancas$/)
-    await expect(page.getByRole('heading', { name: 'Cobranças do exercício' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Cobranças do ano', level: 1 })).toBeVisible()
 
     // abriu outra função: as subfunções da anterior fecham
     await abrirFuncao(page, 'Caixa')
     await expect(page).toHaveURL(/\/financeiro\/caixa$/)
     await expect(page.getByRole('list', { name: 'Saldos' })).toBeVisible()
-    if (!noCelular(page)) await expect(subfuncoes).toHaveCount(0)
+    if (!noCelular(page)) {
+      await expect(subfuncoes.getByRole('link', { name: 'Cobranças do ano' })).toHaveCount(0)
+      await expect(subfuncoes.getByRole('link', { name: 'Lançamentos' })).toHaveAttribute('aria-current', 'page')
+    }
   })
 })
 

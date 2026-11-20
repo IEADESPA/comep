@@ -157,6 +157,15 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
   (Art. 12, §6º, III; Art. 14; Art. 15, I)
 
 - **Orçamento e plano anual de trabalho** para apreciação da assembleia (Art. 15, I).
+  - O orçamento é o previsto de cada categoria do caixa. Ele se prepara em rascunho, vai para a assembleia ("Mandar para a assembleia", com a AGO ou a AGE, se já marcada) e só é aprovado depois de mandado. Mandado, não muda, a não ser que volte para o rascunho; aprovado, não muda mais.
+  - O plano anual de trabalho é feito de atividades: o mês (dentro do exercício, ou "ao longo do ano"), o que é, quem cuida, a categoria do orçamento e quanto custa. Ele muda junto com o orçamento (só em rascunho). Nada se apaga: a atividade sai do plano arquivada.
+- **As telas (Fase 5.5, entrega 5.5.12):** o módulo tem 6 funções na coluna da esquerda, cada uma com as subfunções:
+  - Contribuições (o painel, por igreja, as cobranças do ano, os valores e os planos);
+  - Comprovantes (para conferir e os já conferidos);
+  - Caixa (o extrato do mês, com o saldo depois de cada linha; as contas e as transferências);
+  - Despesas a autorizar (os cartões, as autorizadas e as recusadas);
+  - Orçamento (os cartões por categoria e o plano anual de trabalho);
+  - Prestação de contas (as etapas do balanço com os números, o mês a mês e o balanço para imprimir).
 - Relatórios: mensal, anual, por categoria, por igreja; exportação em PDF e planilha (CSV).
 - Sem gateway de pagamento nesta fase (evita taxas). PIX automático fica para o futuro.
 

@@ -1,16 +1,16 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
-import { listarCategoriasFinanceiras, NOME_DA_SITUACAO_LANCAMENTO, type CategoriaFinanceira } from '../../dados/caixa'
+import { Icone } from '../../componentes/Icone'
+import { NOME_DA_SITUACAO_LANCAMENTO } from '../../dados/caixa'
 import { ok, type Resultado } from '../../dados/cliente'
 import { formatarReais } from '../../dados/configuracoes'
 import { exercicioDe, nomeDoExercicio } from '../../dados/financeiro'
 import type { Perfil } from '../../dados/perfis'
 import {
   analisarBalanco,
-  aprovarOrcamento,
   assembleiaBalanco,
   buscarBalanco,
-  buscarOrcamento,
   contribuicoesPorIgreja,
   devolverBalanco,
   exerciciosComBalanco,
@@ -20,12 +20,10 @@ import {
   NOME_DO_PARECER,
   parecerBalanco,
   resumoExercicio,
-  salvarOrcamento,
   type Balanco,
   type ContribuicaoIgreja,
   type EventoBalanco,
   type LancamentoRelatorio,
-  type Orcamento,
   type Resumo,
   type TipoParecer,
   type TotalCategoria,
@@ -34,106 +32,86 @@ import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { baixarCsv, imprimir, numeroPlanilha } from '../../utilitarios/exportar'
 import { formatarData, formatarDataHora, hojeIso } from '../../utilitarios/formatos'
-import { DICA_VALOR, lerValor, PADRAO_VALOR, valorParaCampo } from '../../utilitarios/valores'
+import { mesesComValores, PRIMEIRO_EXERCICIO, useExercicio } from './util'
 
-type Retorno = { sucesso?: string; erro?: string }
+// Financeiro › Prestação de contas (rodada 11, opção 1: as etapas e os números). Subfunções: o exercício (as etapas
+// do balanço, os números e o passo de cada um), Mês a mês e Balanço e parecer (o documento para imprimir).
+// O balanço passa por quatro passos: a tesouraria fecha, a diretoria analisa, o Conselho Fiscal dá o parecer e a
+// assembleia aprecia (Art. 12, §6º, III; Art. 14; Art. 15, I).
 
-/** O estatuto do COMEP é de 25/05/2021: o primeiro exercício possível é 2021/2022. */
-const PRIMEIRO_EXERCICIO = 2021
-const MESES = ['abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro', 'janeiro', 'fevereiro', 'março']
-
-const ehTransferencia = (sistema: string | null | undefined) => (sistema ?? '').startsWith('transferencia')
-
-/** Aba "Prestação de contas": escolhe o exercício e mostra balanço, resumo, mês a mês, igrejas e orçamento. */
-export function PrestacaoContasAba({ perfis, pessoaId }: { perfis: Perfil[]; pessoaId: string }) {
+/** A lista "Exercício" (com a situação do balanço de cada um). */
+function SeletorExercicio({ exercicio, aoEscolher }: { exercicio: number; aoEscolher: (e: number) => void }) {
   const atual = exercicioDe(hojeIso())
-  const [exercicio, setExercicio] = useState(atual)
-  const [carga, recarregarLista] = useCarregar(exerciciosComBalanco)
+  const [carga] = useCarregar(exerciciosComBalanco)
   const situacoes = new Map((carga.situacao === 'ok' ? carga.dados : []).map((b) => [b.exercicio, b.situacao]))
   const anos = [
-    ...new Set([
-      atual + 1, // o orçamento do próximo exercício pode ser preparado antes de abril
-      ...Array.from({ length: Math.max(atual - PRIMEIRO_EXERCICIO + 1, 1) }, (_, i) => atual - i),
-      ...situacoes.keys(),
-    ]),
+    ...new Set([...Array.from({ length: Math.max(atual - PRIMEIRO_EXERCICIO + 1, 1) }, (_, i) => atual - i), ...situacoes.keys(), exercicio]),
   ].sort((a, b) => b - a)
+  return (
+    <label className="campo-medio">
+      Exercício
+      <select value={exercicio} onChange={(e) => aoEscolher(Number(e.target.value))}>
+        {anos.map((a) => {
+          const s = situacoes.get(a)
+          return (
+            <option key={a} value={a}>
+              {nomeDoExercicio(a)}
+              {a === atual ? ' (atual)' : ''}
+              {s ? ` — ${NOME_DA_SITUACAO_BALANCO[s].toLowerCase()}` : ''}
+            </option>
+          )
+        })}
+      </select>
+    </label>
+  )
+}
 
+function BarraDoExercicio({ exercicio, aoEscolher, children }: { exercicio: number; aoEscolher: (e: number) => void; children?: ReactNode }) {
+  return (
+    <div className="fin-barra-acoes nao-imprimir">
+      <SeletorExercicio exercicio={exercicio} aoEscolher={aoEscolher} />
+      <span className="fin-espaco" />
+      {children}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------
+// O exercício: as etapas, os números e o passo de cada um
+// ---------------------------------------------------------------------
+
+/** /financeiro/prestacao — as etapas do balanço do exercício e os números. */
+export function PrestacaoExercicio({ perfis, pessoaId }: { perfis: Perfil[]; pessoaId: string }) {
+  const [exercicio, escolher] = useExercicio()
   return (
     <>
-      <div className="cabecalho-painel nao-imprimir">
-        <label className="campo-medio">
-          Exercício
-          <select value={exercicio} onChange={(e) => setExercicio(Number(e.target.value))}>
-            {anos.map((a) => {
-              const s = situacoes.get(a)
-              return (
-                <option key={a} value={a}>
-                  {nomeDoExercicio(a)}
-                  {a === atual ? ' (atual)' : a > atual ? ' (próximo)' : ''}
-                  {s ? ` — ${NOME_DA_SITUACAO_BALANCO[s].toLowerCase()}` : ''}
-                </option>
-              )
-            })}
-          </select>
-        </label>
-      </div>
-      <ConteudoExercicio
-        key={exercicio}
-        exercicio={exercicio}
-        perfis={perfis}
-        pessoaId={pessoaId}
-        aoMudarBalanco={recarregarLista}
-      />
+      <BarraDoExercicio exercicio={exercicio} aoEscolher={escolher}>
+        <Link to={`/financeiro/prestacao/mes-a-mes?exercicio=${exercicio}`} className="botao botao-secundario">
+          Mês a mês
+        </Link>
+        <Link to={`/financeiro/prestacao/balanco?exercicio=${exercicio}`} className="botao botao-secundario botao-com-icone">
+          <Icone nome="imprimir" tamanho={18} />
+          Balanço para imprimir
+        </Link>
+      </BarraDoExercicio>
+      <ConteudoExercicio key={exercicio} exercicio={exercicio} perfis={perfis} pessoaId={pessoaId} />
     </>
   )
 }
 
-type Dados = {
-  resumo: Resumo
-  balanco: { balanco: Balanco | null; eventos: EventoBalanco[] }
-  orcamento: Orcamento | null
-  porIgreja: ContribuicaoIgreja[]
-  lancamentos: LancamentoRelatorio[]
-  categorias: CategoriaFinanceira[]
-}
+type DadosExercicio = { resumo: Resumo; balanco: { balanco: Balanco | null; eventos: EventoBalanco[] } }
 
-function ConteudoExercicio({
-  exercicio,
-  perfis,
-  pessoaId,
-  aoMudarBalanco,
-}: {
-  exercicio: number
-  perfis: Perfil[]
-  pessoaId: string
-  aoMudarBalanco: () => void
-}) {
-  const [carga, recarregar] = useCarregar(async (): Promise<Resultado<Dados>> => {
-    const [resumo, balanco, orcamento, porIgreja, lancamentos, categorias] = await Promise.all([
-      resumoExercicio(exercicio),
-      buscarBalanco(exercicio),
-      buscarOrcamento(exercicio),
-      contribuicoesPorIgreja(exercicio),
-      lancamentosDoExercicio(exercicio),
-      listarCategoriasFinanceiras(),
-    ])
+function carregarExercicio(exercicio: number) {
+  return async (): Promise<Resultado<DadosExercicio>> => {
+    const [resumo, balanco] = await Promise.all([resumoExercicio(exercicio), buscarBalanco(exercicio)])
     if (resumo.erro !== null) return resumo
     if (balanco.erro !== null) return balanco
-    if (orcamento.erro !== null) return orcamento
-    if (porIgreja.erro !== null) return porIgreja
-    if (lancamentos.erro !== null) return lancamentos
-    if (categorias.erro !== null) return categorias
-    return ok({
-      resumo: resumo.dados,
-      balanco: balanco.dados,
-      orcamento: orcamento.dados,
-      porIgreja: porIgreja.dados,
-      lancamentos: lancamentos.dados,
-      categorias: categorias.dados,
-    })
-  })
-  const nome = nomeDoExercicio(exercicio)
+    return ok({ resumo: resumo.dados, balanco: balanco.dados })
+  }
+}
 
+function ConteudoExercicio({ exercicio, perfis, pessoaId }: { exercicio: number; perfis: Perfil[]; pessoaId: string }) {
+  const [carga, recarregar] = useCarregar(carregarExercicio(exercicio))
   return (
     <MostrarCarga carga={carga} recarregar={recarregar}>
       {(d) => {
@@ -142,31 +120,6 @@ function ConteudoExercicio({
         const resumo = congelado ? balanco.resumo : d.resumo
         return (
           <>
-            <div className="acoes acoes-relatorio nao-imprimir">
-              <button type="button" className="botao botao-secundario" onClick={imprimir}>
-                Imprimir ou salvar em PDF
-              </button>
-              <button
-                type="button"
-                className="botao botao-secundario"
-                onClick={() => baixarCsv(`lancamentos-${exercicio}-${exercicio + 1}.csv`, linhasLancamentos(d.lancamentos))}
-              >
-                Baixar lançamentos (planilha)
-              </button>
-              <button
-                type="button"
-                className="botao botao-secundario"
-                onClick={() =>
-                  baixarCsv(`resumo-${exercicio}-${exercicio + 1}.csv`, linhasResumo(resumo, d.porIgreja, d.resumo.calculado_em))
-                }
-              >
-                Baixar resumo (planilha)
-              </button>
-            </div>
-            <p className="somente-impressao titulo-impressao">
-              COMEP — Prestação de contas do exercício {nome} (abril a março) · emitido em {formatarDataHora(d.resumo.calculado_em)}
-            </p>
-
             <PainelBalanco
               exercicio={exercicio}
               encerrado={d.resumo.encerrado}
@@ -175,25 +128,20 @@ function ConteudoExercicio({
               eventos={eventos}
               perfis={perfis}
               pessoaId={pessoaId}
-              recarregar={() => {
-                recarregar()
-                aoMudarBalanco()
-              }}
-            />
-            <PainelResumo
-              resumo={resumo}
-              origem={congelado ? `Números congelados quando a tesouraria fechou o exercício (${formatarDataHora(balanco.fechado_em ?? resumo.calculado_em)}).` : undefined}
-            />
-            <PainelMesAMes exercicio={exercicio} lancamentos={d.lancamentos} />
-            <PainelPorIgreja linhas={d.porIgreja} posicaoDe={congelado ? d.resumo.calculado_em : null} />
-            <PainelOrcamento
-              exercicio={exercicio}
-              orcamento={d.orcamento}
-              categorias={d.categorias}
-              realizado={resumo}
-              perfis={perfis}
               recarregar={recarregar}
             />
+            <NumerosDoExercicio
+              resumo={resumo}
+              origem={
+                congelado
+                  ? `Números congelados quando a tesouraria fechou o exercício (${formatarDataHora(balanco.fechado_em ?? resumo.calculado_em)}).`
+                  : resumo.encerrado
+                    ? 'Números de agora: o exercício terminou, mas o balanço ainda não foi fechado.'
+                    : `Prévia: o exercício vai até 31/03/${resumo.exercicio + 1}.`
+              }
+              aguardando={congelado ? null : d.resumo.despesas_aguardando}
+            />
+            <Planilhas exercicio={exercicio} resumo={resumo} />
           </>
         )
       }}
@@ -201,9 +149,26 @@ function ConteudoExercicio({
   )
 }
 
-// ---------------------------------------------------------------------
-// Balanço anual: fechar → análise da diretoria → parecer do Conselho Fiscal → assembleia
-// ---------------------------------------------------------------------
+type Etapa = { titulo: string; feito: boolean; detalhe: ReactNode }
+
+function etapasDo(balanco: Balanco | null): Etapa[] {
+  const b = balanco && balanco.situacao !== 'devolvido' ? balanco : null
+  const quem = (em: string | null, nome: string | undefined) => (em ? `${formatarDataHora(em)}${nome ? ` — ${nome}` : ''}` : '')
+  return [
+    { titulo: 'Fechado pela tesouraria', feito: Boolean(b?.fechado_em), detalhe: b ? quem(b.fechado_em, b.fechado?.nome) : 'depois de 31 de março' },
+    { titulo: 'Análise da diretoria', feito: Boolean(b?.analisado_em), detalhe: b?.analisado_em ? quem(b.analisado_em, b.analisado?.nome) : 'a presidência' },
+    {
+      titulo: b?.parecer ? `Parecer do Conselho Fiscal: ${NOME_DO_PARECER[b.parecer]}` : 'Parecer do Conselho Fiscal',
+      feito: Boolean(b?.parecer),
+      detalhe: b?.parecer_em ? quem(b.parecer_em, b.parecerista?.nome) : 'Art. 14',
+    },
+    {
+      titulo: 'Decisão da assembleia',
+      feito: b?.situacao === 'aprovado',
+      detalhe: b?.assembleia_data ? `Aprovado em ${formatarData(b.assembleia_data)} — ${b.assembleia_ata}` : 'a AGO de abril',
+    },
+  ]
+}
 
 function PainelBalanco({
   exercicio,
@@ -224,7 +189,7 @@ function PainelBalanco({
   pessoaId: string
   recarregar: () => void
 }) {
-  const [retorno, setRetorno] = useState<Retorno>({})
+  const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
   const [texto, setTexto] = useState('')
   const [motivo, setMotivo] = useState('')
   const [parecer, setParecer] = useState<TipoParecer>('favoravel')
@@ -239,6 +204,8 @@ function PainelBalanco({
   const conselho = perfis.includes('conselho_fiscal')
   const fecheiEu = balanco?.fechado?.id === pessoaId
   const nome = nomeDoExercicio(exercicio)
+  const etapas = etapasDo(balanco)
+  const agora = etapas.findIndex((e) => !e.feito)
 
   function agir(acao: () => Promise<Resultado<null>>, sucesso: string) {
     return umaVez(async () => {
@@ -275,63 +242,33 @@ function PainelBalanco({
   )
 
   return (
-    <section className="painel" aria-labelledby="titulo-balanco" data-situacao={situacao ?? 'sem_balanco'}>
-      <h2 id="titulo-balanco">Balanço do exercício {nome}</h2>
-      <p className="situacao-balanco">
-        <strong>
+    <section className="bloco" aria-labelledby="titulo-balanco" data-situacao={situacao ?? 'sem_balanco'}>
+      <div className="fin-titulo-balanco">
+        <h2 id="titulo-balanco">Balanço do exercício {nome}</h2>
+        <strong className="situacao-balanco">
           {situacao ? NOME_DA_SITUACAO_BALANCO[situacao] : encerrado ? 'Ainda não fechado pela tesouraria' : 'Exercício em andamento'}
         </strong>
-      </p>
+      </div>
+      <ol className="fin-etapas" aria-label="As etapas do balanço">
+        {etapas.map((e, i) => (
+          <li key={e.titulo} className={e.feito ? 'feito' : i === agora ? 'agora' : undefined}>
+            <span className="fin-etapa-bola" aria-hidden="true">
+              {e.feito ? <Icone nome="check" tamanho={16} traco={3} /> : i + 1}
+            </span>
+            <span className="fin-etapa-texto">
+              <strong>{e.titulo}</strong>
+              <span>{e.detalhe}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
       {!situacao && !encerrado && (
         <p className="detalhe">
-          O exercício vai até 31/03/{exercicio + 1}. Até lá, os números abaixo são uma prévia. Depois, a tesouraria fecha o
-          balanço, a diretoria analisa, o Conselho Fiscal dá o parecer e a assembleia aprecia (Art. 12, §6º, III; Art. 14; Art.
-          15, I).
+          O exercício vai até 31/03/{exercicio + 1}. Depois, a tesouraria fecha o balanço, a diretoria analisa, o Conselho Fiscal dá o
+          parecer e a assembleia aprecia.
         </p>
       )}
-      {situacao === 'devolvido' && balanco?.motivo_devolucao && (
-        <p className="aviso-texto">O que precisa ser corrigido: {balanco.motivo_devolucao}</p>
-      )}
-
-      {balanco && situacao !== 'devolvido' && (
-        <dl className="passos-balanco">
-          <dt>1. Fechado pela tesouraria</dt>
-          <dd>
-            {balanco.fechado_em && formatarDataHora(balanco.fechado_em)}
-            {balanco.fechado && ` — ${balanco.fechado.nome}`}
-            {balanco.nota_tesouraria && <span className="texto-livre">{balanco.nota_tesouraria}</span>}
-          </dd>
-          {balanco.analise_diretoria && (
-            <>
-              <dt>2. Análise da diretoria</dt>
-              <dd>
-                {balanco.analisado_em && formatarDataHora(balanco.analisado_em)}
-                {balanco.analisado && ` — ${balanco.analisado.nome}`}
-                <span className="texto-livre">{balanco.analise_diretoria}</span>
-              </dd>
-            </>
-          )}
-          {balanco.parecer && (
-            <>
-              <dt>3. Parecer do Conselho Fiscal: {NOME_DO_PARECER[balanco.parecer]}</dt>
-              <dd>
-                {balanco.parecer_em && formatarDataHora(balanco.parecer_em)}
-                {balanco.parecerista && ` — ${balanco.parecerista.nome}`}
-                <span className="texto-livre">{balanco.parecer_texto}</span>
-              </dd>
-            </>
-          )}
-          {balanco.assembleia_data && (
-            <>
-              <dt>4. Assembleia</dt>
-              <dd>
-                {balanco.aprovado_assembleia ? 'Aprovado' : 'Reprovado'} em {formatarData(balanco.assembleia_data)} —{' '}
-                {balanco.assembleia_ata}
-              </dd>
-            </>
-          )}
-        </dl>
-      )}
+      {situacao === 'devolvido' && balanco?.motivo_devolucao && <p className="aviso-texto">O que precisa ser corrigido: {balanco.motivo_devolucao}</p>}
 
       <div className="nao-imprimir">
         {opera && encerrado && (situacao === null || situacao === 'devolvido') && (
@@ -343,22 +280,15 @@ function PainelBalanco({
             }}
           >
             {aguardando > 0 && (
-              <p className="aviso-texto">
-                Há {aguardando} despesa(s) deste exercício aguardando a autorização do presidente. Resolva antes de fechar.
-              </p>
+              <p className="aviso-texto">Há {aguardando} despesa(s) deste exercício aguardando a autorização do presidente. Resolva antes de fechar.</p>
             )}
             <label>
               Nota da tesouraria (opcional)
-              <textarea
-                rows={3}
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
-                placeholder="Explicações sobre as contas do exercício"
-              />
+              <textarea rows={3} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Explicações sobre as contas do exercício" />
             </label>
             <p className="detalhe">
-              Ao fechar, os números ficam congelados e os lançamentos de {nome} não mudam mais — a não ser que a diretoria ou o
-              Conselho Fiscal devolvam o balanço para correção.
+              Ao fechar, os números ficam congelados e os lançamentos de {nome} não mudam mais — a não ser que a diretoria ou o Conselho
+              Fiscal devolvam o balanço para correção.
             </p>
             <div className="acoes">
               <button type="submit" className="botao" disabled={enviando}>
@@ -368,7 +298,8 @@ function PainelBalanco({
           </form>
         )}
 
-        {presidencia && situacao === 'analise_diretoria' &&
+        {presidencia &&
+          situacao === 'analise_diretoria' &&
           (fecheiEu ? (
             <p className="detalhe">Você fechou este balanço: a análise da diretoria fica com outra pessoa da presidência.</p>
           ) : (
@@ -377,8 +308,7 @@ function PainelBalanco({
                 aria-label="Análise da diretoria"
                 onSubmit={(e) => {
                   e.preventDefault()
-                  if (balanco)
-                    void agir(() => analisarBalanco(balanco.id, texto), 'Análise da diretoria registrada. Agora é com o Conselho Fiscal.')
+                  if (balanco) void agir(() => analisarBalanco(balanco.id, texto), 'Análise da diretoria registrada. Agora é com o Conselho Fiscal.')
                 }}
               >
                 <label>
@@ -395,7 +325,8 @@ function PainelBalanco({
             </>
           ))}
 
-        {conselho && situacao === 'aguardando_parecer' &&
+        {conselho &&
+          situacao === 'aguardando_parecer' &&
           (fecheiEu ? (
             <p className="detalhe">Você fechou este balanço: o parecer fica com os outros membros do Conselho Fiscal.</p>
           ) : (
@@ -469,31 +400,335 @@ function PainelBalanco({
         )}
 
         <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-
-        {eventos.length > 0 && (
-          <details className="acao-recolhida">
-            <summary>Histórico do balanço ({eventos.length})</summary>
-            <ul className="lista-simples" aria-label="Histórico do balanço">
-              {eventos.map((e) => (
-                <li key={e.id}>
-                  <span>
-                    <strong>{e.acao}</strong> — {formatarDataHora(e.criado_em)}
-                    {e.pessoa && `, ${e.pessoa.nome}`}
-                    {e.texto && <span className="detalhe"> · {e.texto}</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+        <Historico eventos={eventos} />
       </div>
     </section>
   )
 }
 
+function Historico({ eventos }: { eventos: EventoBalanco[] }) {
+  if (eventos.length === 0) return null
+  return (
+    <details className="acao-recolhida">
+      <summary>Histórico do balanço ({eventos.length})</summary>
+      <ul className="lista-simples" aria-label="Histórico do balanço">
+        {eventos.map((e) => (
+          <li key={e.id}>
+            <span>
+              <strong>{e.acao}</strong> — {formatarDataHora(e.criado_em)}
+              {e.pessoa && `, ${e.pessoa.nome}`}
+              {e.texto && <span className="detalhe"> · {e.texto}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
+}
+
+const somaDe = (resumo: Resumo, campo: 'saldo_inicial' | 'abertura' | 'entradas' | 'saidas' | 'saldo_final') =>
+  resumo.contas.reduce((t, c) => t + Number(c[campo]), 0)
+
+/** Os quatro números (saldo inicial, receitas, despesas, saldo final) e as categorias. */
+function NumerosDoExercicio({ resumo, origem, aguardando }: { resumo: Resumo; origem: string; aguardando: { quantidade: number; total: number } | null }) {
+  const inicial = somaDe(resumo, 'saldo_inicial') + somaDe(resumo, 'abertura')
+  return (
+    <section className="fin-numeros-exercicio" aria-label={`Os números de ${nomeDoExercicio(resumo.exercicio)}`}>
+      <p className="detalhe">{origem}</p>
+      {aguardando && aguardando.quantidade > 0 && (
+        <p className="aviso-texto">
+          {aguardando.quantidade} despesa(s) aguardando a autorização do presidente ({formatarReais(aguardando.total)}) não entram nos números.
+        </p>
+      )}
+      <ul className="numeros-grandes fin-quatro" aria-label="Saldos e resultado">
+        <li className="area-assembleias">
+          <span>Saldo inicial</span>
+          <strong>{formatarReais(inicial)}</strong>
+        </li>
+        <li className="area-financas">
+          <span>Receitas</span>
+          <strong>+ {formatarReais(resumo.total_entradas)}</strong>
+        </li>
+        <li className="area-pessoas">
+          <span>Despesas</span>
+          <strong>− {formatarReais(resumo.total_saidas)}</strong>
+        </li>
+        <li className="area-assembleias">
+          <span>{resumo.encerrado ? 'Saldo final' : 'Saldo de hoje'}</span>
+          <strong>{formatarReais(somaDe(resumo, 'saldo_final'))}</strong>
+        </li>
+      </ul>
+      <div className="fin-duas">
+        <ListaCategorias titulo="Receitas por categoria" linhas={resumo.entradas} area="financas" />
+        <ListaCategorias titulo="Despesas por categoria" linhas={resumo.saidas} area="pessoas" />
+      </div>
+    </section>
+  )
+}
+
+function ListaCategorias({ titulo, linhas, area }: { titulo: string; linhas: TotalCategoria[]; area: 'financas' | 'pessoas' }) {
+  return (
+    <section className={`bloco area-${area}`} aria-label={titulo}>
+      <h3>{titulo}</h3>
+      {linhas.length === 0 ? (
+        <p className="vazio">Nenhuma no exercício.</p>
+      ) : (
+        <ul className="fin-categorias">
+          {linhas.map((l) => (
+            <li key={l.categoria}>
+              <span>{l.categoria}</span>
+              <strong>{formatarReais(l.total)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+/** As planilhas (CSV) do exercício: buscadas na hora do clique. */
+function Planilhas({ exercicio, resumo }: { exercicio: number; resumo: Resumo }) {
+  const [erro, setErro] = useState<string | null>(null)
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <div className="acoes acoes-relatorio nao-imprimir">
+      <button
+        type="button"
+        className="botao botao-secundario"
+        disabled={enviando}
+        onClick={() =>
+          void umaVez(async () => {
+            const r = await lancamentosDoExercicio(exercicio)
+            if (r.erro !== null) return setErro(r.erro)
+            baixarCsv(`lancamentos-${exercicio}-${exercicio + 1}.csv`, linhasLancamentos(r.dados))
+          })
+        }
+      >
+        Baixar lançamentos (planilha)
+      </button>
+      <button
+        type="button"
+        className="botao botao-secundario"
+        disabled={enviando}
+        onClick={() =>
+          void umaVez(async () => {
+            const r = await contribuicoesPorIgreja(exercicio)
+            if (r.erro !== null) return setErro(r.erro)
+            baixarCsv(`resumo-${exercicio}-${exercicio + 1}.csv`, linhasResumo(resumo, r.dados, new Date().toISOString()))
+          })
+        }
+      >
+        Baixar resumo (planilha)
+      </button>
+      <Mensagem erro={erro} />
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------
-// Resumo do exercício
+// Mês a mês
 // ---------------------------------------------------------------------
+
+/** /financeiro/prestacao/mes-a-mes — as receitas e as despesas de cada mês do exercício. */
+export function PrestacaoMesAMes({ colunaExtra }: { colunaExtra?: { titulo: string; valor: (exercicio: number) => Promise<Resultado<Record<string, ReactNode>>> } }) {
+  const [exercicio, escolher] = useExercicio()
+  return (
+    <>
+      <BarraDoExercicio exercicio={exercicio} aoEscolher={escolher}>
+        <Link to={`/financeiro/prestacao?exercicio=${exercicio}`} className="botao botao-secundario">
+          As etapas do balanço
+        </Link>
+      </BarraDoExercicio>
+      <TabelaMesAMes key={exercicio} exercicio={exercicio} colunaExtra={colunaExtra} />
+    </>
+  )
+}
+
+function TabelaMesAMes({
+  exercicio,
+  colunaExtra,
+}: {
+  exercicio: number
+  colunaExtra?: { titulo: string; valor: (exercicio: number) => Promise<Resultado<Record<string, ReactNode>>> }
+}) {
+  const [carga, recarregar] = useCarregar(async () => {
+    const [lancamentos, extra] = await Promise.all([
+      lancamentosDoExercicio(exercicio),
+      colunaExtra ? colunaExtra.valor(exercicio) : Promise.resolve(ok<Record<string, ReactNode>>({})),
+    ])
+    if (lancamentos.erro !== null) return lancamentos
+    const valores: Record<string, ReactNode> = extra.erro === null ? extra.dados : {}
+    return ok({ lancamentos: lancamentos.dados, extra: valores })
+  })
+  return (
+    <MostrarCarga carga={carga} recarregar={recarregar}>
+      {({ lancamentos, extra }) => {
+        const meses = mesesComValores(exercicio, lancamentos)
+        const total = meses.reduce((t, m) => ({ receitas: t.receitas + m.receitas, despesas: t.despesas + m.despesas }), { receitas: 0, despesas: 0 })
+        const maior = Math.max(1, ...meses.map((m) => Math.max(m.receitas, m.despesas)))
+        return (
+          <div className="tabela-rolagem">
+            <table className="tabela-relatorio fin-tabela-meses" aria-label="Receitas e despesas mês a mês">
+              <thead>
+                <tr>
+                  <th scope="col">Mês</th>
+                  <th scope="col" className="col-valor">
+                    Receitas
+                  </th>
+                  <th scope="col" className="col-valor">
+                    Despesas
+                  </th>
+                  <th scope="col" className="col-valor">
+                    Resultado
+                  </th>
+                  <th scope="col" className="so-computador" aria-hidden="true" />
+                  {colunaExtra && <th scope="col">{colunaExtra.titulo}</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {meses.map((m) => (
+                  <tr key={m.nome}>
+                    <th scope="row">{m.nome}</th>
+                    <td className="col-valor">{formatarReais(m.receitas)}</td>
+                    <td className="col-valor">{formatarReais(m.despesas)}</td>
+                    <td className={`col-valor ${m.receitas - m.despesas < 0 ? 'valor-saida' : ''}`}>{formatarReais(m.receitas - m.despesas)}</td>
+                    <td className="so-computador fin-mini-barras" aria-hidden="true">
+                      <span className="fin-mini-entrada" style={{ width: `${Math.round((m.receitas * 100) / maior)}%` }} />
+                      <span className="fin-mini-saida" style={{ width: `${Math.round((m.despesas * 100) / maior)}%` }} />
+                    </td>
+                    {colunaExtra && <td>{extra[m.chave] ?? '—'}</td>}
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th scope="row">Total</th>
+                  <td className="col-valor">{formatarReais(total.receitas)}</td>
+                  <td className="col-valor">{formatarReais(total.despesas)}</td>
+                  <td className="col-valor">{formatarReais(total.receitas - total.despesas)}</td>
+                  <td className="so-computador" />
+                  {colunaExtra && <td />}
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )
+      }}
+    </MostrarCarga>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Balanço e parecer: o documento do exercício, para imprimir
+// ---------------------------------------------------------------------
+
+/** /financeiro/prestacao/balanco — o balanço do exercício, com o parecer e a decisão, do jeito que vai para a assembleia. */
+export function PrestacaoBalanco() {
+  const [exercicio, escolher] = useExercicio()
+  return (
+    <>
+      <BarraDoExercicio exercicio={exercicio} aoEscolher={escolher}>
+        <button type="button" className="botao botao-com-icone" onClick={imprimir}>
+          <Icone nome="imprimir" tamanho={18} />
+          Imprimir ou salvar em PDF
+        </button>
+      </BarraDoExercicio>
+      <DocumentoBalanco key={exercicio} exercicio={exercicio} />
+    </>
+  )
+}
+
+function DocumentoBalanco({ exercicio }: { exercicio: number }) {
+  const [carga, recarregar] = useCarregar(async () => {
+    const [dados, porIgreja] = await Promise.all([carregarExercicio(exercicio)(), contribuicoesPorIgreja(exercicio)])
+    if (dados.erro !== null) return dados
+    if (porIgreja.erro !== null) return porIgreja
+    return ok({ ...dados.dados, porIgreja: porIgreja.dados })
+  })
+  const nome = nomeDoExercicio(exercicio)
+  return (
+    <MostrarCarga carga={carga} recarregar={recarregar}>
+      {(d) => {
+        const { balanco, eventos } = d.balanco
+        const congelado = balanco !== null && balanco.situacao !== 'devolvido'
+        const resumo = congelado ? balanco.resumo : d.resumo
+        return (
+          <article className="fin-documento" aria-label={`Prestação de contas do exercício ${nome}`}>
+            <header className="fin-documento-topo">
+              <strong>COMEP — Conselho de Ministros Evangélicos de Parauapebas</strong>
+              <h2>Prestação de contas do exercício {nome}</h2>
+              <span className="detalhe">
+                1º de abril de {exercicio} a 31 de março de {exercicio + 1} ·{' '}
+                {congelado ? `números congelados em ${formatarDataHora(balanco.fechado_em ?? resumo.calculado_em)}` : `emitido em ${formatarDataHora(d.resumo.calculado_em)} (prévia)`}
+              </span>
+            </header>
+            <PainelResumo resumo={resumo} />
+            <PainelPorIgreja linhas={d.porIgreja} posicaoDe={congelado ? d.resumo.calculado_em : null} />
+            <section className="fin-documento-secao" aria-labelledby="titulo-aprovacoes">
+              <h3 id="titulo-aprovacoes">O caminho das contas</h3>
+              {balanco === null ? (
+                <p className="vazio">O balanço deste exercício ainda não foi fechado pela tesouraria.</p>
+              ) : (
+                <dl className="passos-balanco">
+                  <dt>Situação</dt>
+                  <dd>{NOME_DA_SITUACAO_BALANCO[balanco.situacao]}</dd>
+                  {balanco.fechado_em && (
+                    <>
+                      <dt>1. Fechado pela tesouraria</dt>
+                      <dd>
+                        {formatarDataHora(balanco.fechado_em)}
+                        {balanco.fechado && ` — ${balanco.fechado.nome}`}
+                        {balanco.nota_tesouraria && <span className="texto-livre">{balanco.nota_tesouraria}</span>}
+                      </dd>
+                    </>
+                  )}
+                  {balanco.analise_diretoria && (
+                    <>
+                      <dt>2. Análise da diretoria</dt>
+                      <dd>
+                        {balanco.analisado_em && formatarDataHora(balanco.analisado_em)}
+                        {balanco.analisado && ` — ${balanco.analisado.nome}`}
+                        <span className="texto-livre">{balanco.analise_diretoria}</span>
+                      </dd>
+                    </>
+                  )}
+                  {balanco.parecer && (
+                    <>
+                      <dt>3. Parecer do Conselho Fiscal: {NOME_DO_PARECER[balanco.parecer]}</dt>
+                      <dd>
+                        {balanco.parecer_em && formatarDataHora(balanco.parecer_em)}
+                        {balanco.parecerista && ` — ${balanco.parecerista.nome}`}
+                        <span className="texto-livre">{balanco.parecer_texto}</span>
+                      </dd>
+                    </>
+                  )}
+                  {balanco.assembleia_data && (
+                    <>
+                      <dt>4. Assembleia</dt>
+                      <dd>
+                        {balanco.aprovado_assembleia ? 'Aprovado' : 'Reprovado'} em {formatarData(balanco.assembleia_data)} — {balanco.assembleia_ata}
+                      </dd>
+                    </>
+                  )}
+                  {balanco.situacao === 'devolvido' && balanco.motivo_devolucao && (
+                    <>
+                      <dt>Devolvido para correção</dt>
+                      <dd>{balanco.motivo_devolucao}</dd>
+                    </>
+                  )}
+                </dl>
+              )}
+              <div className="nao-imprimir">
+                <Historico eventos={eventos} />
+              </div>
+            </section>
+            <Planilhas exercicio={exercicio} resumo={resumo} />
+          </article>
+        )
+      }}
+    </MostrarCarga>
+  )
+}
 
 function TabelaCategorias({ titulo, linhas, total }: { titulo: string; linhas: TotalCategoria[]; total: number }) {
   return (
@@ -534,31 +769,13 @@ function TabelaCategorias({ titulo, linhas, total }: { titulo: string; linhas: T
   )
 }
 
-function PainelResumo({ resumo, origem }: { resumo: Resumo; origem?: string }) {
-  const nome = nomeDoExercicio(resumo.exercicio)
+function PainelResumo({ resumo }: { resumo: Resumo }) {
   const temAbertura = resumo.contas.some((c) => Number(c.abertura) > 0)
-  const soma = (campo: 'saldo_inicial' | 'abertura' | 'entradas' | 'saidas' | 'saldo_final') =>
-    resumo.contas.reduce((t, c) => t + Number(c[campo]), 0)
   const resultado = Number(resumo.total_entradas) - Number(resumo.total_saidas)
   const c = resumo.contribuicoes
-
   return (
-    <section className="painel" aria-labelledby="titulo-resumo">
-      <h2 id="titulo-resumo">Resumo do exercício {nome}</h2>
-      <p className="detalhe">
-        {origem ??
-          (resumo.encerrado
-            ? 'Números de agora: o exercício terminou, mas o balanço ainda não foi fechado.'
-            : `Prévia: o exercício vai até 31/03/${resumo.exercicio + 1}.`)}
-      </p>
-      {!origem && resumo.despesas_aguardando.quantidade > 0 && (
-        <p className="aviso-texto">
-          {resumo.despesas_aguardando.quantidade} despesa(s) aguardando a autorização do presidente (
-          {formatarReais(resumo.despesas_aguardando.total)}) não entram nos números.
-        </p>
-      )}
-
-      <h3>Saldos das contas</h3>
+    <section className="fin-documento-secao" aria-labelledby="titulo-resumo">
+      <h3 id="titulo-resumo">Saldos das contas</h3>
       <div className="tabela-rolagem">
         <table className="tabela-relatorio" aria-label="Saldos das contas">
           <thead>
@@ -598,11 +815,11 @@ function PainelResumo({ resumo, origem }: { resumo: Resumo; origem?: string }) {
           <tfoot>
             <tr>
               <th scope="row">Total</th>
-              <td className="col-valor">{formatarReais(soma('saldo_inicial'))}</td>
-              {temAbertura && <td className="col-valor">{formatarReais(soma('abertura'))}</td>}
-              <td className="col-valor">{formatarReais(soma('entradas'))}</td>
-              <td className="col-valor">{formatarReais(soma('saidas'))}</td>
-              <td className="col-valor">{formatarReais(soma('saldo_final'))}</td>
+              <td className="col-valor">{formatarReais(somaDe(resumo, 'saldo_inicial'))}</td>
+              {temAbertura && <td className="col-valor">{formatarReais(somaDe(resumo, 'abertura'))}</td>}
+              <td className="col-valor">{formatarReais(somaDe(resumo, 'entradas'))}</td>
+              <td className="col-valor">{formatarReais(somaDe(resumo, 'saidas'))}</td>
+              <td className="col-valor">{formatarReais(somaDe(resumo, 'saldo_final'))}</td>
             </tr>
           </tfoot>
         </table>
@@ -617,9 +834,7 @@ function PainelResumo({ resumo, origem }: { resumo: Resumo; origem?: string }) {
         <strong className={resultado >= 0 ? 'valor-entrada' : 'valor-saida'}>{formatarReais(resultado)}</strong>
       </p>
       {Number(resumo.transferencias) > 0 && (
-        <p className="detalhe">
-          Transferências entre contas no exercício: {formatarReais(resumo.transferencias)} (não são receita nem despesa).
-        </p>
+        <p className="detalhe">Transferências entre contas no exercício: {formatarReais(resumo.transferencias)} (não são receita nem despesa).</p>
       )}
 
       <h3>Contribuições dos associados</h3>
@@ -645,84 +860,13 @@ function PainelResumo({ resumo, origem }: { resumo: Resumo; origem?: string }) {
   )
 }
 
-// ---------------------------------------------------------------------
-// Mês a mês e por igreja
-// ---------------------------------------------------------------------
-
-function PainelMesAMes({ exercicio, lancamentos }: { exercicio: number; lancamentos: LancamentoRelatorio[] }) {
-  const meses = MESES.map((nomeMes, i) => {
-    const mes = ((i + 3) % 12) + 1
-    const ano = mes >= 4 ? exercicio : exercicio + 1
-    const prefixo = `${ano}-${String(mes).padStart(2, '0')}`
-    const doMes = lancamentos.filter(
-      (l) =>
-        l.situacao === 'efetivado' &&
-        l.data.startsWith(prefixo) &&
-        !ehTransferencia(l.categoria?.sistema) &&
-        (!l.conta || l.data >= l.conta.saldo_inicial_em),
-    )
-    const receitas = doMes.filter((l) => l.tipo === 'entrada').reduce((t, l) => t + Number(l.valor), 0)
-    const despesas = doMes.filter((l) => l.tipo === 'saida').reduce((t, l) => t + Number(l.valor), 0)
-    return { nome: `${nomeMes}/${ano}`, receitas, despesas }
-  })
-  const total = meses.reduce((t, m) => ({ receitas: t.receitas + m.receitas, despesas: t.despesas + m.despesas }), {
-    receitas: 0,
-    despesas: 0,
-  })
-
-  return (
-    <section className="painel" aria-labelledby="titulo-mes-a-mes">
-      <h2 id="titulo-mes-a-mes">Mês a mês</h2>
-      <div className="tabela-rolagem">
-        <table className="tabela-relatorio" aria-label="Receitas e despesas mês a mês">
-          <thead>
-            <tr>
-              <th scope="col">Mês</th>
-              <th scope="col" className="col-valor">
-                Receitas
-              </th>
-              <th scope="col" className="col-valor">
-                Despesas
-              </th>
-              <th scope="col" className="col-valor">
-                Resultado
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {meses.map((m) => (
-              <tr key={m.nome}>
-                <th scope="row">{m.nome}</th>
-                <td className="col-valor">{formatarReais(m.receitas)}</td>
-                <td className="col-valor">{formatarReais(m.despesas)}</td>
-                <td className={`col-valor ${m.receitas - m.despesas < 0 ? 'valor-saida' : ''}`}>
-                  {formatarReais(m.receitas - m.despesas)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <th scope="row">Total</th>
-              <td className="col-valor">{formatarReais(total.receitas)}</td>
-              <td className="col-valor">{formatarReais(total.despesas)}</td>
-              <td className="col-valor">{formatarReais(total.receitas - total.despesas)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </section>
-  )
-}
-
 function PainelPorIgreja({ linhas, posicaoDe }: { linhas: ContribuicaoIgreja[]; posicaoDe: string | null }) {
   return (
-    <section className="painel" aria-labelledby="titulo-por-igreja">
-      <h2 id="titulo-por-igreja">Contribuições por igreja</h2>
+    <section className="fin-documento-secao" aria-labelledby="titulo-por-igreja">
+      <h3 id="titulo-por-igreja">Contribuições por igreja</h3>
       {posicaoDe && (
         <p className="detalhe">
-          Posição de {formatarDataHora(posicaoDe)} — não fica congelada com o balanço: inclui pagamentos atrasados recebidos
-          depois do fechamento.
+          Posição de {formatarDataHora(posicaoDe)} — não fica congelada com o balanço: inclui pagamentos atrasados recebidos depois do fechamento.
         </p>
       )}
       {linhas.length === 0 ? (
@@ -765,192 +909,6 @@ function PainelPorIgreja({ linhas, posicaoDe }: { linhas: ContribuicaoIgreja[]; 
           </table>
         </div>
       )}
-    </section>
-  )
-}
-
-// ---------------------------------------------------------------------
-// Orçamento e plano anual de trabalho (Art. 15, I)
-// ---------------------------------------------------------------------
-
-function PainelOrcamento({
-  exercicio,
-  orcamento,
-  categorias,
-  realizado,
-  perfis,
-  recarregar,
-}: {
-  exercicio: number
-  orcamento: Orcamento | null
-  categorias: CategoriaFinanceira[]
-  realizado: Resumo
-  perfis: Perfil[]
-  recarregar: () => void
-}) {
-  const nome = nomeDoExercicio(exercicio)
-  const opera = perfis.includes('tesouraria') || perfis.includes('presidencia')
-  const presidencia = perfis.includes('presidencia')
-  const aprovado = Boolean(orcamento?.aprovado_em_assembleia)
-  const doOrcamento = categorias.filter((c) => !ehTransferencia(c.sistema))
-  const previstoDe = (id: string) => Number(orcamento?.itens.find((i) => i.categoria_id === id)?.valor ?? 0)
-  const realizadoDe = (c: CategoriaFinanceira) =>
-    Number((c.tipo === 'entrada' ? realizado.entradas : realizado.saidas).find((x) => x.categoria === c.nome)?.total ?? 0)
-
-  const [plano, setPlano] = useState(orcamento?.plano_trabalho ?? '')
-  const [valores, setValores] = useState<Record<string, string>>(() =>
-    Object.fromEntries(doOrcamento.map((c) => [c.id, previstoDe(c.id) ? valorParaCampo(previstoDe(c.id)) : ''])),
-  )
-  const [data, setData] = useState(hojeIso())
-  const [ata, setAta] = useState('')
-  const [retorno, setRetorno] = useState<Retorno>({})
-  const [enviando, umaVez] = useUmaVez()
-
-  function agir(acao: () => Promise<Resultado<null>>, sucesso: string) {
-    return umaVez(async () => {
-      const r = await acao()
-      setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
-      if (r.erro === null) recarregar()
-    })
-  }
-
-  const linhas = (tipo: 'entrada' | 'saida') =>
-    doOrcamento
-      .filter((c) => c.tipo === tipo)
-      .map((c) => ({ c, previsto: previstoDe(c.id), real: realizadoDe(c) }))
-      .filter((l) => l.previsto > 0 || l.real > 0)
-
-  return (
-    <section className="painel" aria-labelledby="titulo-orcamento">
-      <h2 id="titulo-orcamento">Orçamento e plano de trabalho {nome}</h2>
-      <p className="situacao-balanco">
-        <strong>
-          {aprovado
-            ? `Aprovado na assembleia de ${formatarData(orcamento?.aprovado_em_assembleia)} (${orcamento?.ata})`
-            : orcamento
-              ? 'Em preparo — ainda não aprovado em assembleia'
-              : 'Ainda não há orçamento para este exercício'}
-        </strong>
-      </p>
-      {orcamento?.plano_trabalho && (
-        <>
-          <h3>Plano anual de trabalho</h3>
-          <p className="texto-livre">{orcamento.plano_trabalho}</p>
-        </>
-      )}
-      {orcamento && (
-        <div className="grade-relatorio">
-          {(['entrada', 'saida'] as const).map((tipo) => (
-            <div className="tabela-rolagem" key={tipo}>
-              <table className="tabela-relatorio" aria-label={tipo === 'entrada' ? 'Receitas: previsto e realizado' : 'Despesas: previsto e realizado'}>
-                <thead>
-                  <tr>
-                    <th scope="col">{tipo === 'entrada' ? 'Receitas' : 'Despesas'}</th>
-                    <th scope="col" className="col-valor">
-                      Previsto
-                    </th>
-                    <th scope="col" className="col-valor">
-                      Realizado
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {linhas(tipo).map(({ c, previsto, real }) => (
-                    <tr key={c.id}>
-                      <th scope="row">{c.nome}</th>
-                      <td className="col-valor">{formatarReais(previsto)}</td>
-                      <td className="col-valor">{formatarReais(real)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="nao-imprimir">
-        {opera && !aprovado && (
-          <details className="acao-recolhida">
-            <summary>{orcamento ? 'Editar o orçamento' : 'Preparar o orçamento'}</summary>
-            <form
-              aria-label="Orçamento"
-              onSubmit={(e) => {
-                e.preventDefault()
-                const itens = doOrcamento.map((c) => ({ categoria: c, valor: lerValor(valores[c.id]?.trim() || '0') }))
-                const invalido = itens.find((i) => i.valor === null || i.valor < 0)
-                if (invalido) return setRetorno({ erro: `Valor inválido em "${invalido.categoria.nome}". ${DICA_VALOR}.` })
-                void agir(
-                  () => salvarOrcamento(exercicio, plano, itens.map((i) => ({ categoria_id: i.categoria.id, valor: i.valor ?? 0 }))),
-                  `Orçamento ${nome} salvo.`,
-                )
-              }}
-            >
-              <label>
-                Plano anual de trabalho
-                <textarea
-                  rows={5}
-                  value={plano}
-                  onChange={(e) => setPlano(e.target.value)}
-                  placeholder="Atividades, encontros e projetos previstos para o exercício"
-                />
-              </label>
-              {(['entrada', 'saida'] as const).map((tipo) => (
-                <fieldset key={tipo} className="grade-form">
-                  <legend>{tipo === 'entrada' ? 'Receitas previstas (R$)' : 'Despesas previstas (R$)'}</legend>
-                  {doOrcamento
-                    .filter((c) => c.tipo === tipo)
-                    .map((c) => (
-                      <label key={c.id}>
-                        {c.nome}
-                        <input
-                          inputMode="decimal"
-                          pattern={PADRAO_VALOR}
-                          title={DICA_VALOR}
-                          placeholder="0,00"
-                          aria-label={`Previsto para ${c.nome}`}
-                          value={valores[c.id] ?? ''}
-                          onChange={(e) => setValores({ ...valores, [c.id]: e.target.value })}
-                        />
-                      </label>
-                    ))}
-                </fieldset>
-              ))}
-              <div className="acoes">
-                <button type="submit" className="botao" disabled={enviando}>
-                  Salvar o orçamento
-                </button>
-              </div>
-            </form>
-          </details>
-        )}
-        {presidencia && orcamento && !aprovado && (
-          <details className="acao-recolhida">
-            <summary>Registrar a aprovação da assembleia</summary>
-            <form
-              className="form-linha"
-              aria-label="Aprovação do orçamento"
-              onSubmit={(e) => {
-                e.preventDefault()
-                void agir(() => aprovarOrcamento(exercicio, data, ata), `Orçamento ${nome} aprovado.`)
-              }}
-            >
-              <label className="campo-curto">
-                Data da assembleia *
-                <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
-              </label>
-              <label>
-                Ata *
-                <input required value={ata} onChange={(e) => setAta(e.target.value)} />
-              </label>
-              <button type="submit" className="botao" disabled={enviando}>
-                Registrar a aprovação
-              </button>
-            </form>
-          </details>
-        )}
-        <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-      </div>
     </section>
   )
 }

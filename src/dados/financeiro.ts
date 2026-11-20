@@ -274,3 +274,69 @@ export async function cancelarCobranca(cobrancaId: string, motivo: string): Prom
   const { error } = await cliente().rpc('cancelar_cobranca', { p_cobranca_id: cobrancaId, p_motivo: motivo })
   return error ? falha(error) : ok(null)
 }
+
+// ---------- Telas novas (Fase 5.5, parte 9): os números do alto, os comprovantes já conferidos e os planos ----------
+
+export type NumerosFinanceiro = {
+  exercicio: number
+  saldo: number
+  contribuicoes: { previsto: number; recebido: number; em_aberto: number }
+  em_atraso: number
+  para_conferir: { quantidade: number; valor: number }
+  despesas_esperando: { quantidade: number; valor: number }
+}
+
+/** O saldo de hoje, o recebido no exercício, o que está em aberto e o que espera alguém (uma chamada só). */
+export async function numerosDoFinanceiro(): Promise<Resultado<NumerosFinanceiro>> {
+  const { data, error } = await cliente().rpc('numeros_do_financeiro')
+  return error ? falha(error) : ok(data as NumerosFinanceiro)
+}
+
+export type InformeConferido = {
+  id: string
+  pessoa_id: string
+  data_pagamento: string
+  valor: number
+  forma: string
+  comprovante_caminho: string | null
+  situacao: SituacaoInforme
+  motivo_recusa: string | null
+  analisado_em: string | null
+  pessoa: { nome: string } | null
+  analisado: { nome: string } | null
+  cobranca: { tipo: TipoCobranca; competencia: string; exercicio: number } | null
+}
+
+/** Os pagamentos já conferidos (confirmados ou recusados), os últimos primeiro. */
+export async function informesConferidos(limite = 200): Promise<Resultado<InformeConferido[]>> {
+  const { data, error } = await cliente()
+    .from('informes_pagamento')
+    .select(
+      `id, pessoa_id, data_pagamento, valor, forma, comprovante_caminho, situacao, motivo_recusa, analisado_em,
+       pessoa:pessoas!informes_pagamento_pessoa_id_fkey(nome),
+       analisado:pessoas!informes_pagamento_analisado_por_fkey(nome),
+       cobranca:cobrancas(tipo, competencia, exercicio)`,
+    )
+    .in('situacao', ['confirmado', 'recusado'])
+    .is('arquivado_em', null)
+    .order('analisado_em', { ascending: false, nullsFirst: false })
+    .limit(limite)
+    .returns<InformeConferido[]>()
+  return error ? falha(error) : ok(data)
+}
+
+/** Quantos escolheram pagar por mês e quantos o ano inteiro, no exercício. */
+export async function planosDoExercicio(exercicio: number): Promise<Resultado<{ mensal: number; anual: number }>> {
+  const r = await todasAsLinhas((de, ate) =>
+    cliente()
+      .from('planos_contribuicao')
+      .select('tipo')
+      .eq('exercicio', exercicio)
+      .is('arquivado_em', null)
+      .order('id')
+      .range(de, ate)
+      .returns<{ tipo: 'mensal' | 'anual' }[]>(),
+  )
+  if (r.erro !== null) return r
+  return ok({ mensal: r.dados.filter((p) => p.tipo === 'mensal').length, anual: r.dados.filter((p) => p.tipo === 'anual').length })
+}

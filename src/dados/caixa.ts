@@ -1,5 +1,5 @@
 // Financeiro — Fase 2.2: caixa (contas, lançamentos, despesas autorizadas pelo presidente, transferências).
-import { cliente, falha, ok, type Resultado } from './cliente'
+import { cliente, falha, ok, todasAsLinhas, type Resultado } from './cliente'
 import { enviarArquivo } from './pedidos'
 
 export type TipoLancamento = 'entrada' | 'saida'
@@ -180,4 +180,94 @@ export async function arquivarCategoriaFinanceira(id: string) {
     .update({ arquivado_em: new Date().toISOString() })
     .eq('id', id)
   return error ? falha<null>(error) : ok(null)
+}
+
+// ---------- Telas novas (Fase 5.5, parte 9): o caixa como extrato, as despesas e as transferências ----------
+
+/** Um lançamento com a conta, a categoria e os nomes (vista vw_lancamentos). */
+export type LinhaCaixa = {
+  id: string
+  conta_id: string
+  tipo: TipoLancamento
+  data: string
+  valor: number
+  descricao: string
+  comprovante_caminho: string | null
+  cobranca_id: string | null
+  transferencia_id: string | null
+  evento_id: string | null
+  situacao: SituacaoLancamento
+  motivo: string | null
+  autorizado_em: string | null
+  criado_em: string
+  conta_nome: string
+  conta_tipo: 'caixa' | 'banco'
+  conta_desde: string
+  categoria_id: string
+  categoria_nome: string
+  categoria_sistema: string | null
+  autorizado_por_id: string | null
+  autorizado_por_nome: string | null
+  lancado_por_id: string | null
+  lancado_por_nome: string | null
+  /** efetivado e depois do saldo inicial da conta: muda o saldo */
+  no_saldo: boolean
+}
+
+/** Os lançamentos de um período (datas AAAA-MM-DD, inclusive), do mais antigo para o mais novo. */
+export async function lancamentosDoPeriodo(inicio: string, fim: string): Promise<Resultado<LinhaCaixa[]>> {
+  return todasAsLinhas((de, ate) =>
+    cliente()
+      .from('vw_lancamentos')
+      .select('*')
+      .gte('data', inicio)
+      .lte('data', fim)
+      .order('data')
+      .order('criado_em')
+      .order('id')
+      .range(de, ate)
+      .returns<LinhaCaixa[]>(),
+  )
+}
+
+export type CaixaNoPeriodo = {
+  inicio: string
+  fim: string
+  saldo_inicio: number
+  saldo_fim: number
+  aberturas: { conta: string; data: string; valor: number }[]
+}
+
+/** O saldo de todas as contas no começo e no fim do período, e as contas abertas dentro dele. */
+export async function caixaNoPeriodo(inicio: string, fim: string): Promise<Resultado<CaixaNoPeriodo>> {
+  const { data, error } = await cliente().rpc('caixa_no_periodo', { p_inicio: inicio, p_fim: fim })
+  return error ? falha(error) : ok(data as CaixaNoPeriodo)
+}
+
+/** As despesas de uma situação (as últimas primeiro). */
+export async function despesasPorSituacao(
+  situacao: 'aguardando_autorizacao' | 'efetivado' | 'recusado',
+  limite = 200,
+): Promise<Resultado<LinhaCaixa[]>> {
+  let consulta = cliente().from('vw_lancamentos').select('*').eq('tipo', 'saida').eq('situacao', situacao)
+  // a autorizada é a despesa que passou pelo presidente (a transferência e a do patrimônio entram já efetivadas)
+  if (situacao === 'efetivado') consulta = consulta.not('autorizado_por_id', 'is', null)
+  const { data, error } = await consulta
+    .order(situacao === 'aguardando_autorizacao' ? 'criado_em' : 'autorizado_em', { ascending: situacao === 'aguardando_autorizacao' })
+    .limit(limite)
+    .returns<LinhaCaixa[]>()
+  return error ? falha(error) : ok(data)
+}
+
+/** As transferências entre contas (o lado que sai), as últimas primeiro. */
+export async function listarTransferencias(limite = 200): Promise<Resultado<LinhaCaixa[]>> {
+  const { data, error } = await cliente()
+    .from('vw_lancamentos')
+    .select('*')
+    .not('transferencia_id', 'is', null)
+    .order('data', { ascending: false })
+    .order('criado_em', { ascending: false })
+    .limit(limite * 2)
+    .returns<LinhaCaixa[]>()
+  return error ? falha(error) : ok(data)
 }
