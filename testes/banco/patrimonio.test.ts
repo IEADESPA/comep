@@ -115,14 +115,13 @@ describe('Fase 5.5.1 — patrimônio e empréstimo às igrejas', () => {
       const conta = await um<{ id: string }>('select conta_banco_id as id from public.config_financeiro')
       const categoria = await um<{ id: string }>("select id from public.categorias_financeiras where tipo = 'saida' and sistema is null limit 1")
       const compra = await um<{ id: string }>(
-        `insert into public.lancamentos (conta_id, tipo, categoria_id, data, valor, descricao, situacao)
-         values ($1, 'saida', $2, current_date, 1200, 'Compra de cadeiras', 'efetivado') returning id`,
+        // desde a parte 12 (a blindagem do caixa), só pela função do sistema
+        "select interno.registrar_lancamento($1, 'saida', $2, current_date, 1200, 'Compra de cadeiras', 'efetivado') as id",
         [conta.id, categoria.id],
       )
       const categoriaEntrada = await um<{ id: string }>("select id from public.categorias_financeiras where tipo = 'entrada' and sistema is null limit 1")
       const entrada = await um<{ id: string }>(
-        `insert into public.lancamentos (conta_id, tipo, categoria_id, data, valor, descricao, situacao)
-         values ($1, 'entrada', $2, current_date, 50, 'Oferta', 'efetivado') returning id`,
+        "select interno.registrar_lancamento($1, 'entrada', $2, current_date, 50, 'Oferta', 'efetivado') as id",
         [conta.id, categoriaEntrada.id],
       )
       await assert.rejects(chamar(secretaria, 'select public.ligar_compra_patrimonio($1, $2)', [cadeiras, compra.id]), erroComCodigo(SEM_PERMISSAO))
