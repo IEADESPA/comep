@@ -179,28 +179,98 @@ export const assembleiaBalanco = (id: string, aprovado: boolean, data: string, a
 
 // ---------- Orçamento e plano anual de trabalho ----------
 
+export type AtividadePlano = {
+  id: string
+  titulo: string
+  /** o primeiro dia do mês (AAAA-MM-01); null = ao longo do ano */
+  mes: string | null
+  descricao: string | null
+  responsavel: string | null
+  categoria_id: string | null
+  valor: number | null
+  criado_em: string
+  arquivado_em: string | null
+}
+
 export type Orcamento = {
   id: string
   exercicio: number
   plano_trabalho: string | null
   aprovado_em_assembleia: string | null
   ata: string | null
+  enviado_em: string | null
+  encontro: { id: string; titulo: string; inicio: string; tipo: string } | null
+  enviado: { nome: string } | null
   itens: { categoria_id: string; valor: number; arquivado_em: string | null }[]
+  atividades: AtividadePlano[]
 }
 
 export async function buscarOrcamento(exercicio: number): Promise<Resultado<Orcamento | null>> {
   const { data, error } = await cliente()
     .from('orcamentos')
-    .select('id, exercicio, plano_trabalho, aprovado_em_assembleia, ata, itens:orcamento_itens(categoria_id, valor, arquivado_em)')
+    .select(
+      `id, exercicio, plano_trabalho, aprovado_em_assembleia, ata, enviado_em,
+       encontro:encontros(id, titulo, inicio, tipo), enviado:pessoas!orcamentos_enviado_por_fkey(nome),
+       itens:orcamento_itens(categoria_id, valor, arquivado_em),
+       atividades:plano_atividades(id, titulo, mes, descricao, responsavel, categoria_id, valor, criado_em, arquivado_em)`,
+    )
     .eq('exercicio', exercicio)
     .is('arquivado_em', null)
     .maybeSingle<Orcamento>()
   if (error) return falha(error)
-  if (data) data.itens = data.itens.filter((i) => i.arquivado_em === null)
+  if (data) {
+    data.itens = data.itens.filter((i) => i.arquivado_em === null)
+    data.atividades = data.atividades
+      .filter((a) => a.arquivado_em === null)
+      .sort((a, b) => (a.mes ?? '9999').localeCompare(b.mes ?? '9999') || a.criado_em.localeCompare(b.criado_em))
+  }
   return ok(data)
 }
 
-export const salvarOrcamento = (exercicio: number, plano: string, itens: { categoria_id: string; valor: number }[]) =>
+/** Salva o previsto por categoria; o texto do plano só muda se vier (null mantém). */
+export const salvarOrcamento = (exercicio: number, plano: string | null, itens: { categoria_id: string; valor: number }[]) =>
   rpcSemRetorno('salvar_orcamento', { p_exercicio: exercicio, p_plano: plano, p_itens: itens })
 export const aprovarOrcamento = (exercicio: number, data: string, ata: string) =>
   rpcSemRetorno('aprovar_orcamento', { p_exercicio: exercicio, p_data: data, p_ata: ata })
+export const mandarOrcamento = (exercicio: number, encontroId: string | null) =>
+  rpcSemRetorno('mandar_orcamento', { p_exercicio: exercicio, p_encontro_id: encontroId })
+export const voltarOrcamento = (exercicio: number) => rpcSemRetorno('voltar_orcamento', { p_exercicio: exercicio })
+
+export type DadosAtividade = {
+  titulo: string
+  mes: string | null
+  descricao: string
+  responsavel: string
+  categoria_id: string | null
+  valor: number | null
+}
+
+export async function salvarAtividade(exercicio: number, id: string | null, a: DadosAtividade): Promise<Resultado<string>> {
+  const { data, error } = await cliente().rpc('salvar_atividade_plano', {
+    p_exercicio: exercicio,
+    p_id: id,
+    p_titulo: a.titulo,
+    p_mes: a.mes,
+    p_descricao: a.descricao,
+    p_responsavel: a.responsavel,
+    p_categoria: a.categoria_id,
+    p_valor: a.valor,
+  })
+  return error ? falha(error) : ok(data as string)
+}
+
+export const arquivarAtividade = (id: string) => rpcSemRetorno('arquivar_atividade_plano', { p_id: id })
+
+/** As assembleias (AGO e AGE) que ainda vão acontecer, para levar o orçamento. */
+export async function proximasAssembleias(): Promise<Resultado<{ id: string; titulo: string; inicio: string; tipo: string }[]>> {
+  const { data, error } = await cliente()
+    .from('encontros')
+    .select('id, titulo, inicio, tipo')
+    .in('tipo', ['ago', 'age'])
+    .neq('situacao', 'cancelado')
+    .gte('inicio', new Date().toISOString())
+    .is('arquivado_em', null)
+    .order('inicio')
+    .returns<{ id: string; titulo: string; inicio: string; tipo: string }[]>()
+  return error ? falha(error) : ok(data)
+}

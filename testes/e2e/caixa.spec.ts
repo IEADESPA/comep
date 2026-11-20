@@ -23,15 +23,15 @@ async function esperarSaldo(page: Page, conta: string, centavos: number) {
   await expect.poll(() => saldoEmCentavos(page, conta)).toBe(centavos)
 }
 
+/** O extrato (rodada 11, opção 2): "+ Lançar entrada" ou "− Lançar despesa" abre o formulário ao lado do saldo. */
 async function lancar(page: Page, tipo: 'entrada' | 'saida', categoria: string, valor: string, descricao: string) {
-  const painel = page.locator('details').filter({ has: page.locator('summary', { hasText: 'Novo lançamento' }) })
-  if ((await painel.getAttribute('open')) === null) await painel.locator('summary').click()
-  await page.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption(tipo === 'entrada' ? 'Entrada (receita)' : 'Saída (despesa)')
+  const abrir = page.getByRole('button', { name: tipo === 'entrada' ? '+ Lançar entrada' : '− Lançar despesa', exact: true })
+  if ((await abrir.getAttribute('aria-expanded')) !== 'true') await abrir.click()
   await page.getByRole('combobox', { name: 'Conta', exact: true }).selectOption(CAIXA)
   await page.getByRole('combobox', { name: 'Categoria', exact: true }).selectOption(categoria)
   await page.getByLabel('Valor (R$)').first().fill(valor)
   await page.getByLabel('Descrição *').fill(descricao)
-  await page.getByRole('button', { name: tipo === 'entrada' ? 'Lançar entrada' : 'Lançar despesa' }).click()
+  await page.getByRole('button', { name: tipo === 'entrada' ? 'Salvar a entrada' : 'Salvar a despesa', exact: true }).click()
 }
 
 async function cancelar(page: Page, descricao: string) {
@@ -70,7 +70,7 @@ test('a tesouraria lança; a despesa só sai do saldo depois que o presidente au
   await abrirFuncao(page, 'Despesas a autorizar')
   const naFila = page.getByRole('listitem', { name: `Despesa: ${despesa}` })
   await expect(naFila).toContainText('R$ 3,50')
-  await expect(naFila.getByRole('button', { name: 'Autorizar despesa' })).toHaveCount(0)
+  await expect(naFila.getByRole('button', { name: 'Autorizar', exact: true })).toHaveCount(0)
 
   // 2. O presidente autoriza
   await trocarPara(page, 'presidencia')
@@ -78,7 +78,7 @@ test('a tesouraria lança; a despesa só sai do saldo depois que o presidente au
   await abrirFuncao(page, 'Despesas a autorizar')
   await page
     .getByRole('listitem', { name: `Despesa: ${despesa}` })
-    .getByRole('button', { name: 'Autorizar despesa' })
+    .getByRole('button', { name: 'Autorizar', exact: true })
     .click()
   await expect(mensagemNaTela(page, `Despesa autorizada: ${despesa}.`)).toBeVisible()
 
@@ -98,7 +98,9 @@ test('a tesouraria lança; a despesa só sai do saldo depois que o presidente au
   await expect(mensagemNaTela(page, 'Transferência registrada.')).toBeVisible()
   await esperarSaldo(page, CAIXA, caixaAntes + 1000 - 350 - 500)
   await esperarSaldo(page, BANCO, bancoAntes + 500)
-  await expect(page.getByRole('listitem', { name: deposito })).toHaveCount(2)
+  // no extrato, a transferência é uma linha só (os dois lados juntos)
+  await expect(page.getByRole('listitem', { name: deposito })).toHaveCount(1)
+  await expect(page.getByRole('listitem', { name: deposito })).toContainText(`${CAIXA} → ${BANCO}`)
 
   await cancelar(page, deposito)
   await esperarSaldo(page, BANCO, bancoAntes)
@@ -134,7 +136,7 @@ test('valor digitado do jeito brasileiro; quem lançou a despesa não vê "Autor
   await abrirFuncao(page, 'Despesas a autorizar')
   const minha = page.getByRole('listitem', { name: `Despesa: ${despesa}` })
   await expect(minha).toContainText('Você lançou esta despesa: outra pessoa da presidência autoriza.')
-  await expect(minha.getByRole('button', { name: 'Autorizar despesa' })).toHaveCount(0)
+  await expect(minha.getByRole('button', { name: 'Autorizar', exact: true })).toHaveCount(0)
 
   // Desfaz
   await abrirFuncao(page, 'Caixa')

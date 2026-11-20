@@ -425,6 +425,7 @@ export const MODULOS: readonly Modulo[] = [
     area: 'financas',
     item: '/financeiro',
     bases: ['/financeiro'],
+    // rodada 11 (18/11/2026): as 6 funções, cada uma com as subfunções (parte 9 das telas novas)
     funcoes: [
       {
         chave: 'contribuicoes',
@@ -432,8 +433,10 @@ export const MODULOS: readonly Modulo[] = [
         icone: 'mensalidade',
         caminho: '/financeiro/contribuicoes',
         subfuncoes: [
-          { titulo: 'Situação dos associados', caminho: '/financeiro/contribuicoes' },
-          { titulo: 'Cobranças do exercício', caminho: '/financeiro/contribuicoes/cobrancas' },
+          { titulo: 'Situação dos ministros', caminho: '/financeiro/contribuicoes' },
+          { titulo: 'Por igreja', caminho: '/financeiro/contribuicoes/igrejas' },
+          { titulo: 'Cobranças do ano', caminho: '/financeiro/contribuicoes/cobrancas' },
+          { titulo: 'Valores e planos', caminho: '/financeiro/contribuicoes/valores' },
         ],
       },
       {
@@ -443,10 +446,55 @@ export const MODULOS: readonly Modulo[] = [
         caminho: '/financeiro/comprovantes',
         perfis: ['tesouraria', 'presidencia'],
         pendencia: 'comprovantes',
+        subfuncoes: [
+          { titulo: 'Para conferir', caminho: '/financeiro/comprovantes' },
+          { titulo: 'Já conferidos', caminho: '/financeiro/comprovantes/conferidos' },
+        ],
       },
-      { chave: 'caixa', titulo: 'Caixa', icone: 'financeiro', caminho: '/financeiro/caixa' },
-      { chave: 'despesas', titulo: 'Despesas a autorizar', icone: 'check', caminho: '/financeiro/despesas', pendencia: 'despesas' },
-      { chave: 'prestacao', titulo: 'Prestação de contas', icone: 'assembleia', caminho: '/financeiro/prestacao' },
+      {
+        chave: 'caixa',
+        titulo: 'Caixa',
+        icone: 'financeiro',
+        caminho: '/financeiro/caixa',
+        subfuncoes: [
+          { titulo: 'Lançamentos', caminho: '/financeiro/caixa' },
+          { titulo: 'Contas e saldos', caminho: '/financeiro/caixa/contas' },
+          { titulo: 'Transferências', caminho: '/financeiro/caixa/transferencias' },
+        ],
+      },
+      {
+        chave: 'despesas',
+        titulo: 'Despesas a autorizar',
+        icone: 'check',
+        caminho: '/financeiro/despesas',
+        pendencia: 'despesas',
+        subfuncoes: [
+          { titulo: 'Esperando', caminho: '/financeiro/despesas' },
+          { titulo: 'Autorizadas', caminho: '/financeiro/despesas/autorizadas' },
+          { titulo: 'Recusadas', caminho: '/financeiro/despesas/recusadas' },
+        ],
+      },
+      {
+        chave: 'orcamento',
+        titulo: 'Orçamento',
+        icone: 'grade',
+        caminho: '/financeiro/orcamento',
+        subfuncoes: [
+          { titulo: 'Por categoria', caminho: '/financeiro/orcamento' },
+          { titulo: 'Plano anual de trabalho', caminho: '/financeiro/orcamento/plano' },
+        ],
+      },
+      {
+        chave: 'prestacao',
+        titulo: 'Prestação de contas',
+        icone: 'assembleia',
+        caminho: '/financeiro/prestacao',
+        subfuncoes: [
+          { titulo: 'O exercício', caminho: '/financeiro/prestacao' },
+          { titulo: 'Mês a mês', caminho: '/financeiro/prestacao/mes-a-mes' },
+          { titulo: 'Balanço e parecer', caminho: '/financeiro/prestacao/balanco' },
+        ],
+      },
     ],
   },
   {

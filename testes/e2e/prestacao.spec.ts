@@ -57,13 +57,19 @@ async function reprovarNaAssembleia(page: Page) {
   await expect(mensagemNaTela(page, 'Balanço reprovado: voltou para a tesouraria corrigir.')).toBeVisible()
 }
 
-test('a tesouraria vê o resumo, o mês a mês, as igrejas e o balanço aprovado, e baixa a planilha', async ({ page }) => {
+test('a tesouraria vê as etapas, o mês a mês, o balanço para imprimir e o balanço aprovado, e baixa a planilha', async ({ page }) => {
   const atual = exercicioAtual()
   await abrir(page, 'tesouraria', atual)
   await expect(page.getByText(`Prévia: o exercício vai até 31/03/${atual + 1}.`)).toBeVisible()
-  await expect(page.getByRole('table', { name: 'Saldos das contas' })).toContainText('Caixa (dinheiro)')
+  await expect(page.getByRole('list', { name: 'As etapas do balanço' }).getByRole('listitem')).toHaveCount(4)
+
+  // as subfunções: Mês a mês e Balanço e parecer (o documento do exercício)
+  await abrirFuncao(page, 'Mês a mês', 'Prestação de contas')
   await expect(page.getByRole('table', { name: 'Receitas e despesas mês a mês' }).locator('tbody tr')).toHaveCount(12)
+  await abrirFuncao(page, 'Balanço e parecer', 'Prestação de contas')
+  await expect(page.getByRole('table', { name: 'Saldos das contas' })).toContainText('Caixa (dinheiro)')
   await expect(page.getByRole('table', { name: 'Contribuições por igreja' })).toBeVisible()
+  await abrir(page, 'tesouraria', atual)
 
   // Exercício anterior, da semente fictícia: balanço aprovado, números congelados
   await page.getByRole('combobox', { name: 'Exercício', exact: true }).selectOption('2025')
@@ -85,21 +91,56 @@ test('a tesouraria vê o resumo, o mês a mês, as igrejas e o balanço aprovado
   expect(conteudo).toContain('Oferta da reunião mensal de abril/2025')
 })
 
-test('o orçamento do exercício: a tesouraria prepara e vê previsto e realizado', async ({ page }, info) => {
-  const plano = `Plano de teste automático ${sufixoUnico(info.project.name)}`
-  await abrir(page, 'tesouraria', RESERVADO)
-  await page.getByText(/^(Preparar|Editar) o orçamento$/).click()
-  await page.getByLabel('Plano anual de trabalho').fill(plano)
+test('o orçamento por categoria e o plano anual: a tesouraria prepara, manda e volta; o aprovado não muda', async ({ page }, info) => {
+  const sufixo = sufixoUnico(info.project.name)
+  const nome = `${RESERVADO}/${RESERVADO + 1}`
+  const atividade = `Conferência de obreiros E2E ${sufixo}`
+  await trocarPara(page, 'tesouraria')
+  await page.goto(`financeiro/orcamento?exercicio=${RESERVADO}`)
+  await expect(page.getByRole('heading', { name: 'Orçamento por categoria', level: 1 })).toBeVisible()
+  // se uma execução anterior parou com o orçamento mandado, ele volta para o rascunho
+  const voltar = page.getByRole('button', { name: 'Voltar para o rascunho', exact: true })
+  await expect(page.getByRole('heading', { name: /^Receitas · total previsto/ })).toBeVisible()
+  if (await voltar.isVisible()) {
+    await voltar.click()
+    await page.getByRole('button', { name: 'Confirmar — voltar para o rascunho' }).click()
+    await expect(mensagemNaTela(page, `O orçamento ${nome} voltou para o rascunho.`)).toBeVisible()
+  }
+
+  // o previsto de cada categoria, em cartões
   await page.getByLabel('Previsto para Ofertas').fill('1234,56')
   await page.getByRole('button', { name: 'Salvar o orçamento' }).click()
-  await expect(mensagemNaTela(page, `Orçamento ${RESERVADO}/${RESERVADO + 1} salvo.`)).toBeVisible()
-  await expect(page.getByText(plano)).toBeVisible()
-  await expect(page.getByRole('table', { name: 'Receitas: previsto e realizado' })).toContainText('R$ 1.234,56')
+  await expect(mensagemNaTela(page, `Orçamento ${nome} salvo.`)).toBeVisible()
+  await expect(page.getByRole('listitem', { name: 'Ofertas' }).getByLabel('Previsto para Ofertas')).toHaveValue('1.234,56')
+
+  // o plano anual de trabalho: uma atividade com o mês e o custo (e tirada no fim: nada se apaga, fica arquivada)
+  await page.goto(`financeiro/orcamento/plano?exercicio=${RESERVADO}`)
+  await page.getByLabel('O que é *').fill(atividade)
+  await page.getByLabel('Quando').selectOption({ label: `Setembro de ${RESERVADO}` })
+  await page.getByLabel('Quanto custa (R$)').fill('300')
+  await page.getByRole('button', { name: 'Pôr no plano' }).click()
+  await expect(mensagemNaTela(page, `"${atividade}" entrou no plano.`)).toBeVisible()
+  const cartao = page.getByRole('listitem', { name: atividade })
+  await expect(cartao).toContainText('R$ 300,00')
+  await cartao.getByRole('button', { name: 'Tirar do plano' }).click()
+  await cartao.getByRole('button', { name: 'Confirmar — tirar do plano' }).click()
+  await expect(mensagemNaTela(page, `"${atividade}" saiu do plano.`)).toBeVisible()
+
+  // mandar para a assembleia: o orçamento não muda mais; voltar para o rascunho
+  await page.goto(`financeiro/orcamento?exercicio=${RESERVADO}`)
+  await page.getByRole('button', { name: 'Mandar para a assembleia' }).click()
+  await page.getByRole('button', { name: 'Confirmar e mandar' }).click()
+  await expect(mensagemNaTela(page, `Orçamento ${nome} mandado para a assembleia.`)).toBeVisible()
+  await expect(page.getByLabel('Previsto para Ofertas')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Voltar para o rascunho', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirmar — voltar para o rascunho' }).click()
+  await expect(mensagemNaTela(page, `O orçamento ${nome} voltou para o rascunho.`)).toBeVisible()
+  await expect(page.getByLabel('Previsto para Ofertas')).toBeVisible()
 
   // O orçamento aprovado (2026/2027, da semente) não se edita mais
-  await page.getByRole('combobox', { name: 'Exercício', exact: true }).selectOption('2026')
+  await page.goto('financeiro/orcamento?exercicio=2026')
   await expect(page.getByText('Aprovado na assembleia de 25/04/2026')).toBeVisible()
-  await expect(page.getByText(/^(Preparar|Editar) o orçamento$/)).toHaveCount(0)
+  await expect(page.getByLabel('Previsto para Ofertas')).toHaveCount(0)
 })
 
 test('o balanço passa pela tesouraria, pela diretoria, pelo Conselho Fiscal e pela assembleia', async ({ page }, info) => {
@@ -162,11 +203,11 @@ test('o Conselho Fiscal só vê: sem pagamentos a conferir e sem botões de lan�
   await expect(page.getByText('Transferência entre contas', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Cancelar lançamento')).toHaveCount(0)
 
-  await abrirFuncao(page, 'Cobranças do exercício', 'Contribuições')
-  await expect(page.getByRole('heading', { name: 'Cobranças do exercício' })).toBeVisible()
+  await abrirFuncao(page, 'Cobranças do ano', 'Contribuições')
+  await expect(page.getByRole('heading', { name: 'Cobranças do ano', level: 1 })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Gerar cobranças do exercício' })).toHaveCount(0)
 
-  await abrirFuncao(page, 'Situação dos associados', 'Contribuições')
-  await expect(page.getByRole('list', { name: 'Situação dos associados' })).toBeVisible()
+  await abrirFuncao(page, 'Situação dos ministros', 'Contribuições')
+  await expect(page.getByRole('list', { name: 'Situação dos ministros' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Registrar pagamento recebido' })).toHaveCount(0)
 })

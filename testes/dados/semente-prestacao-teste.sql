@@ -156,6 +156,8 @@ begin
       jsonb_build_object('categoria_id', v_cat ->> 'Tarifas bancárias', 'valor', 300),
       jsonb_build_object('categoria_id', v_cat ->> 'Outras despesas', 'valor', 500)
     ));
+  -- mandado para a AGO (Fase 5.5: o orçamento só é aprovado depois de mandado para a assembleia)
+  perform public.mandar_orcamento(2026, null);
   perform set_config('request.jwt.claim.sub', v_presidencia::text, true);
   perform set_config('request.jwt.claims', json_build_object('sub', v_presidencia, 'role', 'authenticated')::text, true);
   perform public.aprovar_orcamento(2026, '2026-04-25', 'Ata da AGO de 25/04/2026 (fictícia)');

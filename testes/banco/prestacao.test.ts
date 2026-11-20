@@ -279,6 +279,12 @@ describe('Fase 2.3 — prestação de contas', () => {
         chamar(tesoureiro, "select public.aprovar_orcamento(2026, current_date, 'Ata')"),
         erroComCodigo(SEM_PERMISSAO),
       )
+      // Fase 5.5: só depois de mandado para a assembleia
+      await assert.rejects(
+        chamar(presidente, "select public.aprovar_orcamento(2026, current_date, 'Ata da AGO')"),
+        erroComCodigo(BLOQUEADO_PELO_BANCO),
+      )
+      await chamar(tesoureiro, 'select public.mandar_orcamento(2026, null)')
       await chamar(presidente, "select public.aprovar_orcamento(2026, current_date, 'Ata da AGO')")
       await assert.rejects(
         chamar(tesoureiro, "select public.salvar_orcamento(2026, 'mudou', $1::jsonb)", [itens(5)]),

@@ -1,512 +1,130 @@
-import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router'
-import { Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
-import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
-import { formatarReais } from '../../dados/configuracoes'
-import {
-  analisarInforme,
-  cancelarCobranca,
-  cobrancasEmAbertoDe,
-  exercicioDe,
-  FORMAS_PAGAMENTO,
-  gerarCobrancas,
-  informesPendentes,
-  nomeDaCobranca,
-  nomeDoExercicio,
-  registrarPagamento,
-  resumoDoExercicio,
-  situacaoDeTodos,
-  type InformePendente,
-  type SituacaoContribuicao,
-} from '../../dados/financeiro'
-import { linkDoArquivo } from '../../dados/pedidos'
+import { useState, type ReactNode } from 'react'
+import { Navigate, useParams } from 'react-router'
+import { Carregando, Mensagem } from '../../componentes/Basicos'
+import type { Perfil } from '../../dados/perfis'
 import { useSessao } from '../../estado/contexto'
-import { useCarregar } from '../../estado/useCarregar'
-import { useUmaVez } from '../../estado/useUmaVez'
-import { contemTexto, formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
-import { CaixaAba, DespesasAutorizar } from './Caixa'
-import { PrestacaoContasAba } from './PrestacaoContas'
+import { ContasESaldos, ExtratoCaixa, Transferencias } from './Caixa'
+import { CabecalhoFinanceiro } from './comum'
+import { type Concluir } from './util'
+import { ComprovantesConferidos, ComprovantesParaConferir } from './Comprovantes'
+import { CobrancasDoAno, ContribuicoesPorIgreja, PainelContribuicoes, ValoresEPlanos } from './Contribuicoes'
+import { DespesasDecididas, DespesasEsperando } from './Despesas'
+import { OrcamentoPorCategoria, PlanoAnual } from './Orcamento'
+import { PrestacaoBalanco, PrestacaoExercicio, PrestacaoMesAMes } from './PrestacaoContas'
 
-type Retorno = { sucesso?: string; erro?: string }
+// O módulo Financeiro (telas novas, Fase 5.5, parte 9; rodada 11 aprovada em 18/11/2026): as 6 funções na coluna da
+// esquerda ("o módulo toma a coluna"), cada uma com as subfunções em sanfona (src/componentes/menu.ts). Cada
+// subfunção tem endereço próprio: /financeiro/<função>[/<subfunção>].
+// A tesouraria e a presidência operam; o Conselho Fiscal só vê (Art. 14) e não confere os comprovantes.
 
-/**
- * As partes do financeiro. Cada uma é uma função do menu do módulo (src/componentes/menu.ts), com endereço
- * próprio: /financeiro/contribuicoes (e /cobrancas), /comprovantes, /caixa, /despesas e /prestacao.
- */
-const PARTES = {
-  contribuicoes: { titulo: 'Contribuições', sub: 'Situação dos associados' },
-  cobrancas: { titulo: 'Contribuições', sub: 'Cobranças do exercício' },
-  comprovantes: { titulo: 'Comprovantes', sub: 'Pagamentos informados pelos associados' },
-  caixa: { titulo: 'Caixa', sub: null },
-  despesas: { titulo: 'Despesas a autorizar', sub: null },
-  prestacao: { titulo: 'Prestação de contas', sub: null },
-} as const
-type Parte = keyof typeof PARTES
+type Contexto = { pessoaId: string; perfis: Perfil[]; opera: boolean; concluir: Concluir }
 
-const ehParte = (p: string | undefined): p is Parte => p !== undefined && p in PARTES
+type Tela = { funcao: string; titulo: string; sub?: string; conteudo: (c: Contexto) => ReactNode; soQuemOpera?: boolean }
 
-/** /financeiro — tesouraria e presidência operam; o Conselho Fiscal só vê (Fase 2: contribuições, caixa e contas). */
-export function Financeiro({ parte: fixa }: { parte?: Parte }) {
-  const { estado } = useSessao()
-  const { parte: daRota } = useParams()
-  const perfisDaConta = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
-  const opera = perfisDaConta.includes('tesouraria') || perfisDaConta.includes('presidencia')
-  const parte = fixa ?? daRota
-
-  if (estado.situacao !== 'logado' || estado.conta?.tipo !== 'ok') return <Carregando />
-  // /financeiro (ou um endereço que não existe) abre a primeira função de quem está vendo;
-  // os comprovantes a conferir não são do Conselho Fiscal (Art. 14: só leitura)
-  if (!ehParte(parte) || (parte === 'comprovantes' && !opera)) {
-    return <Navigate to={opera ? '/financeiro/comprovantes' : '/financeiro/prestacao'} replace />
-  }
-  return <ParteDoFinanceiro key={parte} parte={parte} opera={opera} />
+const TELAS: Record<string, Tela> = {
+  contribuicoes: {
+    funcao: 'Contribuições',
+    titulo: 'Situação dos ministros',
+    conteudo: (c) => <PainelContribuicoes pessoaId={c.pessoaId} opera={c.opera} concluir={c.concluir} />,
+  },
+  'contribuicoes/igrejas': { funcao: 'Contribuições', titulo: 'Por igreja', conteudo: () => <ContribuicoesPorIgreja /> },
+  'contribuicoes/cobrancas': {
+    funcao: 'Contribuições',
+    titulo: 'Cobranças do ano',
+    conteudo: (c) => <CobrancasDoAno concluir={c.concluir} somenteLeitura={!c.opera} />,
+  },
+  'contribuicoes/valores': {
+    funcao: 'Contribuições',
+    titulo: 'Valores e planos',
+    sub: 'Os valores vêm da Assembleia Ordinária (Art. 7º, §3º); o histórico fica guardado.',
+    conteudo: (c) => <ValoresEPlanos podeEditar={c.opera} />,
+  },
+  comprovantes: {
+    funcao: 'Comprovantes',
+    titulo: 'Para conferir',
+    soQuemOpera: true,
+    conteudo: (c) => <ComprovantesParaConferir pessoaId={c.pessoaId} concluir={c.concluir} />,
+  },
+  'comprovantes/conferidos': { funcao: 'Comprovantes', titulo: 'Já conferidos', soQuemOpera: true, conteudo: () => <ComprovantesConferidos /> },
+  caixa: {
+    funcao: 'Caixa',
+    titulo: 'Lançamentos',
+    conteudo: (c) => <ExtratoCaixa pessoaId={c.pessoaId} concluir={c.concluir} somenteLeitura={!c.opera} />,
+  },
+  'caixa/contas': { funcao: 'Caixa', titulo: 'Contas e saldos', conteudo: (c) => <ContasESaldos somenteLeitura={!c.opera} /> },
+  'caixa/transferencias': {
+    funcao: 'Caixa',
+    titulo: 'Transferências',
+    conteudo: (c) => <Transferencias concluir={c.concluir} somenteLeitura={!c.opera} />,
+  },
+  despesas: {
+    funcao: 'Despesas a autorizar',
+    titulo: 'Esperando',
+    conteudo: (c) => <DespesasEsperando podeAutorizar={c.perfis.includes('presidencia')} pessoaId={c.pessoaId} concluir={c.concluir} />,
+  },
+  'despesas/autorizadas': { funcao: 'Despesas a autorizar', titulo: 'Autorizadas', conteudo: () => <DespesasDecididas situacao="efetivado" /> },
+  'despesas/recusadas': { funcao: 'Despesas a autorizar', titulo: 'Recusadas', conteudo: () => <DespesasDecididas situacao="recusado" /> },
+  orcamento: {
+    funcao: 'Orçamento',
+    titulo: 'Orçamento por categoria',
+    sub: 'O previsto de cada categoria para o exercício (abril a março), que vai para a assembleia (Art. 15, I).',
+    conteudo: (c) => <OrcamentoPorCategoria perfis={c.perfis} concluir={c.concluir} />,
+  },
+  'orcamento/plano': {
+    funcao: 'Orçamento',
+    titulo: 'Plano anual de trabalho',
+    sub: 'As atividades do exercício, mês a mês, com quem cuida e quanto custa. Vai para a assembleia junto com o orçamento.',
+    conteudo: (c) => <PlanoAnual perfis={c.perfis} concluir={c.concluir} />,
+  },
+  prestacao: {
+    funcao: 'Prestação de contas',
+    titulo: 'Prestação de contas',
+    sub: 'O balanço do exercício (abril a março) em quatro passos: a tesouraria fecha, a diretoria analisa, o Conselho Fiscal dá o parecer e a assembleia aprecia.',
+    conteudo: (c) => <PrestacaoExercicio perfis={c.perfis} pessoaId={c.pessoaId} />,
+  },
+  'prestacao/mes-a-mes': { funcao: 'Prestação de contas', titulo: 'Mês a mês', conteudo: () => <PrestacaoMesAMes /> },
+  'prestacao/balanco': { funcao: 'Prestação de contas', titulo: 'Balanço e parecer', conteudo: () => <PrestacaoBalanco /> },
 }
 
-function ParteDoFinanceiro({ parte, opera }: { parte: Parte; opera: boolean }) {
+/** /financeiro, /financeiro/:parte e /financeiro/:parte/:sub. */
+export function Financeiro() {
   const { estado } = useSessao()
-  const [retorno, setRetorno] = useState<Retorno>({})
+  const { parte, sub } = useParams()
+  if (estado.situacao !== 'logado' || estado.conta?.tipo !== 'ok') return <Carregando />
+  const perfis = estado.conta.conta.perfis
+  const opera = perfis.includes('tesouraria') || perfis.includes('presidencia')
+  const chave = sub ? `${parte}/${sub}` : (parte ?? '')
+  const tela = TELAS[chave]
+  // /financeiro (ou um endereço que não existe) abre o que espera alguém: os comprovantes, para quem opera;
+  // a prestação de contas, para o Conselho Fiscal (os comprovantes a conferir não são dele — Art. 14: só leitura)
+  if (!tela || (tela.soQuemOpera && !opera)) return <Navigate to={opera ? '/financeiro/comprovantes' : '/financeiro/prestacao'} replace />
+  return <TelaDoFinanceiro key={chave} tela={tela} pessoaId={estado.conta.conta.pessoaId} perfis={perfis} opera={opera} />
+}
 
-  // Cada parte recarrega os próprios dados depois de uma ação (sem perder a busca, o filtro ou o exercício escolhido)
-  function concluir(r: { erro: string | null }, sucesso: string) {
+function TelaDoFinanceiro({ tela, pessoaId, perfis, opera }: { tela: Tela; pessoaId: string; perfis: Perfil[]; opera: boolean }) {
+  const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
+  const [versao, setVersao] = useState(0)
+  const concluir: Concluir = (r, sucesso) => {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
+    if (r.erro === null) setVersao((v) => v + 1)
     return r.erro === null
   }
-
-  if (estado.situacao !== 'logado' || estado.conta?.tipo !== 'ok') return <Carregando />
-  const { pessoaId, perfis } = estado.conta.conta
-  const usuarioId = estado.sessao.usuarioId
-  // O Conselho Fiscal (Art. 14) vê tudo, sem os pagamentos a conferir e sem botões de ação
-  const somenteLeitura = !opera
-  const { titulo, sub } = PARTES[parte]
-
   return (
-    <>
+    <div className="tela-nova fin-tela">
       <div className="nao-imprimir">
-        <CabecalhoFuncao
-          modulo="Financeiro"
-          titulo={titulo}
+        <CabecalhoFinanceiro
+          funcao={tela.funcao}
+          titulo={tela.titulo}
+          versao={versao}
           sub={
-            <>
-              {sub ? `${sub}. ` : ''}Exercício de abril a março.
-              {somenteLeitura && ' Você vê o financeiro como Conselho Fiscal: só leitura, e o parecer sobre o balanço anual.'}
-            </>
+            [tela.sub, !opera && `Você vê o financeiro como Conselho Fiscal: só leitura${tela.funcao === 'Prestação de contas' ? ', e o parecer sobre o balanço anual' : ''}.`]
+              .filter(Boolean)
+              .join(' ') || undefined
           }
         />
       </div>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-      {parte === 'comprovantes' && <PagamentosInformados pessoaId={pessoaId} concluir={concluir} />}
-      {parte === 'contribuicoes' && <SituacaoAssociados pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />}
-      {parte === 'cobrancas' && <CobrancasExercicio concluir={concluir} somenteLeitura={somenteLeitura} />}
-      {parte === 'caixa' && <CaixaAba pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />}
-      {parte === 'despesas' && (
-        <DespesasAutorizar podeAutorizar={perfis.includes('presidencia')} usuarioId={usuarioId} concluir={concluir} />
-      )}
-      {parte === 'prestacao' && <PrestacaoContasAba perfis={perfis} pessoaId={pessoaId} />}
-    </>
-  )
-}
-
-type Concluir = (r: { erro: string | null }, sucesso: string) => boolean
-
-// ---------------------------------------------------------------------
-
-function PagamentosInformados({ pessoaId, concluir }: { pessoaId: string; concluir: Concluir }) {
-  const [carga, recarregar] = useCarregar(informesPendentes)
-  const concluirERecarregar: Concluir = (r, sucesso) => {
-    const certo = concluir(r, sucesso)
-    if (certo) recarregar()
-    return certo
-  }
-  return (
-    <MostrarCarga carga={carga} recarregar={recarregar}>
-      {(informes) =>
-        informes.length === 0 ? (
-          <p className="vazio">Nenhum pagamento aguardando conferência.</p>
-        ) : (
-          <ul className="lista" aria-label="Pagamentos informados">
-            {informes.map((i) => (
-              <Informe key={i.id} informe={i} meu={i.pessoa_id === pessoaId} concluir={concluirERecarregar} />
-            ))}
-          </ul>
-        )
-      }
-    </MostrarCarga>
-  )
-}
-
-function Informe({ informe: i, meu, concluir }: { informe: InformePendente; meu: boolean; concluir: Concluir }) {
-  // undefined = carregando; null = não abriu
-  const [comprovante, setComprovante] = useState<string | null | undefined>(undefined)
-  const [motivo, setMotivo] = useState('')
-  const [enviando, umaVez] = useUmaVez()
-  const nome = i.pessoa?.nome ?? 'Associado'
-  const contribuicao = i.cobranca ? nomeDaCobranca(i.cobranca) : 'Contribuição'
-
-  useEffect(() => {
-    let ativo = true
-    if (i.comprovante_caminho) void linkDoArquivo(i.comprovante_caminho).then((u) => ativo && setComprovante(u))
-    return () => {
-      ativo = false
-    }
-  }, [i.comprovante_caminho])
-
-  function analisar(confirmar: boolean) {
-    return umaVez(async () =>
-      concluir(
-        await analisarInforme(i.id, confirmar, motivo),
-        confirmar ? `Pagamento de ${nome} confirmado (${contribuicao}).` : `Pagamento de ${nome} recusado.`,
-      ),
-    )
-  }
-
-  return (
-    <li className="lista-item lista-item-estatico" aria-label={`Pagamento de ${nome}`}>
-      <strong>
-        <Link to={`/ministros/${i.pessoa_id}`}>{nome}</Link> — {contribuicao}: {formatarReais(i.valor)}
-      </strong>
-      <span>
-        Pago em {formatarData(i.data_pagamento)} por {i.forma} · informado em {formatarDataDeInstante(i.criado_em)}
-        {i.observacao && ` · ${i.observacao}`}
-      </span>
-      <span>
-        {i.comprovante_caminho ? (
-          comprovante ? (
-            <a href={comprovante} target="_blank" rel="noreferrer">
-              Abrir comprovante
-            </a>
-          ) : comprovante === null ? (
-            'Não foi possível abrir o comprovante agora. Recarregue a página.'
-          ) : (
-            'Carregando o comprovante…'
-          )
-        ) : (
-          'Sem comprovante (pagamento em dinheiro)'
-        )}
-      </span>
-      {meu ? (
-        <p className="detalhe">Este pagamento é seu: outra pessoa da tesouraria ou da presidência confere.</p>
-      ) : (
-        <>
-          <div className="acoes">
-            <button type="button" className="botao" disabled={enviando} onClick={() => void analisar(true)}>
-              Confirmar pagamento
-            </button>
-          </div>
-          <RecusarInforme motivo={motivo} setMotivo={setMotivo} enviando={enviando} aoRecusar={() => void analisar(false)} />
-        </>
-      )}
-    </li>
-  )
-}
-
-function RecusarInforme({
-  motivo,
-  setMotivo,
-  enviando,
-  aoRecusar,
-}: {
-  motivo: string
-  setMotivo: (m: string) => void
-  enviando: boolean
-  aoRecusar: () => void
-}) {
-  return (
-    <details className="acao-recolhida">
-      <summary>Recusar</summary>
-      <form
-        className="form-linha form-compacto"
-        onSubmit={(e) => {
-          e.preventDefault()
-          aoRecusar()
-        }}
-      >
-        <label>
-          Motivo *
-          <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: comprovante ilegível" />
-        </label>
-        <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
-          Recusar
-        </button>
-      </form>
-    </details>
-  )
-}
-
-// ---------------------------------------------------------------------
-
-function SituacaoAssociados({
-  pessoaId,
-  concluir,
-  somenteLeitura,
-}: {
-  pessoaId: string
-  concluir: Concluir
-  somenteLeitura: boolean
-}) {
-  const [carga, recarregar] = useCarregar(situacaoDeTodos)
-  const concluirERecarregar: Concluir = (r, sucesso) => {
-    const certo = concluir(r, sucesso)
-    if (certo) recarregar()
-    return certo
-  }
-  const [busca, setBusca] = useState('')
-  const [soAtraso, setSoAtraso] = useState(false)
-  const [aberta, setAberta] = useState<string | null>(null)
-
-  return (
-    <MostrarCarga carga={carga} recarregar={recarregar}>
-      {(todos) => {
-        const emAtraso = todos.filter((s) => !s.em_dia)
-        const filtrados = todos.filter(
-          (s) => (!soAtraso || !s.em_dia) && (contemTexto(s.nome, busca) || contemTexto(s.igreja, busca)),
-        )
-        return (
-          <>
-            <p>
-              <strong>{todos.length - emAtraso.length}</strong> em dia · <strong>{emAtraso.length}</strong> em atraso (não
-              votam nem são votados — Art. 11) · total vencido {formatarReais(emAtraso.reduce((t, s) => t + Number(s.valor_vencido), 0))}
-            </p>
-            <div className="form-linha">
-              <label>
-                Buscar associado
-                <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} />
-              </label>
-              <label className="caixa-marcar">
-                <input type="checkbox" checked={soAtraso} onChange={(e) => setSoAtraso(e.target.checked)} />
-                Só os inadimplentes
-              </label>
-            </div>
-            <ul className="lista" aria-label="Situação dos associados">
-              {filtrados.map((s) => (
-                <LinhaSituacao
-                  key={s.pessoa_id}
-                  situacao={s}
-                  aberta={aberta === s.pessoa_id}
-                  aoAbrir={() => setAberta(aberta === s.pessoa_id ? null : s.pessoa_id)}
-                  concluir={concluirERecarregar}
-                  somenteLeitura={somenteLeitura}
-                  minha={s.pessoa_id === pessoaId}
-                />
-              ))}
-            </ul>
-          </>
-        )
-      }}
-    </MostrarCarga>
-  )
-}
-
-function LinhaSituacao({
-  situacao: s,
-  aberta,
-  aoAbrir,
-  concluir,
-  somenteLeitura,
-  minha,
-}: {
-  situacao: SituacaoContribuicao
-  aberta: boolean
-  aoAbrir: () => void
-  concluir: Concluir
-  somenteLeitura: boolean
-  minha: boolean
-}) {
-  return (
-    <li className="lista-item lista-item-estatico" aria-label={s.nome}>
-      <strong>
-        <span className="numero">Nº {s.numero_registro}</span> {s.nome}
-      </strong>
-      <span>
-        {s.jubilado && <span className="etiqueta etiqueta-ok">Isento (jubilado)</span>}{' '}
-        {s.jubilado && s.em_dia ? null : s.em_dia ? (
-          <span className="etiqueta etiqueta-ok">Em dia</span>
-        ) : (
-          <span className="etiqueta etiqueta-atraso">
-            Em atraso: {s.cobrancas_vencidas} vencida(s), {formatarReais(s.valor_vencido)}
-          </span>
-        )}{' '}
-        {s.igreja}
-      </span>
-      {(!s.jubilado || !s.em_dia) && !somenteLeitura && minha && (
-        <span className="detalhe">É você: outra pessoa da tesouraria ou da presidência registra o seu pagamento.</span>
-      )}
-      {(!s.jubilado || !s.em_dia) && !somenteLeitura && !minha && (
-        <button type="button" className="botao-texto alinhar-esquerda" onClick={aoAbrir}>
-          {aberta ? 'Fechar' : 'Registrar pagamento recebido'}
-        </button>
-      )}
-      {aberta && <RegistrarPagamento pessoaId={s.pessoa_id} nome={s.nome} concluir={concluir} />}
-    </li>
-  )
-}
-
-function RegistrarPagamento({ pessoaId, nome, concluir }: { pessoaId: string; nome: string; concluir: Concluir }) {
-  const [carga, recarregar] = useCarregar(() => cobrancasEmAbertoDe(pessoaId))
-  const [cobrancaId, setCobrancaId] = useState('')
-  const [data, setData] = useState(hojeIso())
-  const [forma, setForma] = useState<string>('Dinheiro')
-  const [observacao, setObservacao] = useState('')
-  const [motivo, setMotivo] = useState('')
-  const [enviando, umaVez] = useUmaVez()
-
-  return (
-    <MostrarCarga carga={carga} recarregar={recarregar}>
-      {(cobrancas) =>
-        cobrancas.length === 0 ? (
-          <p className="vazio">Nenhuma contribuição em aberto.</p>
-        ) : (
-          <>
-            <form
-              className="form-linha form-compacto"
-              aria-label={`Registrar pagamento de ${nome}`}
-              onSubmit={async (e) => {
-                e.preventDefault()
-                const c = cobrancas.find((x) => x.id === cobrancaId)
-                if (!c) return
-                await umaVez(async () =>
-                  concluir(
-                    await registrarPagamento(c.id, data, Number(c.valor), forma, observacao),
-                    `Pagamento de ${nome} registrado (${nomeDaCobranca(c)}).`,
-                  ),
-                )
-              }}
-            >
-              <label>
-                Contribuição
-                <select required value={cobrancaId} onChange={(e) => setCobrancaId(e.target.value)}>
-                  <option value="">— Escolha —</option>
-                  {cobrancas.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {nomeDaCobranca(c)} — {formatarReais(c.valor)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Data
-                <input type="date" required max={hojeIso()} value={data} onChange={(e) => setData(e.target.value)} />
-              </label>
-              <label>
-                Forma
-                <select value={forma} onChange={(e) => setForma(e.target.value)}>
-                  {FORMAS_PAGAMENTO.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Observação
-                <input value={observacao} onChange={(e) => setObservacao(e.target.value)} />
-              </label>
-              <button type="submit" className="botao" disabled={enviando}>
-                Registrar
-              </button>
-            </form>
-            <details className="acao-recolhida">
-              <summary>Cancelar uma contribuição (isenção ou lançada por engano)</summary>
-              <form
-                className="form-linha form-compacto"
-                aria-label={`Cancelar contribuição de ${nome}`}
-                onSubmit={async (e) => {
-                  e.preventDefault()
-                  const c = cobrancas.find((x) => x.id === cobrancaId)
-                  if (!c) return concluir({ erro: 'Escolha acima qual contribuição cancelar.' }, '')
-                  await umaVez(async () =>
-                    concluir(await cancelarCobranca(c.id, motivo), `Contribuição cancelada: ${nomeDaCobranca(c)} de ${nome}.`),
-                  )
-                }}
-              >
-                <label>
-                  Motivo *
-                  <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: isenção aprovada pela diretoria" />
-                </label>
-                <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
-                  Cancelar a contribuição escolhida
-                </button>
-              </form>
-            </details>
-          </>
-        )
-      }
-    </MostrarCarga>
-  )
-}
-
-// ---------------------------------------------------------------------
-
-function CobrancasExercicio({ concluir, somenteLeitura }: { concluir: Concluir; somenteLeitura: boolean }) {
-  const hoje = hojeIso()
-  const atual = exercicioDe(hoje)
-  const [exercicio, setExercicio] = useState(atual)
-  const [enviando, umaVez] = useUmaVez()
-  const [carga, recarregar] = useCarregar(() => resumoDoExercicio(exercicio, hoje))
-
-  return (
-    <section className="painel" aria-labelledby="titulo-cobrancas-exercicio">
-      <h2 id="titulo-cobrancas-exercicio">Cobranças do exercício</h2>
-      <div className="form-linha">
-        <label>
-          Exercício
-          <select
-            value={exercicio}
-            onChange={(e) => {
-              setExercicio(Number(e.target.value))
-              setTimeout(recarregar)
-            }}
-          >
-            {[atual + 1, atual, atual - 1].map((e) => (
-              <option key={e} value={e}>
-                {nomeDoExercicio(e)}
-              </option>
-            ))}
-          </select>
-        </label>
-        {!somenteLeitura && (
-          <button
-            type="button"
-            className="botao"
-            disabled={enviando}
-            onClick={() =>
-              void umaVez(async () => {
-                const r = await gerarCobrancas(exercicio)
-                const certo = concluir(
-                  r,
-                  r.erro === null
-                    ? r.dados === 0
-                      ? `Nenhuma cobrança nova: o exercício ${nomeDoExercicio(exercicio)} já estava gerado para todos.`
-                      : `${r.dados} cobrança(s) gerada(s) para o exercício ${nomeDoExercicio(exercicio)}.`
-                    : '',
-                )
-                if (certo) recarregar()
-              })
-            }
-          >
-            Gerar cobranças do exercício
-          </button>
-        )}
-      </div>
-      <p className="detalhe">
-        Gera, para cada associado ativo, as mensalidades (ou a anuidade, para quem escolheu) pelo valor da categoria. Jubilado
-        não recebe cobrança. Pode gerar de novo quando entrar associado novo: nada se repete.
-      </p>
-      <MostrarCarga carga={carga} recarregar={recarregar}>
-        {(r) => (
-          <dl className="definicoes" aria-label="Resumo do exercício">
-            <dt>Cobranças</dt>
-            <dd>{r.cobrancas}</dd>
-            <dt>Previsto</dt>
-            <dd>{formatarReais(r.previsto)}</dd>
-            <dt>Recebido</dt>
-            <dd>{formatarReais(r.recebido)}</dd>
-            <dt>Em aberto</dt>
-            <dd>{formatarReais(r.emAberto)}</dd>
-            <dt>Vencido</dt>
-            <dd>{formatarReais(r.vencido)}</dd>
-          </dl>
-        )}
-      </MostrarCarga>
-    </section>
+      {tela.conteudo({ pessoaId, perfis, opera, concluir })}
+    </div>
   )
 }

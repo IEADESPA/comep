@@ -115,8 +115,8 @@ export default function App() {
               {/* Cada função do módulo tem endereço próprio (menu do módulo, src/componentes/menu.ts) */}
               <Route path="financeiro" element={<Area caminho="/financeiro" />}>
                 <Route index element={<Financeiro />} />
-                <Route path="contribuicoes/cobrancas" element={<Financeiro parte="cobrancas" />} />
                 <Route path=":parte" element={<Financeiro />} />
+                <Route path=":parte/:sub" element={<Financeiro />} />
               </Route>
 
               <Route path="minha-credencial" element={<Area caminho="/minha-credencial" />}>

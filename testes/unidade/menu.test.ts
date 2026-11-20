@@ -31,9 +31,12 @@ describe('o menu do módulo', () => {
   })
 
   it('as subfunções: a mais específica acende', () => {
-    assert.deepEqual(onde('/financeiro/contribuicoes'), ['financeiro', 'contribuicoes', 'Situação dos associados'])
-    assert.deepEqual(onde('/financeiro/contribuicoes/cobrancas'), ['financeiro', 'contribuicoes', 'Cobranças do exercício'])
-    assert.deepEqual(onde('/financeiro/caixa'), ['financeiro', 'caixa', null])
+    assert.deepEqual(onde('/financeiro/contribuicoes'), ['financeiro', 'contribuicoes', 'Situação dos ministros'])
+    assert.deepEqual(onde('/financeiro/contribuicoes/cobrancas'), ['financeiro', 'contribuicoes', 'Cobranças do ano'])
+    assert.deepEqual(onde('/financeiro/caixa'), ['financeiro', 'caixa', 'Lançamentos'])
+    assert.deepEqual(onde('/financeiro/caixa/contas'), ['financeiro', 'caixa', 'Contas e saldos'])
+    assert.deepEqual(onde('/financeiro/prestacao/mes-a-mes'), ['financeiro', 'prestacao', 'Mês a mês'])
+    assert.deepEqual(onde('/financeiro/orcamento/plano'), ['financeiro', 'orcamento', 'Plano anual de trabalho'])
   })
 
   it('o começo do módulo (que leva à primeira função) já é do módulo, sem função acesa', () => {

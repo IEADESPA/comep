@@ -32,7 +32,7 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
   // 1. A tesouraria (aqui, a presidência) gera as cobranças do exercício
   await trocarPara(page, 'presidencia')
   await page.goto('financeiro')
-  await abrirFuncao(page, 'Cobranças do exercício', 'Contribuições')
+  await abrirFuncao(page, 'Cobranças do ano', 'Contribuições')
   await page.getByRole('button', { name: 'Gerar cobranças do exercício' }).click()
   await expect(mensagemNaTela(page, /cobrança\(s\) gerada\(s\)/)).toBeVisible()
 
@@ -60,15 +60,15 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
   await page.goto('financeiro')
   await expect(page).toHaveURL(/\/financeiro\/comprovantes$/)
   const pagamento = page.getByRole('listitem', { name: `Pagamento de ${nome}` })
-  await expect(pagamento).toContainText(`${anuidade}: R$ 200,00`)
-  await expect(pagamento.getByRole('link', { name: 'Abrir comprovante' })).toBeVisible()
-  await pagamento.getByRole('button', { name: 'Confirmar pagamento' }).click()
+  await expect(pagamento).toContainText(`${anuidade} · R$ 200,00`)
+  await expect(pagamento.getByRole('link', { name: 'Ver comprovante' })).toBeVisible()
+  await pagamento.getByRole('button', { name: 'Confirmar', exact: true }).click()
   await expect(mensagemNaTela(page, `Pagamento de ${nome} confirmado`)).toBeVisible()
 
   // A situação do associado aparece certa para a tesouraria
-  await abrirFuncao(page, 'Situação dos associados', 'Contribuições')
-  await page.getByLabel('Buscar associado').fill(nome)
-  await expect(page.getByRole('listitem', { name: nome })).toContainText('Em dia')
+  await abrirFuncao(page, 'Situação dos ministros', 'Contribuições')
+  await page.getByRole('searchbox', { name: 'Buscar ministro ou igreja', exact: true }).fill(nome)
+  await expect(page.getByRole('list', { name: 'Situação dos ministros' }).getByRole('listitem', { name: nome })).toContainText('Em dia')
 
   // O pagamento confirmado entrou sozinho no caixa (PIX → conta bancária)
   await abrirFuncao(page, 'Caixa')

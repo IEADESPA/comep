@@ -8041,3 +8041,765 @@ li.feito .numero-passo {
   min-width: 108px;
   max-width: 120px;
 }
+
+/* ---------- Financeiro (Fase 5.5, parte 9; rodada 11): as 6 funções no desenho aprovado ---------- */
+
+/* O alto de cada função: o nome à esquerda e os três números à direita (no computador) */
+.fin-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 18px;
+}
+
+.fin-cabecalho > .cabecalho-funcao {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.fin-numeros {
+  margin: 0;
+  display: flex;
+  gap: 0;
+}
+
+.fin-numeros > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 0 0 18px;
+  margin-left: 18px;
+  border-left: 1px solid var(--cor-borda);
+}
+
+.fin-numeros > div:first-child {
+  margin-left: 0;
+}
+
+.fin-numeros dt {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.fin-numeros dd {
+  margin: 0;
+  font-family: var(--letra-titulo);
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--cor-titulo);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fin-rotulo {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+/* Os medidores (número com a barra) */
+.fin-medidores {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .fin-medidores {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.fin-medidor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+}
+
+.fin-medidor > strong {
+  font-family: var(--letra-titulo);
+  font-size: 22px;
+  color: var(--cor-titulo);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-medidor-sub {
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.fin-barra {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cor-fundo);
+  overflow: hidden;
+}
+
+.fin-barra > span {
+  display: block;
+  height: 100%;
+  background: var(--area-cor, var(--area-financas));
+}
+
+.fin-duas {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .fin-duas {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+}
+
+/* Uma pessoa na lista (quem precisa de atenção / todos) */
+.fin-linha-pessoa {
+  flex-wrap: wrap;
+}
+
+.fin-linha-acoes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+
+.fin-linha-largura {
+  flex: 1 0 100%;
+}
+
+.fin-barras {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fin-barras li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fin-barras-rotulo {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.fin-barras-rotulo strong {
+  color: var(--cor-titulo);
+  white-space: nowrap;
+}
+
+.fin-filtros,
+.fin-barra-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+}
+
+.fin-filtros .campo-busca {
+  flex: 1 1 260px;
+}
+
+.fin-filtros .campo-busca input {
+  padding-left: 12px;
+}
+
+.fin-espaco {
+  flex: 1;
+}
+
+.fin-numeros-cobranca {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 900px) {
+  .fin-numeros-cobranca {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .fin-numeros-cobranca strong {
+    font-size: 22px;
+  }
+}
+
+/* Os comprovantes informados (opção 1: a lista) */
+.fin-informe {
+  flex-wrap: wrap;
+}
+
+.fin-informe-valor {
+  color: var(--cor-texto) !important;
+  font-size: 13.5px !important;
+}
+
+.fin-informe-comprovante {
+  flex: none;
+  font-size: 13.5px;
+}
+
+.fin-informe-acoes {
+  flex: none;
+  display: inline-flex;
+  gap: 8px;
+}
+
+@media (max-width: 899.98px) {
+  .fin-informe-comprovante,
+  .fin-informe-acoes {
+    flex: 1 0 100%;
+    padding-left: 48px;
+  }
+}
+
+.fin-link-comprovante {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--cor-marca-texto);
+}
+
+.fin-sem-comprovante {
+  font-size: 13px;
+  color: var(--cor-atencao-texto);
+}
+
+.fin-valor {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* O caixa como extrato (opção 2): o extrato à esquerda e o saldo com os botões à direita */
+.fin-extrato {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .fin-extrato {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .fin-extrato-lado {
+    order: 2;
+  }
+}
+
+.fin-extrato-lado,
+.fin-extrato-principal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fin-saldo-total {
+  font-family: var(--letra-titulo);
+  font-size: 26px;
+  color: var(--cor-titulo);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-saldos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fin-saldos li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+  font-size: 14px;
+}
+
+.fin-saldos li strong {
+  color: var(--cor-titulo);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-saldo-espera {
+  flex: 1 0 100%;
+  font-size: 12.5px;
+  color: var(--cor-atencao-texto);
+}
+
+.fin-botoes-caixa {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fin-botao-largo {
+  width: 100%;
+  min-height: 46px;
+  font-size: 15px;
+}
+
+.fin-form h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.fin-mes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.fin-mes h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.fin-mes-campo input {
+  height: 34px;
+  padding: 0 8px;
+  width: auto;
+}
+
+.fin-mes-dica {
+  flex: 1;
+  text-align: right;
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+.fin-extrato-lista {
+  gap: 0;
+  padding: 6px 18px;
+}
+
+.fin-extrato-saldo {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 0;
+  font-size: 13.5px;
+  color: var(--cor-texto-suave);
+}
+
+.fin-extrato-saldo strong {
+  color: var(--cor-titulo);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-dia h3 {
+  margin: 0;
+  padding: 10px 0 2px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.fin-dia ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fin-linha-extrato {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.fin-saldo-depois {
+  width: 110px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 899.98px) {
+  .fin-saldo-depois {
+    width: auto;
+  }
+}
+
+.fin-desfeito .linha-corpo > strong,
+.fin-desfeito .fin-valor {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.fin-contas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .fin-contas {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+.fin-conta-nome {
+  font-size: 15px;
+  color: var(--cor-titulo);
+}
+
+/* Cartões (despesas, atividades do plano) */
+.fin-cartoes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .fin-cartoes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.fin-cartao-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fin-cartao-titulo {
+  font-size: 16px;
+  color: var(--cor-titulo);
+}
+
+.fin-cartao-valor {
+  font-family: var(--letra-titulo);
+  font-size: 26px;
+  color: var(--cor-titulo);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-cartao-despesa .acoes,
+.fin-atividade .acoes {
+  margin: 0;
+}
+
+/* O orçamento por categoria (opção 2: os cartões) */
+.fin-situacao-orcamento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.fin-situacao-texto {
+  flex: 1 1 240px;
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+}
+
+.fin-situacao-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fin-form-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+}
+
+.fin-form-linha label {
+  flex: 1 1 220px;
+}
+
+.fin-form-linha .detalhe {
+  flex: 1 0 100%;
+  margin: 0;
+}
+
+.fin-titulo-grupo {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--area-cor);
+}
+
+.fin-cartoes-orcamento {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+
+.fin-cartao-orcamento {
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.fin-cartao-orcamento-nome {
+  min-height: 34px;
+  font-size: 14px;
+  color: var(--cor-titulo);
+}
+
+.fin-cartao-orcamento label {
+  font-size: 13px;
+}
+
+.fin-previsto {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--cor-texto-suave);
+}
+
+.fin-previsto strong {
+  color: var(--cor-titulo);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-resultado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--area-fundo);
+  font-size: 13.5px;
+}
+
+.fin-resultado strong {
+  font-size: 15px;
+  color: var(--area-cor);
+}
+
+.fin-plano-grupo h2 {
+  margin: 4px 0 10px;
+  font-size: 15px;
+}
+
+/* A prestação de contas (opção 1: as etapas e os números) */
+.fin-titulo-balanco {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.fin-titulo-balanco .situacao-balanco {
+  margin: 0;
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+}
+
+.fin-etapas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .fin-etapas {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.fin-etapas li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.fin-etapa-bola {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  border: 2px solid var(--cor-borda);
+  background: var(--cor-superficie);
+  color: var(--cor-texto-suave);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.fin-etapas li.feito .fin-etapa-bola {
+  border-color: transparent;
+  background: var(--area-financas-fundo);
+  color: var(--area-financas);
+}
+
+.fin-etapas li.agora .fin-etapa-bola {
+  border-color: var(--cor-marca);
+  background: var(--cor-marca);
+  color: #ffffff;
+}
+
+.fin-etapa-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fin-etapa-texto strong {
+  font-size: 14px;
+  color: var(--cor-titulo);
+}
+
+.fin-etapa-texto span {
+  font-size: 12.5px;
+  color: var(--cor-texto-suave);
+}
+
+.fin-etapas li:not(.feito):not(.agora) .fin-etapa-texto strong {
+  color: var(--cor-texto-suave);
+}
+
+.fin-numeros-exercicio {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fin-numeros-exercicio > .detalhe,
+.fin-numeros-exercicio > .aviso-texto {
+  margin: 0;
+}
+
+.fin-quatro strong {
+  font-size: 22px;
+}
+
+.fin-categorias {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fin-categorias li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.fin-categorias li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+.fin-categorias strong {
+  color: var(--area-cor);
+  font-variant-numeric: tabular-nums;
+}
+
+.bloco h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.fin-mini-barras {
+  width: 160px;
+}
+
+.fin-mini-barras span {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  margin: 2px 0;
+}
+
+.fin-mini-entrada {
+  background: var(--area-financas);
+}
+
+.fin-mini-saida {
+  background: var(--area-pessoas);
+}
+
+/* O balanço para imprimir */
+.fin-documento {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 24px;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+}
+
+.fin-documento-topo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--cor-marca);
+}
+
+.fin-documento-topo h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.fin-documento-secao h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+@media print {
+  .fin-documento {
+    padding: 0;
+    border: 0;
+  }
+}
