@@ -144,6 +144,18 @@ describe('Fase 5.5, parte 10 — o Conselho Fiscal mês a mês', () => {
     assert.deepEqual(todas.rows, [{ arquivada: true }, { arquivada: false }])
   })
 
+  it('cancelar um lançamento e lançar outro do mesmo valor também faz a aprovação deixar de valer', async () => {
+    // defeito achado no ponta a ponta (20/11/2026): as somas e a quantidade voltavam a bater e a aprovação valia de novo
+    const extra = await lancar(tesoureiro, 'entrada', 'Ofertas', 7, '2024-05-25', 'Oferta extra')
+    await chamar(conselheiro, "select public.decidir_mes('2024-05-01', 'aprovado', null)")
+    assert.equal(doMes(await meses(conselheiro, 2024), '2024-05-01').situacao, 'aprovado')
+    await chamar(tesoureiro, "select public.cancelar_lancamento($1, 'Trocado')", [extra])
+    await lancar(tesoureiro, 'entrada', 'Ofertas', 7, '2024-05-26', 'Oferta extra (a certa)')
+    const maio = doMes(await meses(conselheiro, 2024), '2024-05-01')
+    assert.equal(maio.situacao, 'mudou')
+    await chamar(conselheiro, "select public.decidir_mes('2024-05-01', 'aprovado', null)")
+  })
+
   it('pede esclarecimento; o mês espera a tesouraria; a resposta com o comprovante vai para o lançamento', async () => {
     const doacao = await db.query<{ id: string }>("select id from public.lancamentos where descricao = 'Doação de junho'")
     const lancamento = doacao.rows[0].id

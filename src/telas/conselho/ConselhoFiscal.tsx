@@ -824,7 +824,12 @@ function ConteudoParecer({ exercicio, quem, concluir }: { exercicio: number; que
     const b = balanco.dados.balanco
     const assinaturas = b?.parecer && b.parecer_em ? await assinaturasDoParecer(b.id, b.parecer_em) : ok<Assinatura[]>([])
     if (assinaturas.erro !== null) return assinaturas
-    return ok({ meses: meses.dados, balanco: b, membros: membros.dados, assinaturas: assinaturas.dados })
+    // o parecer dado antes das assinaturas (Fase 5.5): quem deu o parecer conta como quem assinou
+    const lista =
+      b?.parecerista && b.parecer_em && !assinaturas.dados.some((a) => a.pessoa_id === b.parecerista?.id)
+        ? [{ pessoa_id: b.parecerista.id, nome: b.parecerista.nome, em: b.parecer_em }, ...assinaturas.dados]
+        : assinaturas.dados
+    return ok({ meses: meses.dados, balanco: b, membros: membros.dados, assinaturas: lista })
   })
   const concluirERecarregar: Concluir = (r, sucesso) => {
     const certo = concluir(r, sucesso)
@@ -855,7 +860,7 @@ function ConteudoParecer({ exercicio, quem, concluir }: { exercicio: number; que
                   )
                 })}
               </ul>
-              {faltam.length > 0 && (
+              {faltam.length > 0 && !balanco?.parecer && (
                 <p className="aviso-texto">
                   O parecer do ano sai dos meses aprovados: {plural(faltam.length, 'mês ainda precisa', 'meses ainda precisam')} da aprovação do Conselho.
                 </p>
@@ -883,7 +888,7 @@ function ConteudoParecer({ exercicio, quem, concluir }: { exercicio: number; que
                   </p>
                   <p className="texto-livre">{balanco.parecer_texto}</p>
                   <ListaAssinaturas assinaturas={assinaturas} membros={membros} />
-                  {quem.conselho && situacao !== 'devolvido' && !assinaturas.some((a) => a.pessoa_id === quem.pessoaId) && (
+                  {quem.conselho && situacao === 'aguardando_assembleia' && !assinaturas.some((a) => a.pessoa_id === quem.pessoaId) && (
                     <AssinarTambem balancoId={balanco.id} concluir={concluirERecarregar} />
                   )}
                 </>
@@ -1048,7 +1053,11 @@ function DocumentoDoExercicio({ exercicio }: { exercicio: number }) {
     const b = balanco.dados.balanco
     const assinaturas = b?.parecer && b.parecer_em ? await assinaturasDoParecer(b.id, b.parecer_em) : ok<Assinatura[]>([])
     if (assinaturas.erro !== null) return assinaturas
-    return ok({ meses: meses.dados, balanco: b, assinaturas: assinaturas.dados })
+    const lista =
+      b?.parecerista && b.parecer_em && !assinaturas.dados.some((a) => a.pessoa_id === b.parecerista?.id)
+        ? [{ pessoa_id: b.parecerista.id, nome: b.parecerista.nome, em: b.parecer_em }, ...assinaturas.dados]
+        : assinaturas.dados
+    return ok({ meses: meses.dados, balanco: b, assinaturas: lista })
   })
   const nome = nomeDoExercicio(exercicio)
   return (

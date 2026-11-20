@@ -605,7 +605,7 @@ O lote do Financeiro (rodadas 9 a 11, aprovadas em 18/11/2026; as regras estão 
 
 ## Entrega 5.5.13 — Telas novas, parte 10: o Conselho Fiscal mês a mês (versão 5.5.0-teste.14)
 
-O fim do lote do Financeiro e do Conselho Fiscal (rodadas 13 e 14, aprovadas em 18/11/2026; as regras estão no `PROJETO.md`, seção 4.10). Migração `20261120100000_conselho_fiscal_meses.sql`.
+O fim do lote do Financeiro e do Conselho Fiscal (rodadas 13 e 14, aprovadas em 18/11/2026; as regras estão no `PROJETO.md`, seção 4.10). Migrações `20261120100000_conselho_fiscal_meses.sql` e `20261120200000_conselho_fiscal_impressao.sql` (a correção abaixo).
 
 **As telas (módulo Conselho Fiscal, no menu da coluna: Contas dos meses, Esclarecimentos, Parecer do ano e Documentos):**
 
@@ -634,7 +634,9 @@ O fim do lote do Financeiro e do Conselho Fiscal (rodadas 13 e 14, aprovadas em 
 - **A marca de conferido (✓)** aparece nos lançamentos do mês aprovado; antes disso, a linha mostra o "?" da pergunta ou "respondido".
 - **A tesouraria e a presidência abrem o módulo** (só leitura e as respostas): é lá que elas respondem.
 
+**Defeito achado no ponta a ponta e corrigido:** a fotografia do mês aprovado guardava só as somas e a quantidade de lançamentos. A rodada do computador aprovou o mês e cancelou a sua entrada de R$ 1,00; a do celular lançou outra de R$ 1,00, e o mês apareceu aprovado (as somas e a quantidade voltaram a bater). A migração `20261120200000_conselho_fiscal_impressao.sql` guarda também a impressão digital (md5) de quais lançamentos contam no mês: qualquer troca faz a aprovação deixar de valer. O teste do banco "cancelar e lançar outro do mesmo valor" cobre o caso.
+
 **Verificação:**
 
-- testes do banco: `testes/banco/conselho_fiscal.test.ts` (7 testes): os 12 meses com os números e os saldos; quem decide (só o Conselho, mês terminado, ressalva com texto); a fotografia, a assinatura do outro membro e não aprovar duas vezes; o mês que mudou volta para a análise e a aprovação antiga fica arquivada; a pergunta, a resposta só da tesouraria, o arquivo que vai para o lançamento e o mês aprovado que não aceita pergunta; os meses sem movimento e o parecer do ano só com os 12 meses, com as assinaturas; os membros. O `prestacao.test.ts` aprova os meses antes do parecer;
+- testes do banco: `testes/banco/conselho_fiscal.test.ts` (8 testes): os 12 meses com os números e os saldos; quem decide (só o Conselho, mês terminado, ressalva com texto); a fotografia, a assinatura do outro membro e não aprovar duas vezes; o mês que mudou volta para a análise e a aprovação antiga fica arquivada; a pergunta, a resposta só da tesouraria, o arquivo que vai para o lançamento e o mês aprovado que não aceita pergunta; os meses sem movimento e o parecer do ano só com os 12 meses, com as assinaturas; os membros. O `prestacao.test.ts` aprova os meses antes do parecer;
 - ponta a ponta: `conselho-fiscal.spec` (novo: o Conselho aprova o mês anterior, pede esclarecimento sobre um lançamento do outro, a tesouraria responde, o Conselho aprova (o arquivo da resposta é conferido nos testes do banco); o mês a mês mostra o parecer; o ministro não abre; o parecer e os documentos do exercício da semente) e o `prestacao.spec` (o parecer dado no módulo Conselho Fiscal, depois de aprovar os meses sem movimento).
