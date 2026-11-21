@@ -29,6 +29,7 @@ import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarData, hojeIso, numeroDoRegistro } from '../../utilitarios/formatos'
 import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
 import { CredencialNaTela, SituacaoAgora } from '../credencial/Credenciais'
+import { FalarPeloWhatsApp } from './FalarPeloWhatsApp'
 
 // Ministros e inscrições › a ficha do ministro (aprovada em 18/11/2026: a ficha em abas, no mesmo formato do Meu perfil).
 // Abas com endereço próprio: Dados (/ministros/:id), Igreja, Título, Contribuição, Credencial, Acesso e Situação.
@@ -67,6 +68,8 @@ function Ficha({ pessoaId, aba }: { pessoaId: string; aba: string }) {
   // trocou de aba: a mensagem da aba anterior não vale mais
   const [abaDaMensagem, setAbaDaMensagem] = useState(aba)
   const mensagem = abaDaMensagem === aba ? retorno : {}
+  // "Falar pelo WhatsApp" (parte 11): abre embaixo do alto da ficha, em qualquer aba
+  const [falar, setFalar] = useState(false)
   const [carga, recarregar] = useCarregar(async () => {
     const [ficha, titulos, igrejas, valores, situacao] = await Promise.all([
       buscarFicha(pessoaId),
@@ -109,7 +112,8 @@ function Ficha({ pessoaId, aba }: { pessoaId: string; aba: string }) {
             </Aviso>
           ) : (
             <>
-              <CabecalhoFicha ficha={ficha} situacao={situacao} />
+              <CabecalhoFicha ficha={ficha} situacao={situacao} falar={falar} aoFalar={() => setFalar((f) => !f)} />
+              {falar && <FalarPeloWhatsApp ficha={ficha} situacao={situacao} />}
               <AbasDaTela rotulo="Partes da ficha" abas={ABAS(pessoaId)} />
               <Mensagem sucesso={mensagem.sucesso} erro={mensagem.erro} />
               {aba === 'igreja' ? (
@@ -148,7 +152,12 @@ type PropsConteudo = {
 }
 
 /** O alto da ficha: as iniciais, o nome e as etiquetas (em dia, título, nº, pastor presidente…). */
-function CabecalhoFicha({ ficha, situacao }: Pick<PropsConteudo, 'ficha' | 'situacao'>) {
+function CabecalhoFicha({
+  ficha,
+  situacao,
+  falar,
+  aoFalar,
+}: Pick<PropsConteudo, 'ficha' | 'situacao'> & { falar: boolean; aoFalar: () => void }) {
   const { associado } = ficha
   return (
     <section className="bloco cabecalho-ficha" aria-label="O ministro">
@@ -170,6 +179,10 @@ function CabecalhoFicha({ ficha, situacao }: Pick<PropsConteudo, 'ficha' | 'situ
           {!associado.tem_login && <Chip area="eventos">Sem login</Chip>}
         </span>
       </div>
+      <button type="button" className="botao botao-secundario cabecalho-ficha-acoes" aria-expanded={falar} onClick={aoFalar}>
+        <Icone nome="conversa" tamanho={18} />
+        {falar ? 'Fechar a conversa' : 'Falar pelo WhatsApp'}
+      </button>
     </section>
   )
 }

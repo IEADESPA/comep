@@ -46,6 +46,8 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
           VITE_AMBIENTE: ${{ vars.AMBIENTE }}
+          # a chave PÚBLICA do envio dos avisos no celular (docs/avisos-no-celular.md); vazia = o envio ainda não foi ligado
+          VITE_VAPID_PUBLICA: ${{ vars.VAPID_PUBLICA }}
 
       - name: Build do ambiente de teste (/comep/teste/, sempre no banco de teste)
         run: npx vite build --outDir dist/teste
@@ -54,6 +56,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.TESTE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.TESTE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_AMBIENTE: teste
+          VITE_VAPID_PUBLICA: ${{ vars.TESTE_VAPID_PUBLICA }}
 
       - name: "Links diretos (ex.: validação da carteirinha) abrem o app no GitHub Pages"
         # O 404.html é o app oficial; links do ambiente de teste são redirecionados por ele (index.html)
@@ -96,6 +99,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.TESTE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.TESTE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_AMBIENTE: teste
+          VITE_VAPID_PUBLICA: ${{ vars.TESTE_VAPID_PUBLICA }}
 
       - name: Navegador
         run: |
