@@ -67,8 +67,11 @@ test.describe('o ministro', () => {
     const recado = lista.getByRole('listitem').filter({ hasText: 'Recado de teste' }).first()
     await expect(recado).toContainText('Mandado por')
     if ((await recado.getByRole('img', { name: 'não lido' }).count()) > 0) {
+      // espera o banco gravar o lido antes de recarregar (recarregar antes cortaria o pedido no meio)
+      const gravou = page.waitForResponse((r) => r.url().includes('/rpc/marcar_notificacoes_lidas') && r.ok())
       await recado.getByRole('button').click()
       await expect(recado.getByRole('img', { name: 'não lido' })).toHaveCount(0)
+      await gravou
     }
     // o lido ficou no banco: recarregando, continua lido
     await page.reload()
@@ -86,17 +89,23 @@ test.describe('o ministro', () => {
     // o build do teste não tem a chave do envio: os avisos ficam ligados e a tela diz que o celular vem depois
     await expect(page.getByText(/^Pronto: os avisos ficam ligados\./).first()).toBeVisible()
 
-    const chega = page.getByRole('region', { name: 'O que chega no celular' })
-    const mural = chega.getByRole('switch', { name: 'Avisos novos no mural' })
-    const antes = await mural.getAttribute('aria-checked')
-    await mural.click()
-    await expect(mural).toHaveAttribute('aria-checked', antes === 'true' ? 'false' : 'true')
-    await expect(mensagemNaTela(page, 'Preferência guardada.')).toBeVisible()
+    const mural = () => page.getByRole('region', { name: 'O que chega no celular' }).getByRole('switch', { name: 'Avisos novos no mural' })
+    const tocar = async (ligado: 'true' | 'false') => {
+      const gravou = page.waitForResponse((r) => r.url().includes('/rpc/salvar_preferencias_avisos') && r.ok())
+      await mural().click()
+      await expect(mural()).toHaveAttribute('aria-checked', ligado)
+      await gravou
+      await expect(mensagemNaTela(page, 'Preferência guardada.')).toBeVisible()
+    }
+    // sobra de uma rodada cortada no meio: o mural pode ter ficado desligado; o teste começa com ele ligado
+    await expect(mural()).toBeVisible()
+    if ((await mural().getAttribute('aria-checked')) === 'false') await tocar('true')
+
+    await tocar('false')
     await page.reload()
-    await expect(page.getByRole('switch', { name: 'Avisos novos no mural' })).toHaveAttribute('aria-checked', antes === 'true' ? 'false' : 'true')
-    // volta como estava
-    await page.getByRole('switch', { name: 'Avisos novos no mural' }).click()
-    await expect(page.getByRole('switch', { name: 'Avisos novos no mural' })).toHaveAttribute('aria-checked', antes ?? 'true')
+    await expect(mural()).toHaveAttribute('aria-checked', 'false')
+    // volta como estava (ligado)
+    await tocar('true')
     await expect(page.getByRole('switch', { name: 'Silêncio à noite' })).toBeVisible()
   })
 })

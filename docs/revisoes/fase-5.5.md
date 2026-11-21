@@ -673,4 +673,10 @@ O módulo das Notificações (rodada 15, a proposta "notificacoes", aprovada em 
 - **Aviso lido no sino não vai ao celular**, nem o que tem mais de 3 dias.
 - **"Ver todos os avisos"**, do desenho do sino, continua "Ver o mural de avisos": o sino mostra os 30 mais novos.
 
-**Verificação:** (preenchida abaixo, depois do ponta a ponta)
+**Verificação (21/11/2026):**
+
+- `npm test`: 620 de 620 (o `testes/banco/notificacoes.test.ts` tem 15: os gatilhos de cada assunto, a chave que não repete, o lido por pessoa, as preferências, o aparelho que muda de dono, o recado e quem pode mandar, o "Lembrar todos" uma vez por dia, os avisos com data, o envio que respeita o silêncio e o que foi desligado, e o 404/410 que arquiva o aparelho); tsc, oxlint e build sem aviso.
+- Migração aplicada no `comep-teste` em 21/11, com o GitHub parado; `supabase db advisors`: só o aviso conhecido `auth_leaked_password_protection`.
+- Ponta a ponta no computador e no celular (9 arquivos: `notificacoes`, `mural`, `moldura`, `financeiro`, `portal`, `portal-ministro`, `cadastros`, `menu-modulo` e `configuracoes`): 73 passaram e 2 ficaram de fora de propósito (o teste só do celular no computador e o contrário).
+- O teste do lido espera o banco gravar antes de recarregar a página; o das preferências começa com o mural ligado, para limpar a sobra de uma rodada cortada no meio.
+- Telas conferidas com fotos no computador e no celular: o cartão do Início, Meu perfil › Avisos, o sino com o recado, a ficha com o WhatsApp, Administração › Avisos e notificações e o "Lembrar todos".
