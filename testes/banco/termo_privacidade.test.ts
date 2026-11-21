@@ -133,6 +133,30 @@ describe('Fase 5.5, parte 13 — o termo de uso de dados e a privacidade', () =>
     await assert.rejects(chamar(ministro, 'select public.privacidade_de($1)', [pessoaMinistro]), erroComCodigo(SEM_PERMISSAO))
   })
 
+  it('quem mexeu: o que a própria pessoa fez não aparece, e a busca vai pelo índice da pessoa (a auditoria só cresce)', async () => {
+    // o ministro muda o próprio telefone: não entra em "quem mexeu"
+    await db.query("select set_config('request.jwt.claim.sub', $1, false)", [ministro])
+    await db.query("update public.pessoas set telefone = '94999991111' where id = $1", [pessoaMinistro])
+    await db.query("select set_config('request.jwt.claim.sub', '', false)")
+    const p = ((await chamar(ministro, 'select public.minha_privacidade() as p')).rows[0] as { p: { quem_mexeu: { quem: string; o_que: string }[] } }).p
+    assert.ok(!p.quem_mexeu.some((x) => x.quem === 'Ministro de Teste'))
+    assert.ok(p.quem_mexeu.some((x) => x.quem === 'Secretaria de Teste' && x.o_que === 'o seu cadastro'))
+    // a associação foi gravada sem usuário (o cadastro inicial): aparece como "O sistema", pelo índice da pessoa
+    assert.ok(p.quem_mexeu.some((x) => x.quem === 'O sistema' && x.o_que === 'a sua associação'))
+    await db.query('set enable_seqscan = off')
+    const plano = (
+      await db.query<{ 'QUERY PLAN': string }>(
+        `explain select 1 from public.auditoria a
+          where coalesce(a.dados_depois ->> 'pessoa_id', a.dados_antes ->> 'pessoa_id') = '${pessoaMinistro}'
+          order by a.ocorrido_em desc limit 30`,
+      )
+    ).rows
+      .map((r) => r['QUERY PLAN'])
+      .join('\n')
+    await db.query('reset enable_seqscan')
+    assert.match(plano, /auditoria_pessoa/)
+  })
+
   it('o lembrete do termo vai para o sino de quem ainda não aceitou a versão que vale, uma vez por dia', async () => {
     const outro = await criarUsuario(db, 'ministro2@teste.local', 'Outro Ministro Fictício')
     const pessoaOutro = (await um<{ id: string }>('select id from public.pessoas where usuario_id = $1', [outro])).id

@@ -36,7 +36,10 @@ export function PortaoDoTermo({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const pessoaId = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.pessoaId : null
   const temPerfil = estado.situacao === 'logado' && estado.conta?.tipo === 'ok' && estado.conta.conta.perfis.length > 0
-  if (!pessoaId || !temPerfil || pathname === '/termo-de-uso') return children
+  if (pathname === '/termo-de-uso') return children
+  // a conta ainda está carregando: espera, para o sistema não aparecer por um instante antes do termo
+  if (estado.situacao === 'logado' && estado.conta === null) return <Carregando texto="Carregando…" />
+  if (!pessoaId || !temPerfil) return children
   return (
     <ConferirTermo key={pessoaId} >
       {children}
