@@ -9357,7 +9357,9 @@ li.feito .numero-passo {
   flex-direction: column;
   gap: 6px;
   font-size: 14px;
+}
 
+/* =====================================================================
    Fase 5.5, parte 12 — a blindagem do Financeiro: a origem no extrato e o filtro, e o evento que lança
    ===================================================================== */
 .fin-extrato-filtros {
