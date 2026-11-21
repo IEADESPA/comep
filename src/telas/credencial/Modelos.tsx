@@ -22,6 +22,8 @@ import {
   ordenarModelos,
   painelModelos,
   porModeloEmUso,
+  desfazerPagamentoExclusivo,
+  receberPagamentoExclusivo,
   registrarPagamentoExclusivo,
   salvarModeloGrupo,
   salvarVersaoDoModelo,
@@ -866,7 +868,9 @@ function Exclusivo({
   })
   const [entradas] = useCarregar(async () => (registraPagamento ? entradasParaLigar() : ok<EntradaDoCaixa[]>([])))
   const [pagoEm, setPagoEm] = useState(m.pago_em ?? hojeIso())
-  const [lancamento, setLancamento] = useState(m.lancamento_id ?? '')
+  const [forma, setForma] = useState('PIX')
+  const [lancamento, setLancamento] = useState('')
+  const [motivo, setMotivo] = useState('')
   const [enviando, umaVez] = useUmaVez()
   const igrejas = (opcoes?.igrejas ?? []).filter((i) => i.cadastro === 'completo')
   const daIgreja = ministros.situacao === 'ok' ? ministros.dados.filter((a) => a.igreja_id === igreja) : []
@@ -912,52 +916,91 @@ function Exclusivo({
         <dt>Cores e logo</dt>
         <dd>os da igreja, no desenho do modelo (Editar o desenho)</dd>
       </dl>
-      {registraPagamento ? (
+      {registraPagamento && m.pago_em ? (
+        // parte 12 (a blindagem do caixa): desfazer cancela a entrada do caixa (o estorno), com o motivo
         <form
           className="form-linha"
-          aria-label="Pagamento do modelo exclusivo"
+          aria-label="Desfazer o pagamento do modelo exclusivo"
           onSubmit={(e) => {
             e.preventDefault()
             void umaVez(async () => {
-              const r = await registrarPagamentoExclusivo(m.id, pagoEm, lancamento || null)
-              aoMudar(r.erro !== null ? { erro: r.erro } : { sucesso: 'Pagamento registrado: o modelo vale para os ministros da igreja.' })
+              const r = await desfazerPagamentoExclusivo(m.id, motivo)
+              aoMudar(r.erro !== null ? { erro: r.erro } : { sucesso: 'Pagamento desfeito: a entrada do caixa foi cancelada e o modelo deixou de valer.' })
             })
           }}
         >
-          <label className="campo-curto">
-            Pago em
-            <input type="date" required max={hojeIso()} value={pagoEm} onChange={(e) => setPagoEm(e.target.value)} />
-          </label>
           <label>
-            Entrada do caixa (opcional)
-            <select value={lancamento} onChange={(e) => setLancamento(e.target.value)}>
-              <option value="">Sem ligar ao caixa</option>
-              {(entradas.situacao === 'ok' ? entradas.dados : []).map((x) => (
-                <option key={x.id} value={x.id}>
-                  {formatarData(x.data)} · {x.descricao} · {reais(x.valor)}
-                </option>
-              ))}
-            </select>
+            Motivo para desfazer (vai para o caixa) *
+            <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} />
           </label>
-          <button type="submit" className="botao botao-secundario" disabled={enviando}>
-            {m.pago_em ? 'Corrigir o pagamento' : 'Registrar o pagamento'}
+          <button type="submit" className="botao-texto" disabled={enviando}>
+            Desfazer o pagamento
           </button>
-          {m.pago_em && (
-            <button
-              type="button"
-              className="botao-texto"
-              disabled={enviando}
-              onClick={() =>
-                void umaVez(async () => {
-                  const r = await registrarPagamentoExclusivo(m.id, null, null)
-                  aoMudar(r.erro !== null ? { erro: r.erro } : { sucesso: 'Pagamento desfeito: o modelo deixou de valer.' })
-                })
-              }
-            >
-              Desfazer o pagamento
-            </button>
-          )}
         </form>
+      ) : registraPagamento ? (
+        <>
+          {/* parte 12 (a blindagem do caixa): o pagamento sempre entra no caixa, ligado ao modelo */}
+          <form
+            className="form-linha"
+            aria-label="Pagamento do modelo exclusivo"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void umaVez(async () => {
+                const r = await receberPagamentoExclusivo(m.id, pagoEm, forma)
+                aoMudar(
+                  r.erro !== null ? { erro: r.erro } : { sucesso: 'Pagamento recebido: a entrada está no caixa e o modelo vale para os ministros da igreja.' },
+                )
+              })
+            }}
+          >
+            <label className="campo-curto">
+              Pago em
+              <input type="date" required max={hojeIso()} value={pagoEm} onChange={(e) => setPagoEm(e.target.value)} />
+            </label>
+            <label className="campo-curto">
+              Forma
+              <select value={forma} onChange={(e) => setForma(e.target.value)}>
+                <option>PIX</option>
+                <option>Dinheiro</option>
+                <option>Depósito</option>
+              </select>
+            </label>
+            <button type="submit" className="botao botao-secundario" disabled={enviando}>
+              Receber o pagamento ({reais(Number(m.valor ?? 0))})
+            </button>
+          </form>
+          {(entradas.situacao === 'ok' ? entradas.dados : []).length > 0 && (
+            <details className="acao-recolhida">
+              <summary>A tesouraria já lançou a entrada no Caixa? Ligue aqui</summary>
+              <form
+                className="form-linha"
+                aria-label="Ligar a entrada do caixa ao modelo"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void umaVez(async () => {
+                    const r = await registrarPagamentoExclusivo(m.id, pagoEm, lancamento)
+                    aoMudar(r.erro !== null ? { erro: r.erro } : { sucesso: 'Pagamento registrado: o modelo vale para os ministros da igreja.' })
+                  })
+                }}
+              >
+                <label>
+                  Entrada do caixa *
+                  <select required value={lancamento} onChange={(e) => setLancamento(e.target.value)}>
+                    <option value="">Escolha…</option>
+                    {(entradas.situacao === 'ok' ? entradas.dados : []).map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {formatarData(x.data)} · {x.descricao} · {reais(x.valor)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button type="submit" className="botao botao-secundario" disabled={enviando}>
+                  Ligar a entrada
+                </button>
+              </form>
+            </details>
+          )}
+        </>
       ) : (
         <p className="detalhe">O pagamento é registrado pela tesouraria ou pela presidência.</p>
       )}

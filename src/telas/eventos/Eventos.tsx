@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { Aviso, BotaoArquivar, BotaoConfirmarNaLinha, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { listarAssociados } from '../../dados/associados'
+import { listarCategoriasFinanceiras, saldos } from '../../dados/caixa'
 import { ok } from '../../dados/cliente'
 import { formatarReais } from '../../dados/configuracoes'
 import { listarEncontros } from '../../dados/encontros'
@@ -18,6 +19,7 @@ import {
   financasDoEvento,
   inscrever,
   lancamentosRecentes,
+  lancarNoEvento,
   ligarLancamentoEvento,
   listarEventos,
   listarInscricoes,
@@ -759,6 +761,7 @@ function LinhaInscricao({
           )}
         </span>
       )}
+      {i.situacao === 'confirmada' && i.pago_em && podeReceber && <EstornarInscricao i={i} aoConcluir={aoConcluir} />}
       {i.situacao === 'confirmada' && !i.pago_em && podeCancelar && (
         <span>
           <BotaoConfirmarNaLinha
@@ -773,12 +776,154 @@ function LinhaInscricao({
   )
 }
 
+/**
+ * A inscrição paga cancelada (parte 12, a blindagem do caixa): só a tesouraria ou a presidência, com o motivo; o pagamento
+ * é estornado (o lançamento do caixa é cancelado) e a vaga fica livre.
+ */
+function EstornarInscricao({ i, aoConcluir }: { i: Inscricao; aoConcluir: (r: { erro: string | null }, s: string) => void }) {
+  const [motivo, setMotivo] = useState('')
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <details className="acao-recolhida">
+      <summary>Estornar o pagamento e cancelar</summary>
+      <form
+        className="form-linha form-compacto"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          void umaVez(async () => aoConcluir(await cancelarInscricao(i.id, motivo), `Inscrição nº ${i.numero} cancelada e o pagamento estornado no caixa.`))
+        }}
+      >
+        <label>
+          Motivo (vai para o caixa) *
+          <input required value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ex.: desistiu; devolvido por PIX" />
+        </label>
+        <button type="submit" className="botao botao-perigo-cheio" disabled={enviando}>
+          Estornar e cancelar
+        </button>
+      </form>
+    </details>
+  )
+}
+
+/** O evento lança a própria receita (patrocínio, oferta) ou a própria despesa (parte 12): entra no caixa ligada a ele. */
+function LancarNoEvento({
+  e,
+  contas,
+  categorias,
+  aoLancar,
+}: {
+  e: Evento
+  contas: { id: string; nome: string }[]
+  categorias: { id: string; nome: string; tipo: 'entrada' | 'saida'; sistema: string | null }[]
+  aoLancar: (r: { erro: string | null }, s: string) => void
+}) {
+  const [tipo, setTipo] = useState<'entrada' | 'saida'>('saida')
+  const [contaId, setContaId] = useState(contas[0]?.id ?? '')
+  const [categoriaId, setCategoriaId] = useState('')
+  const [data, setData] = useState(hojeIso)
+  const [valor, setValor] = useState('')
+  const [descricao, setDescricao] = useState('')
+  const [enviando, umaVez] = useUmaVez()
+  const opcoes = categorias.filter((c) => c.tipo === tipo && !c.sistema)
+  const semOrcamento = tipo === 'saida' && !e.orcamento_aprovado_em
+  return (
+    <form
+      className="evento-lancar"
+      aria-label="Lançar no evento"
+      onSubmit={(ev) => {
+        ev.preventDefault()
+        const numero = lerValor(valor)
+        if (numero === null) {
+          aoLancar({ erro: 'Valor inválido.' }, '')
+          return
+        }
+        void umaVez(async () => {
+          const r = await lancarNoEvento({ eventoId: e.id, contaId, tipo, categoriaId, data, valor: numero, descricao })
+          aoLancar(
+            r,
+            tipo === 'saida'
+              ? 'Despesa lançada no evento: está esperando a autorização do presidente (Financeiro › Despesas).'
+              : 'Receita lançada no evento: já está no caixa.',
+          )
+          if (r.erro === null) {
+            setValor('')
+            setDescricao('')
+          }
+        })
+      }}
+    >
+      <label>
+        O que é
+        <select
+          value={tipo}
+          onChange={(ev) => {
+            setTipo(ev.target.value as 'entrada' | 'saida')
+            setCategoriaId('')
+          }}
+        >
+          <option value="saida">Despesa do evento</option>
+          <option value="entrada">Receita avulsa (patrocínio, oferta)</option>
+        </select>
+      </label>
+      <label>
+        Categoria *
+        <select required value={categoriaId} onChange={(ev) => setCategoriaId(ev.target.value)}>
+          <option value="">Escolha…</option>
+          {opcoes.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Conta *
+        <select required value={contaId} onChange={(ev) => setContaId(ev.target.value)}>
+          {contas.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Data *
+        <input type="date" required max={hojeIso()} value={data} onChange={(ev) => setData(ev.target.value)} />
+      </label>
+      <label>
+        Valor (R$) *
+        <input required inputMode="decimal" pattern={PADRAO_VALOR} title={DICA_VALOR} value={valor} onChange={(ev) => setValor(ev.target.value)} />
+      </label>
+      <label className="largura-total">
+        Descrição *
+        <input
+          required
+          value={descricao}
+          onChange={(ev) => setDescricao(ev.target.value)}
+          placeholder={tipo === 'saida' ? 'Ex.: Aluguel do som do seminário' : 'Ex.: Patrocínio da gráfica'}
+        />
+      </label>
+      {semOrcamento && <p className="detalhe largura-total">A despesa do evento só entra depois de a assembleia aprovar o orçamento dele.</p>}
+      <button type="submit" className="botao" disabled={enviando || semOrcamento}>
+        {tipo === 'saida' ? 'Lançar a despesa' : 'Lançar a receita'}
+      </button>
+    </form>
+  )
+}
+
 function Financas({ e, podeLigar, aoConcluir }: { e: Evento; podeLigar: boolean; aoConcluir: (r: { erro: string | null }, s: string) => void }) {
   const [carga, recarregar] = useCarregar(async () => {
-    const [financas, lancamentos] = await Promise.all([financasDoEvento(e.id), podeLigar ? lancamentosRecentes() : Promise.resolve(ok([]))])
+    const [financas, lancamentos, contas, categorias] = await Promise.all([
+      financasDoEvento(e.id),
+      podeLigar ? lancamentosRecentes() : Promise.resolve(ok([])),
+      podeLigar ? saldos() : Promise.resolve(ok([])),
+      podeLigar ? listarCategoriasFinanceiras() : Promise.resolve(ok([])),
+    ])
     if (financas.erro !== null) return financas
     if (lancamentos.erro !== null) return lancamentos
-    return ok({ financas: financas.dados, lancamentos: lancamentos.dados })
+    if (contas.erro !== null) return contas
+    if (categorias.erro !== null) return categorias
+    return ok({ financas: financas.dados, lancamentos: lancamentos.dados, contas: contas.dados, categorias: categorias.dados })
   })
   const [lancamento, setLancamento] = useState('')
   const [retorno, setRetorno] = useState<Retorno>({})
@@ -788,7 +933,7 @@ function Financas({ e, podeLigar, aoConcluir }: { e: Evento; podeLigar: boolean;
       <h2 id="titulo-financas-evento">Finanças do evento</h2>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ financas, lancamentos }) => {
+        {({ financas, lancamentos, contas, categorias }) => {
           const ligados = lancamentos.filter((l) => l.evento_id === e.id)
           const livres = lancamentos.filter((l) => !l.evento_id)
           return (
@@ -820,6 +965,23 @@ function Financas({ e, podeLigar, aoConcluir }: { e: Evento; podeLigar: boolean;
                     </li>
                   ))}
                 </ul>
+              )}
+              {podeLigar && e.situacao !== 'cancelado' && (
+                <details className="acao-recolhida">
+                  <summary>Lançar uma despesa ou uma receita do evento</summary>
+                  <LancarNoEvento
+                    e={e}
+                    contas={contas}
+                    categorias={categorias}
+                    aoLancar={(r, s) => {
+                      setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: s })
+                      if (r.erro === null) {
+                        recarregar()
+                        aoConcluir(r, '')
+                      }
+                    }}
+                  />
+                </details>
               )}
               {podeLigar && e.situacao !== 'cancelado' && (
                 <form

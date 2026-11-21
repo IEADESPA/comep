@@ -65,10 +65,10 @@ begin
     perform set_config('request.jwt.claims', json_build_object('sub', v_tesouraria, 'role', 'authenticated')::text, true);
 
     -- Contribuições do mês (lançadas de uma vez, como resumo do mês)
-    insert into public.lancamentos (conta_id, tipo, categoria_id, data, valor, descricao, situacao, criado_por)
-    values (v_banco, 'entrada', (v_cat ->> 'Contribuições dos associados')::uuid, v_mes + 11,
+    -- desde a parte 12 (a blindagem do caixa), o livro-caixa só recebe lançamentos pela função do sistema
+    perform interno.registrar_lancamento(v_banco, 'entrada', (v_cat ->> 'Contribuições dos associados')::uuid, v_mes + 11,
             round((1100 + random() * 600)::numeric, 2), 'Contribuições recebidas em ' || v_nome_mes || ' ' || c_marca,
-            'efetivado', v_tesouraria);
+            'efetivado', null, null, null, null, v_tesouraria);
 
     v_oferta := round((300 + random() * 500)::numeric, 2);
     perform public.lancar(v_caixa, 'entrada', (v_cat ->> 'Ofertas')::uuid, v_mes + 4, v_oferta,

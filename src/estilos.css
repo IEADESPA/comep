@@ -9358,3 +9358,38 @@ li.feito .numero-passo {
   gap: 6px;
   font-size: 14px;
 }
+
+/* =====================================================================
+   Fase 5.5, parte 12 — a blindagem do Financeiro: a origem no extrato e o filtro, e o evento que lança
+   ===================================================================== */
+.fin-extrato-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 18px;
+}
+
+.fin-extrato-filtros > label:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.fin-origem a {
+  color: var(--cor-marca-texto);
+  font-weight: 600;
+}
+
+.evento-lancar {
+  display: grid;
+  /* no celular, um campo por linha (com 160px, o "Despesa do evento" ficava cortado) */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px 14px;
+  align-items: end;
+}
+
+.evento-lancar .largura-total {
+  grid-column: 1 / -1;
+}

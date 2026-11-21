@@ -14,7 +14,9 @@ import {
   saldos,
   transferir,
   type CategoriaFinanceira,
+  NOME_DA_ORIGEM,
   type LinhaCaixa,
+  type OrigemLancamento,
   type SaldoConta,
   type TipoLancamento,
 } from '../../dados/caixa'
@@ -49,9 +51,17 @@ type LinhaExtrato = {
   conta: boolean
   linha: LinhaCaixa | null
   saldoDepois?: number
+  /** de onde veio (parte 12): o filtro do extrato e o link para a origem */
+  origem: OrigemLancamento | 'abertura'
 }
 
-function montarExtrato(lancamentos: LinhaCaixa[], aberturas: { conta: string; data: string; valor: number }[], saldoInicio: number, verDesfeitos: boolean) {
+function montarExtrato(
+  lancamentos: LinhaCaixa[],
+  aberturas: { conta: string; data: string; valor: number }[],
+  saldoInicio: number,
+  verDesfeitos: boolean,
+  origem: OrigemLancamento | '',
+) {
   const linhas: LinhaExtrato[] = []
   const pares = new Map<string, LinhaCaixa[]>()
   for (const l of lancamentos) {
@@ -71,6 +81,7 @@ function montarExtrato(lancamentos: LinhaCaixa[], aberturas: { conta: string; da
       efeito: vale ? (l.tipo === 'entrada' ? 1 : -1) * Number(l.valor) : 0,
       conta: vale,
       linha: l,
+      origem: l.origem ?? 'avulso',
     })
   }
   for (const [id, lados] of pares) {
@@ -88,6 +99,7 @@ function montarExtrato(lancamentos: LinhaCaixa[], aberturas: { conta: string; da
       efeito,
       conta: sai.situacao === 'efetivado',
       linha: sai,
+      origem: 'transferencia',
     })
   }
   for (const a of aberturas) {
@@ -102,6 +114,7 @@ function montarExtrato(lancamentos: LinhaCaixa[], aberturas: { conta: string; da
       efeito: Number(a.valor),
       conta: true,
       linha: null,
+      origem: 'abertura',
     })
   }
   linhas.sort((a, b) => a.data.localeCompare(b.data) || a.ordem.localeCompare(b.ordem))
@@ -110,7 +123,10 @@ function montarExtrato(lancamentos: LinhaCaixa[], aberturas: { conta: string; da
     saldo = Math.round((saldo + l.efeito) * 100) / 100
     if (l.conta) l.saldoDepois = saldo
   }
-  const visiveis = linhas.filter((l) => verDesfeitos || !l.linha || !['cancelado', 'recusado'].includes(l.linha.situacao))
+  // o filtro por origem só esconde linhas: o saldo depois de cada uma continua o de todas as contas
+  const visiveis = linhas.filter(
+    (l) => (verDesfeitos || !l.linha || !['cancelado', 'recusado'].includes(l.linha.situacao)) && (!origem || l.origem === origem),
+  )
   // do mais novo para o mais antigo, agrupado por dia
   const dias = new Map<string, LinhaExtrato[]>()
   for (const l of [...visiveis].reverse()) dias.set(l.data, [...(dias.get(l.data) ?? []), l])
@@ -151,6 +167,7 @@ function ConteudoExtrato({
   somenteLeitura: boolean
 }) {
   const [verDesfeitos, setVerDesfeitos] = useState(false)
+  const [origem, setOrigem] = useState<OrigemLancamento | ''>('')
   const [formulario, setFormulario] = useState<Formulario>(null)
   const inicio = `${mes}-01`
   const fim = fimDoMes(mes)
@@ -176,7 +193,8 @@ function ConteudoExtrato({
   return (
     <MostrarCarga carga={carga} recarregar={recarregar}>
       {({ contas, categorias, lancamentos, periodo }) => {
-        const dias = montarExtrato(lancamentos, periodo.aberturas, periodo.saldo_inicio, verDesfeitos)
+        const dias = montarExtrato(lancamentos, periodo.aberturas, periodo.saldo_inicio, verDesfeitos, origem)
+        const origensDoMes = [...new Set(lancamentos.map((l) => l.origem ?? 'avulso'))]
         const total = contas.reduce((t, c) => t + Number(c.saldo), 0)
         return (
           <div className="fin-extrato">
@@ -312,10 +330,25 @@ function ConteudoExtrato({
                   <strong>{formatarReais(periodo.saldo_fim)}</strong>
                 </p>
               </section>
-              <label className="caixa-marcar">
-                <input type="checkbox" checked={verDesfeitos} onChange={(e) => setVerDesfeitos(e.target.checked)} />
-                Mostrar cancelados e recusados
-              </label>
+              <div className="fin-extrato-filtros">
+                <label>
+                  De onde veio
+                  <select value={origem} onChange={(e) => setOrigem(e.target.value as OrigemLancamento | '')}>
+                    <option value="">Todas as origens</option>
+                    {(Object.keys(NOME_DA_ORIGEM) as OrigemLancamento[])
+                      .filter((o) => origensDoMes.includes(o) || o === origem)
+                      .map((o) => (
+                        <option key={o} value={o}>
+                          {NOME_DA_ORIGEM[o]}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label className="caixa-marcar">
+                  <input type="checkbox" checked={verDesfeitos} onChange={(e) => setVerDesfeitos(e.target.checked)} />
+                  Mostrar cancelados e recusados
+                </label>
+              </div>
             </div>
           </div>
         )
@@ -329,7 +362,18 @@ function LinhaDoExtrato({ l, concluir, somenteLeitura }: { l: LinhaExtrato; conc
   const [enviando, umaVez] = useUmaVez()
   const lc = l.linha
   const desfeito = lc !== null && ['cancelado', 'recusado'].includes(lc.situacao)
-  const podeCancelar = !somenteLeitura && lc !== null && !lc.cobranca_id && !desfeito
+  // parte 12: o lançamento automático também se cancela (com o motivo), e a origem volta para "a pagar"
+  const podeCancelar = !somenteLeitura && lc !== null && !desfeito
+  const volta =
+    lc?.origem === 'contribuicao' || lc?.origem === 'taxa_inscricao'
+      ? 'A contribuição volta para "em aberto".'
+      : lc?.origem === 'inscricao_evento'
+        ? 'A inscrição volta a esperar o pagamento.'
+        : lc?.origem === 'modelo_exclusivo'
+          ? 'O modelo exclusivo volta a esperar o pagamento.'
+          : lc?.origem === 'patrimonio'
+            ? 'A compra deixa de estar ligada ao bem.'
+            : null
   return (
     <li className={desfeito ? 'fin-linha-extrato fin-desfeito' : 'fin-linha-extrato'} aria-label={l.descricao}>
       <span className="linha-corpo">
@@ -341,6 +385,11 @@ function LinhaDoExtrato({ l, concluir, somenteLeitura }: { l: LinhaExtrato; conc
         {lc && lc.situacao !== 'efetivado' && (
           <span>
             <Chip area={lc.situacao === 'aguardando_autorizacao' ? 'eventos' : 'assembleias'}>{NOME_DA_SITUACAO_LANCAMENTO[lc.situacao]}</Chip>
+          </span>
+        )}
+        {lc && lc.origem && lc.origem !== 'avulso' && lc.origem !== 'transferencia' && (
+          <span className="fin-origem">
+            De onde veio: {lc.origem_link ? <Link to={lc.origem_link}>{lc.origem_texto}</Link> : lc.origem_texto}
           </span>
         )}
         {lc?.motivo && <span>Motivo: {lc.motivo}</span>}
@@ -359,9 +408,10 @@ function LinhaDoExtrato({ l, concluir, somenteLeitura }: { l: LinhaExtrato; conc
             className="form-linha form-compacto"
             onSubmit={(e) => {
               e.preventDefault()
-              void umaVez(async () => concluir(await cancelarLancamento(lc.id, motivo), 'Lançamento cancelado.'))
+              void umaVez(async () => concluir(await cancelarLancamento(lc.id, motivo), volta ? `Lançamento cancelado. ${volta}` : 'Lançamento cancelado.'))
             }}
           >
+            {volta && <span className="detalhe">{volta}</span>}
             <label>
               Motivo *
               <input required value={motivo} onChange={(e) => setMotivo(e.target.value)} />
