@@ -175,12 +175,23 @@ describe('Fase 2.2 — caixa', () => {
       assert.match(l.rows[0].descricao, /^Contribuição de Ministro de Teste — mensalidade \d{2}\/\d{4}$/)
     })
 
-    it('a entrada automática não se cancela pelo caixa', async () => {
-      const l = await db.query<{ id: string }>('select id from public.lancamentos where cobranca_id is not null limit 1')
+    // Parte 12 (a blindagem do caixa, 20/11/2026): antes, a entrada automática não se cancelava pelo caixa; agora
+    // cancelar o lançamento devolve a contribuição para "em aberto" (e pagar de novo lança de novo)
+    it('cancelar a entrada automática devolve a contribuição para "em aberto"', async () => {
+      const l = await db.query<{ id: string; cobranca_id: string }>(
+        'select l.id, l.cobranca_id from public.lancamentos l where l.cobranca_id is not null and l.conta_id = $1 limit 1',
+        [banco],
+      )
       await assert.rejects(
-        como(db, tesoureiro, () => db.query("select public.cancelar_lancamento($1, 'x')", [l.rows[0].id])),
+        como(db, tesoureiro, () => db.query("select public.cancelar_lancamento($1, '')", [l.rows[0].id])),
         erroComCodigo(BLOQUEADO_PELO_BANCO),
       )
+      await como(db, tesoureiro, () => db.query("select public.cancelar_lancamento($1, 'Lançado na pessoa errada')", [l.rows[0].id]))
+      const c = await db.query<{ situacao: string }>('select situacao from public.cobrancas where id = $1', [l.rows[0].cobranca_id])
+      assert.equal(c.rows[0].situacao, 'aberta')
+      assert.equal((await saldo(banco)).saldo, '0.00')
+      await como(db, tesoureiro, () => db.query("select public.registrar_pagamento($1, current_date, 20, 'PIX', null)", [l.rows[0].cobranca_id]))
+      assert.equal((await saldo(banco)).saldo, '20.00')
     })
   })
 

@@ -308,7 +308,9 @@ function linhasDoMes(lancamentos: LinhaCaixa[]): LinhaDoMes[] {
       const entra = lados.find((x) => x.tipo === 'entrada')
       linhas.push({ chave: l.transferencia_id, l: sai, detalhe: `Transferência · ${sai.conta_nome} → ${entra?.conta_nome ?? '?'}`, transferencia: true })
     } else {
-      linhas.push({ chave: l.id, l, detalhe: `${l.categoria_nome} · ${l.conta_nome}`, transferencia: false })
+      // a origem (parte 12, a blindagem do caixa): o Conselho vê de onde veio cada valor
+      const origem = l.origem && l.origem !== 'avulso' ? ` · ${l.origem_texto}` : ''
+      linhas.push({ chave: l.id, l, detalhe: `${l.categoria_nome} · ${l.conta_nome}${origem}`, transferencia: false })
     }
   }
   return linhas

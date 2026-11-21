@@ -373,13 +373,29 @@ export async function arquivarModeloGrupo(id: string): Promise<Resultado<null>> 
   return error ? falha(error) : ok(null)
 }
 
-/** O pagamento do modelo exclusivo (tesouraria ou presidência); data vazia = desfazer. */
-export async function registrarPagamentoExclusivo(id: string, pagoEm: string | null, lancamentoId: string | null): Promise<Resultado<null>> {
+/**
+ * O pagamento do modelo exclusivo (tesouraria ou presidência), ligando uma entrada que já está no caixa.
+ * Desde a parte 12 (a blindagem do caixa), o pagamento tem sempre a entrada: para receber agora, use
+ * receberPagamentoExclusivo; para desfazer, desfazerPagamentoExclusivo (a entrada é cancelada).
+ */
+export async function registrarPagamentoExclusivo(id: string, pagoEm: string, lancamentoId: string): Promise<Resultado<null>> {
   const { error } = await cliente().rpc('registrar_pagamento_exclusivo', {
     p_id: id,
     p_pago_em: pagoEm || null,
     p_lancamento_id: lancamentoId,
   })
+  return error ? falha(error) : ok(null)
+}
+
+/** Receber o pagamento do modelo exclusivo: a entrada entra no caixa (dinheiro → caixa; o resto → banco), ligada ao modelo. */
+export async function receberPagamentoExclusivo(id: string, data: string, forma: string): Promise<Resultado<string>> {
+  const { data: lancamento, error } = await cliente().rpc('receber_pagamento_exclusivo', { p_id: id, p_data: data, p_forma: forma })
+  return error ? falha(error) : ok(lancamento as string)
+}
+
+/** Desfazer o pagamento: a entrada do caixa é cancelada (estorno), e o modelo volta a esperar o pagamento. */
+export async function desfazerPagamentoExclusivo(id: string, motivo: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('desfazer_pagamento_exclusivo', { p_id: id, p_motivo: motivo })
   return error ? falha(error) : ok(null)
 }
 

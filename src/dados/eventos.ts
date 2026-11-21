@@ -98,6 +98,32 @@ export const cancelarInscricao = (id: string, motivo: string) => acao('cancelar_
 export const cancelarInscricoesSemPagamento = (eventoId: string) => acao('cancelar_inscricoes_sem_pagamento', { p_evento_id: eventoId })
 export const registrarPagamentoInscricao = (id: string, data: string, forma: string) =>
   acao('registrar_pagamento_inscricao', { p_id: id, p_data: data, p_forma: forma })
+/**
+ * O evento lança a própria receita (patrocínio, oferta) ou a própria despesa (parte 12, a blindagem do caixa):
+ * entra no caixa ligada ao evento; a despesa espera a autorização do presidente e só com o orçamento aprovado.
+ */
+export async function lancarNoEvento(dados: {
+  eventoId: string
+  contaId: string
+  tipo: 'entrada' | 'saida'
+  categoriaId: string
+  data: string
+  valor: number
+  descricao: string
+}): Promise<Resultado<string>> {
+  const { data, error } = await cliente().rpc('lancar_no_evento', {
+    p_evento_id: dados.eventoId,
+    p_conta_id: dados.contaId,
+    p_tipo: dados.tipo,
+    p_categoria: dados.categoriaId,
+    p_data: dados.data,
+    p_valor: dados.valor,
+    p_descricao: dados.descricao,
+    p_comprovante: null,
+  })
+  return error ? falha(error) : ok(data as string)
+}
+
 export const ligarLancamentoEvento = (lancamentoId: string, eventoId: string | null) =>
   acao('ligar_lancamento_evento', { p_lancamento_id: lancamentoId, p_evento_id: eventoId })
 

@@ -252,12 +252,13 @@ describe('Fase 5.5 (parte 7) — os modelos da credencial', () => {
     const conta = await um<{ id: string }>('select conta_banco_id as id from public.config_financeiro')
     const saida = await um<{ id: string }>("select id from public.categorias_financeiras where tipo = 'saida' and sistema is null limit 1")
     const entrada = await um<{ id: string }>("select id from public.categorias_financeiras where tipo = 'entrada' and sistema is null limit 1")
+    // desde a parte 12 (a blindagem do caixa), o livro-caixa só recebe lançamentos pela função do sistema
     const lancSaida = await um<{ id: string }>(
-      "insert into public.lancamentos (conta_id, tipo, categoria_id, data, valor, descricao, situacao) values ($1, 'saida', $2, current_date, 300, 'Saída fictícia', 'efetivado') returning id",
+      "select interno.registrar_lancamento($1, 'saida', $2, current_date, 300, 'Saída fictícia', 'efetivado') as id",
       [conta.id, saida.id],
     )
     const lancEntrada = await um<{ id: string }>(
-      "insert into public.lancamentos (conta_id, tipo, categoria_id, data, valor, descricao, situacao) values ($1, 'entrada', $2, current_date, 300, 'Modelo exclusivo (fictício)', 'efetivado') returning id",
+      "select interno.registrar_lancamento($1, 'entrada', $2, current_date, 300, 'Modelo exclusivo (fictício)', 'efetivado') as id",
       [conta.id, entrada.id],
     )
     await assert.rejects(
@@ -272,10 +273,14 @@ describe('Fase 5.5 (parte 7) — os modelos da credencial', () => {
     // depois de pago, a igreja e o valor não mudam
     await assert.rejects(salvarModelo(secretaria, id, { ...dados, valor: 250 }), erroComCodigo(BLOQUEADO_PELO_BANCO))
     await salvarModelo(secretaria, id, { ...dados, nome: 'Exclusivo · Batista Fictícia' })
-    // desfazer o pagamento (a presidência): volta para os outros modelos
-    await chamar(presidencia, 'select public.registrar_pagamento_exclusivo($1, null, null)', [id])
+    // desfazer o pagamento (a presidência): a entrada do caixa é cancelada (estorno) e o modelo volta para os outros
+    // (desde a parte 12: não existe mais "pago sem a entrada no caixa")
+    await assert.rejects(chamar(presidencia, 'select public.registrar_pagamento_exclusivo($1, null, null)', [id]), erroComCodigo(BLOQUEADO_PELO_BANCO))
+    await chamar(presidencia, "select public.desfazer_pagamento_exclusivo($1, 'Registrado por engano')", [id])
     assert.notEqual(await modeloDe(veterano), id)
-    await chamar(presidencia, 'select public.registrar_pagamento_exclusivo($1, current_date, null)', [id])
+    assert.equal((await um<{ s: string }>('select situacao as s from public.lancamentos where id = $1', [lancEntrada.id])).s, 'cancelado')
+    await assert.rejects(chamar(presidencia, 'select public.registrar_pagamento_exclusivo($1, current_date, null)', [id]), erroComCodigo(BLOQUEADO_PELO_BANCO))
+    await chamar(presidencia, "select public.receber_pagamento_exclusivo($1, current_date, 'PIX')", [id])
     assert.equal(await modeloDe(veterano), id)
   })
 

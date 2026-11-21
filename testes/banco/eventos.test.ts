@@ -126,8 +126,8 @@ describe('Fase 5.3 — eventos e projetos', () => {
       const categoria = await um<{ id: string }>("select id from public.categorias_financeiras where tipo = 'saida' and sistema is null limit 1")
       despesa = (
         await um<{ id: string }>(
-          `insert into public.lancamentos (conta_id, tipo, categoria_id, data, valor, descricao, situacao)
-           values ($1, 'saida', $2, current_date, 300, 'Som do seminário', 'efetivado') returning id`,
+          // desde a parte 12 (a blindagem do caixa), só pela função do sistema
+          "select interno.registrar_lancamento($1, 'saida', $2, current_date, 300, 'Som do seminário', 'efetivado') as id",
           [conta.id, categoria.id],
         )
       ).id
