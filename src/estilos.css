@@ -9358,3 +9358,453 @@ li.feito .numero-passo {
   gap: 6px;
   font-size: 14px;
 }
+
+/* =====================================================================
+   Fase 5.5, parte 13 — a segurança e a privacidade: o termo na tela inteira, o termo completo, Meu perfil ›
+   Segurança e Privacidade, e a secretaria com as versões (rodadas 19, 20 e 22)
+   ===================================================================== */
+.termo-tela {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px 32px;
+  background: var(--cor-fundo);
+  box-sizing: border-box;
+}
+
+.termo-marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--cor-titulo);
+}
+
+.termo-marca .marca-caixa {
+  background: var(--cor-vermelho);
+  color: #ffffff;
+}
+
+.termo-cartao {
+  width: min(1200px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 28px;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 20px;
+  box-sizing: border-box;
+}
+
+.termo-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8px 16px;
+}
+
+.termo-cabecalho h1 {
+  margin: 4px 0;
+  font-size: 28px;
+}
+
+.termo-cabecalho p {
+  margin: 0;
+}
+
+.termo-cabecalho .rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.termo-minuta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--cor-aviso-fundo);
+  font-size: 13.5px;
+}
+
+.termo-corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 370px;
+  gap: 22px;
+  align-items: start;
+}
+
+.termo-corpo h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.termo-resumo {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.termo-ponto {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.termo-ponto > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.8px;
+  line-height: 1.4;
+}
+
+.termo-ponto strong {
+  font-size: 13.5px;
+  color: var(--cor-titulo);
+}
+
+.termo-ponto-sensivel strong {
+  color: var(--cor-atencao-texto);
+}
+
+.termo-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.termo-mudou {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--cor-aviso-fundo);
+}
+
+.termo-mudou ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.termo-mudou li {
+  display: flex;
+  gap: 8px;
+}
+
+.selo-novo {
+  flex: none;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--cor-atencao-texto);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+}
+
+.termo-escolhe {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+}
+
+.termo-aceite {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.termo-aceite input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--cor-marca);
+}
+
+.termo-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 899.98px) {
+  .termo-cartao {
+    padding: 18px 16px;
+  }
+
+  .termo-cabecalho h1 {
+    font-size: 22px;
+  }
+
+  .termo-corpo,
+  .termo-resumo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* o termo completo */
+.termo-completo {
+  min-height: 100dvh;
+  display: flex;
+  background: var(--cor-fundo);
+}
+
+.termo-indice {
+  width: 300px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px 18px;
+  background: var(--cor-superficie);
+  border-right: 1px solid var(--cor-borda);
+  box-sizing: border-box;
+}
+
+.termo-indice-titulo {
+  font-size: 20px;
+  color: var(--cor-titulo);
+}
+
+.termo-indice ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.termo-indice a {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--cor-texto);
+  font-size: 13.5px;
+  text-decoration: none;
+}
+
+.termo-indice a:hover {
+  background: var(--cor-marca-suave);
+}
+
+.termo-texto {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 40px;
+  column-count: 2;
+  column-gap: 34px;
+}
+
+.termo-texto .termo-minuta {
+  column-span: all;
+  margin-bottom: 14px;
+}
+
+.termo-parte {
+  break-inside: avoid;
+  margin-bottom: 14px;
+}
+
+.termo-parte h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.termo-parte p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.somente-imprimir {
+  display: none;
+}
+
+@media print {
+  .somente-imprimir {
+    display: block;
+  }
+
+  .termo-texto {
+    column-count: 1;
+    padding: 0;
+  }
+}
+
+@media (max-width: 899.98px) {
+  .termo-completo {
+    flex-direction: column;
+  }
+
+  .termo-indice {
+    width: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--cor-borda);
+  }
+
+  .termo-texto {
+    column-count: 1;
+    padding: 20px 16px;
+  }
+}
+
+/* Meu perfil › Privacidade e Segurança */
+.privacidade,
+.seguranca {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.privacidade-colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.privacidade-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.acoes-privacidade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.regras-seguranca {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.regras-seguranca dt {
+  padding-top: 8px;
+  border-top: 1px solid var(--cor-borda);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--cor-titulo);
+}
+
+.regras-seguranca dd {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+}
+
+.como-funciona-colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.como-funciona-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.como-funciona-topo > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.como-funciona ol {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.como-funciona-nota {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--cor-ok-fundo);
+  font-size: 13.5px;
+}
+
+/* Administração › Termo de uso de dados */
+.termo-secretaria {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+  align-items: start;
+}
+
+.termo-secretaria-principal,
+.termo-secretaria-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 899.98px) {
+  .privacidade-colunas,
+  .como-funciona-colunas,
+  .termo-secretaria {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tabela-simples {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabela-simples th,
+.tabela-simples td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--cor-borda);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tabela-simples thead th {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.barra-progresso {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cor-fundo);
+  overflow: hidden;
+}
+
+.barra-progresso > span {
+  display: block;
+  height: 100%;
+  background: var(--cor-ok-forte);
+}

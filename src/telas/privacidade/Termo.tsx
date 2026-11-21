@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router'
+import { Link, Outlet, useLocation, useSearchParams } from 'react-router'
 import { Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { Icone, Ladrilho, MarcaCaixa, type NomeIcone } from '../../componentes/Icone'
 import { aceitarTermo, meuTermo, versoesDoTermo, type Termo } from '../../dados/privacidade'
@@ -41,6 +41,15 @@ export function PortaoDoTermo({ children }: { children: ReactNode }) {
     <ConferirTermo key={pessoaId} >
       {children}
     </ConferirTermo>
+  )
+}
+
+/** O portão como rota (em volta das telas do sistema, em src/App.tsx). */
+export function PortaoDoTermoRota() {
+  return (
+    <PortaoDoTermo>
+      <Outlet />
+    </PortaoDoTermo>
   )
 }
 

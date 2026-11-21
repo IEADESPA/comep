@@ -6,6 +6,7 @@ import type { FichaAssociado } from '../../dados/associados'
 import { listarEncontros, NOME_DO_TIPO } from '../../dados/encontros'
 import type { SituacaoContribuicao } from '../../dados/financeiro'
 import { mandarRecado, type AssuntoRecado } from '../../dados/notificacoes'
+import { privacidadeDe } from '../../dados/privacidade'
 import { useCarregar } from '../../estado/useCarregar'
 import { diaMes, horaCurta } from '../../utilitarios/formatos'
 import { linkDoWhatsApp, numeroDoWhatsApp, telefoneFormatado, tratamento } from '../../utilitarios/whatsapp'
@@ -40,6 +41,9 @@ const TITULO: Record<Pronta, string> = {
 export function FalarPeloWhatsApp({ ficha, situacao }: { ficha: FichaAssociado; situacao: SituacaoContribuicao | null }) {
   const { associado } = ficha
   const [encontros] = useCarregar(listarEncontros)
+  // parte 13: a pessoa pode ter escolhido não receber avisos pelo WhatsApp (Meu perfil › Privacidade)
+  const [privacidade] = useCarregar(() => privacidadeDe(associado.pessoa_id))
+  const semWhatsapp = privacidade.situacao === 'ok' && !privacidade.dados.receber_whatsapp
   const [agora] = useState(() => new Date().toISOString())
   const proxima =
     encontros.situacao === 'ok'
@@ -118,11 +122,18 @@ export function FalarPeloWhatsApp({ ficha, situacao }: { ficha: FichaAssociado; 
           <textarea value={texto} maxLength={1000} onChange={(e) => setEditado(e.target.value)} />
         </label>
       </div>
+      {semWhatsapp && (
+        <p className="detalhe" role="note">
+          Esta pessoa escolheu não receber avisos pelo WhatsApp (Meu perfil › Privacidade). Mande pelo aplicativo.
+        </p>
+      )}
       <div className="falar-whatsapp-acoes">
-        <a className="botao" href={linkDoWhatsApp(associado.telefone, texto)} target="_blank" rel="noreferrer">
-          <Icone nome="conversa" tamanho={18} />
-          Abrir no WhatsApp
-        </a>
+        {!semWhatsapp && (
+          <a className="botao" href={linkDoWhatsApp(associado.telefone, texto)} target="_blank" rel="noreferrer">
+            <Icone nome="conversa" tamanho={18} />
+            Abrir no WhatsApp
+          </a>
+        )}
         <button
           type="button"
           className="botao botao-secundario"

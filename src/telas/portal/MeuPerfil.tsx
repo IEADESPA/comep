@@ -20,6 +20,7 @@ import { minhasFaltas, type MinhasFaltas } from '../../dados/encontros'
 import { situacaoDe, type SituacaoContribuicao } from '../../dados/financeiro'
 import { listarPedidosCorrecao } from '../../dados/igrejas'
 import { PreferenciasDeAvisos } from '../avisos/AvisosNoCelular'
+import { MinhaPrivacidadeAba, MinhaSeguranca } from '../privacidade/Privacidade'
 import { FormCorrecao, ResumoDaCorrecao, SeloDaCorrecao, type DadoCorrigivel } from './PedidosCorrecao'
 import { atualizarMeusDados, linkDoArquivo } from '../../dados/pedidos'
 import { NOME_DO_PERFIL, type Perfil } from '../../dados/perfis'
@@ -51,14 +52,15 @@ const ABAS_ASSOCIADO: readonly Aba[] = [
   { para: '/meu-perfil', nome: 'Meus dados', curto: 'Dados' },
   { para: '/meu-perfil/comep', nome: 'No COMEP' },
   { para: '/meu-perfil/igreja', nome: 'Minha igreja', curto: 'Igreja' },
-  { para: '/meu-perfil/senha', nome: 'Senha' },
+  { para: '/meu-perfil/seguranca', nome: 'Segurança' },
+  { para: '/meu-perfil/privacidade', nome: 'Privacidade' },
   { para: '/meu-perfil/avisos', nome: 'Avisos' },
   { para: '/meu-perfil/correcoes', nome: 'Correções' },
 ]
 
 const ABAS_SEM_CADASTRO: readonly Aba[] = [
   { para: '/meu-perfil', nome: 'Meus dados', curto: 'Dados' },
-  { para: '/meu-perfil/senha', nome: 'Senha' },
+  { para: '/meu-perfil/seguranca', nome: 'Segurança' },
   { para: '/meu-perfil/avisos', nome: 'Avisos' },
 ]
 
@@ -133,8 +135,11 @@ function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: 
             <AbasDaTela rotulo="Partes do meu perfil" abas={ficha ? ABAS_ASSOCIADO : ABAS_SEM_CADASTRO} />
             <Mensagem sucesso={mensagem.sucesso} erro={mensagem.erro} />
 
-            {aba === 'senha' ? (
-              <TrocarSenha email={email} concluir={concluir} />
+            {aba === 'senha' || aba === 'seguranca' ? (
+              // parte 13: a senha fica em Segurança (o endereço antigo, /meu-perfil/senha, continua valendo)
+              <MinhaSeguranca trocarSenha={<TrocarSenha email={email} concluir={concluir} />} />
+            ) : aba === 'privacidade' ? (
+              <MinhaPrivacidadeAba />
             ) : aba === 'avisos' ? (
               <PreferenciasDeAvisos pastor={perfis.includes('presidente_igreja')} />
             ) : ficha && aba === 'comep' ? (

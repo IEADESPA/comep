@@ -654,6 +654,14 @@ export const MODULOS: readonly Modulo[] = [
     funcoes: [
       { chave: 'configuracoes', titulo: 'Configurações', icone: 'config', caminho: '/configuracoes' },
       { chave: 'acessos', titulo: 'Perfis de acesso', icone: 'chave', caminho: '/acessos', item: '/acessos' },
+      // o termo de uso de dados (LGPD), com as versões e quem aceitou (parte 13)
+      {
+        chave: 'termo',
+        titulo: 'Termo de uso de dados',
+        icone: 'texto',
+        caminho: '/configuracoes/termo',
+        perfis: ['secretaria', 'presidencia', 'admin_tecnico'],
+      },
       // a situação dos avisos no celular (parte 11)
       {
         chave: 'avisos',

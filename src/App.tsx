@@ -22,6 +22,9 @@ import { DetalheComissao, EditarComissao, ListaComissoes, NovaComissao } from '.
 import { DetalheEvento, EditarEvento, ListaEventos, NovoEvento } from './telas/eventos/Eventos'
 import { MuralDeAvisos, PainelDaPresidencia } from './telas/avisos/Avisos'
 import { SituacaoDosAvisosPagina } from './telas/avisos/SituacaoDosAvisos'
+import { ComoFuncionaADigital } from './telas/privacidade/Privacidade'
+import { PortaoDoTermoRota, TermoCompleto } from './telas/privacidade/Termo'
+import { TermoSecretaria } from './telas/privacidade/TermoSecretaria'
 import { DetalheEmprestimo, Patrimonio } from './telas/patrimonio/Patrimonio'
 import { DetalheVotacao, EditarVotacao, ListaVotacoes, NovaVotacao } from './telas/votacoes/Votacoes'
 import { Diretoria } from './telas/diretoria/Diretoria'
@@ -97,8 +100,11 @@ export default function App() {
           <Route path="diretoria-do-comep" element={<DiretoriaPagina />} />
           <Route path="igrejas-do-comep" element={<IgrejasPagina />} />
 
-          {/* Portal do membro (exige login) */}
+          {/* Portal do membro (exige login); logo depois de entrar, o termo de uso de dados (parte 13) */}
           <Route element={<RotaProtegida />}>
+          <Route element={<PortaoDoTermoRota />}>
+            {/* o termo completo (para ler e baixar), na tela inteira */}
+            <Route path="termo-de-uso" element={<TermoCompleto />} />
             {/* O editor do modelo da credencial ocupa a tela inteira (rodada 8, opção 1): fora da moldura */}
             <Route path="credenciais/modelos/:id/editar" element={<Area caminho="/credenciais" />}>
               <Route index element={<EditorTelaInteira />} />
@@ -109,6 +115,7 @@ export default function App() {
               <Route path="meu-pedido" element={<MeuPedido />} />
               <Route path="meu-perfil" element={<MeuPerfil />} />
               <Route path="meu-perfil/:aba" element={<MeuPerfil />} />
+              <Route path="meu-perfil/seguranca/como-funciona" element={<ComoFuncionaADigital />} />
 
               <Route path="minhas-mensalidades" element={<Area caminho="/minhas-mensalidades" />}>
                 <Route index element={<MinhasMensalidades />} />
@@ -232,6 +239,7 @@ export default function App() {
               <Route path="configuracoes" element={<Area caminho="/configuracoes" />}>
                 <Route index element={<Configuracoes />} />
                 <Route path="avisos" element={<SituacaoDosAvisosPagina />} />
+                <Route path="termo" element={<TermoSecretaria />} />
               </Route>
 
               <Route path="auditoria" element={<Area caminho="/auditoria" />}>
@@ -253,6 +261,7 @@ export default function App() {
             </Route>
           </Route>
 
+          </Route>
           <Route path="*" element={<PaginaNaoEncontrada />} />
         </Routes>
       </BrowserRouter>

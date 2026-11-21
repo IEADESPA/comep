@@ -132,4 +132,29 @@ describe('Fase 5.5, parte 13 — o termo de uso de dados e a privacidade', () =>
     assert.equal(w.receber_whatsapp, false)
     await assert.rejects(chamar(ministro, 'select public.privacidade_de($1)', [pessoaMinistro]), erroComCodigo(SEM_PERMISSAO))
   })
+
+  it('o lembrete do termo vai para o sino de quem ainda não aceitou a versão que vale, uma vez por dia', async () => {
+    const outro = await criarUsuario(db, 'ministro2@teste.local', 'Outro Ministro Fictício')
+    const pessoaOutro = (await um<{ id: string }>('select id from public.pessoas where usuario_id = $1', [outro])).id
+    await db.query("insert into public.associados (pessoa_id, forma_admissao, admitido_em) values ($1, 'cadastro_inicial', '2022-03-01')", [pessoaOutro])
+    const atual = (await meuTermo(secretaria)).atual!.id
+    await assert.rejects(chamar(ministro, 'select public.lembrar_termo($1)', [atual]), erroComCodigo(SEM_PERMISSAO))
+    const n = ((await chamar(secretaria, 'select public.lembrar_termo($1) as n', [atual])).rows[0] as { n: number }).n
+    assert.ok(n >= 1)
+    const doOutro = await db.query<{ tipo: string; link: string; enviada_por: string }>(
+      "select tipo, link, enviada_por from public.notificacoes where pessoa_id = $1 and titulo = 'Termo de uso de dados'",
+      [pessoaOutro],
+    )
+    assert.equal(doOutro.rows.length, 1)
+    assert.equal(doOutro.rows[0].tipo, 'recado')
+    assert.equal(doOutro.rows[0].link, '/meu-perfil/privacidade')
+    // quem já aceitou a versão que vale não recebe
+    if ((await meuTermo(ministro)).pedir === null) {
+      const doMinistro = await db.query("select 1 from public.notificacoes where pessoa_id = $1 and titulo = 'Termo de uso de dados'", [pessoaMinistro])
+      assert.equal(doMinistro.rows.length, 0)
+    }
+    // no mesmo dia, não repete
+    const deNovo = ((await chamar(secretaria, 'select public.lembrar_termo($1) as n', [atual])).rows[0] as { n: number }).n
+    assert.equal(deNovo, 0)
+  })
 })
