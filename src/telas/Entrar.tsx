@@ -13,6 +13,16 @@ export function Entrar() {
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  // a sessão vale 30 dias no aparelho (parte 13): passou disso, o sistema saiu sozinho e avisa aqui
+  const [venceu] = useState(() => {
+    try {
+      const v = sessionStorage.getItem('comep:sessao-venceu') === '1'
+      sessionStorage.removeItem('comep:sessao-venceu')
+      return v
+    } catch {
+      return false
+    }
+  })
 
   if (estado.situacao === 'logado') {
     const destino = (location.state as { voltarPara?: string } | null)?.voltarPara ?? '/painel'
@@ -33,6 +43,11 @@ export function Entrar() {
         <h1>Entrar</h1>
         <p className="acesso-explica so-computador">Use o e-mail e a senha do seu cadastro no COMEP.</p>
       </div>
+      {venceu && (
+        <p className="sucesso" role="status">
+          Por segurança, a conexão neste aparelho vale 30 dias. Entre de novo.
+        </p>
+      )}
 
       <form
         onSubmit={(e) => {

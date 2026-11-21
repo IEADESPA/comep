@@ -27,6 +27,22 @@ export async function preencherLogin(page: Page, email: string, senha: string) {
 export async function entrar(page: Page, usuario: Usuario) {
   await preencherLogin(page, usuario.email, senhaDe(usuario))
   await expect(page).toHaveURL(/\/painel$/)
+  await aceitarTermoSeAparecer(page)
+}
+
+/**
+ * O termo de uso de dados (parte 13): logo depois de entrar, quem é do COMEP e ainda não aceitou a versão que vale vê o
+ * termo na tela inteira. Os usuários fictícios aceitam (fica guardado no banco de teste; a cada versão nova, de novo).
+ */
+export async function aceitarTermoSeAparecer(page: Page): Promise<void> {
+  const termo = page.getByRole('heading', { name: /o termo de uso dos seus dados$/i, level: 1 })
+  const sistema = page.locator('.estrutura')
+  await expect(termo.or(sistema).first()).toBeVisible()
+  if (await termo.isVisible()) {
+    await page.getByRole('checkbox', { name: /^Li e aceito o termo de uso de dados/ }).check()
+    await page.getByRole('button', { name: 'Aceitar e continuar' }).click()
+    await expect(sistema).toBeVisible()
+  }
 }
 
 /**
@@ -286,6 +302,7 @@ export async function criarAssociadoComLogin(
   await page.getByLabel('Repita a senha').fill(dados.senha)
   await page.getByRole('button', { name: 'Criar a minha senha' }).click()
   await expect(page).toHaveURL(/\/painel$/)
+  await aceitarTermoSeAparecer(page)
   return guardarSessao(page)
 }
 

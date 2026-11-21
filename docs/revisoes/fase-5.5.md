@@ -744,3 +744,62 @@ Pedido do usuário em 20/11/2026: ele homologou o Conselho Fiscal, mas só aprov
 - Ponta a ponta no computador e no celular, em 8 arquivos (`financeiro-blindagem`, `caixa`, `financeiro`, `conselho-fiscal`, `prestacao`, `eventos`, `credencial-modelo` e `patrimonio`): 38 de 38, mais os 5 do preparo.
 - O teste novo e o `financeiro.spec` limpam as sobras de rodadas cortadas antes de começar: estornam a inscrição paga, cancelam a despesa e arquivam o contribuinte. O teste novo também espera as inscrições carregarem antes de contar. Uma primeira versão contava cedo demais e deixava o pagamento no caixa; a limpeza do começo estornou essas sobras.
 - As telas foram conferidas com fotos no computador e no celular: o extrato com a origem e o filtro, o evento com o "Lançar" e o mês do Conselho Fiscal. No celular, o formulário do evento passou a ter um campo por linha, porque o "Despesa do evento" ficava cortado.
+
+## Entrega 5.5.16 — Telas novas, parte 13: a segurança e a privacidade (versão 5.5.0-teste.17)
+
+As rodadas 19 (o termo e "meus dados"), 20 e 22 (a segurança). As regras estão no `PROJETO.md`, seção 4.9. Migrações `20261121120000_termo_privacidade.sql` e `20261121150000_quem_mexeu_rapido.sql`.
+
+**O que entrou no banco:**
+
+- `termos_uso`: a versão, o resumo em 9 pontos, o termo em 10 partes, o que mudou, se é minuta, a data em que passa a valer e a publicação. Só um rascunho por vez; **a versão publicada não muda nem se apaga** (gatilho). A versão 1 (minuta) entrou na migração.
+- `termo_aceites`: quem aceitou qual versão, quando e em que aparelho, com o dado sensível sempre marcado. O aceite não muda nem se apaga.
+- `privacidade_escolhas` (receber avisos pelo WhatsApp e aparecer na lista de aniversariantes) e `pedidos_titular` (o pedido de exclusão e a resposta da secretaria).
+- As funções: `meu_termo` (o termo que vale e se precisa aceitar), `aceitar_termo`, `salvar_privacidade`, `minha_privacidade` (com quem mexeu nos dados, da auditoria, nos últimos 90 dias), `meus_dados` (o arquivo para baixar), `pedir_exclusao`, `versoes_do_termo`, `salvar_rascunho_termo`, `publicar_termo` (a versão nova precisa dizer o que mudou), `responder_pedido_titular`, `lembrar_termo` (pelo sino da parte 11, uma vez por dia) e `privacidade_de` (a ficha do ministro sabe se ele quer o WhatsApp).
+- O índice `auditoria_pessoa` (a pessoa de cada registro da auditoria): "quem mexeu nos seus dados" lia a auditoria inteira, que no teste já passa de 76 mil linhas (3 s com o banco folgado; no ponta a ponta, passou do limite de 8 s e a tela mostrou o erro). Com o índice e a busca em duas partes, leva 43 ms.
+
+**As telas:**
+
+- **O termo na tela inteira**, logo depois de entrar (rodada 19, a tela "termo"): o resumo em 9 pontos, o dado sensível destacado, o opcional à parte, "Ler o termo completo ›", "Aceitar e continuar" e "Agora não".
+- **O termo completo** (`/termo-de-uso`): as 10 partes com o índice, "Minuta" no alto e "Baixar em PDF" (pela impressão do navegador).
+- **Meu perfil › Privacidade** (a tela "meus-dados"): o termo aceito (versão, data, hora e aparelho), baixar os meus dados, pedir correção ou exclusão, quem mexeu nos dados e as escolhas.
+- **Meu perfil › Segurança** (rodadas 20 e 22): a chave de acesso ("Ainda não ligada"), este aparelho (os 30 dias, com a data), "Sair de todos os outros aparelhos", a senha e as regras; "Como funciona a digital" (no celular e no computador). O endereço antigo `/meu-perfil/senha` continua valendo.
+- **Administração › Termo de uso de dados:** as versões, quem aceitou a versão em foco, "Mandar lembrete aos N" (quem ainda não aceitou), "Escrever nova versão" (o rascunho e publicar) e os pedidos de exclusão.
+- **A ficha do ministro:** quem escolheu não receber avisos pelo WhatsApp não tem o botão "Abrir no WhatsApp" (só "Mandar pelo aplicativo").
+- **A sessão de 30 dias:** depois de 30 dias da entrada em cada aparelho, o sistema sai e a tela de entrar explica.
+
+**O que ficou de fora e por quê:**
+
+- **A chave de acesso (passkey), a confirmação pela digital para assinar e o aplicativo autenticador:** o Supabase do teste está com as chaves desligadas (`passkeys_enabled: false`) e o autenticador também. Ligar é mudar a configuração do projeto no painel do Supabase, o que este trabalho não faz. Quando o usuário ligar (Authentication › Passkeys, com o nome "COMEP", o domínio `ieadespa.github.io` e os endereços `https://ieadespa.github.io`, `http://localhost:4173` e `http://localhost:5173`), entram: o cadastro da chave, a entrada com a digital, a obrigação para quem tem perfil e para o pastor presidente, as chaves listadas e removíveis em Segurança e a confirmação para assinar.
+- **A entrada pelo CPF** (do desenho): continua o e-mail, como decidido em 11/11/2026. Achar o e-mail pelo CPF antes de entrar exporia o e-mail de qualquer pessoa.
+- **A lista de aniversariantes** ainda não existe no sistema: a escolha fica guardada para ela.
+
+**Decisões tomadas sem o desenho:**
+
+- O termo aparece para quem tem perfil de acesso. O candidato consente no pedido de associação.
+- "Agora não" vale para a aba aberta: no próximo acesso, o termo aparece de novo.
+- "Quem mexeu nos seus dados" mostra quem mudou (a auditoria registra as mudanças, não as leituras).
+- O lembrete do termo vai pelo sino (o recado da secretaria), uma vez por dia.
+- O arquivo "meus dados" é JSON (abre em qualquer editor de texto).
+- Os 30 dias contam da entrada (a data que vem na sessão), e não da última vez que a pessoa usou.
+
+**Verificação (21/11/2026):**
+
+- `npm test`: 637 de 637. O `testes/banco/termo_privacidade.test.ts` tem 7 testes:
+  - a versão 1 (minuta) vale desde a migração, com o resumo em 9 pontos e o termo em 10 partes;
+  - o aceite pede o dado sensível, guarda a versão, a data, a hora e o aparelho, e não se repete nem muda;
+  - a versão publicada não muda nem se apaga, e ninguém grava direto;
+  - a versão nova (o rascunho e publicar com o que mudou) pede o aceite de todos de novo;
+  - os meus dados, o pedido de exclusão (a secretaria responde) e quem mexeu nos dados;
+  - o que a própria pessoa fez não aparece em "quem mexeu", e a busca vai pelo índice da pessoa;
+  - o lembrete pelo sino vai para quem falta, uma vez por dia.
+- tsc e oxlint sem aviso. O build passa, só com o aviso do tamanho do pacote, que já existia antes desta entrega.
+- As duas migrações foram aplicadas no `comep-teste` em 21/11, com o GitHub parado. O `supabase db advisors` mostra só o aviso conhecido `auth_leaked_password_protection`. "Quem mexeu nos seus dados" caiu de 3 s para 43 ms.
+- Ponta a ponta local no computador e no celular, todos os arquivos: 181 passaram e 3 foram pulados de propósito (valem só no computador ou só no celular).
+  - Um falhou, o `site.spec` no celular: as chamadas públicas ao Supabase da página inicial ficaram sem resposta por 60 s (a rede, não o código). Rodado de novo, o `site.spec` passou, 17 de 17.
+  - Depois do último ajuste de texto em Privacidade, o `termo.spec` rodou de novo: 9 de 9.
+  - Os testes que criam dados limpam as sobras de rodadas cortadas antes de começar: o `termo.spec` arquiva os "Associado Termo E2E" que sobraram.
+- As telas foram conferidas com fotos no computador e no celular: o termo na tela inteira, o termo completo, Meu perfil › Privacidade e Segurança, "Como funciona a digital" e Administração › Termo de uso de dados.
+- Defeitos achados e corrigidos no caminho:
+  - o sistema aparecia por um instante antes do termo, enquanto a conta carregava: o portão agora mostra "Carregando…";
+  - "quem mexeu nos seus dados" passava do limite de tempo do banco: o índice novo resolveu;
+  - o aparelho aparecia todo em minúscula ("chrome"): agora só o tipo ("pelo computador · Chrome").

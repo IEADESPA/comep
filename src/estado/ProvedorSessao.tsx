@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { aoMudarSessao, sair as sairDoSistema, sessaoAtual, type Sessao } from '../dados/autenticacao'
+import { aoMudarSessao, DIAS_CONECTADO, entrouEm, sair as sairDoSistema, sessaoAtual, type Sessao } from '../dados/autenticacao'
 import { buscarMinhaConta, type ResultadoConta } from '../dados/perfis'
 import { ContextoSessao, type EstadoSessao, type ValorSessao } from './contexto'
 
@@ -22,6 +22,28 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
   }, [])
 
   const usuarioId = sessao?.usuarioId
+
+  // A pessoa fica conectada no aparelho por 30 dias (parte 13; sem "confiar neste aparelho"): depois, entra de novo
+  useEffect(() => {
+    if (!usuarioId) return
+    let ativo = true
+    void entrouEm().then(async (quando) => {
+      if (!ativo || !quando) return
+      if (Date.now() - quando.getTime() > DIAS_CONECTADO * 86_400_000) {
+        try {
+          sessionStorage.setItem('comep:sessao-venceu', '1')
+        } catch {
+          // sem armazenamento: só não mostra o aviso na tela de entrar
+        }
+        await sairDoSistema()
+        setConta(null)
+      }
+    })
+    return () => {
+      ativo = false
+    }
+  }, [usuarioId])
+
   useEffect(() => {
     if (!usuarioId) return
     let ativo = true

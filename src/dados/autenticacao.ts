@@ -36,6 +36,34 @@ export async function sair(): Promise<void> {
   await cliente().auth.signOut({ scope: 'local' })
 }
 
+/** Sai de todos os OUTROS aparelhos (este continua conectado). */
+export async function sairDosOutrosAparelhos(): Promise<{ erro: string | null }> {
+  const { error } = await cliente().auth.signOut({ scope: 'others' })
+  return { erro: error ? 'Não foi possível sair dos outros aparelhos agora. Tente de novo em instantes.' : null }
+}
+
+/** Quanto tempo a pessoa fica conectada no aparelho (telas novas, parte 13): 30 dias; depois, entra de novo. */
+export const DIAS_CONECTADO = 30
+
+/**
+ * Quando a pessoa entrou neste aparelho (a senha, ou outro jeito de entrar): vem do próprio token do login
+ * (o "amr" guarda a hora de cada jeito de entrar, e a renovação do token não muda essa hora).
+ */
+export async function entrouEm(): Promise<Date | null> {
+  const { data } = await cliente().auth.getSession()
+  const token = data.session?.access_token
+  if (!token) return null
+  try {
+    const parte = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const conteudo = JSON.parse(atob(parte + '='.repeat((4 - (parte.length % 4)) % 4))) as { amr?: { timestamp?: number }[]; iat?: number }
+    const horas = (conteudo.amr ?? []).map((a) => a.timestamp).filter((t): t is number => typeof t === 'number')
+    const segundos = horas.length > 0 ? Math.min(...horas) : conteudo.iat
+    return typeof segundos === 'number' ? new Date(segundos * 1000) : null
+  } catch {
+    return null
+  }
+}
+
 export async function sessaoAtual(): Promise<Sessao | null> {
   const { data } = await cliente().auth.getSession()
   return paraSessao(data.session)
