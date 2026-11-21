@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import {
   abrirAbaDaFicha,
   abrirFichaDoMinistro,
+  aceitarTermoSeAparecer,
   arquivarCadastroAberto,
   cadastrarMinistro,
   cpfAleatorio,
@@ -59,6 +60,8 @@ test('associado antigo: primeiro acesso com código e, depois, senha esquecida c
   await page.getByLabel('Repita a senha').fill('SenhaE2e123')
   await page.getByRole('button', { name: 'Criar a minha senha' }).click()
   await expect(page).toHaveURL(/\/painel$/)
+  // parte 13: logo depois de entrar, o termo de uso de dados
+  await aceitarTermoSeAparecer(page)
   await expect(page.getByRole('heading', { name: saudacao('Acesso'), level: 1 })).toBeVisible()
   await expect(page.getByRole('list', { name: 'Seus perfis' })).toContainText('Ministro')
 
@@ -187,6 +190,8 @@ test('pedido de associação: envia, recebe pendência, corrige, a diretoria enc
   // 6. O candidato agora é associado
   await trocarPara(page, candidato)
   await page.goto('meu-pedido')
+  // parte 13: agora associado, ele vê o termo de uso de dados antes do sistema
+  await aceitarTermoSeAparecer(page)
   await expect(page.getByText(/Aprovado na Assembleia Ordinária de/)).toBeVisible()
   await page.goto('painel')
   await expect(page.getByRole('list', { name: 'Seus perfis' })).toContainText('Ministro')
