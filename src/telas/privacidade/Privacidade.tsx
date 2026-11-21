@@ -84,7 +84,8 @@ function ConteudoPrivacidade({ p, recarregar }: { p: MinhaPrivacidade; recarrega
               <>
                 <p>
                   <strong>Versão {atual.versao}</strong>, aceita em {formatarDataDeInstante(atual.aceito_em)}, às {horaCurta(atual.aceito_em)}
-                  {atual.aparelho ? `, pelo ${atual.aparelho.toLowerCase()}` : ''}.
+                  {/* "pelo computador · Chrome": só o tipo do aparelho fica em minúscula; o nome do navegador, não */}
+                  {atual.aparelho ? `, pelo ${atual.aparelho.charAt(0).toLowerCase()}${atual.aparelho.slice(1)}` : ''}.
                 </p>
                 {antes.length > 0 && (
                   <p className="detalhe">

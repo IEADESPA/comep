@@ -747,7 +747,7 @@ Pedido do usuário em 20/11/2026: ele homologou o Conselho Fiscal, mas só aprov
 
 ## Entrega 5.5.16 — Telas novas, parte 13: a segurança e a privacidade (versão 5.5.0-teste.17)
 
-As rodadas 19 (o termo e "meus dados"), 20 e 22 (a segurança). As regras estão no `PROJETO.md`, seção 4.9. Migração `20261121120000_termo_privacidade.sql`.
+As rodadas 19 (o termo e "meus dados"), 20 e 22 (a segurança). As regras estão no `PROJETO.md`, seção 4.9. Migrações `20261121120000_termo_privacidade.sql` e `20261121150000_quem_mexeu_rapido.sql`.
 
 **O que entrou no banco:**
 
@@ -755,6 +755,7 @@ As rodadas 19 (o termo e "meus dados"), 20 e 22 (a segurança). As regras estão
 - `termo_aceites`: quem aceitou qual versão, quando e em que aparelho, com o dado sensível sempre marcado. O aceite não muda nem se apaga.
 - `privacidade_escolhas` (receber avisos pelo WhatsApp e aparecer na lista de aniversariantes) e `pedidos_titular` (o pedido de exclusão e a resposta da secretaria).
 - As funções: `meu_termo` (o termo que vale e se precisa aceitar), `aceitar_termo`, `salvar_privacidade`, `minha_privacidade` (com quem mexeu nos dados, da auditoria, nos últimos 90 dias), `meus_dados` (o arquivo para baixar), `pedir_exclusao`, `versoes_do_termo`, `salvar_rascunho_termo`, `publicar_termo` (a versão nova precisa dizer o que mudou), `responder_pedido_titular`, `lembrar_termo` (pelo sino da parte 11, uma vez por dia) e `privacidade_de` (a ficha do ministro sabe se ele quer o WhatsApp).
+- O índice `auditoria_pessoa` (a pessoa de cada registro da auditoria): "quem mexeu nos seus dados" lia a auditoria inteira, que no teste já passa de 76 mil linhas (3 s com o banco folgado; no ponta a ponta, passou do limite de 8 s e a tela mostrou o erro). Com o índice e a busca em duas partes, leva 43 ms.
 
 **As telas:**
 
@@ -781,4 +782,24 @@ As rodadas 19 (o termo e "meus dados"), 20 e 22 (a segurança). As regras estão
 - O arquivo "meus dados" é JSON (abre em qualquer editor de texto).
 - Os 30 dias contam da entrada (a data que vem na sessão), e não da última vez que a pessoa usou.
 
-**Verificação:** (preenchida abaixo, depois do ponta a ponta)
+**Verificação (21/11/2026):**
+
+- `npm test`: 637 de 637. O `testes/banco/termo_privacidade.test.ts` tem 7 testes:
+  - a versão 1 (minuta) vale desde a migração, com o resumo em 9 pontos e o termo em 10 partes;
+  - o aceite pede o dado sensível, guarda a versão, a data, a hora e o aparelho, e não se repete nem muda;
+  - a versão publicada não muda nem se apaga, e ninguém grava direto;
+  - a versão nova (o rascunho e publicar com o que mudou) pede o aceite de todos de novo;
+  - os meus dados, o pedido de exclusão (a secretaria responde) e quem mexeu nos dados;
+  - o que a própria pessoa fez não aparece em "quem mexeu", e a busca vai pelo índice da pessoa;
+  - o lembrete pelo sino vai para quem falta, uma vez por dia.
+- tsc e oxlint sem aviso. O build passa, só com o aviso do tamanho do pacote, que já existia antes desta entrega.
+- As duas migrações foram aplicadas no `comep-teste` em 21/11, com o GitHub parado. O `supabase db advisors` mostra só o aviso conhecido `auth_leaked_password_protection`. "Quem mexeu nos seus dados" caiu de 3 s para 43 ms.
+- Ponta a ponta local no computador e no celular, todos os arquivos: 181 passaram e 3 foram pulados de propósito (valem só no computador ou só no celular).
+  - Um falhou, o `site.spec` no celular: as chamadas públicas ao Supabase da página inicial ficaram sem resposta por 60 s (a rede, não o código). Rodado de novo, o `site.spec` passou, 17 de 17.
+  - Depois do último ajuste de texto em Privacidade, o `termo.spec` rodou de novo: 9 de 9.
+  - Os testes que criam dados limpam as sobras de rodadas cortadas antes de começar: o `termo.spec` arquiva os "Associado Termo E2E" que sobraram.
+- As telas foram conferidas com fotos no computador e no celular: o termo na tela inteira, o termo completo, Meu perfil › Privacidade e Segurança, "Como funciona a digital" e Administração › Termo de uso de dados.
+- Defeitos achados e corrigidos no caminho:
+  - o sistema aparecia por um instante antes do termo, enquanto a conta carregava: o portão agora mostra "Carregando…";
+  - "quem mexeu nos seus dados" passava do limite de tempo do banco: o índice novo resolveu;
+  - o aparelho aparecia todo em minúscula ("chrome"): agora só o tipo ("pelo computador · Chrome").
