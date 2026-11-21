@@ -212,6 +212,33 @@ export type LinhaCaixa = {
   lancado_por_nome: string | null
   /** efetivado e depois do saldo inicial da conta: muda o saldo */
   no_saldo: boolean
+  /** de onde veio o valor (parte 12, a blindagem do caixa) */
+  origem: OrigemLancamento
+  origem_texto: string
+  /** o endereço da origem no sistema (null: lançado à mão no Caixa) */
+  origem_link: string | null
+}
+
+/** De onde veio cada lançamento: todo módulo que recebe ou paga liga o lançamento à origem (parte 12). */
+export type OrigemLancamento =
+  | 'contribuicao'
+  | 'taxa_inscricao'
+  | 'inscricao_evento'
+  | 'evento'
+  | 'modelo_exclusivo'
+  | 'patrimonio'
+  | 'transferencia'
+  | 'avulso'
+
+export const NOME_DA_ORIGEM: Record<OrigemLancamento, string> = {
+  contribuicao: 'Contribuições',
+  taxa_inscricao: 'Taxas de inscrição de associado',
+  inscricao_evento: 'Inscrições dos eventos',
+  evento: 'Despesas e receitas dos eventos',
+  modelo_exclusivo: 'Modelos exclusivos da credencial',
+  patrimonio: 'Compras do patrimônio',
+  transferencia: 'Transferências entre contas',
+  avulso: 'Lançados no Caixa',
 }
 
 /** Os lançamentos de um período (datas AAAA-MM-DD, inclusive), do mais antigo para o mais novo. */
