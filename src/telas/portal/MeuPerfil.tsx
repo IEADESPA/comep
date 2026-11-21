@@ -19,6 +19,7 @@ import { buscarConfigCredencial } from '../../dados/credencial'
 import { minhasFaltas, type MinhasFaltas } from '../../dados/encontros'
 import { situacaoDe, type SituacaoContribuicao } from '../../dados/financeiro'
 import { listarPedidosCorrecao } from '../../dados/igrejas'
+import { PreferenciasDeAvisos } from '../avisos/AvisosNoCelular'
 import { FormCorrecao, ResumoDaCorrecao, SeloDaCorrecao, type DadoCorrigivel } from './PedidosCorrecao'
 import { atualizarMeusDados, linkDoArquivo } from '../../dados/pedidos'
 import { NOME_DO_PERFIL, type Perfil } from '../../dados/perfis'
@@ -41,7 +42,7 @@ import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../..
 import { prepararFoto } from '../../utilitarios/imagens'
 
 // /meu-perfil — telas novas (Fase 5.5): a ficha com abas (aprovada: "a ficha com todas as abas").
-// Cada aba tem endereço próprio: /meu-perfil (Meus dados), /meu-perfil/comep, /igreja, /senha e /correcoes.
+// Cada aba tem endereço próprio: /meu-perfil (Meus dados), /meu-perfil/comep, /igreja, /senha, /avisos e /correcoes.
 
 type Retorno = { sucesso?: string; erro?: string }
 type Concluir = (r: { erro: string | null }, sucesso: string) => boolean
@@ -51,12 +52,14 @@ const ABAS_ASSOCIADO: readonly Aba[] = [
   { para: '/meu-perfil/comep', nome: 'No COMEP' },
   { para: '/meu-perfil/igreja', nome: 'Minha igreja', curto: 'Igreja' },
   { para: '/meu-perfil/senha', nome: 'Senha' },
+  { para: '/meu-perfil/avisos', nome: 'Avisos' },
   { para: '/meu-perfil/correcoes', nome: 'Correções' },
 ]
 
 const ABAS_SEM_CADASTRO: readonly Aba[] = [
   { para: '/meu-perfil', nome: 'Meus dados', curto: 'Dados' },
   { para: '/meu-perfil/senha', nome: 'Senha' },
+  { para: '/meu-perfil/avisos', nome: 'Avisos' },
 ]
 
 export function MeuPerfil() {
@@ -132,6 +135,8 @@ function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: 
 
             {aba === 'senha' ? (
               <TrocarSenha email={email} concluir={concluir} />
+            ) : aba === 'avisos' ? (
+              <PreferenciasDeAvisos pastor={perfis.includes('presidente_igreja')} />
             ) : ficha && aba === 'comep' ? (
               <NoComep ficha={ficha} valores={valores} situacao={situacao} faltas={faltas} fimMandato={fimMandato} perfis={perfis} />
             ) : ficha && aba === 'igreja' ? (

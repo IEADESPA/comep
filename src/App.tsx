@@ -21,6 +21,7 @@ import { DetalhePedidoAge, ListaPedidosAge, NovoPedidoAge } from './telas/assemb
 import { DetalheComissao, EditarComissao, ListaComissoes, NovaComissao } from './telas/comissoes/Comissoes'
 import { DetalheEvento, EditarEvento, ListaEventos, NovoEvento } from './telas/eventos/Eventos'
 import { MuralDeAvisos, PainelDaPresidencia } from './telas/avisos/Avisos'
+import { SituacaoDosAvisosPagina } from './telas/avisos/SituacaoDosAvisos'
 import { DetalheEmprestimo, Patrimonio } from './telas/patrimonio/Patrimonio'
 import { DetalheVotacao, EditarVotacao, ListaVotacoes, NovaVotacao } from './telas/votacoes/Votacoes'
 import { Diretoria } from './telas/diretoria/Diretoria'
@@ -230,6 +231,7 @@ export default function App() {
 
               <Route path="configuracoes" element={<Area caminho="/configuracoes" />}>
                 <Route index element={<Configuracoes />} />
+                <Route path="avisos" element={<SituacaoDosAvisosPagina />} />
               </Route>
 
               <Route path="auditoria" element={<Area caminho="/auditoria" />}>
