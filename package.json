@@ -1,7 +1,7 @@
 {
   "name": "comep",
   "private": true,
-  "version": "5.5.0-teste.16",
+  "version": "5.5.0-teste.17",
   "description": "Sistema de Gestão do Conselho de Ministros Evangélicos de Parauapebas (COMEP)",
   "type": "module",
   "engines": {
