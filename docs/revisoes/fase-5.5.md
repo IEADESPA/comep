@@ -640,3 +640,50 @@ O fim do lote do Financeiro e do Conselho Fiscal (rodadas 13 e 14, aprovadas em 
 
 - testes do banco: `testes/banco/conselho_fiscal.test.ts` (8 testes): os 12 meses com os números e os saldos; quem decide (só o Conselho, mês terminado, ressalva com texto); a fotografia, a assinatura do outro membro e não aprovar duas vezes; o mês que mudou volta para a análise e a aprovação antiga fica arquivada; a pergunta, a resposta só da tesouraria, o arquivo que vai para o lançamento e o mês aprovado que não aceita pergunta; os meses sem movimento e o parecer do ano só com os 12 meses, com as assinaturas; os membros. O `prestacao.test.ts` aprova os meses antes do parecer;
 - ponta a ponta: `conselho-fiscal.spec` (novo: o Conselho aprova o mês anterior, pede esclarecimento sobre um lançamento do outro, a tesouraria responde, o Conselho aprova (o arquivo da resposta é conferido nos testes do banco); o mês a mês mostra o parecer; o ministro não abre; o parecer e os documentos do exercício da semente) e o `prestacao.spec` (o parecer dado no módulo Conselho Fiscal, depois de aprovar os meses sem movimento).
+
+## Entrega 5.5.15 — Telas novas, parte 12: a blindagem do Financeiro (versão 5.5.0-teste.16)
+
+Pedido do usuário em 20/11/2026: ele homologou o Conselho Fiscal, mas só aprova o Financeiro **blindado**, isto é, integrado com todos os módulos: toda entrada e toda saída de qualquer módulo chega sozinha ao caixa. As regras estão no `PROJETO.md`, seção 4.4. Migração `20261121090000_financeiro_blindagem.sql`.
+
+**O mapa de todo o dinheiro** (os fluxos do código que recebem ou pagam valor):
+
+| Módulo | O que gera | Como entra no caixa (antes → agora) | O que foi corrigido |
+| --- | --- | --- | --- |
+| Contribuições (mensalidade e anuidade) | o pagamento confirmado (o comprovante conferido ou o registrado pela tesouraria) | sozinho, pelo gatilho `contribuicao_no_caixa`, ligado à cobrança (`cobranca_id`); dinheiro → caixa, o resto → banco | o lançamento não se cancelava pelo caixa: agora cancelar devolve a cobrança para "em aberto"; a cobrança paga sem o lançamento é recusada; o "recebido" do painel é lido do caixa |
+| Taxa de inscrição de associado | a cobrança do tipo inscrição | o mesmo caminho das contribuições | o mesmo |
+| Inscrição num evento do COMEP | o pagamento registrado pela tesouraria | sozinho, ligado à inscrição (`lancamento_id`) e ao evento (`evento_id`) | cancelar a inscrição paga estorna o lançamento (antes era proibido: "a devolução é com a tesouraria"); pago ↔ lançamento vira regra da tabela |
+| Despesa de um evento | — | antes: lançada no Caixa e depois ligada ao evento | agora lançada pelo próprio evento (`lancar_no_evento`), ligada a ele e ao orçamento aprovado, para a autorização do presidente, como as outras |
+| Receita avulsa de um evento (patrocínio, oferta) | — | antes: lançada no Caixa e depois ligada | agora lançada pelo próprio evento |
+| Modelo exclusivo da credencial | o pagamento da igreja | antes: a data de pago, com a entrada do caixa **opcional** (a brecha) | agora "Receber o pagamento" cria a entrada (categoria do sistema "Modelos exclusivos da credencial"); ligar, só uma entrada avulsa sem outra origem; desfazer = estorno; pago sem a entrada é recusado; os que estavam pagos sem a entrada ganharam a entrada na migração |
+| Patrimônio: a compra | o bem comprado | a tesouraria lança a saída no Caixa (com a autorização do presidente) e liga ao bem (`ligar_compra_patrimonio`) | cancelar a saída desliga o bem; o extrato mostra "Compra do patrimônio" |
+| Patrimônio: avaria e falta na devolução | a baixa da quantidade | não há cobrança de avaria no sistema hoje (só a baixa registrada) | nada a corrigir; se a diretoria decidir cobrar, a cobrança entra pela função única |
+| Transferência entre contas | — | as duas pernas, ligadas (`transferencia_id`) | passam pela função única; cancelar uma cancela as duas (já era assim) |
+| Lançamento avulso (Caixa) | ofertas, doações, despesas do dia a dia | `lancar` | passa pela função única; o extrato mostra "Lançado no Caixa" |
+| Orçamento e plano anual | a previsão | não move dinheiro | — |
+| Cursos e eventos das igrejas | — | **não passam pelo caixa do COMEP** (o dinheiro é da igreja; o COMEP só divulga) | regra escrita no `PROJETO.md` |
+
+**As travas no banco:**
+
+- `interno.registrar_lancamento` é a única porta do livro-caixa. O gatilho `exigir_funcao_de_lancamento` recusa qualquer outra gravação em `lancamentos`, até a do dono do banco ou de outra função. A API continua só lendo (RLS).
+- `proteger_lancamento`: o lançamento gravado não muda (o valor, a conta, a data, o tipo, a categoria, a descrição e a origem), e o cancelado ou recusado não volta. Nada se apaga.
+- Item pago tem sempre o lançamento valendo:
+  - as restrições `credencial_modelos_pago_tem_lancamento` e `evento_inscricoes_pago_tem_lancamento`;
+  - o gatilho de restrição `conferir_pago_tem_lancamento` (no fim da transação), nas cobranças, nas inscrições e nos modelos exclusivos: o lançamento ligado precisa estar efetivado e com o mesmo valor.
+- `lancamento_cancelado_devolve_origem`: o lançamento cancelado devolve a contribuição para "em aberto" (o comprovante confirmado vira cancelado, com o motivo), o modelo exclusivo para "falta o pagamento" e desliga a compra do bem (a inscrição já voltava).
+- A origem de cada lançamento: `interno.origem_do_lancamento` e as colunas `origem`, `origem_texto` e `origem_link` em `vw_lancamentos`.
+
+**As telas:**
+
+- **Caixa › extrato:** cada linha mostra "De onde veio", com o link para a origem (a contribuição de quem, a inscrição nº tal do evento tal, o evento, o modelo exclusivo de qual igreja, a compra do patrimônio), e o filtro "De onde veio". O lançamento automático também se cancela (com o motivo), e a tela diz o que volta para "a pagar".
+- **O evento** (Finanças do evento): "Lançar uma despesa ou uma receita do evento" (a categoria, a conta, a data, o valor e a descrição). A despesa só com o orçamento aprovado e vai para o presidente. Na inscrição paga, "Estornar o pagamento e cancelar", com o motivo (tesouraria e presidência).
+- **O modelo exclusivo** (Credenciais › Quem recebe): "Receber o pagamento" (a data e a forma) cria a entrada no caixa; "A tesouraria já lançou a entrada no Caixa? Ligue aqui"; "Desfazer o pagamento" pede o motivo e cancela a entrada.
+- **O mês do Conselho Fiscal** mostra a origem em cada lançamento.
+
+**Decisões tomadas sem o desenho:**
+
+- O ligar um lançamento do caixa ao evento continua (para o que já foi lançado antes), além do lançar pelo evento.
+- A conta da entrada automática segue a forma, como já era: dinheiro → "Caixa (dinheiro)"; PIX, depósito e o resto → a conta bancária.
+- O modelo exclusivo pago antes da blindagem, sem a entrada, ganhou a entrada na conta bancária, na data do pagamento (ou no início da conta, se o pagamento for anterior), com "(pago antes da blindagem do caixa)" na descrição.
+- Ninguém "desfaz" um pagamento apagando a data: desfazer é sempre cancelar o lançamento (o estorno fica no extrato, com o motivo).
+
+**Verificação:** (preenchida abaixo, depois do ponta a ponta)

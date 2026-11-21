@@ -166,6 +166,15 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
   - Despesas a autorizar (os cartões, as autorizadas e as recusadas);
   - Orçamento (os cartões por categoria e o plano anual de trabalho);
   - Prestação de contas (as etapas do balanço com os números, o mês a mês e o balanço para imprimir).
+- **O Financeiro blindado (Fase 5.5, entrega 5.5.15; pedido do usuário de 20/11/2026):** toda entrada e toda saída de qualquer módulo chega sozinha ao caixa, ligada à origem. **A regra vale para todo módulo que recebe ou paga, inclusive os que ainda vêm** (os Eventos novos, com os lotes e a inscrição na hora na portaria, em dinheiro; os cursos do COMEP; a Assessoria; os planos do certificado):
+  - **uma função só grava no livro-caixa** (`interno.registrar_lancamento`). O banco recusa qualquer outra gravação, até de outra função do sistema. O módulo chama a função e liga o lançamento à origem;
+  - **o lançamento gravado não muda** (o valor, a conta, a data, a categoria e a origem). Para corrigir, cancela-se com o motivo e lança-se de novo. Nada se apaga;
+  - **item pago num módulo tem sempre o lançamento** (restrições no banco): a contribuição paga, a inscrição paga e o modelo exclusivo pago;
+  - **cancelar o lançamento devolve a origem para "a pagar"**: a contribuição volta para "em aberto", a inscrição volta a esperar o pagamento, o modelo exclusivo volta a esperar o pagamento e a compra deixa de estar ligada ao bem;
+  - **cancelar a origem paga estorna o lançamento**: a inscrição paga só a tesouraria ou a presidência cancelam, com o motivo;
+  - **o evento lança a própria despesa** (para a autorização do presidente, como as outras, só com o orçamento aprovado) **e a própria receita avulsa** (patrocínio, oferta);
+  - **o extrato mostra de onde veio cada valor**, com o link para a origem e o filtro por origem. O mês do Conselho Fiscal também mostra a origem. Os números dos módulos são lidos do caixa: a fonte é uma só;
+  - **os cursos e os eventos das IGREJAS não passam pelo caixa do COMEP**: o dinheiro é da igreja, e o COMEP só divulga.
 - Relatórios: mensal, anual, por categoria, por igreja; exportação em PDF e planilha (CSV).
 - Sem gateway de pagamento nesta fase (evita taxas). PIX automático fica para o futuro.
 
