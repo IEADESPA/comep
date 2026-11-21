@@ -33,6 +33,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,woff2}'],
         // O app instalado do site oficial não responde pelos endereços do ambiente de teste
         navigateFallbackDenylist: [new RegExp(`^${base}teste/`)],
+        // Os avisos no celular (Fase 5.5, parte 11): mostrar a notificação e abrir o sistema ao tocar (public/avisos-sw.js)
+        importScripts: ['avisos-sw.js'],
       },
     }),
   ],

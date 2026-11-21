@@ -56,6 +56,14 @@ const CAMINHOS = {
   copiar: 'M9 9h11v11H9zM5 15H4V4h11v1',
   ordem: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
   estrela: 'M12 3l2.7 5.6 6.2.9-4.5 4.4 1 6.1L12 17l-5.5 3 1-6.1L3 9.5l6.2-.9z',
+  // as notificações e a segurança (Fase 5.5, partes 11 e 13)
+  aparelho: 'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2',
+  conversa: 'M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.2A8.5 8.5 0 1 1 21 11.5z',
+  digital:
+    'M6.5 18.5A9.5 9.5 0 0 1 5 13a7 7 0 0 1 14 0v1M9 20.5c-.6-1.4-1-3.2-1-5.5a4 4 0 0 1 8 0c0 2 .4 3.6 1 5M12 13v2.5c0 2 .5 4 1.5 5.5M4.5 9A9 9 0 0 1 19.5 9',
+  escudo: 'M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z',
+  olho: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  baixar: 'M12 4v11M7 10l5 5 5-5M5 20h14',
 } as const
 
 export type NomeIcone = keyof typeof CAMINHOS

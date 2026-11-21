@@ -13,6 +13,7 @@ import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { agendaProxima, paraVoce, type ItemParaVoce } from '../../estado/resumos'
 import { dataPorExtenso, diaEMes, formatarData, saudacaoDaHora } from '../../utilitarios/formatos'
+import { AtivarAvisos } from '../avisos/AvisosNoCelular'
 import { PassosDoPedido } from '../pedido/PassosDoPedido'
 import { SecaoModulos } from './Modulos'
 
@@ -79,6 +80,9 @@ function InicioDaConta({ conta }: { conta: MinhaConta }) {
           </ul>
         )}
       </div>
+
+      {/* no primeiro acesso: "Receber os avisos no celular?" (parte 11) */}
+      <AtivarAvisos />
 
       {conta.perfis.length === 0 ? (
         <InicioSemPerfil pessoaId={conta.pessoaId} />

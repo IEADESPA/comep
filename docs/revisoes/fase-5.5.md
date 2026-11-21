@@ -641,6 +641,46 @@ O fim do lote do Financeiro e do Conselho Fiscal (rodadas 13 e 14, aprovadas em 
 - testes do banco: `testes/banco/conselho_fiscal.test.ts` (8 testes): os 12 meses com os números e os saldos; quem decide (só o Conselho, mês terminado, ressalva com texto); a fotografia, a assinatura do outro membro e não aprovar duas vezes; o mês que mudou volta para a análise e a aprovação antiga fica arquivada; a pergunta, a resposta só da tesouraria, o arquivo que vai para o lançamento e o mês aprovado que não aceita pergunta; os meses sem movimento e o parecer do ano só com os 12 meses, com as assinaturas; os membros. O `prestacao.test.ts` aprova os meses antes do parecer;
 - ponta a ponta: `conselho-fiscal.spec` (novo: o Conselho aprova o mês anterior, pede esclarecimento sobre um lançamento do outro, a tesouraria responde, o Conselho aprova (o arquivo da resposta é conferido nos testes do banco); o mês a mês mostra o parecer; o ministro não abre; o parecer e os documentos do exercício da semente) e o `prestacao.spec` (o parecer dado no módulo Conselho Fiscal, depois de aprovar os meses sem movimento).
 
+## Entrega 5.5.14 — Telas novas, parte 11: as notificações (versão 5.5.0-teste.15)
+
+O módulo das Notificações (rodada 15, a proposta "notificacoes", aprovada em 18/11/2026; o sino e o menu do celular da rodada 4). As regras estão no `PROJETO.md`, seção 4.8. Migração `20261120230000_notificacoes.sql`.
+
+**O que entrou no banco:**
+
+- `notificacoes`: para quem, o assunto (assembleias, votações, mural, contribuição, documentos, pedido e recado), o título, o texto, o link dentro do sistema, a chave que não repete, se é urgente, quando aconteceu, **quando foi lida (por pessoa)** e o envio ao celular. Cada um lê só as suas; ninguém grava direto; nada se apaga.
+- `notificacao_preferencias` (a resposta do primeiro acesso, o que não chega no celular e o silêncio à noite) e `inscricoes_push` (os aparelhos; o mesmo aparelho com outra pessoa passa para ela, como no computador da sede).
+- **Os avisos que o sino já mostrava passam a nascer quando as coisas acontecem** (gatilhos): a assembleia ou a reunião convocada (todos os associados), a votação ou enquete aberta (quem pode votar), o pedido de AGE (quem pode assinar, menos quem abriu), o aviso novo no mural (quem é do COMEP, menos quem publicou), a pendência no pedido de associação, o comprovante conferido (confirmado ou não) e o item ou o documento da igreja devolvido. O que já estava aberto no dia da migração entrou no sino.
+- **Os avisos com data** (`gerar_avisos_do_dia`, uma vez por dia, na primeira leitura ou na rodada do envio): os documentos da igreja 60 e 30 dias antes de vencer e a igreja suspensa (urgente), para o pastor presidente.
+- `mandar_recado` ("Mandar pelo aplicativo": secretaria, tesouraria e presidência), `lembrar_contribuicoes_em_atraso` (tesouraria e presidência; uma vez por dia para cada pessoa), `situacao_dos_avisos` e, só para a chave secreta do envio, `push_pendentes` e `push_resultado` (404 e 410 arquivam o aparelho).
+
+**As telas:**
+
+- **O sino** lê a tabela: o lido vale em todos os aparelhos; o recado mostra quem mandou; o sino se atualiza a cada 5 minutos e ao voltar para a aba.
+- **"Receber os avisos no celular?"** no topo do Início (rodada 15, a tela "Ativar"): "Sim, ativar" pede a permissão do navegador e inscreve o aparelho; "Agora não" guarda a resposta. Ao lado, "Como chega", com dois exemplos.
+- **Meu perfil › Avisos** (a tela "O que chega"): neste aparelho (ativar ou parar), o que chega no celular (interruptores) e o silêncio à noite, e os aparelhos que recebem.
+- **"Falar pelo WhatsApp"** no alto da ficha do ministro (a tela "WhatsApp da secretaria"): a mensagem pronta (o lembrete da contribuição, a próxima assembleia, o que falta na credencial ou livre), que se pode ajustar, "Abrir no WhatsApp" (o WhatsApp de quem clica, com o texto) e "Mandar pelo aplicativo".
+- **"Lembrar todos"** em Financeiro › Contribuições › Precisam de atenção (a rodada 11; tinha ficado de fora na parte 9).
+- **Administração › Avisos e notificações**: quantos ativaram, os aparelhos, os avisos dos últimos 7 dias, o último envio e o que o sistema avisa sozinho.
+
+**O envio pronto para ligar:** `supabase/functions/enviar-avisos` (Deno, `web-push`), `public/avisos-sw.js` (mostra a notificação e abre o sistema no lugar certo, entra no service worker pelo `importScripts`) e a chave pública em `VITE_VAPID_PUBLICA` (variáveis do GitHub `VAPID_PUBLICA` e `TESTE_VAPID_PUBLICA`). O roteiro do que o usuário cria está em `docs/avisos-no-celular.md`.
+
+**Decisões tomadas sem o desenho:**
+
+- **O pedido de ativar é um cartão no topo do Início**, não uma página que trava a entrada: quem prefere decidir depois usa o sistema normalmente.
+- **"Demandas que eu apoio" e "Contratos para assinar"**, do desenho, ficam de fora da lista do que chega até esses módulos existirem (o sistema não promete o que ainda não faz). "Documentos da igreja" só aparece para o pastor presidente.
+- **O recado da secretaria e o pedido de associação chegam sempre** (não se desligam).
+- **"Lembrar todos"** vai só para quem está em atraso e ainda não mandou o comprovante, e não repete no mesmo dia.
+- **Aviso lido no sino não vai ao celular**, nem o que tem mais de 3 dias.
+- **"Ver todos os avisos"**, do desenho do sino, continua "Ver o mural de avisos": o sino mostra os 30 mais novos.
+
+**Verificação (21/11/2026):**
+
+- `npm test`: 620 de 620 (o `testes/banco/notificacoes.test.ts` tem 15: os gatilhos de cada assunto, a chave que não repete, o lido por pessoa, as preferências, o aparelho que muda de dono, o recado e quem pode mandar, o "Lembrar todos" uma vez por dia, os avisos com data, o envio que respeita o silêncio e o que foi desligado, e o 404/410 que arquiva o aparelho); tsc, oxlint e build sem aviso.
+- Migração aplicada no `comep-teste` em 21/11, com o GitHub parado; `supabase db advisors`: só o aviso conhecido `auth_leaked_password_protection`.
+- Ponta a ponta no computador e no celular (9 arquivos: `notificacoes`, `mural`, `moldura`, `financeiro`, `portal`, `portal-ministro`, `cadastros`, `menu-modulo` e `configuracoes`): 73 passaram e 2 ficaram de fora de propósito (o teste só do celular no computador e o contrário).
+- O teste do lido espera o banco gravar antes de recarregar a página; o das preferências começa com o mural ligado, para limpar a sobra de uma rodada cortada no meio.
+- Telas conferidas com fotos no computador e no celular: o cartão do Início, Meu perfil › Avisos, o sino com o recado, a ficha com o WhatsApp, Administração › Avisos e notificações e o "Lembrar todos".
+
 ## Entrega 5.5.15 — Telas novas, parte 12: a blindagem do Financeiro (versão 5.5.0-teste.16)
 
 Pedido do usuário em 20/11/2026: ele homologou o Conselho Fiscal, mas só aprova o Financeiro **blindado**, isto é, integrado com todos os módulos: toda entrada e toda saída de qualquer módulo chega sozinha ao caixa. As regras estão no `PROJETO.md`, seção 4.4. Migração `20261121090000_financeiro_blindagem.sql`.

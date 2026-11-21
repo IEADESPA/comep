@@ -383,6 +383,12 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# Os avisos no celular (Fase 5.5, parte 11): a função que manda a notificação do navegador. Ela confere o próprio
+# segredo (ENVIO_SEGREDO, no cabeçalho x-comep-envio), por isso não exige o login do Supabase. Roteiro para ligar:
+# docs/avisos-no-celular.md.
+[functions.enviar-avisos]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

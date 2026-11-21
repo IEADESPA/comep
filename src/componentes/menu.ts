@@ -654,6 +654,14 @@ export const MODULOS: readonly Modulo[] = [
     funcoes: [
       { chave: 'configuracoes', titulo: 'Configurações', icone: 'config', caminho: '/configuracoes' },
       { chave: 'acessos', titulo: 'Perfis de acesso', icone: 'chave', caminho: '/acessos', item: '/acessos' },
+      // a situação dos avisos no celular (parte 11)
+      {
+        chave: 'avisos',
+        titulo: 'Avisos e notificações',
+        icone: 'sino',
+        caminho: '/configuracoes/avisos',
+        perfis: ['secretaria', 'presidencia', 'admin_tecnico'],
+      },
       { chave: 'auditoria', titulo: 'Auditoria', icone: 'relogio', caminho: '/auditoria', item: '/auditoria' },
     ],
   },

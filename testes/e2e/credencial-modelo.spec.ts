@@ -22,8 +22,23 @@ async function arquivarSeExistir(page: Page, nome: string) {
   await expect(page.getByRole('article', { name: nome, exact: true })).toHaveCount(0)
 }
 
+/**
+ * Arquiva os modelos "E2E …" que sobraram de uma rodada interrompida (por exemplo, cancelada por tempo no meio
+ * do teste, antes do `finally`). Os testes rodam um de cada vez (workers: 1), então nenhum outro teste está usando
+ * esses modelos. Sem isso, a sobra continua em uso para a igreja fictícia A e atrapalha a ordem e o "Hoje, N pessoas".
+ */
+async function arquivarSobrasDeRodadasAnteriores(page: Page) {
+  await page.goto('credenciais/modelos')
+  await expect(page.getByRole('article', { name: 'Ministro (padrão)' })).toBeVisible()
+  const sobras = await page
+    .getByRole('article', { name: /^E2E / })
+    .evaluateAll((cartoes) => cartoes.map((c) => c.getAttribute('aria-label') ?? '').filter((n) => n !== ''))
+  for (const sobra of sobras) await arquivarSeExistir(page, sobra)
+}
+
 test('modelos da credencial: criar de um pronto, desenhar, dizer quem recebe, conferir e arquivar', async ({ page }, info) => {
   test.setTimeout(180_000)
+  await arquivarSobrasDeRodadasAnteriores(page)
   const sufixo = sufixoUnico(info.project.name)
   const nome = `E2E ${sufixo}`
   const marca = `Texto E2E ${sufixo}`

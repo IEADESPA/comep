@@ -27,12 +27,14 @@ test.describe('presidência', () => {
 test.describe('ministro', () => {
   test.use({ storageState: arquivoDaSessao('ministro') })
 
-  test('vê o aviso no sino e o mural nos módulos, mas não o painel da presidência', async ({ page }) => {
+  test('vai do sino para o mural e vê o mural nos módulos, mas não o painel da presidência', async ({ page }) => {
+    // desde a parte 11, o sino mostra as notificações (o aviso novo no mural vira notificação ao ser publicado;
+    // isso é testado no banco, em notificacoes.test.ts): o aviso da semente é antigo e pode não estar entre os mais novos
     await page.goto('painel')
     await page.getByRole('button', { name: /^Avisos/ }).click()
-    await expect(page.getByRole('list', { name: 'Avisos para você' })).toContainText(AVISO)
     await page.getByRole('link', { name: 'Ver o mural de avisos' }).click()
     await expect(page.getByRole('heading', { name: 'Mural de avisos', level: 1 })).toBeVisible()
+    await expect(page.getByRole('listitem', { name: AVISO })).toBeVisible()
     const modulos = await abrirModulos(page)
     await expect(modulos.getByRole('link', { name: 'Mural de avisos', exact: true })).toBeVisible()
     await expect(modulos.getByRole('link', { name: 'Painel da presidência', exact: true })).toHaveCount(0)
