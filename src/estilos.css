@@ -9384,7 +9384,8 @@ li.feito .numero-passo {
 
 .evento-lancar {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  /* no celular, um campo por linha (com 160px, o "Despesa do evento" ficava cortado) */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 10px 14px;
   align-items: end;
 }

@@ -726,4 +726,21 @@ Pedido do usuário em 20/11/2026: ele homologou o Conselho Fiscal, mas só aprov
 - O modelo exclusivo pago antes da blindagem, sem a entrada, ganhou a entrada na conta bancária, na data do pagamento (ou no início da conta, se o pagamento for anterior), com "(pago antes da blindagem do caixa)" na descrição.
 - Ninguém "desfaz" um pagamento apagando a data: desfazer é sempre cancelar o lançamento (o estorno fica no extrato, com o motivo).
 
-**Verificação:** (preenchida abaixo, depois do ponta a ponta)
+**Verificação (21/11/2026):**
+
+- `npm test`: 630 de 630. O `testes/banco/financeiro_blindagem.test.ts` tem 10 testes:
+  - ninguém grava direto no livro-caixa, nem o dono do banco;
+  - a contribuição entra ligada à cobrança, e cancelar o lançamento devolve a cobrança para "em aberto";
+  - a cobrança, a inscrição e o modelo exclusivo pagos sem o lançamento são recusados;
+  - o "recebido" é lido do caixa;
+  - o estorno da inscrição paga;
+  - o evento lança a receita e a despesa, esta só com o orçamento aprovado;
+  - desfazer o pagamento do modelo exclusivo estorna;
+  - a transferência são duas pernas ligadas;
+  - no fim, tudo concilia: a soma do que está pago bate com a soma dos lançamentos ligados, em cada origem.
+- O `caixa.test.ts`, o `eventos.test.ts`, o `patrimonio.test.ts` e o `credencial_modelos.test.ts` passaram a usar a função única.
+- tsc, oxlint e build sem aviso.
+- A migração foi aplicada no `comep-teste` em 21/11, com o GitHub parado. O `supabase db advisors` mostra só o aviso conhecido `auth_leaked_password_protection`. A semente `testes/dados/semente-blindagem-teste.sql` também foi aplicada.
+- Ponta a ponta no computador e no celular, em 8 arquivos (`financeiro-blindagem`, `caixa`, `financeiro`, `conselho-fiscal`, `prestacao`, `eventos`, `credencial-modelo` e `patrimonio`): 38 de 38, mais os 5 do preparo.
+- O teste novo e o `financeiro.spec` limpam as sobras de rodadas cortadas antes de começar: estornam a inscrição paga, cancelam a despesa e arquivam o contribuinte. O teste novo também espera as inscrições carregarem antes de contar. Uma primeira versão contava cedo demais e deixava o pagamento no caixa; a limpeza do começo estornou essas sobras.
+- As telas foram conferidas com fotos no computador e no celular: o extrato com a origem e o filtro, o evento com o "Lançar" e o mês do Conselho Fiscal. No celular, o formulário do evento passou a ter um campo por linha, porque o "Despesa do evento" ficava cortado.

@@ -24,6 +24,8 @@ async function abrirEvento(page: Page) {
 async function desfazerSobrasDeRodadasAnteriores(page: Page) {
   await trocarPara(page, 'tesouraria')
   await abrirEvento(page)
+  // espera as inscrições carregarem (contar antes disso daria zero)
+  await expect(page.getByRole('list', { name: 'Inscrições' }).or(page.getByText('Ninguém inscrito ainda.')).first()).toBeVisible()
   const sobras = await page
     .getByRole('list', { name: 'Inscrições' })
     .getByRole('listitem')
@@ -47,6 +49,7 @@ async function desfazerSobrasDeRodadasAnteriores(page: Page) {
 
   await page.goto('financeiro/caixa')
   await expect(page.getByLabel('De onde veio')).toBeVisible()
+  await expect(page.getByRole('region', { name: /^Lançamentos de / })).toBeVisible()
   const despesas = await page
     .getByRole('listitem', { name: /^Despesa do evento E2E / })
     .filter({ has: page.locator('summary', { hasText: 'Cancelar lançamento' }) })
@@ -143,6 +146,8 @@ test('a inscrição paga e a despesa do evento chegam sozinhas ao caixa, com a o
     if (numero) {
       await abrirEvento(page)
       const inscricao = page.getByRole('list', { name: 'Inscrições' }).getByRole('listitem').filter({ hasText: visitante })
+      // espera a inscrição aparecer antes de contar (contar antes de carregar daria zero e deixaria o pagamento no caixa)
+      await expect(inscricao).toBeVisible()
       const estornar = inscricao.locator('summary', { hasText: 'Estornar o pagamento e cancelar' })
       if (await estornar.count()) {
         await estornar.click()
