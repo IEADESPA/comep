@@ -16,12 +16,58 @@ async function abrirEvento(page: Page) {
   await expect(page.getByRole('heading', { name: EVENTO, level: 1 })).toBeVisible()
 }
 
+/**
+ * Desfaz as sobras de uma rodada cortada no meio (antes do `finally`): a inscrição "Visitante blindagem …" paga é
+ * estornada, a que ainda espera o pagamento é cancelada, e a "Despesa do evento E2E …" que ficou no caixa é cancelada.
+ * Os testes rodam um de cada vez (workers: 1), então nenhum outro teste está usando essas linhas.
+ */
+async function desfazerSobrasDeRodadasAnteriores(page: Page) {
+  await trocarPara(page, 'tesouraria')
+  await abrirEvento(page)
+  const sobras = await page
+    .getByRole('list', { name: 'Inscrições' })
+    .getByRole('listitem')
+    .filter({ hasText: 'Visitante blindagem' })
+    .evaluateAll((itens) => itens.map((i) => i.getAttribute('aria-label') ?? '').filter((n) => n !== ''))
+  for (const nome of sobras) {
+    const item = page.getByRole('listitem', { name: nome, exact: true })
+    const numero = nome.match(/^Inscrição (\d+):/)?.[1] ?? ''
+    const estornar = item.locator('summary', { hasText: 'Estornar o pagamento e cancelar' })
+    if (await estornar.count()) {
+      await estornar.click()
+      await item.getByLabel('Motivo (vai para o caixa) *').fill('Sobra de teste automático')
+      await item.getByRole('button', { name: 'Estornar e cancelar' }).click()
+      await expect(mensagemNaTela(page, `Inscrição nº ${numero} cancelada e o pagamento estornado no caixa.`)).toBeVisible()
+    } else if (await item.getByRole('button', { name: 'Cancelar a inscrição' }).count()) {
+      await item.getByRole('button', { name: 'Cancelar a inscrição' }).click()
+      await item.getByRole('button', { name: 'Confirmar — cancelar (a vaga fica livre)' }).click()
+      await expect(mensagemNaTela(page, `Inscrição nº ${numero} cancelada.`)).toBeVisible()
+    }
+  }
+
+  await page.goto('financeiro/caixa')
+  await expect(page.getByLabel('De onde veio')).toBeVisible()
+  const despesas = await page
+    .getByRole('listitem', { name: /^Despesa do evento E2E / })
+    .filter({ has: page.locator('summary', { hasText: 'Cancelar lançamento' }) })
+    .evaluateAll((itens) => itens.map((i) => i.getAttribute('aria-label') ?? '').filter((n) => n !== ''))
+  for (const nome of despesas) {
+    const linha = page.getByRole('listitem', { name: nome, exact: true }).first()
+    await linha.locator('summary', { hasText: 'Cancelar lançamento' }).click()
+    await linha.getByLabel('Motivo *').fill('Sobra de teste automático')
+    await linha.getByRole('button', { name: 'Cancelar', exact: true }).click()
+    await expect(mensagemNaTela(page, /^Lançamento cancelado\./)).toBeVisible()
+    await expect(linha.locator('summary', { hasText: 'Cancelar lançamento' })).toHaveCount(0)
+  }
+}
+
 function mesAtual(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Belem' }).slice(0, 7)
 }
 
 test('a inscrição paga e a despesa do evento chegam sozinhas ao caixa, com a origem, e ao mês do Conselho Fiscal', async ({ page, browser }, info) => {
-  test.setTimeout(240_000)
+  test.setTimeout(300_000)
+  await desfazerSobrasDeRodadasAnteriores(page)
   const marca = sufixoUnico(info.project.name)
   const visitante = `Visitante blindagem ${marca}`
   const despesa = `Despesa do evento E2E ${marca}`
