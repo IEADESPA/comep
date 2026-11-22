@@ -154,6 +154,7 @@ function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: 
                   dados={dados}
                   email={email}
                   nomeTravado={ficha?.associado.situacao === 'ativo'}
+                  temCorrecoes={ficha !== null}
                   concluir={(r, s) => {
                     const certo = concluir(r, s)
                     if (certo) recarregarConta()
@@ -256,12 +257,15 @@ function MeusDados({
   dados,
   email,
   nomeTravado,
+  temCorrecoes,
   concluir,
 }: {
   dados: MeusDadosCompletos
   email: string | null
   /** associado ativo: o nome vai na credencial e só a secretaria corrige */
   nomeTravado: boolean
+  /** quem tem cadastro de ministro tem a aba Correções (sem cadastro, nada está na credencial) */
+  temCorrecoes: boolean
   concluir: Concluir
 }) {
   const [nome, setNome] = useState(dados.nome)
@@ -315,8 +319,14 @@ function MeusDados({
           <CamposIdentidade valor={identidade} gravada={dados} aoMudar={setIdentidade} />
         </div>
         <p className="detalhe">
-          Pela LGPD, você pode ver e corrigir os seus dados aqui. O que vai na credencial e já foi preenchido, a secretaria
-          corrige: peça na aba <Link to="/meu-perfil/correcoes">Correções</Link>.
+          Pela LGPD, você pode ver e corrigir os seus dados aqui.
+          {temCorrecoes && (
+            <>
+              {' '}
+              O que vai na credencial e já foi preenchido, a secretaria corrige: peça na aba{' '}
+              <Link to="/meu-perfil/correcoes">Correções</Link>.
+            </>
+          )}
         </p>
         <div className="acoes">
           <button type="submit" className="botao" disabled={enviando}>

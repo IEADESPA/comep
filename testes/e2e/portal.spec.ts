@@ -100,4 +100,10 @@ test.describe('pessoa sem perfil', () => {
     await expect(menu.getByRole('link', { name: 'Financeiro', exact: true })).toHaveCount(0)
     await expect(menu.getByRole('link', { name: 'Meu pedido', exact: true })).toBeVisible()
   })
+
+  test('Meus dados não manda pedir correção na aba Correções, que ela não tem (D-01)', async ({ page }) => {
+    await page.goto('meu-perfil')
+    await expect(page.getByText('Pela LGPD, você pode ver e corrigir os seus dados aqui.', { exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Correções' })).toHaveCount(0)
+  })
 })
