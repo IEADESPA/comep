@@ -38,6 +38,8 @@ No repositório `IEADESPA/comep`, em **Settings → Secrets and variables → Ac
 
 As variáveis `TESTE_*` não mudam: o endereço `/comep/teste/` continua no banco de teste.
 
+Os avisos no celular da produção: `node scripts/ligar-avisos.mjs --remote=xwdnhdbpdpluotxjiawf`, publicar a função `enviar-avisos` na produção e pôr a chave pública que o script mostra na variável `VAPID_PUBLICA` (passo a passo em `docs/avisos-no-celular.md`). Nenhum segredo aparece na tela.
+
 Depois, rodar de novo o fluxo **Verificar e publicar** (Actions → Run workflow, na `main`). Conferir que `https://ieadespa.github.io/comep/` abre **sem** a faixa amarela e que `/comep/teste/` continua **com** ela.
 
 ### 2. Primeiros acessos
