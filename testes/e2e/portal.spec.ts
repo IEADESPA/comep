@@ -86,6 +86,13 @@ test.describe('ministro', () => {
       await expect(page.getByRole('heading', { name: 'Sem acesso' }), area).toBeVisible()
     }
   })
+
+  test('o Início abre a credencial já com o QR Code grande (D-02)', async ({ page }) => {
+    await page.goto('painel')
+    await page.getByRole('link', { name: 'Mostrar o QR Code' }).click()
+    await expect(page).toHaveURL(/\/minha-credencial\?qr=1$/)
+    await expect(page.getByRole('dialog', { name: 'QR Code da credencial' })).toBeVisible()
+  })
 })
 
 test.describe('pessoa sem perfil', () => {

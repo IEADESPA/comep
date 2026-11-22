@@ -248,9 +248,9 @@ function CredencialNoInicio({ conta }: { conta: MinhaConta }) {
       </span>
       <strong>{conta.nome}</strong>
       {linha && <span>{linha}</span>}
-      <Link to="/minha-credencial" className="botao-branco">
+      <Link to="/minha-credencial?qr=1" className="botao-branco">
         <Icone nome="qr" tamanho={18} />
-        Mostrar a credencial
+        Mostrar o QR Code
       </Link>
     </section>
   )

@@ -144,7 +144,9 @@ function MinhaCredencialNaTela({ pacote, c }: { pacote: PacoteCredenciais; c: Da
   const foto = useFoto(c, true)
   const modelo = useMemo(() => modeloDaCredencial(pacote, c), [pacote, c])
   const [verso, setVerso] = useState(false)
-  const [qrAberto, setQrAberto] = useState(false)
+  // o Início abre a credencial já com o QR grande (/minha-credencial?qr=1)
+  const [busca] = useSearchParams()
+  const [qrAberto, setQrAberto] = useState(() => busca.get('qr') === '1')
   const vencida = c.valida_ate !== null && c.valida_ate < hojeIso()
   const situacao = vencida
     ? 'Vencida: aguardando a renovação'
