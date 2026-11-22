@@ -21,7 +21,7 @@ Sistema de gestão do COMEP (Conselho de Ministros Evangélicos de Parauapebas).
 ## Regras
 
 - **Idioma:** português do Brasil, no padrão brasileiro (vírgula decimal, datas dd/mm/aaaa). O código, as tabelas e a interface também são em português.
-- **Agentes:** um por vez.
+- **Agentes:** até dois ao mesmo tempo (decisão do usuário, 21/11/2026): um constrói e o outro prepara a homologação. Nunca os dois aplicando migração ou rodando o ponta a ponta no comep-teste, nem mexendo no mesmo código.
 - **Segredos:** nunca no repositório, na memória nem no `HANDOFF.md`, e nada de dado pessoal real. A chave secreta e as senhas ficam só nos *Secrets* do GitHub.
 - **Dados:** os de teste são sempre fictícios, e nada se apaga (arquivar com `arquivado_em`). Toda tabela nova segue as convenções do banco (RLS, `interno.aplicar_padroes`, testes em `testes/banco/`).
 - **Fluxo:** cada fase ou entrega numa branch própria, com pull request. A `main` só recebe com a verificação do GitHub verde, e entrar na `main` publica o site.
