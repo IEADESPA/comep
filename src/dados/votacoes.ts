@@ -152,3 +152,26 @@ export async function buscarItemDePauta(id: string): Promise<Resultado<ItemDePau
     .maybeSingle<ItemDePautaParaVotar>()
   return error ? falha(error) : ok(data)
 }
+
+export type VotacaoDoItem = {
+  id: string
+  pauta_id: string | null
+  titulo: string
+  situacao: SituacaoVotacao
+  secreta: boolean
+  parcial_visivel: boolean
+  aberta_em: string | null
+}
+
+/** As votações on-line dos itens da pauta de um encontro (a condução e o telão; parte 14). */
+export async function votacoesDoEncontro(encontroId: string): Promise<Resultado<VotacaoDoItem[]>> {
+  const { data, error } = await cliente()
+    .from('votacoes')
+    .select('id, pauta_id, titulo, situacao, secreta, parcial_visivel, aberta_em')
+    .eq('encontro_id', encontroId)
+    .not('pauta_id', 'is', null)
+    .is('arquivado_em', null)
+    .order('criado_em')
+    .returns<VotacaoDoItem[]>()
+  return error ? falha(error) : ok(data)
+}

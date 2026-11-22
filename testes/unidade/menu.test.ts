@@ -49,6 +49,9 @@ describe('o menu do módulo', () => {
     assert.deepEqual(onde('/assembleias/abc/presenca'), ['assembleias', 'encontros', null])
     assert.deepEqual(onde('/assembleias/pedidos/7'), ['assembleias', 'pedidos', null])
     assert.deepEqual(onde('/assembleias/faltas'), ['assembleias', 'faltas', null])
+    assert.deepEqual(onde('/assembleias/presenca/abc/portaria'), ['assembleias', 'presenca', null])
+    assert.deepEqual(onde('/assembleias/conducao/abc'), ['assembleias', 'conducao', null])
+    assert.deepEqual(onde('/assembleias/fechamento'), ['assembleias', 'fechamento', null])
   })
 
   it('fora dos módulos: Início, Módulos, Meu perfil e as telas pessoais ficam com o menu curto', () => {
@@ -68,7 +71,11 @@ describe('o menu do módulo', () => {
       funcoesVisiveis(assembleias, ['ministro']).map((f) => f.chave),
       ['encontros', 'pedidos'],
     )
-    assert.equal(funcoesVisiveis(assembleias, ['secretaria']).length, 4)
+    // parte 14: presença, condução e fechamento entram como funções (as 7 do desenho)
+    assert.deepEqual(
+      funcoesVisiveis(assembleias, ['secretaria']).map((f) => f.chave),
+      ['encontros', 'preparar', 'presenca', 'conducao', 'fechamento', 'faltas', 'pedidos'],
+    )
 
     const patrimonio = MODULOS.find((m) => m.chave === 'patrimonio')!
     assert.ok(funcoesVisiveis(patrimonio, ['presidente_igreja']).some((f) => f.chave === 'pedir'))

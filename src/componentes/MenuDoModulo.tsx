@@ -8,6 +8,8 @@ import type { Funcao, Localizacao } from './menu'
 // Notebook: a coluna vermelha da esquerda vira o menu do módulo: "← Início", o bloco com o ícone, o nome e
 // "N funções", as funções grandes (com o número quando há pendência) e as subfunções da função aberta.
 // Celular: logo abaixo do cabeçalho vermelho, um botão de largura inteira com a função aberta, que abre a lista.
+// Recolhido (menu-recolhido opção 1, parte 14): só os ícones, numa coluna fina; passando o mouse (ou com o foco
+// do teclado), aparece o nome da função.
 
 export type PropsMenuDoModulo = {
   local: Localizacao
@@ -28,8 +30,38 @@ function Contagem({ n }: { n: number | undefined }) {
 }
 
 /** Notebook: o miolo da coluna vermelha quando um módulo está aberto. */
-export function MenuDoModulo({ local, funcoes, pendencias }: PropsMenuDoModulo) {
+export function MenuDoModulo({ local, funcoes, pendencias, trilho = false }: PropsMenuDoModulo & { trilho?: boolean }) {
   const { modulo, funcao: aberta, subfuncao } = local
+  if (trilho) {
+    return (
+      <>
+        <Link to="/painel" className="lateral-voltar lateral-dica" data-dica="Início">
+          <Icone nome="voltar" tamanho={20} />
+          <span className="somente-leitor">Início</span>
+        </Link>
+        <hr className="lateral-divisa" />
+        <ul className="lateral-funcoes" aria-label="Funções do módulo">
+          {funcoes.map((f) => {
+            const ativa = f === aberta
+            return (
+              <li key={f.chave}>
+                <Link
+                  to={f.caminho}
+                  className={ativa ? 'lateral-funcao ativa lateral-dica' : 'lateral-funcao lateral-dica'}
+                  data-dica={f.titulo}
+                  aria-current={ativa && !subfuncao ? 'page' : undefined}
+                >
+                  <Icone nome={f.icone} tamanho={20} />
+                  <span className="somente-leitor">{f.titulo}</span>
+                  <Contagem n={f.pendencia ? pendencias[f.pendencia] : undefined} />
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      </>
+    )
+  }
   return (
     <>
       <Link to="/painel" className="lateral-voltar">

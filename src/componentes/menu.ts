@@ -567,9 +567,13 @@ export const MODULOS: readonly Modulo[] = [
     area: 'assembleias',
     item: '/assembleias',
     bases: ['/assembleias'],
+    // rodada 15 (18/11/2026), parte 14: as 7 funções do desenho (asm-presenca, asm-conducao e asm-fechamento)
     funcoes: [
       { chave: 'encontros', titulo: 'Assembleias e reuniões', icone: 'assembleia', caminho: '/assembleias' },
-      { chave: 'pedidos', titulo: 'Pedidos de AGE', icone: 'pedido', caminho: '/assembleias/pedidos' },
+      { chave: 'preparar', titulo: 'Preparar assembleia', icone: 'mais', caminho: '/assembleias/novo', perfis: SECRETARIA_PRESIDENCIA },
+      { chave: 'presenca', titulo: 'Presença', icone: 'qr', caminho: '/assembleias/presenca', perfis: SECRETARIA_PRESIDENCIA },
+      { chave: 'conducao', titulo: 'Condução', icone: 'votar', caminho: '/assembleias/conducao', perfis: SECRETARIA_PRESIDENCIA },
+      { chave: 'fechamento', titulo: 'Fechamento e ata', icone: 'check', caminho: '/assembleias/fechamento', perfis: SECRETARIA_PRESIDENCIA },
       {
         chave: 'faltas',
         titulo: 'Faltas e justificativas',
@@ -578,7 +582,7 @@ export const MODULOS: readonly Modulo[] = [
         perfis: SECRETARIA_PRESIDENCIA,
         pendencia: 'justificativas',
       },
-      { chave: 'preparar', titulo: 'Preparar assembleia', icone: 'mais', caminho: '/assembleias/novo', perfis: SECRETARIA_PRESIDENCIA },
+      { chave: 'pedidos', titulo: 'Pedidos de AGE', icone: 'pedido', caminho: '/assembleias/pedidos' },
     ],
   },
   {

@@ -1,255 +1,504 @@
-// Fase 4.3 — Condução da assembleia (secretaria e presidência): quórum de instalação, votações (com o
-// desligamento do Art. 8º) e a ata, assinada pelo 1º secretário e pelo presidente.
+// A condução do encontro ao vivo (secretaria e presidência). Telas novas, parte 14 (asm-conducao: o painel da
+// opção 1, o roteiro da opção 3 e o telão da opção 2, juntos):
+//   * o roteiro: a abertura (introdução, oração e oportunidade), as pautas do edital, as que chegaram no período
+//     (a secretaria junta) e o encerramento; o item de agora vai para o telão;
+//   * a votação do item de agora: pelo celular dos presentes (on-line) ou contada à mão, com o resultado;
+//   * o quórum (instalar a assembleia) e os convidados (não votam e não contam no quórum).
+// O telão (Telao.tsx) é a tela para a TV ou o projetor; os controles ficam aqui, no celular ou no computador.
 // Também mostra, para todos com login, o resultado das votações e a ata assinada (ResultadoDaAssembleia).
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router'
-import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Link, Navigate, useParams } from 'react-router'
+import { Aviso, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { Icone } from '../../componentes/Icone'
+import { Chip } from '../../componentes/Telas'
 import { listarAssociados } from '../../dados/associados'
 import { ok } from '../../dados/cliente'
-import { NOME_DO_CARGO, type Cargo } from '../../dados/diretoria'
 import {
-  anexarArquivoAta,
-  assinarAta,
+  arquivarConvidado,
+  avancarRoteiro,
   buscarAta,
   buscarEncontro,
   contagemQuorum,
+  incluirNaPauta,
   instalarAssembleia,
   linkArquivoAta,
+  listarConvidados,
   listarDeliberacoes,
   NOME_DA_MAIORIA,
   NOME_DO_INCISO,
+  registrarConvidado,
   registrarVotacao,
-  salvarAta,
-  type Ata,
+  salvarAberturaDoRoteiro,
+  type Convidado,
   type Deliberacao,
   type EncontroCompleto,
   type ItemDaPauta,
+  type Maioria,
 } from '../../dados/encontros'
-import { useSessao } from '../../estado/contexto'
+import {
+  abrirVotacao,
+  encerrarVotacao,
+  resultadoVotacao,
+  salvarVotacao,
+  votacoesDoEncontro,
+  type VotacaoDoItem,
+} from '../../dados/votacoes'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { formatarDataHora } from '../../utilitarios/formatos'
-import { prepararComprovante } from '../../utilitarios/imagens'
-import { dataPorExtenso, explicarMaioria, quorumPrimeiraChamada, textoDaAta } from '../../utilitarios/encontros'
+import { explicarMaioria } from '../../utilitarios/encontros'
+import { CabecalhoDoEncontro, CartaoQuorum, SoSecretaria } from './comum'
+import { horaDe, itensDoRoteiro, quemAssinou, useAtualizarACada, votacaoDoItem } from './regras'
 
 type Retorno = { sucesso?: string; erro?: string }
+type Concluir = (r: { erro: string | null }, sucesso: string) => void
 
-function usePerfis() {
-  const { estado } = useSessao()
-  return estado.situacao === 'logado' && estado.conta?.tipo === 'ok' ? estado.conta.conta.perfis : []
-}
-
-const horaDe = (instante: string) =>
-  new Date(instante).toLocaleTimeString('pt-BR', { timeZone: 'America/Belem', hour: '2-digit', minute: '2-digit' })
-
-/** "Nome (1º Secretário)": o cargo de quem assinou, guardado na assinatura (sem mandato registrado: pelo perfil). */
-function quemAssinou(nome: string | undefined, cargo: string | null): string {
-  const comoAssinou = cargo ? (NOME_DO_CARGO[cargo as Cargo] ?? cargo) : 'pelo perfil de acesso'
-  return `${nome ?? '—'} (${comoAssinou})`
-}
-
-// ---------------------------------------------------------------------
-// /assembleias/:id/conducao
-// ---------------------------------------------------------------------
-
-export function ConducaoAssembleia() {
+/** Os endereços antigos (/assembleias/:id/conducao) levam ao novo. */
+export function ConducaoEnderecoAntigo() {
   const { id = '' } = useParams()
-  const perfis = usePerfis()
-  if (perfis.length === 0) return <Carregando />
-  if (!perfis.includes('secretaria') && !perfis.includes('presidencia')) {
-    return (
-      <Aviso titulo="Sem permissão">
-        <p>A condução da assembleia (quórum, votações e ata) é da secretaria e da presidência.</p>
-        <p>
-          <Link to={`/assembleias/${id}`}>Voltar à assembleia</Link>
-        </p>
-      </Aviso>
-    )
-  }
-  return <ConteudoConducao key={id} id={id} />
+  return <Navigate to={`/assembleias/conducao/${id}`} replace />
+}
+
+// ---------------------------------------------------------------------
+// /assembleias/conducao/:id — ao vivo
+// ---------------------------------------------------------------------
+
+export function ConducaoDoEncontro() {
+  const { id = '' } = useParams()
+  return (
+    <SoSecretaria oQue="A condução do encontro (roteiro, quórum, votações e convidados)">
+      <ConteudoConducao key={id} id={id} />
+    </SoSecretaria>
+  )
 }
 
 function ConteudoConducao({ id }: { id: string }) {
   const [carga, recarregar] = useCarregar(async () => {
-    const [encontro, quorum, votos, ata, associados] = await Promise.all([
+    const [encontro, quorum, votos, ata, associados, votacoes, convidados] = await Promise.all([
       buscarEncontro(id),
       contagemQuorum(id),
       listarDeliberacoes(id),
       buscarAta(id),
       listarAssociados(),
+      votacoesDoEncontro(id),
+      listarConvidados(id),
     ])
     if (encontro.erro !== null) return encontro
     if (quorum.erro !== null) return quorum
     if (votos.erro !== null) return votos
     if (ata.erro !== null) return ata
     if (associados.erro !== null) return associados
+    if (votacoes.erro !== null) return votacoes
+    if (convidados.erro !== null) return convidados
     return ok({
       encontro: encontro.dados,
       quorum: quorum.dados,
       votos: votos.dados,
       ata: ata.dados,
       todos: associados.dados.map((a) => ({ pessoa_id: a.pessoa_id, nome: a.nome })),
+      votacoes: votacoes.dados,
+      convidados: convidados.dados,
     })
   })
   const [retorno, setRetorno] = useState<Retorno>({})
   const [enviando, umaVez] = useUmaVez()
-  const concluir = (r: { erro: string | null }, sucesso: string) => {
+  // a contagem do quórum e os votos pelo celular mudam sozinhos
+  useAtualizarACada(recarregar, 10)
+  const concluir: Concluir = (r, sucesso) => {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
     if (r.erro === null) recarregar()
   }
 
   return (
-    <>
-      <p className="nao-imprimir">
-        <Link to={`/assembleias/${id}`}>← Voltar à assembleia</Link>
-      </p>
-      <h1>Condução da assembleia</h1>
-      <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-      <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ encontro: e, quorum, votos, ata, todos }) => {
-          if (!e || e.tipo === 'reuniao_mensal') {
-            return (
-              <Aviso titulo="Assembleia não encontrada">
-                <p>A condução (quórum, votações e ata) é das assembleias ordinárias e extraordinárias.</p>
-              </Aviso>
-            )
-          }
-          // depois da primeira assinatura da ata, as votações não mudam mais
-          const algumaAssinatura = Boolean(ata?.assinada_secretario_em || ata?.assinada_presidente_em)
-          const minimo = quorumPrimeiraChamada(quorum.aptos)
-          const minutos = e.segunda_chamada_minutos
+    <MostrarCarga carga={carga} recarregar={recarregar}>
+      {({ encontro: e, quorum, votos, ata, todos, votacoes, convidados }) => {
+        if (!e || (e.situacao !== 'convocado' && e.situacao !== 'realizado')) {
           return (
-            <>
-              <p>
-                <strong>{e.titulo}</strong> — {dataPorExtenso(e.inicio)}
-              </p>
-
-              {/* 1. Quórum */}
-              <section className="painel" aria-labelledby="titulo-quorum">
-                <h2 id="titulo-quorum">1. Quórum de instalação (Art. 16, §4º)</h2>
-                {e.instalada_em ? (
-                  <p>
-                    <span className="etiqueta etiqueta-ok">Instalada em {e.chamada === 'primeira' ? '1ª' : '2ª'} chamada</span> às{' '}
-                    {horaDe(e.instalada_em)}, com {e.presentes_aptos_na_instalacao} associados aptos presentes, de{' '}
-                    {e.aptos_na_instalacao} aptos
-                    {e.presentes_na_instalacao !== null && ` (${e.presentes_na_instalacao} presentes ao todo)`}.
-                  </p>
-                ) : (
-                  <>
-                    <dl className="definicoes" aria-label="Quórum agora">
-                      <dt>Aptos (ativos e em dia)</dt>
-                      <dd>{quorum.aptos}</dd>
-                      <dt>Presentes</dt>
-                      <dd>
-                        {quorum.presentes} ({quorum.presentes_aptos} aptos)
-                      </dd>
-                      <dt>1ª chamada precisa de</dt>
-                      <dd>{minimo} aptos presentes (metade mais um)</dd>
-                    </dl>
-                    <p className="detalhe">
-                      Sem quórum, a 2ª chamada é com qualquer número
-                      {minutos !== null
-                        ? `, a partir das ${horaDe(new Date(new Date(e.inicio).getTime() + minutos * 60_000).toISOString())} (${minutos} minutos depois do horário marcado)`
-                        : ', passados os minutos das regras'}
-                      . A lista de presença precisa estar aberta. Marque as presenças na{' '}
-                      <Link to={`/assembleias/${e.id}/presenca`}>lista de presença</Link>.
-                    </p>
-                    {e.situacao === 'convocado' && (
-                      <button
-                        type="button"
-                        className="botao"
-                        disabled={enviando}
-                        onClick={() =>
-                          void umaVez(async () => {
-                            const r = await instalarAssembleia(e.id)
-                            concluir(r, r.erro === null ? `Assembleia instalada em ${r.dados.chamada === 'primeira' ? '1ª' : '2ª'} chamada.` : '')
-                          })
-                        }
-                      >
-                        Instalar a assembleia
-                      </button>
-                    )}
-                    <button type="button" className="botao-texto" onClick={recarregar}>
-                      Atualizar a contagem
-                    </button>
-                  </>
-                )}
-              </section>
-
-              {/* 2. Votações */}
-              <section className="painel" aria-labelledby="titulo-votacoes">
-                <h2 id="titulo-votacoes">2. Votações</h2>
-                <p className="detalhe">
-                  Votam só os presentes em dia (Art. 11): hoje, {quorum.presentes_aptos}. Nas maiorias de 3/5 e 2/3, a conta é sobre os
-                  votos válidos (a favor + contra); abstenções e brancos não entram (14/11/2026).
-                </p>
-                {e.pauta.filter((p) => p.deliberativo).length === 0 && <p className="vazio">Nenhum item desta pauta vai a votação.</p>}
-                {e.pauta
-                  .filter((p) => p.deliberativo)
-                  .map((p) => (
-                    <Votacao
-                      key={p.id}
-                      item={p}
-                      voto={votos.find((v) => v.pauta_id === p.id) ?? null}
-                      todos={todos}
-                      bloqueio={
-                        !e.instalada_em
-                          ? 'Instale a assembleia (quórum) antes de registrar as votações.'
-                          : algumaAssinatura
-                            ? 'A ata já começou a ser assinada: as votações não mudam mais.'
-                            : null
-                      }
-                      aoConcluir={concluir}
-                    />
-                  ))}
-              </section>
-
-              {/* 3. Ata */}
-              <SecaoAta e={e} ata={ata} votos={votos} quorum={quorum} todos={todos} aoConcluir={concluir} />
-            </>
+            <Aviso titulo="Encontro não encontrado">
+              <p>A condução é dos encontros convocados (ou já realizados).</p>
+            </Aviso>
           )
-        }}
-      </MostrarCarga>
-    </>
+        }
+        const assembleia = e.tipo !== 'reuniao_mensal'
+        // depois da primeira assinatura da ata, as votações não mudam mais
+        const algumaAssinatura = Boolean(ata?.assinada_secretario_em || ata?.assinada_presidente_em)
+        const roteiro = itensDoRoteiro(e)
+        const atual = roteiro.find((i) => i.chave === e.roteiro_atual) ?? null
+        const mexer = (item: string | null, sucesso: string) => void umaVez(async () => concluir(await avancarRoteiro(e.id, item), sucesso))
+        return (
+          <>
+            <CabecalhoDoEncontro
+              e={e}
+              titulo="Ao vivo"
+              acoes={
+                <>
+                  <Link className="botao botao-secundario botao-com-icone" to={`/assembleias/telao/${e.id}`} target="_blank" rel="noreferrer">
+                    <Icone nome="telao" tamanho={18} />
+                    Abrir o telão
+                  </Link>
+                  <Link className="botao-texto" to={`/assembleias/fechamento/${e.id}`}>
+                    Fechamento e ata →
+                  </Link>
+                </>
+              }
+            />
+            <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+            <div className="conducao-colunas">
+              {/* 1. O roteiro */}
+              <section className="bloco" aria-labelledby="titulo-roteiro">
+                <h2 id="titulo-roteiro">Roteiro</h2>
+                <ol className="roteiro" aria-label="Roteiro">
+                  {roteiro.map((item, i) => {
+                    const posicaoAtual = atual ? roteiro.indexOf(atual) : -1
+                    const estado = item === atual ? 'agora' : posicaoAtual > i ? 'feito' : 'a-seguir'
+                    const voto = item.pauta ? votos.find((v) => v.pauta_id === item.pauta!.id) : undefined
+                    return (
+                      <li key={item.chave} className={`roteiro-item roteiro-${estado}`} aria-current={estado === 'agora' ? 'step' : undefined}>
+                        <button
+                          type="button"
+                          className="roteiro-botao"
+                          disabled={enviando || estado === 'agora'}
+                          aria-label={`${estado === 'agora' ? 'Agora' : 'Ir para'}: ${item.numero ? `${item.numero}. ` : ''}${item.titulo}`}
+                          onClick={() => mexer(item.chave, `Agora: ${item.titulo}.`)}
+                        >
+                          <span className="roteiro-marca" aria-hidden="true">
+                            {estado === 'feito' ? <Icone nome="check" tamanho={16} traco={2.6} /> : (item.numero ?? '•')}
+                          </span>
+                          <span className="roteiro-texto">
+                            <span>{item.titulo}</span>
+                            <span className="roteiro-detalhe">
+                              {item.pauta?.origem === 'periodo' && <Chip area="eventos">chegou no período</Chip>}
+                              {item.pauta?.deliberativo && !voto && <Chip area="assembleias">votação</Chip>}
+                              {voto && <Chip area={voto.aprovada ? 'financas' : 'pessoas'}>{voto.aprovada ? 'aprovado' : 'rejeitado'}</Chip>}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ol>
+                <div className="acoes">
+                  {(() => {
+                    const posicao = atual ? roteiro.indexOf(atual) : -1
+                    const proximo = roteiro[posicao + 1]
+                    return proximo ? (
+                      <button type="button" className="botao" disabled={enviando} onClick={() => mexer(proximo.chave, `Agora: ${proximo.titulo}.`)}>
+                        {atual ? 'Próximo item' : 'Começar o roteiro'}
+                      </button>
+                    ) : null
+                  })()}
+                </div>
+                {e.situacao === 'convocado' && !e.presenca_encerrada_em && !algumaAssinatura && (
+                  <JuntarPauta e={e} aoConcluir={concluir} />
+                )}
+                {e.situacao === 'convocado' && !e.presenca_encerrada_em && <AjustarAbertura e={e} aoConcluir={concluir} />}
+              </section>
+
+              {/* 2. A votação do item de agora */}
+              <div className="coluna-pilha">
+                {!atual ? (
+                  <section className="bloco" aria-labelledby="titulo-agora">
+                    <h2 id="titulo-agora">Agora</h2>
+                    <p className="vazio">Comece o roteiro: o item de agora aparece aqui e no telão.</p>
+                  </section>
+                ) : !atual.pauta ? (
+                  <section className="bloco" aria-labelledby="titulo-agora">
+                    <p className="rotulo">Agora</p>
+                    <h2 id="titulo-agora">{atual.titulo}</h2>
+                    <p className="detalhe">{atual.chave === 'encerramento' ? 'Encerramento do encontro.' : 'Abertura do encontro.'}</p>
+                  </section>
+                ) : !atual.pauta.deliberativo ? (
+                  <section className="bloco" aria-labelledby="titulo-agora">
+                    <p className="rotulo">Agora · item {atual.numero}</p>
+                    <h2 id="titulo-agora">{atual.titulo}</h2>
+                    <p className="detalhe">
+                      {assembleia ? 'Este item não vai a votação.' : 'A reunião mensal não tem votação: o que for decidido vira resolução.'}
+                    </p>
+                    <Link className="botao-texto alinhar-esquerda" to={`/assembleias/fechamento/${e.id}`}>
+                      Protocolar uma resolução
+                    </Link>
+                  </section>
+                ) : (
+                  <CartaoVotacao
+                    key={atual.pauta.id}
+                    e={e}
+                    item={atual.pauta}
+                    voto={votos.find((v) => v.pauta_id === atual.pauta!.id) ?? null}
+                    votacao={votacaoDoItem(votacoes, atual.pauta.id)}
+                    todos={todos}
+                    bloqueio={
+                      !e.instalada_em
+                        ? 'Instale a assembleia (quórum) antes da votação.'
+                        : algumaAssinatura
+                          ? 'A ata já começou a ser assinada: as votações não mudam mais.'
+                          : null
+                    }
+                    aoConcluir={concluir}
+                  />
+                )}
+              </div>
+
+              {/* 3. O quórum e os convidados */}
+              <div className="coluna-pilha">
+                <CartaoQuorum e={e} quorum={quorum} />
+                {assembleia && !e.instalada_em && e.situacao === 'convocado' && (
+                  <div className="acoes">
+                    <button
+                      type="button"
+                      className="botao"
+                      disabled={enviando}
+                      onClick={() =>
+                        void umaVez(async () => {
+                          const r = await instalarAssembleia(e.id)
+                          concluir(r, r.erro === null ? `Assembleia instalada em ${r.dados.chamada === 'primeira' ? '1ª' : '2ª'} chamada.` : '')
+                        })
+                      }
+                    >
+                      Instalar a assembleia
+                    </button>
+                    <Link className="botao-texto" to={`/assembleias/presenca/${e.id}`}>
+                      Presença
+                    </Link>
+                  </div>
+                )}
+                {assembleia && !e.instalada_em && e.segunda_chamada_minutos !== null && (
+                  <p className="detalhe">
+                    Sem quórum, a 2ª chamada é com qualquer número, a partir das{' '}
+                    {horaDe(new Date(new Date(e.inicio).getTime() + e.segunda_chamada_minutos * 60_000).toISOString())}.
+                  </p>
+                )}
+                <Convidados e={e} convidados={convidados} aoConcluir={concluir} />
+              </div>
+            </div>
+          </>
+        )
+      }}
+    </MostrarCarga>
   )
 }
 
-function Votacao({
+function JuntarPauta({ e, aoConcluir }: { e: EncontroCompleto; aoConcluir: Concluir }) {
+  const [titulo, setTitulo] = useState('')
+  const [descricao, setDescricao] = useState('')
+  const [deliberativo, setDeliberativo] = useState(false)
+  const [maioria, setMaioria] = useState<Maioria>('simples')
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <details className="acao-recolhida">
+      <summary>+ Pauta que chegou no período</summary>
+      <form
+        aria-label="Pauta que chegou no período"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          void umaVez(async () => {
+            const r = await incluirNaPauta(e.id, { titulo, descricao, deliberativo, maioria: deliberativo ? maioria : null })
+            aoConcluir(r, `Pauta juntada ao roteiro: ${titulo.trim()}.`)
+            if (r.erro === null) {
+              setTitulo('')
+              setDescricao('')
+              setDeliberativo(false)
+            }
+          })
+        }}
+      >
+        <label>
+          Assunto *
+          <input required maxLength={300} value={titulo} onChange={(ev) => setTitulo(ev.target.value)} />
+        </label>
+        <label>
+          De onde veio (opcional)
+          <input maxLength={2000} value={descricao} onChange={(ev) => setDescricao(ev.target.value)} placeholder="Ex.: pedido de um associado" />
+        </label>
+        {e.tipo === 'ago' ? (
+          <>
+            <label className="caixa-marcar">
+              <input type="checkbox" checked={deliberativo} onChange={(ev) => setDeliberativo(ev.target.checked)} />
+              Vai a votação
+            </label>
+            {deliberativo && (
+              <label>
+                Maioria exigida
+                <select value={maioria} onChange={(ev) => setMaioria(ev.target.value as Maioria)}>
+                  {(Object.keys(NOME_DA_MAIORIA) as Maioria[]).map((m) => (
+                    <option key={m} value={m}>
+                      {NOME_DA_MAIORIA[m]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </>
+        ) : (
+          <p className="detalhe">
+            {e.tipo === 'age'
+              ? 'Na AGE, só vai a votação o que estava no edital: a pauta nova entra como informe.'
+              : 'A reunião mensal não tem votação: a pauta entra como informe, e a decisão vira resolução.'}
+          </p>
+        )}
+        <button type="submit" className="botao" disabled={enviando}>
+          Juntar ao roteiro
+        </button>
+      </form>
+    </details>
+  )
+}
+
+function AjustarAbertura({ e, aoConcluir }: { e: EncontroCompleto; aoConcluir: Concluir }) {
+  const [texto, setTexto] = useState(e.roteiro_abertura.join('\n'))
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <details className="acao-recolhida">
+      <summary>Ajustar a abertura</summary>
+      <form
+        aria-label="A abertura do roteiro"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          void umaVez(async () =>
+            aoConcluir(await salvarAberturaDoRoteiro(e.id, texto.split('\n').map((l) => l.trim()).filter(Boolean)), 'Abertura do roteiro salva.'),
+          )
+        }}
+      >
+        <label>
+          Um item por linha (antes da pauta)
+          <textarea rows={4} value={texto} onChange={(ev) => setTexto(ev.target.value)} />
+        </label>
+        <button type="submit" className="botao botao-secundario" disabled={enviando}>
+          Salvar a abertura
+        </button>
+      </form>
+    </details>
+  )
+}
+
+function Convidados({ e, convidados, aoConcluir }: { e: EncontroCompleto; convidados: Convidado[]; aoConcluir: Concluir }) {
+  const [nome, setNome] = useState('')
+  const [quemE, setQuemE] = useState('')
+  const [enviando, umaVez] = useUmaVez()
+  return (
+    <section className="bloco" aria-labelledby="titulo-convidados">
+      <h2 id="titulo-convidados">Convidados</h2>
+      {convidados.length === 0 ? (
+        <p className="vazio">Nenhum convidado registrado.</p>
+      ) : (
+        <ul className="lista-convidados" aria-label="Convidados">
+          {convidados.map((c) => (
+            <li key={c.id}>
+              <span>
+                <strong>{c.nome}</strong>
+                {c.quem_e && <span className="detalhe"> · {c.quem_e}</span>}
+              </span>
+              <button
+                type="button"
+                className="botao-texto"
+                aria-label={`Tirar ${c.nome}`}
+                disabled={enviando}
+                onClick={() => void umaVez(async () => aoConcluir(await arquivarConvidado(c.id), `${c.nome} saiu da lista de convidados.`))}
+              >
+                Tirar
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="detalhe">Convidados não votam e não contam no quórum.</p>
+      {e.situacao === 'convocado' && (
+        <form
+          className="form-linha"
+          aria-label="Registrar convidado"
+          onSubmit={(ev) => {
+            ev.preventDefault()
+            void umaVez(async () => {
+              const r = await registrarConvidado(e.id, nome, quemE)
+              aoConcluir(r, `Convidado registrado: ${nome.trim()}.`)
+              if (r.erro === null) {
+                setNome('')
+                setQuemE('')
+              }
+            })
+          }}
+        >
+          <label>
+            Nome do convidado *
+            <input required minLength={2} maxLength={150} value={nome} onChange={(ev) => setNome(ev.target.value)} />
+          </label>
+          <label>
+            Quem é
+            <input maxLength={150} value={quemE} onChange={(ev) => setQuemE(ev.target.value)} placeholder="Ex.: Vereador" />
+          </label>
+          <button type="submit" className="botao botao-secundario" disabled={enviando}>
+            + Convidado
+          </button>
+        </form>
+      )}
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------
+// A votação do item de agora: pelo celular (on-line) ou contada à mão
+// ---------------------------------------------------------------------
+
+function CartaoVotacao({
+  e,
   item,
   voto,
+  votacao,
   todos,
   bloqueio,
   aoConcluir,
 }: {
+  e: EncontroCompleto
   item: ItemDaPauta
   voto: Deliberacao | null
+  votacao: VotacaoDoItem | null
   todos: { pessoa_id: string; nome: string }[]
-  /** por que a votação não pode ser registrada agora (null = pode) */
+  /** por que a votação não pode acontecer agora (null = pode) */
   bloqueio: string | null
-  aoConcluir: (r: { erro: string | null }, sucesso: string) => void
+  aoConcluir: Concluir
 }) {
-  const [aFavor, setAFavor] = useState('')
-  const [contra, setContra] = useState('')
-  const [abstencoes, setAbstencoes] = useState('0')
-  const [observacao, setObservacao] = useState('')
+  const [aMao, setAMao] = useState(false)
+  const [secreta, setSecreta] = useState(true)
   const [enviando, umaVez] = useUmaVez()
   const nomeDe = (id: string) => todos.find((a) => a.pessoa_id === id)?.nome ?? 'associado indicado na pauta'
-  // o desligamento (só por conduta — Art. 8º, II) é o do associado indicado na pauta desde a convocação
   const alvo = item.desligamento_pessoa_id ?? null
-  const nomeDoAlvo = alvo ? nomeDe(alvo) : null
   const jubilando = item.jubilacao_pessoa_id ? nomeDe(item.jubilacao_pessoa_id) : null
-  // aprovado, o desligamento ou a jubilação não se refazem aqui
-  const travadaPorDesligamento = Boolean(voto?.aprovada && (voto.desligamento_pessoa_id || item.jubilacao_pessoa_id))
-  const desligado = voto?.desligamento_pessoa_id ? todos.find((a) => a.pessoa_id === voto.desligamento_pessoa_id)?.nome : null
+  // aprovado, o desligamento ou a jubilação não se refazem
+  const travada = Boolean(voto?.aprovada && (voto.desligamento_pessoa_id || item.jubilacao_pessoa_id))
+  const desligado = voto?.desligamento_pessoa_id ? nomeDe(voto.desligamento_pessoa_id) : null
+  const aberta = votacao?.situacao === 'aberta'
+
+  async function abrirPeloCelular() {
+    const criada = await salvarVotacao(null, {
+      tipo: 'votacao',
+      titulo: item.titulo,
+      descricao: '',
+      encontro_id: e.id,
+      pauta_id: item.id,
+      quem_vota: 'presentes',
+      secreta,
+      max_escolhas: 1,
+      maioria: item.maioria,
+      // no voto aberto, a parcial aparece no telão
+      parcial_visivel: !secreta,
+      fecha_em: '',
+      opcoes: [],
+    })
+    if (criada.erro !== null) return aoConcluir(criada, '')
+    aoConcluir(await abrirVotacao(criada.dados), 'Votação aberta: os presentes em dia votam pelo celular.')
+  }
+
   return (
-    <article className="votacao" aria-label={`Votação: ${item.titulo}`}>
-      <h3>
-        {item.ordem}. {item.titulo}
-      </h3>
+    <article className="bloco cartao-votacao" aria-label={`Votação: ${item.titulo}`}>
+      <div className="cartao-votacao-topo">
+        <span>
+          <p className="rotulo">Agora · item {item.ordem}</p>
+          <h2>Votação: {item.titulo}</h2>
+        </span>
+        {aberta && votacao?.aberta_em && <Chip area="eventos">aberta desde {horaDe(votacao.aberta_em)}</Chip>}
+      </div>
       <p className="detalhe">Maioria exigida: {item.maioria ? NOME_DA_MAIORIA[item.maioria] : '—'}</p>
-      {nomeDoAlvo && (
+      {alvo && (
         <p className="detalhe">
-          Desligamento de <strong>{nomeDoAlvo}</strong> — {NOME_DO_INCISO.II} (Art. 8º): aprovado, o associado sai do COMEP e perde o
+          Desligamento de <strong>{nomeDe(alvo)}</strong> — {NOME_DO_INCISO.II} (Art. 8º): aprovado, o associado sai do COMEP e perde o
           acesso de ministro.
         </p>
       )}
@@ -268,214 +517,149 @@ function Votacao({
           {jubilando && voto.aprovada && ` Jubilado(a): ${jubilando}.`}
         </p>
       )}
-      {bloqueio && !travadaPorDesligamento && <p className="detalhe">{bloqueio}</p>}
-      {!bloqueio && !travadaPorDesligamento && (
-        <form
-          className="form-linha"
-          aria-label={`Registrar votação: ${item.titulo}`}
-          onSubmit={(ev) => {
-            ev.preventDefault()
-            void umaVez(async () => {
-              const r = await registrarVotacao(item.id, {
-                aFavor: Number(aFavor),
-                contra: Number(contra),
-                abstencoes: Number(abstencoes),
-                desligamentoPessoaId: alvo,
-                // só a conduta vai à votação (14/11/2026)
-                desligamentoInciso: alvo ? 'II' : null,
-                observacao,
-              })
-              aoConcluir(r, r.erro === null ? `Votação registrada: ${r.dados.aprovada ? 'aprovado' : 'rejeitado'}.` : '')
-            })
-          }}
-        >
-          <label className="campo-curto">
-            A favor *
-            <input type="number" min={0} required value={aFavor} onChange={(ev) => setAFavor(ev.target.value)} />
-          </label>
-          <label className="campo-curto">
-            Contra *
-            <input type="number" min={0} required value={contra} onChange={(ev) => setContra(ev.target.value)} />
-          </label>
-          <label className="campo-curto">
-            Abstenções
-            <input type="number" min={0} required value={abstencoes} onChange={(ev) => setAbstencoes(ev.target.value)} />
-          </label>
-          <label>
-            Observação
-            <input maxLength={1000} value={observacao} onChange={(ev) => setObservacao(ev.target.value)} />
-          </label>
-          <button type="submit" className="botao" disabled={enviando}>
-            {voto ? 'Corrigir a votação' : 'Registrar a votação'}
-          </button>
-        </form>
-      )}
-      {!bloqueio && !travadaPorDesligamento && (
+      {aberta && votacao && <ParcialAoVivo votacaoId={votacao.id} aoConcluir={aoConcluir} />}
+      {votacao?.situacao === 'rascunho' && !bloqueio && (
         <p className="detalhe">
-          Ou <Link to={`/votacoes/nova?pauta=${item.id}`}>vote pelo celular dos presentes</Link>: ao encerrar, o resultado vem para cá.
+          Há uma votação em preparo para este item: <Link to={`/votacoes/${votacao.id}`}>abrir ou ajustar</Link>.
         </p>
       )}
-      {travadaPorDesligamento && (
-        <p className="detalhe">Esta votação {jubilando ? 'jubilou' : 'desligou'} um associado e não muda mais.</p>
+      {bloqueio && !travada && <p className="detalhe">{bloqueio}</p>}
+      {travada && <p className="detalhe">Esta votação {jubilando ? 'jubilou' : 'desligou'} um associado e não muda mais.</p>}
+      {!bloqueio && !travada && !aberta && votacao?.situacao !== 'rascunho' && (
+        <>
+          <div className="acoes">
+            <button type="button" className="botao" disabled={enviando} onClick={() => void umaVez(abrirPeloCelular)}>
+              {voto ? 'Votar de novo pelo celular' : 'Abrir a votação pelo celular'}
+            </button>
+            <button type="button" className="botao botao-secundario" aria-expanded={aMao} onClick={() => setAMao((v) => !v)}>
+              Contar à mão
+            </button>
+          </div>
+          <label className="caixa-marcar">
+            <input type="checkbox" checked={secreta} onChange={(ev) => setSecreta(ev.target.checked)} />
+            Voto secreto (ninguém vê a parcial nem quem votou em quê)
+          </label>
+          {aMao && <ContarAMao item={item} voto={voto} alvo={alvo} aoConcluir={aoConcluir} />}
+        </>
       )}
     </article>
   )
 }
 
-function SecaoAta({
-  e,
-  ata,
-  votos,
-  quorum,
-  todos,
-  aoConcluir,
-}: {
-  e: EncontroCompleto
-  ata: Ata | null
-  votos: Deliberacao[]
-  quorum: { presentes: number }
-  todos: { pessoa_id: string; nome: string }[]
-  aoConcluir: (r: { erro: string | null }, sucesso: string) => void
-}) {
-  const perfis = usePerfis()
-  const [texto, setTexto] = useState(ata?.texto ?? '')
+/** Os votos pelo celular, enquanto a votação está aberta (a parcial só no voto aberto). */
+function ParcialAoVivo({ votacaoId, aoConcluir }: { votacaoId: string; aoConcluir: Concluir }) {
+  const [carga, recarregar] = useCarregar(() => resultadoVotacao(votacaoId))
   const [enviando, umaVez] = useUmaVez()
-  const algumaAssinatura = Boolean(ata?.assinada_secretario_em || ata?.assinada_presidente_em)
-  const assinada = Boolean(ata?.assinada_secretario_em && ata?.assinada_presidente_em)
-  if (!e.instalada_em) {
-    return (
-      <section className="painel" aria-labelledby="titulo-ata">
-        <h2 id="titulo-ata">3. Ata</h2>
-        <p className="vazio">A ata é escrita depois de instalada a assembleia.</p>
-      </section>
-    )
-  }
+  useAtualizarACada(recarregar, 4)
   return (
-    <section className="painel" aria-labelledby="titulo-ata">
-      <h2 id="titulo-ata">3. Ata (Art. 12, §2º, IV e §4º)</h2>
-      {algumaAssinatura ? (
-        <p className="texto-edital">{ata?.texto}</p>
-      ) : (
-        <form
-          aria-label="Ata"
-          onSubmit={(ev) => {
-            ev.preventDefault()
-            void umaVez(async () => aoConcluir(await salvarAta(e.id, texto), 'Ata salva.'))
-          }}
-        >
-          <label>
-            Texto da ata (o 1º secretário redige) *
-            <textarea rows={14} required minLength={10} maxLength={30000} value={texto} onChange={(ev) => setTexto(ev.target.value)} />
-          </label>
-          <div className="acoes">
+    <MostrarCarga carga={carga} recarregar={recarregar}>
+      {(r) =>
+        r ? (
+          <>
+            {r.mostra_contagem && <BarrasDaVotacao opcoes={r.opcoes} />}
+            <p className="detalhe" role="status">
+              {r.votantes} de {r.aptos} votantes em dia já votaram pelo celular.
+            </p>
             <button
               type="button"
-              className="botao botao-secundario"
+              className="botao alinhar-esquerda"
+              disabled={enviando}
               onClick={() =>
-                setTexto(
-                  textoDaAta({
-                    tipo: e.tipo,
-                    inicio: e.inicio,
-                    local: e.local,
-                    chamada: e.chamada,
-                    aptos: e.aptos_na_instalacao,
-                    presentesAptos: e.presentes_aptos_na_instalacao,
-                    // a conta da instalação (a lista pode ter mudado depois)
-                    presentes: e.presentes_na_instalacao ?? quorum.presentes,
-                    pauta: e.pauta,
-                    votos: votos.map((v) => ({
-                      ...v,
-                      desligado: v.desligamento_pessoa_id ? (todos.find((a) => a.pessoa_id === v.desligamento_pessoa_id)?.nome ?? null) : null,
-                    })),
-                  }),
-                )
+                void umaVez(async () => {
+                  const fim = await encerrarVotacao(votacaoId)
+                  aoConcluir(fim, fim.erro === null ? `Votação apurada: ${fim.dados.aprovada ? 'aprovado' : 'rejeitado'}.` : '')
+                })
               }
             >
-              {texto ? 'Gerar o texto de novo (substitui o atual)' : 'Gerar o texto da ata'}
+              Encerrar e apurar
             </button>
-            <button type="submit" className="botao" disabled={enviando}>
-              Salvar a ata
-            </button>
-          </div>
-        </form>
-      )}
-      {ata && (
-        <>
-          <ul className="lista-pendencias" aria-label="Assinaturas">
-            <li>
-              1º secretário:{' '}
-              {ata.assinada_secretario_em
-                ? `${quemAssinou(ata.secretario?.nome, ata.assinada_secretario_cargo)}, em ${formatarDataHora(ata.assinada_secretario_em)}`
-                : 'falta assinar'}
-            </li>
-            <li>
-              Presidente:{' '}
-              {ata.assinada_presidente_em
-                ? `${quemAssinou(ata.presidente?.nome, ata.assinada_presidente_cargo)}, em ${formatarDataHora(ata.assinada_presidente_em)}`
-                : 'falta assinar'}
-            </li>
-          </ul>
-          <div className="acoes">
-            {!ata.assinada_secretario_em && perfis.includes('secretaria') && (
-              <button
-                type="button"
-                className="botao"
-                disabled={enviando}
-                onClick={() => void umaVez(async () => aoConcluir(await assinarAta(e.id, 'secretario'), 'Ata assinada pelo 1º secretário.'))}
-              >
-                Assinar como 1º secretário
-              </button>
-            )}
-            {!ata.assinada_presidente_em && perfis.includes('presidencia') && (
-              <button
-                type="button"
-                className="botao"
-                disabled={enviando}
-                onClick={() => void umaVez(async () => aoConcluir(await assinarAta(e.id, 'presidente'), 'Ata assinada pelo presidente.'))}
-              >
-                Assinar como presidente
-              </button>
-            )}
-            {ata.arquivo_caminho && <LinkArquivo caminho={ata.arquivo_caminho} />}
-            {/* o arquivo da ata assinada no papel entra uma vez, depois das duas assinaturas */}
-            {assinada && !ata.arquivo_caminho && <ArquivoAta e={e} aoConcluir={aoConcluir} />}
-          </div>
-          {!algumaAssinatura && <p className="detalhe">Depois da primeira assinatura, o texto e as votações não mudam mais.</p>}
-          {assinada && <p className="etiqueta etiqueta-ok">Ata assinada: todos os associados podem ler.</p>}
-        </>
-      )}
-    </section>
+          </>
+        ) : null
+      }
+    </MostrarCarga>
   )
 }
 
-function ArquivoAta({ e, aoConcluir }: { e: EncontroCompleto; aoConcluir: (r: { erro: string | null }, s: string) => void }) {
+/** As barras de A favor, Contra e Abstenção (a condução e o telão). */
+export function BarrasDaVotacao({ opcoes }: { opcoes: { id: string; texto: string; papel: string | null; votos: number | null }[] }) {
+  const total = Math.max(1, opcoes.reduce((s, o) => s + (o.votos ?? 0), 0))
+  return (
+    <ul className="barras-votacao" aria-label="Votos até agora">
+      {opcoes.map((o) => (
+        <li key={o.id} className={`barra-${o.papel ?? 'opcao'}`}>
+          <span className="barras-votacao-linha">
+            <span>{o.texto}</span>
+            <strong>{o.votos ?? 0}</strong>
+          </span>
+          <span className="barras-votacao-trilho" aria-hidden="true">
+            <span style={{ width: `${Math.round(((o.votos ?? 0) / total) * 100)}%` }} />
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function ContarAMao({
+  item,
+  voto,
+  alvo,
+  aoConcluir,
+}: {
+  item: ItemDaPauta
+  voto: Deliberacao | null
+  alvo: string | null
+  aoConcluir: Concluir
+}) {
+  const [aFavor, setAFavor] = useState('')
+  const [contra, setContra] = useState('')
+  const [abstencoes, setAbstencoes] = useState('0')
+  const [observacao, setObservacao] = useState('')
   const [enviando, umaVez] = useUmaVez()
   return (
-    <>
-      <label className="botao botao-secundario botao-arquivo">
-        {enviando ? 'Enviando…' : 'Anexar a ata assinada no papel (PDF ou foto)'}
-        <input
-          type="file"
-          accept="application/pdf,image/*"
-          className="somente-leitor"
-          disabled={enviando}
-          onChange={(ev) => {
-            const arquivo = ev.target.files?.[0]
-            ev.target.value = ''
-            if (!arquivo) return
-            void umaVez(async () => {
-              const pronto = await prepararComprovante(arquivo)
-              if ('erro' in pronto) return aoConcluir({ erro: pronto.erro }, '')
-              aoConcluir(await anexarArquivoAta(e.id, pronto.blob, pronto.extensao), 'Arquivo da ata anexado.')
-            })
-          }}
-        />
+    <form
+      className="form-linha"
+      aria-label={`Registrar votação: ${item.titulo}`}
+      onSubmit={(ev) => {
+        ev.preventDefault()
+        void umaVez(async () => {
+          const r = await registrarVotacao(item.id, {
+            aFavor: Number(aFavor),
+            contra: Number(contra),
+            abstencoes: Number(abstencoes),
+            desligamentoPessoaId: alvo,
+            // só a conduta vai à votação (14/11/2026)
+            desligamentoInciso: alvo ? 'II' : null,
+            observacao,
+          })
+          aoConcluir(r, r.erro === null ? `Votação registrada: ${r.dados.aprovada ? 'aprovado' : 'rejeitado'}.` : '')
+        })
+      }}
+    >
+      <label className="campo-curto">
+        A favor *
+        <input type="number" min={0} required value={aFavor} onChange={(ev) => setAFavor(ev.target.value)} />
       </label>
-    </>
+      <label className="campo-curto">
+        Contra *
+        <input type="number" min={0} required value={contra} onChange={(ev) => setContra(ev.target.value)} />
+      </label>
+      <label className="campo-curto">
+        Abstenções
+        <input type="number" min={0} required value={abstencoes} onChange={(ev) => setAbstencoes(ev.target.value)} />
+      </label>
+      <label>
+        Observação
+        <input maxLength={1000} value={observacao} onChange={(ev) => setObservacao(ev.target.value)} />
+      </label>
+      <button type="submit" className="botao" disabled={enviando}>
+        {voto ? 'Corrigir a votação' : 'Registrar a votação'}
+      </button>
+    </form>
   )
 }
 
-function LinkArquivo({ caminho }: { caminho: string }) {
+export function LinkArquivo({ caminho }: { caminho: string }) {
   const [link, setLink] = useState<string | null>(null)
   useEffect(() => {
     let ativo = true

@@ -6,6 +6,7 @@ import { contemTexto } from '../utilitarios/formatos'
 import { Icone, Ladrilho, MarcaCaixa, type NomeIcone } from './Icone'
 import { ehDaDiretoria, funcoesVisiveis, itensVisiveis, localizar, moduloAberto, podeVer, ITENS_MENU, type Localizacao } from './menu'
 import { MenuDoModulo, SeletorDeFuncao } from './MenuDoModulo'
+import { useMenuRecolhido } from './menuRecolhido'
 import { usePendencias } from '../estado/pendencias'
 import { PainelAvisos } from './Sino'
 import { useSino } from './useSino'
@@ -94,6 +95,9 @@ export function Layout() {
   const funcoes = achado && conta ? funcoesVisiveis(achado.modulo, conta.perfis) : []
   const local = achado && funcoes.length > 0 ? achado : null
   const pendencias = usePendencias(local?.modulo ?? null, conta?.perfis ?? [], pathname)
+  // o menu recolhido (só no computador e dentro de um módulo): a escolha de cada pessoa, guardada no aparelho
+  const [recolhido, setRecolhido] = useMenuRecolhido(conta?.pessoaId ?? null)
+  const trilho = local !== null && recolhido
   const trocar = (qual: Exclude<Aberto, null>) => {
     setAberto(aberto === qual ? null : qual)
     if (qual === 'sino' && aberto !== 'sino') sino.recarregar()
@@ -101,9 +105,9 @@ export function Layout() {
   const temaTexto = tema === 'escuro' ? 'Usar o modo claro' : 'Usar o modo escuro'
 
   return (
-    <div className="estrutura">
+    <div className={trilho ? 'estrutura estrutura-trilho' : 'estrutura'}>
       {/* Notebook: o menu vermelho, curto */}
-      <nav className="lateral" aria-label="Menu principal">
+      <nav className={trilho ? 'lateral lateral-trilho' : 'lateral'} aria-label="Menu principal">
         <Link to="/" className="lateral-marca" title="Ir para o site do COMEP">
           <MarcaCaixa tamanho={40} />
           <span className="nome-comep" style={{ fontSize: 18 }}>
@@ -112,10 +116,21 @@ export function Layout() {
         </Link>
         {local ? (
           <>
-            <MenuDoModulo local={local} funcoes={funcoes} pendencias={pendencias} />
-            <NavLink to="/meu-perfil" className="lateral-item lateral-perfil">
+            <MenuDoModulo local={local} funcoes={funcoes} pendencias={pendencias} trilho={trilho} />
+            {trilho ? (
+              <button type="button" className="lateral-recolher lateral-dica" data-dica="Abrir o menu" onClick={() => setRecolhido(false)}>
+                <Icone nome="expandir" tamanho={20} />
+                <span className="somente-leitor">Abrir o menu</span>
+              </button>
+            ) : (
+              <button type="button" className="lateral-recolher" onClick={() => setRecolhido(true)}>
+                <Icone nome="recolher" tamanho={20} />
+                Recolher o menu
+              </button>
+            )}
+            <NavLink to="/meu-perfil" className={trilho ? 'lateral-item lateral-perfil lateral-dica' : 'lateral-item lateral-perfil'} data-dica={trilho ? 'Meu perfil' : undefined}>
               <Icone nome="perfil" />
-              Meu perfil
+              <span className={trilho ? 'somente-leitor' : undefined}>Meu perfil</span>
             </NavLink>
           </>
         ) : (
@@ -131,7 +146,7 @@ export function Layout() {
           </ul>
         )}
         {conta && (
-          <div className="lateral-usuario">
+          <div className="lateral-usuario" title={trilho ? `${conta.nome} · ${papelDe(conta.perfis)}` : undefined}>
             <span className="avatar-iniciais" aria-hidden="true">
               {iniciais(conta.nome)}
             </span>

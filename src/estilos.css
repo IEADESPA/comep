@@ -3881,6 +3881,7 @@ fieldset .caixa-marcar + .caixa-marcar {
 /* ---------- Presença e faltas (Fase 4.2) ---------- */
 .leitor-qr {
   display: grid;
+  justify-items: start;
   gap: 0.6rem;
   margin: 0.75rem 0;
 }
@@ -9844,4 +9845,780 @@ li.feito .numero-passo {
   display: block;
   height: 100%;
   background: var(--cor-ok-forte);
+}
+
+/* ---------- Assembleias ao vivo (Fase 5.5, parte 14): presença, portaria, condução, telão e fechamento ---------- */
+
+.coluna-pilha {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bloco-cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* A tabela dentro do cartão, de ponta a ponta */
+.bloco-tabela {
+  padding: 16px 0 4px;
+}
+
+.bloco-tabela > h2,
+.bloco-tabela > .vazio {
+  padding: 0 18px;
+}
+
+.tabela-presenca td {
+  vertical-align: middle;
+}
+
+.tabela-presenca tr:last-child td {
+  border-bottom: 0;
+}
+
+.nome-com-iniciais {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iniciais-redondas {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 15px;
+  background: var(--cor-marca-suave);
+  color: var(--cor-marca-texto);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.lista-item-estatico {
+  cursor: default;
+}
+
+/* O quórum: o número grande, a barra com a marca do mínimo e a situação */
+.cartao-quorum {
+  gap: 8px;
+}
+
+.quorum-numero {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quorum-numero strong {
+  font-family: var(--letra-titulo);
+  font-size: 34px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--cor-titulo);
+}
+
+.quorum-numero.quorum-ok strong {
+  color: var(--cor-ok-forte);
+}
+
+.quorum-barra {
+  position: relative;
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--cor-fundo);
+}
+
+.quorum-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--cor-ok-forte);
+}
+
+.quorum-barra > i {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--cor-titulo);
+}
+
+.quorum-situacao {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+.quorum-situacao.quorum-ok {
+  color: var(--cor-ok-forte);
+}
+
+.cartao-quorum-grande .quorum-numero strong {
+  font-size: 56px;
+}
+
+/* A tela da portaria: o QR Code e o código de 6 letras */
+.portaria-cartao {
+  align-items: center;
+  text-align: center;
+  padding: 28px 18px;
+}
+
+.portaria-cartao h2 {
+  font-size: 22px;
+}
+
+.portaria-qr {
+  width: min(260px, 70vw);
+  height: auto;
+  padding: 10px;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.portaria-qr svg,
+.portaria-qr img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.portaria-codigo {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.portaria-codigo span {
+  width: 48px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--cor-borda);
+  border-radius: 10px;
+  background: var(--cor-superficie);
+  font-family: var(--letra-titulo);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--cor-titulo);
+}
+
+.presenca-colunas:fullscreen {
+  padding: 24px;
+  background: var(--cor-fundo);
+  overflow-y: auto;
+}
+
+.lista-chegadas,
+.lista-convidados,
+.lista-resolucoes,
+.lista-encontros-escolher {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.lista-chegadas li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.lista-chegadas li > span:nth-child(2),
+.lista-resolucoes .resolucao-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lista-chegadas li + li,
+.lista-convidados li + li {
+  border-top: 1px solid var(--cor-borda);
+}
+
+/* O ministro marca a própria presença (na página do encontro) */
+.marcar-presenca {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 14px;
+  background: var(--cor-fundo);
+}
+
+.marcar-presenca h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.marcar-presenca p {
+  margin: 0;
+}
+
+.campo-codigo {
+  max-width: 13ch;
+  font-family: var(--letra-titulo);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.campo-codigo::placeholder {
+  font-weight: 600;
+  opacity: 0.55;
+}
+
+/* Escolher o encontro (presença, condução e fechamento sem o encontro no endereço) */
+.lista-encontros-escolher {
+  gap: 10px;
+}
+
+.encontro-escolher {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.encontro-escolher > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.encontro-escolher:hover {
+  border-color: var(--cor-marca);
+}
+
+/* A condução: roteiro, o item de agora e o quórum */
+.conducao-colunas {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .conducao-colunas {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.95fr);
+  }
+}
+
+.roteiro {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.roteiro-botao {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  color: var(--cor-texto-suave);
+  text-align: left;
+  cursor: pointer;
+}
+
+.roteiro-botao:hover:not(:disabled) {
+  background: var(--cor-fundo);
+}
+
+.roteiro-botao:disabled {
+  cursor: default;
+}
+
+.roteiro-marca {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--cor-borda);
+  border-radius: 15px;
+  background: var(--cor-superficie);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.roteiro-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.3;
+}
+
+.roteiro-detalhe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.roteiro-detalhe:empty {
+  display: none;
+}
+
+.roteiro-feito .roteiro-botao {
+  color: var(--cor-texto);
+}
+
+.roteiro-feito .roteiro-marca {
+  border-color: transparent;
+  background: none;
+  color: var(--cor-ok-forte);
+}
+
+.roteiro-agora .roteiro-botao {
+  background: var(--cor-marca-suave);
+  color: var(--cor-titulo);
+  font-weight: 700;
+}
+
+.roteiro-agora .roteiro-marca {
+  border-color: transparent;
+  background: var(--cor-marca);
+  color: #ffffff;
+}
+
+.cartao-votacao-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cartao-votacao-topo h2 {
+  font-size: 17px;
+}
+
+/* As barras de A favor, Contra e Abstenção (condução e telão) */
+.barras-votacao {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.barras-votacao-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.barras-votacao-trilho {
+  display: block;
+  height: 8px;
+  margin-top: 4px;
+  border-radius: 4px;
+  background: var(--cor-fundo);
+  overflow: hidden;
+}
+
+.barras-votacao-trilho > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--cor-texto-suave);
+}
+
+.barra-a_favor .barras-votacao-trilho > span {
+  background: var(--cor-ok-forte);
+}
+
+.barra-contra .barras-votacao-trilho > span {
+  background: var(--cor-marca);
+}
+
+.lista-convidados li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+/* O telão: a TV ou o projetor da sede, fora da moldura. Segue o tema claro ou escuro (sem fundo preto). */
+.telao {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: clamp(16px, 3vw, 48px);
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+
+.telao-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.telao-marca {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.telao-marca > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.telao-marca strong {
+  font-family: var(--letra-titulo);
+  font-size: clamp(18px, 1.8vw, 28px);
+  color: var(--cor-marca-texto);
+}
+
+.telao-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.telao:fullscreen .telao-acoes {
+  display: none;
+}
+
+.telao-miolo {
+  flex: 1;
+  display: grid;
+  gap: clamp(20px, 3vw, 56px);
+  align-content: center;
+  padding: clamp(20px, 3vw, 56px);
+  border: 1px solid var(--cor-borda);
+  border-radius: 24px;
+  background: var(--cor-superficie);
+}
+
+@media (min-width: 900px) {
+  .telao-miolo {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+  }
+}
+
+.telao-esquerda,
+.telao-direita {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.telao p,
+.telao h1 {
+  margin: 0;
+}
+
+.telao-rotulo {
+  margin-top: 14px;
+  font-size: clamp(14px, 1.3vw, 22px);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cor-marca-texto);
+}
+
+.telao-numero {
+  font-family: var(--letra-titulo);
+  font-size: clamp(72px, 11vw, 200px);
+  font-weight: 800;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  color: var(--cor-titulo);
+}
+
+.telao-sub {
+  font-size: clamp(16px, 1.6vw, 28px);
+  color: var(--cor-texto-suave);
+}
+
+.telao-item {
+  font-family: var(--letra-titulo);
+  font-size: clamp(26px, 3.4vw, 60px);
+  line-height: 1.15;
+  color: var(--cor-titulo);
+}
+
+.telao-direita .barras-votacao {
+  gap: clamp(14px, 1.6vw, 28px);
+}
+
+.telao-direita .barras-votacao-linha {
+  font-size: clamp(18px, 2vw, 34px);
+}
+
+.telao-direita .barras-votacao-trilho {
+  height: clamp(12px, 1.3vw, 22px);
+  border-radius: 11px;
+}
+
+.telao-secreto,
+.telao-chamada {
+  font-size: clamp(18px, 1.8vw, 30px);
+  color: var(--cor-texto-suave);
+}
+
+.telao-resultado {
+  font-family: var(--letra-titulo);
+  font-size: clamp(40px, 5vw, 90px);
+  font-weight: 800;
+}
+
+.telao-aprovado {
+  color: var(--cor-ok-forte);
+}
+
+.telao-rejeitado {
+  color: var(--cor-marca-texto);
+}
+
+/* O fechamento: os números, as resoluções e a ata */
+.numeros-fechamento strong {
+  font-size: 22px;
+  color: var(--cor-titulo);
+}
+
+.numeros-fechamento .numero-ok {
+  color: var(--cor-ok-forte);
+}
+
+.numeros-fechamento .numero-atencao {
+  color: var(--cor-marca-texto);
+}
+
+.numeros-fechamento .numero-destaque {
+  color: var(--cor-atencao-texto);
+}
+
+.fechamento-colunas {
+  margin-top: 16px;
+}
+
+.form-resolucao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--cor-fundo);
+}
+
+.resolucao {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.resolucao-numero {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--cor-marca-texto);
+}
+
+.resolucao-anulada .resolucao-numero,
+.resolucao-anulada .resolucao-texto strong {
+  color: var(--cor-texto-suave);
+  text-decoration: line-through;
+}
+
+.resolucao-anular {
+  grid-column: 2;
+}
+
+.arquivo-ata {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+}
+
+.arquivo-ata > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.arquivo-ata-icone {
+  flex: none;
+  width: 40px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--cor-marca-suave);
+  color: var(--cor-marca-texto);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.texto-para-word {
+  width: 100%;
+  min-height: 12rem;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* ---------- O menu recolhido (menu-recolhido opção 1, parte 14): o trilho de ícones ---------- */
+
+.lateral-recolher {
+  margin-top: auto;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid rgb(255 255 255 / 0.45);
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.lateral-recolher:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.lateral-recolher + .lateral-perfil {
+  margin-top: 6px;
+}
+
+.lateral-divisa {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid rgb(255 255 255 / 0.3);
+}
+
+@media (min-width: 900px) {
+  .estrutura.estrutura-trilho {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  /* o nome da função aparece ao lado, por cima do conteúdo: o trilho não corta */
+  .lateral.lateral-trilho {
+    position: relative;
+    z-index: 40;
+    overflow: visible;
+    align-items: center;
+    padding: 20px 12px;
+  }
+
+  .lateral-trilho .lateral-marca {
+    padding: 0 0 14px;
+  }
+
+  .lateral-trilho .nome-comep,
+  .lateral-trilho .lateral-usuario-nome,
+  .lateral-trilho .lateral-sair {
+    display: none;
+  }
+
+  .lateral-trilho .lateral-voltar {
+    align-self: center;
+    padding: 8px;
+  }
+
+  .lateral-trilho .lateral-funcoes {
+    gap: 6px;
+  }
+
+  .lateral-trilho .lateral-funcao,
+  .lateral-trilho .lateral-item,
+  .lateral-trilho .lateral-recolher {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    min-height: 0;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .lateral-trilho .lateral-item.active::before {
+    display: none;
+  }
+
+  .lateral-trilho .contagem-funcao {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 10.5px;
+    box-shadow: 0 0 0 2px var(--cor-vermelho);
+  }
+
+  .lateral-trilho .lateral-usuario {
+    padding: 0;
+    background: none;
+  }
+
+  .lateral-trilho .lateral-dica:hover::after,
+  .lateral-trilho .lateral-dica:focus-visible::after {
+    content: attr(data-dica);
+    /* a barra com o texto vazio tira a dica do nome que o leitor de tela lê (o nome já está no texto escondido) */
+    content: attr(data-dica) / "";
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 5px 10px;
+    border-radius: 7px;
+    background: #18181b;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 50;
+  }
 }

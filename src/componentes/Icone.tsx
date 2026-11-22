@@ -64,6 +64,10 @@ const CAMINHOS = {
   escudo: 'M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z',
   olho: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   baixar: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+  // o telão da assembleia (parte 14)
+  telao: 'M3 4h18v12H3zM8 20h8M12 16v4',
+  recolher: 'M11 17l-5-5 5-5M18 17l-5-5 5-5',
+  expandir: 'M13 17l5-5-5-5M6 17l5-5-5-5',
 } as const
 
 export type NomeIcone = keyof typeof CAMINHOS

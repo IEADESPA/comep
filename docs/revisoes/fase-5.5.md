@@ -803,3 +803,79 @@ As rodadas 19 (o termo e "meus dados"), 20 e 22 (a segurança). As regras estão
   - o sistema aparecia por um instante antes do termo, enquanto a conta carregava: o portão agora mostra "Carregando…";
   - "quem mexeu nos seus dados" passava do limite de tempo do banco: o índice novo resolveu;
   - o aparelho aparecia todo em minúscula ("chrome"): agora só o tipo ("pelo computador · Chrome").
+
+## Entrega 5.5.17 — Telas novas, parte 14: as assembleias ao vivo (versão 5.5.0-teste.18)
+
+A rodada 15 (asm-presenca opção 3; asm-conducao: o painel da opção 1, o roteiro da opção 3 e o telão da opção 2; asm-fechamento opção 3), a regra da rodada 30 (o RESUMO e o OFICIAL do edital e da ata) e a rodada 18 (o menu recolhido, opção 1). As regras estão no `PROJETO.md`, seção 4.6. Migração `20261121180000_assembleias_telas.sql`.
+
+**O que entrou no banco:**
+
+- **A portaria:** `encontro_portarias` guarda o segredo de cada encontro, e ninguém lê a tabela (RLS sem política). O código de 6 letras sai do segredo e do minuto (HMAC), sem as letras que se confundem. `portaria_do_encontro` (só a secretaria e a presidência) dá o código e quem chegou por último. `marcar_minha_presenca` (só o associado ativo, com a presença aberta) aceita o código do minuto e o do minuto anterior. A presença guarda o jeito: `portaria_qr` ou `portaria_codigo`, além da credencial lida e do nome.
+- **O roteiro:** `encontros.roteiro_abertura` (padrão: Introdução, Oração e Oportunidade) e `roteiro_atual` (o item de agora, que vai para o telão); `encontro_pauta.origem` (`edital` ou `periodo`). As funções `incluir_na_pauta` (a pauta que chegou no período: só vai a votação na AGO), `salvar_abertura_do_roteiro` e `avancar_roteiro`.
+- **Os convidados:** `encontro_convidados` (nome e "quem é"), com `registrar_convidado` e `arquivar_convidado`. Não votam e não contam no quórum.
+- **As resoluções:** `resolucoes`, com número por ano (01/2026, 02/2026…), o item da pauta (opcional) e a anulação com motivo (o número não volta). `protocolar_resolucao` só no dia e só pela diretoria; `anular_resolucao`. Depois da primeira assinatura da ata, nada disso muda. O ministro lê as resoluções só depois da ata assinada.
+
+**As telas:**
+
+- **Presença** (`/assembleias/presenca/:id`): o quórum, "Quem chegou" com o jeito de cada um (QR da portaria, código digitado, credencial lida, pelo nome) e se vota, "Marcar pelo nome", "Três jeitos de marcar" e "Abrir a tela da portaria". **A tela da portaria** (`/assembleias/presenca/:id/portaria`) mostra o QR Code e o código grande, que mudam a cada minuto, e "Chegaram agora".
+- **No celular do ministro**, na página do encontro (com a presença aberta): "Marcar a minha presença", com o leitor do QR (quando o navegador tem) e o campo do código. O QR da portaria abre a página do encontro com o código no endereço: a presença é marcada sozinha e o código sai do endereço. Quem está em atraso marca a presença e é avisado de que não vota.
+- **Condução** (`/assembleias/conducao/:id`): o roteiro (a abertura, as pautas do edital, as do período e o encerramento), com "Começar o roteiro", "Próximo item" e "Ir para"; "+ Pauta que chegou no período"; o item de agora com a votação pelo celular ou contada à mão; o quórum e "Instalar a assembleia"; os convidados.
+- **O telão** (`/assembleias/conducao/:id/telao`): fora da moldura, para a TV da sede, com o quórum, o item de agora e a votação (a parcial só no voto aberto). Segue o tema claro ou escuro, **sem fundo preto**.
+- **Fechamento e ata** (`/assembleias/fechamento/:id`): os números (presentes, faltas, votações e resoluções), as resoluções (protocolar e anular), o resumo da ata (gerar, salvar e assinar, que antes ficava na condução), a ata oficial em PDF depois das duas assinaturas, as faltas para conferir e **o texto da ata oficial para o Word**, com "Copiar o texto". Encerrada a lista, o título vira "A assembleia encerrada".
+- **O edital:** "Copiar o edital para o Word" na página do encontro (o oficial também é feito no Word).
+- **O menu recolhido** (rodada 18, opção 1; só no computador, dentro dos módulos): "Recolher o menu" deixa só os ícones, com o nome ao passar o mouse; a escolha fica guardada para a pessoa, naquele navegador.
+- Os endereços antigos (`/assembleias/:id/presenca` e `/assembleias/:id/conducao`) levam aos novos.
+
+**Também nesta entrega:**
+
+- **Os avisos no celular:** o `docs/avisos-no-celular.md` diz o que está ligado no comep-teste (desde 21/11). O script novo `scripts/ligar-avisos.mjs` liga o envio num projeto sem mostrar nenhum segredo: gera as chaves, grava os Secrets e o Vault, agenda o Cron e mostra só a chave pública. O `docs/lancamento.md` manda rodá-lo na produção no dia do lançamento.
+- **A conta de teste de quem preside uma igreja** (`e2e.presidente.igreja`), criada em 22/11 pelos caminhos do próprio sistema, com a igreja fictícia regular e os documentos conferidos. A senha está só no `.env.e2e.local` e no Secret `E2E_SENHA_PRESIDENTE_IGREJA`, que a verificação do GitHub já recebe. O `presidente-igreja.spec` confere o perfil e a Minha igreja, sem mudar nada no banco.
+- **O `AGENTS.md`:** até dois agentes ao mesmo tempo (decisão do usuário, 21/11/2026), um constrói e o outro prepara a homologação; nunca os dois aplicando migração ou rodando o ponta a ponta no comep-teste.
+- **Os defeitos da homologação** (cada um no seu commit):
+  - **D-01:** Meu perfil › Meus dados mandava pedir correção "na aba Correções" a quem não tem a aba (quem não tem cadastro de ministro). A frase agora só aparece para quem tem.
+  - **D-02:** o botão do Início dizia "Mostrar a credencial" e abria a credencial. Agora diz "Mostrar o QR Code" e abre a credencial já com o QR grande (`/minha-credencial?qr=1`).
+  - **D-03:** o `PROJETO.md` ainda dizia, em quatro lugares, que as faltas contam nas reuniões. Contam só as das assembleias (AGO e AGE), como foi respondido em 14/11.
+  - **D-08:** todos os selos da secretaria (Conferido, Esperando, Recusado, Aprovado) estavam laranja, quase ilegíveis no escuro. A etiqueta "NOVO" do termo, da parte 13, tinha ganhado o mesmo nome do selo (`.selo-novo`) e passava por cima dele. Ela agora se chama `.etiqueta-novo`, e a letra dela usa a cor do fundo, legível no claro e no escuro. O teste novo `testes/unidade/estilos.test.ts` falha se uma classe receber duas cores diferentes no nível de cima do `estilos.css`.
+
+**O que ficou de fora e por quê:**
+
+- **O OFICIAL do edital e da ata** não passa pelo sistema (regra da rodada 30): o sistema gera o texto para o Word, e o cabeçalho do COMEP, a qualificação de quem assina e o que o cartório pede ficam entre colchetes, para completar lá. **Os dados pessoais dos diretores não aparecem na tela.**
+- **A votação de uma pauta que chegou no período** só existe na AGO. Na AGE, só se vota o que estava no edital; na reunião mensal não há votação (a decisão vira resolução).
+- **O D-05, o D-07, o D-09 e o D-10** vão num PR pequeno logo depois desta entrega. O D-06 fica para o lote do Patrimônio.
+
+**Decisões tomadas sem o desenho:**
+
+- A reunião mensal não tem ata no sistema: só as resoluções.
+- A abertura do roteiro vem com Introdução, Oração e Oportunidade, e a secretaria ajusta em cada encontro.
+- O código da portaria vale no minuto em que aparece e no minuto seguinte, para quem digita devagar.
+- O menu recolhido existe só dentro dos módulos, no computador, e fica guardado no navegador, para cada pessoa.
+- O botão do Início (D-02) abre o QR direto, pelo `?qr=1` no endereço.
+- "Copiar o edital para o Word" entrou na página do encontro, junto do "Copiar o texto da ata", no fechamento.
+- A reunião mensal mostra "N presentes · M em dia" e quantos associados estão em dia, sem a conta de "associados" que misturava os aptos com os presentes.
+
+**Verificação (22/11/2026):**
+
+- `npm test`: 655 de 655. O `testes/banco/assembleias_telas.test.ts` tem 13 testes:
+  - a portaria: só a secretaria e a presidência veem o código; ninguém lê o segredo; o código muda a cada minuto e vale o do minuto anterior; o ministro marca com o código (o errado e o de quem não é associado, não); a tela mostra quem chegou;
+  - o roteiro: a abertura padrão e o ajuste; a pauta do período entra no fim (votação só na AGO); o item de agora;
+  - os convidados: a secretaria registra e arquiva, o ministro não vê, e eles não contam no quórum;
+  - as resoluções: o número por ano (a anulada não devolve o número); só no dia e só a diretoria; o ministro só lê depois da ata assinada; a ata em assinatura trava.
+- O `testes/unidade/estilos.test.ts` (D-08) passa e, rodado contra o `estilos.css` de antes da correção, falha nos dois casos.
+- tsc e oxlint sem aviso. O build passa, só com o aviso do tamanho do pacote, que já existia antes desta entrega.
+- A migração foi aplicada no `comep-teste` em 22/11, com o GitHub parado. O `supabase db advisors` mostra só o aviso conhecido `auth_leaked_password_protection`.
+- Ponta a ponta local no computador e no celular, nos arquivos tocados (conducao, presenca, assembleias, menu-modulo, presidente-igreja, portal, portal-ministro, credencial-digital, termo, moldura, pedidos-age e votacoes):
+  - 66 passaram, 3 foram pulados de propósito (o conducao, que espera a assembleia começar, roda só no computador) e 1 falhou: o conducao, por um seletor ambíguo do próprio teste (os dois textos da ata). Corrigido e rodado de novo com o portal: 23 passaram;
+  - depois dos últimos ajustes de tela, o presenca e o menu-modulo: 19 passaram;
+  - na rodada anterior, o menu recolhido mostrou um defeito de verdade: a dica que aparece ao passar o mouse entrava no nome do link para o leitor de tela. Agora ela fica de fora (`content: attr(data-dica) / ""`).
+- As telas foram conferidas com fotos no computador e no celular, no claro e no escuro:
+  - a presença;
+  - a tela da portaria;
+  - "Marcar a minha presença" no celular do ministro;
+  - a condução de uma reunião mensal e de uma AGE realizada;
+  - o telão;
+  - o fechamento;
+  - o menu recolhido, com a dica.
+- Ajustes feitos depois das fotos:
+  - o ícone colado no texto de "Abrir a tela da portaria" e de "Abrir o telão";
+  - o exemplo do campo do código cortado no celular;
+  - a conta de "associados" da reunião mensal.
