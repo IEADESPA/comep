@@ -7,6 +7,8 @@ export const USUARIOS = {
   semPerfil: { email: 'e2e.semperfil@example.com', senhaVar: 'E2E_SENHA_SEM_PERFIL' },
   tesouraria: { email: 'e2e.tesouraria@example.com', senhaVar: 'E2E_SENHA_TESOURARIA' },
   conselho: { email: 'e2e.conselho@example.com', senhaVar: 'E2E_SENHA_CONSELHO' },
+  // quem preside uma igreja fictícia (regular, em dia): a conta foi criada pelos caminhos do sistema em 22/11/2026
+  presidenteIgreja: { email: 'e2e.presidente.igreja@example.com', senhaVar: 'E2E_SENHA_PRESIDENTE_IGREJA' },
 } as const
 
 export type Usuario = (typeof USUARIOS)[keyof typeof USUARIOS]

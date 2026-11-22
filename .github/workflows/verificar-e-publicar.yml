@@ -119,6 +119,7 @@ jobs:
           E2E_SENHA_SEM_PERFIL: ${{ secrets.E2E_SENHA_SEM_PERFIL }}
           E2E_SENHA_TESOURARIA: ${{ secrets.E2E_SENHA_TESOURARIA }}
           E2E_SENHA_CONSELHO: ${{ secrets.E2E_SENHA_CONSELHO }}
+          E2E_SENHA_PRESIDENTE_IGREJA: ${{ secrets.E2E_SENHA_PRESIDENTE_IGREJA }}
 
       - name: Guardar o relatório (só quando falha)
         if: failure()
