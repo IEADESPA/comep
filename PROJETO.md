@@ -90,7 +90,7 @@ Organizar a gestão do Conselho em um único sistema gratuito, instalável no no
   - a pedido por escrito;
   - conduta contrária à ética e aos princípios cristãos;
   - transferência pela denominação para outra cidade;
-  - três faltas seguidas às reuniões mensais sem justificativa;
+  - três faltas seguidas às assembleias (AGO e AGE; pergunta 22, 14/11/2026) sem justificativa;
   - falecimento.
 
   A decisão é da Assembleia Ordinária, por 3/5 (decisão 5).
@@ -254,7 +254,7 @@ Decisões de 12/11/2026 (administrador técnico, com base na credencial que já 
   - maiorias: simples; **3/5** para desligamento (Art. 8º); **2/3** para reforma do estatuto, em assembleia convocada para isso (Art. 21);
   - o sistema calcula se cada deliberação atingiu a maioria exigida.
 - **Atas:** redigidas pelo 1º secretário e assinadas por ele e pelo presidente (Art. 12, §2º, IV e §4º), com anexo da ata assinada.
-- **Faltas às reuniões mensais:**
+- **Faltas às assembleias (AGO e AGE; pergunta 22, 14/11/2026):**
   - o associado justifica a falta ao **1º secretário**, que aceita ou recusa a justificativa (diretoria, 11/11/2026);
   - com **2 faltas seguidas** sem justificativa, o sistema avisa o associado e a secretaria;
   - com **3**, o caso vai para a pauta da assembleia (Art. 8º, IV).
@@ -603,7 +603,7 @@ Decisões na seção 4.6. Revisão: `docs/revisoes/fase-4.md`. **O estatuto pode
   - **check-in pelo QR Code:** a secretaria aponta a câmera do celular para a credencial; a página de validação abre com o botão "Marcar presença". Nos navegadores que leem QR Code (Chrome e Edge), também dá para ler pela própria lista de presença. Há sempre a busca pelo nome;
   - a lista mostra quem está em dia (vota) e quem está em atraso; encerrada, o encontro fica "realizado" e quem não esteve tem falta;
   - a justificativa vai ao 1º secretário (por enquanto, o perfil Secretaria; na 4.4, pelo cargo), que aceita ou recusa com motivo;
-  - **faltas seguidas** às reuniões mensais, sem justificativa aceita: com 2, o associado vê o aviso no Início e a secretaria vê a lista; com 3, "levar à pauta da assembleia". Se vale também para as assembleias é a pergunta 22
+  - **faltas seguidas** sem justificativa aceita: com 2, o associado vê o aviso no Início e a secretaria vê a lista; com 3, "levar à pauta da assembleia". *Pergunta 22, respondida em 14/11/2026: contam só as assembleias (AGO e AGE), não as reuniões mensais.*
 
 **4.3 — Quórum, votações e ata** (versão 4.0-teste.3) — concluída em 13/11/2026
 
@@ -913,7 +913,7 @@ Fonte: **Estatuto do COMEP**, Parauapebas, 25 de maio de 2021. Cópia digitaliza
 3. **Taxa anual** (Art. 7º, §3º) × **mensalidade** (Art. 10, V). *Resolvido pela diretoria (11/11/2026): o associado escolhe entre mensal e anual.*
 4. **Conselho Fiscal** com 3 membros (Art. 12) × 5 membros eleitos a cada 2 anos (Art. 14), "coincidindo com o mandato da diretoria", que é de 4 anos. *Resolvido pela diretoria (11/11/2026): 3 membros, 4 anos.*
 5. O Art. 15 diz "a cada 06 (seis)" sem a unidade; entende-se **meses**, o que bate com abril e outubro.
-6. O Art. 8º, IV fala em "assembleias mensais"; o Art. 7º, §3º fala em "reuniões mensais". Entende-se que são as **reuniões mensais**, que, segundo a diretoria, não têm efeito de AGO nem de AGE (pergunta 22).
+6. O Art. 8º, IV fala em "assembleias mensais"; o Art. 7º, §3º fala em "reuniões mensais". A diretoria respondeu (pergunta 22, 14/11/2026): as faltas que contam são as das **assembleias (AGO e AGE)**; as reuniões mensais não contam.
 7. O mandato de 4 anos da diretoria que assinou em maio de 2021 terminou em 2025 — confirmar a diretoria atual (decisão 10).
 
 ## 14. Processo de entrega e travas de revisão
