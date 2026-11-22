@@ -9540,13 +9540,15 @@ li.feito .numero-passo {
   gap: 8px;
 }
 
-.selo-novo {
+/* a etiqueta "NOVO" do termo (não confundir com o Selo da secretaria, .selo-novo: D-08) */
+.etiqueta-novo {
   flex: none;
   height: 20px;
   padding: 0 7px;
   border-radius: 999px;
   background: var(--cor-atencao-texto);
-  color: #ffffff;
+  /* a letra na cor do cartão: branca no claro e quase preta no escuro, onde o fundo laranja vira amarelo */
+  color: var(--cor-superficie);
   font-size: 11px;
   font-weight: 800;
   display: inline-flex;
