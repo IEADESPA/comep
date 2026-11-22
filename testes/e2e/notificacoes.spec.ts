@@ -1,9 +1,41 @@
 // Telas novas, parte 11 (Fase 5.5): as notificações. O sino lê a tabela de notificações (o lido fica no banco), o
 // recado da secretaria pelo aplicativo e o botão do WhatsApp na ficha do ministro, o "Lembrar todos" das
 // Contribuições, Meu perfil › Avisos e Administração › Avisos e notificações.
-// A notificação no celular (push) depende das chaves do envio (docs/avisos-no-celular.md): aqui, o build do teste
-// não tem a chave pública, e a tela diz que o envio ainda vai ser ligado.
+// A notificação no celular (push) depende das chaves do envio (docs/avisos-no-celular.md). O teste vale com a chave
+// pública no build (a variável TESTE_VAPID_PUBLICA do GitHub, ligada em 21/11/2026) e sem ela (a tela diz que o envio
+// ainda vai ser ligado). O Chrome sem tela não tem o serviço de push do navegador: uma inscrição FALSA faz o papel
+// dele, e no fim o teste para de receber (a inscrição é arquivada no banco, e o job enviar-avisos não manda para ela).
 import { expect, test, type Page } from '@playwright/test'
+
+/** O endereço da inscrição falsa (sempre o mesmo: a sobra de uma rodada cortada é reaproveitada e arquivada no fim). */
+const ENDERECO_FALSO = 'https://e2e.invalid/comep/inscricao-falsa'
+
+/**
+ * Troca o serviço de push do navegador por uma inscrição falsa, guardada no localStorage (vale depois de recarregar).
+ * Só entra em ação com a chave do envio no build: sem ela, o sistema nem chama o serviço.
+ */
+function inscricaoFalsa(endereco: string) {
+  const marca = 'comep-e2e-inscricao-push'
+  const falsa = () => ({
+    endpoint: endereco,
+    expirationTime: null,
+    options: { userVisibleOnly: true, applicationServerKey: null },
+    getKey: () => null,
+    toJSON: () => ({ endpoint: endereco, expirationTime: null, keys: { p256dh: `B${'A'.repeat(86)}`, auth: 'A'.repeat(22) } }),
+    unsubscribe: async () => {
+      localStorage.removeItem(marca)
+      return true
+    },
+  })
+  if (!('PushManager' in window)) return
+  PushManager.prototype.getSubscription = async function () {
+    return (localStorage.getItem(marca) === '1' ? falsa() : null) as unknown as PushSubscription
+  }
+  PushManager.prototype.subscribe = async function () {
+    localStorage.setItem(marca, '1')
+    return falsa() as unknown as PushSubscription
+  }
+}
 import { abrirFichaDoMinistro, arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
 
 const MINISTRO = 'Ministro de Teste'
@@ -81,13 +113,22 @@ test.describe('o ministro', () => {
   })
 
   test('Meu perfil › Avisos: ativar neste aparelho, o que chega e o silêncio à noite', async ({ page }) => {
+    await page.addInitScript(inscricaoFalsa, ENDERECO_FALSO)
     await page.goto('meu-perfil/avisos')
     const aparelho = page.getByRole('region', { name: 'Neste aparelho' })
     await expect(aparelho).toBeVisible()
     const ativar = aparelho.getByRole('button', { name: 'Receber os avisos neste aparelho' })
+    const parar = aparelho.getByRole('button', { name: 'Parar de receber neste aparelho' })
+    // espera a tela saber como está o aparelho (o botão de ativar, o de parar ou o texto do estado)
+    await expect(aparelho.getByText(/^(Este aparelho|Os avisos|Pronto)/).first()).toBeVisible()
     if (await ativar.isVisible()) await ativar.click()
-    // o build do teste não tem a chave do envio: os avisos ficam ligados e a tela diz que o celular vem depois
-    await expect(page.getByText(/^Pronto: os avisos ficam ligados\./).first()).toBeVisible()
+    // sem a chave do envio no build: os avisos ficam ligados e a tela diz que o celular vem depois;
+    // com a chave: este aparelho (a inscrição falsa) passa a receber
+    const pronto = page.getByText(/^Pronto: os avisos (ficam ligados\.|chegam neste aparelho)/).first()
+    await expect(pronto).toBeVisible()
+    const comEnvio = /chegam neste aparelho/.test((await pronto.textContent()) ?? '')
+    test.info().annotations.push({ type: 'envio', description: comEnvio ? 'build com a chave do envio' : 'build sem a chave do envio' })
+    if (comEnvio) await expect(parar).toBeVisible()
 
     const mural = () => page.getByRole('region', { name: 'O que chega no celular' }).getByRole('switch', { name: 'Avisos novos no mural' })
     const tocar = async (ligado: 'true' | 'false') => {
@@ -107,5 +148,14 @@ test.describe('o ministro', () => {
     // volta como estava (ligado)
     await tocar('true')
     await expect(page.getByRole('switch', { name: 'Silêncio à noite' })).toBeVisible()
+
+    if (comEnvio) {
+      // a inscrição falsa não pode ficar valendo no banco: o envio tentaria mandar para ela a cada 5 minutos
+      await expect(parar).toBeVisible()
+      const cancelou = page.waitForResponse((r) => r.url().includes('/rpc/cancelar_inscricao_push') && r.ok())
+      await parar.click()
+      await cancelou
+      await expect(mensagemNaTela(page, 'Este aparelho parou de receber os avisos. Eles continuam no sino.')).toBeVisible()
+    }
   })
 })
