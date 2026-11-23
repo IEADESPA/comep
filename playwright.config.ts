@@ -34,6 +34,8 @@ export default defineConfig({
     locale: 'pt-BR',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // Sem a placa de vídeo: num dos notebooks da equipe, o navegador sem tela com a GPU dá tela azul (regra da bancada)
+    launchOptions: { args: ['--disable-gpu'] },
   },
   projects: [
     // Cada usuário fictício entra UMA vez; os testes reaproveitam a sessão (o Supabase limita logins por minuto)
