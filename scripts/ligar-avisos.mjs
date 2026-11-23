@@ -10,43 +10,68 @@
 //
 // Uso, na pasta do projeto, com o Supabase CLI já logado:
 //   node scripts/ligar-avisos.mjs --remote=<ref do projeto> [--contato=<endereço do site ou mailto:>]
-// Rodar de novo troca as chaves: quem já ativou os avisos precisa ativar de novo no aparelho.
-// A produção só no lançamento (docs/lancamento.md).
+// Duas travas (revisão da parte 14):
+//   - a produção só no lançamento: pede --e-o-lancamento e a confirmação digitada;
+//   - rodar de novo troca as chaves (quem já ativou os avisos precisa ativar de novo no aparelho): se o projeto já
+//     tem as chaves, pede --trocar-as-chaves e a confirmação digitada.
 import { execFileSync } from 'node:child_process'
-import { generateKeyPairSync, randomBytes } from 'node:crypto'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createInterface } from 'node:readline/promises'
+import { conferirArgumentos, gerarChaves, jaLigado, lerArgumentos } from './ligar-avisos-regras.mjs'
 
-const argumento = (nome) => process.argv.find((a) => a.startsWith(`--${nome}=`))?.slice(nome.length + 3) ?? null
-const ref = argumento('remote')
-const contato = argumento('contato') ?? 'https://ieadespa.github.io/comep/'
-if (!ref || !/^[a-z0-9]{20}$/.test(ref)) {
-  console.error('Diga o projeto: node scripts/ligar-avisos.mjs --remote=<ref do projeto> (20 letras e números).')
+const args = lerArgumentos(process.argv.slice(2))
+const erro = conferirArgumentos(args)
+if (erro) {
+  console.error(erro)
   process.exit(1)
 }
-if (!/^(https:\/\/|mailto:)/.test(contato)) {
-  console.error('O contato é o endereço do site (https://...) ou um mailto:.')
-  process.exit(1)
-}
+const { ref, contato } = args
 
-// 1. As chaves e o segredo
-const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
-const pub = publicKey.export({ format: 'jwk' })
-const pri = privateKey.export({ format: 'jwk' })
-const bytes = (s) => Buffer.from(s, 'base64url')
-const publica = Buffer.concat([Buffer.from([4]), bytes(pub.x), bytes(pub.y)]).toString('base64url')
-const privada = pri.d
-const segredo = randomBytes(36).toString('base64url')
-if (bytes(publica).length !== 65 || bytes(privada).length !== 32 || segredo.length !== 48) {
-  console.error('As chaves saíram com o tamanho errado: nada foi gravado.')
-  process.exit(1)
+/** A confirmação digitada: sem ela (ou sem quem digite), nada é gravado. */
+async function confirmar(pergunta, palavra) {
+  if (!process.stdin.isTTY) return false
+  const leitor = createInterface({ input: process.stdin, output: process.stdout })
+  try {
+    return (await leitor.question(`${pergunta}\nPara seguir, digite ${palavra}: `)).trim() === palavra
+  } finally {
+    leitor.close()
+  }
 }
 
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 // no Windows o npx é um .cmd e roda pelo shell: o caminho do arquivo vai entre aspas
 const arquivo = (caminho) => (process.platform === 'win32' ? `"${caminho}"` : caminho)
-const rodar = (args) => execFileSync(npx, args, { stdio: ['ignore', 'ignore', 'inherit'], shell: process.platform === 'win32' })
+const rodar = (parametros) => execFileSync(npx, parametros, { stdio: ['ignore', 'ignore', 'inherit'], shell: process.platform === 'win32' })
+
+// As travas, antes de gerar qualquer chave
+if (args.producao && !(await confirmar(`Isto liga os avisos no celular da PRODUÇÃO (${ref}).`, 'LANÇAMENTO'))) {
+  console.error('Nada foi gravado.')
+  process.exit(1)
+}
+// a lista dos Secrets traz só os nomes e um resumo, nunca o valor; e não vai para a tela
+const lista = execFileSync(npx, ['supabase', 'secrets', 'list', `--remote=${ref}`], {
+  stdio: ['ignore', 'pipe', 'inherit'],
+  shell: process.platform === 'win32',
+}).toString()
+if (jaLigado(lista)) {
+  if (!args.trocar) {
+    console.error(
+      'Este projeto já tem as chaves dos avisos. Rodar de novo troca as chaves, e quem já ativou os avisos precisa ' +
+        'ativar de novo no aparelho. Só se a chave vazar: rode com --trocar-as-chaves.',
+    )
+    process.exit(1)
+  }
+  if (!(await confirmar('Isto troca as chaves dos avisos: todos os aparelhos param de receber até ativar de novo.', 'TROCAR'))) {
+    console.error('Nada foi gravado.')
+    process.exit(1)
+  }
+}
+
+// 1. As chaves e o segredo
+const { publica, privada, segredo } = gerarChaves()
+
 const pasta = mkdtempSync(join(tmpdir(), 'comep-avisos-'))
 try {
   // 2. Os Secrets das Edge Functions (por arquivo, para os valores não irem na linha de comando)
@@ -92,7 +117,7 @@ $cron$);
 
 console.log(`
 Pronto. Falta:
-  1. publicar a função: npx supabase functions deploy enviar-avisos --project-ref ${ref}
+  1. publicar a função: npx supabase functions deploy enviar-avisos --remote=${ref}
   2. pôr a chave pública na variável do GitHub (TESTE_VAPID_PUBLICA no teste, VAPID_PUBLICA no site oficial):
      ${publica}
   3. publicar a main de novo (o build pega a variável) e conferir (docs/avisos-no-celular.md, passo 6).`)

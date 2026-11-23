@@ -41,7 +41,7 @@ Depois do script:
 1. **Publicar a função:**
 
    ```bash
-   npx supabase functions deploy enviar-avisos --project-ref <ref do projeto>
+   npx supabase functions deploy enviar-avisos --remote=<ref do projeto>
    ```
 
    O `supabase/config.toml` já diz que ela não exige o login do Supabase (`verify_jwt = false`). Ela confere o próprio segredo, no cabeçalho `x-comep-envio`.
@@ -57,7 +57,7 @@ Depois do script:
 
 3. **Publicar a `main` de novo**, para o build pegar a variável.
 
-> Rodar o script de novo **troca as chaves**: quem já ativou os avisos precisa ativar de novo no aparelho. Por isso, no comep-teste, só se a chave vazar.
+> Rodar o script de novo **troca as chaves**: quem já ativou os avisos precisa ativar de novo no aparelho. Por isso, no comep-teste, só se a chave vazar. O script tem duas travas: se o projeto já tem as chaves, ele para e pede `--trocar-as-chaves` e a palavra TROCAR digitada; na produção, ele pede `--e-o-lancamento` e a palavra LANÇAMENTO digitada.
 
 Cada rodada do envio também gera os avisos com data: os documentos da igreja 60 e 30 dias antes de vencer, e a igreja suspensa.
 
