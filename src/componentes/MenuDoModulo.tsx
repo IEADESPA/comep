@@ -42,7 +42,7 @@ export function MenuDoModulo({ local, funcoes, pendencias, trilho = false }: Pro
         <hr className="lateral-divisa" />
         <ul className="lateral-funcoes" aria-label="Funções do módulo">
           {funcoes.map((f) => {
-            const ativa = f === aberta
+            const ativa = f.chave === aberta?.chave
             return (
               <li key={f.chave}>
                 <Link
@@ -79,7 +79,7 @@ export function MenuDoModulo({ local, funcoes, pendencias, trilho = false }: Pro
       </div>
       <ul className="lateral-funcoes" aria-label="Funções do módulo">
         {funcoes.map((f) => {
-          const ativa = f === aberta
+          const ativa = f.chave === aberta?.chave
           const subs = f.subfuncoes ?? []
           return (
             <li key={f.chave}>
@@ -123,7 +123,7 @@ export function SeletorDeFuncao({ local, funcoes, pendencias }: PropsMenuDoModul
   const idAtual = useId()
   const { modulo, funcao: aberta, subfuncao } = local
   const atual = aberta?.titulo ?? modulo.titulo
-  const pendenteFora = funcoes.some((f) => f !== aberta && f.pendencia && (pendencias[f.pendencia] ?? 0) > 0)
+  const pendenteFora = funcoes.some((f) => f.chave !== aberta?.chave && f.pendencia && (pendencias[f.pendencia] ?? 0) > 0)
   return (
     <div className="seletor-funcao so-celular">
       <button
@@ -155,8 +155,8 @@ export function SeletorDeFuncao({ local, funcoes, pendencias }: PropsMenuDoModul
                 <li key={f.chave}>
                   <Link
                     to={f.caminho}
-                    className={f === aberta ? 'seletor-item ativa' : 'seletor-item'}
-                    aria-current={f === aberta && subs.length === 0 ? 'page' : undefined}
+                    className={f.chave === aberta?.chave ? 'seletor-item ativa' : 'seletor-item'}
+                    aria-current={f.chave === aberta?.chave && subs.length === 0 ? 'page' : undefined}
                     onClick={() => setAberto(false)}
                   >
                     <Icone nome={f.icone} tamanho={19} />

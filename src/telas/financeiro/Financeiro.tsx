@@ -13,6 +13,7 @@ import { type Concluir } from './util'
 import { ComprovantesConferidos, ComprovantesParaConferir } from './Comprovantes'
 import { CobrancasDoAno, ContribuicoesPorIgreja, PainelContribuicoes, ValoresEPlanos } from './Contribuicoes'
 import { DespesasDecididas, DespesasEsperando } from './Despesas'
+import { ModelosExclusivosNoCaixa } from './ModelosExclusivos'
 import { OrcamentoPorCategoria, PlanoAnual } from './Orcamento'
 import { PrestacaoBalanco, PrestacaoExercicio, PrestacaoMesAMes } from './PrestacaoContas'
 
@@ -77,6 +78,13 @@ const TELAS: Record<string, Tela> = {
     funcao: 'Caixa',
     titulo: 'Transferências',
     conteudo: (c) => <Transferencias concluir={c.concluir} somenteLeitura={!c.opera} />,
+  },
+  'caixa/modelos': {
+    funcao: 'Caixa',
+    titulo: 'Modelos exclusivos',
+    sub: 'O pagamento do modelo exclusivo da credencial, que a igreja paga: receber ou desfazer, com a entrada no caixa.',
+    soQuemOpera: true,
+    conteudo: (c) => <ModelosExclusivosNoCaixa concluir={c.concluir} />,
   },
   despesas: {
     funcao: 'Despesas a autorizar',

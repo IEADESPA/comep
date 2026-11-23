@@ -327,6 +327,8 @@ export type ChavePendencia =
 export type Subfuncao = {
   titulo: string
   caminho: string
+  /** só estes perfis veem a subfunção (dentro de quem vê a função) */
+  perfis?: readonly Perfil[]
 }
 
 export type Funcao = {
@@ -473,6 +475,8 @@ export const MODULOS: readonly Modulo[] = [
           { titulo: 'Lançamentos', caminho: '/financeiro/caixa' },
           { titulo: 'Contas e saldos', caminho: '/financeiro/caixa/contas' },
           { titulo: 'Transferências', caminho: '/financeiro/caixa/transferencias' },
+          // D-07 (22/11/2026): o pagamento do modelo exclusivo da credencial, que a igreja paga à tesouraria
+          { titulo: 'Modelos exclusivos', caminho: '/financeiro/caixa/modelos', perfis: ['tesouraria', 'presidencia'] },
         ],
       },
       {
@@ -694,9 +698,18 @@ export function funcaoVisivel(f: Funcao, modulo: Modulo, perfis: readonly Perfil
   return f.perfis ? podeVer({ perfis: f.perfis }, perfis) : true
 }
 
-/** As funções do módulo que a pessoa pode abrir (na ordem do menu). */
+/**
+ * As funções do módulo que a pessoa pode abrir (na ordem do menu), cada uma só com as subfunções que ela vê (uma cópia
+ * da função quando alguma subfunção fica de fora: compare as funções pela chave).
+ */
 export function funcoesVisiveis(modulo: Modulo, perfis: readonly Perfil[]): Funcao[] {
-  return modulo.funcoes.filter((f) => funcaoVisivel(f, modulo, perfis))
+  return modulo.funcoes
+    .filter((f) => funcaoVisivel(f, modulo, perfis))
+    .map((f) => {
+      const subs = f.subfuncoes ?? []
+      const visiveis = subs.filter((s) => !s.perfis || podeVer({ perfis: s.perfis }, perfis))
+      return visiveis.length === subs.length ? f : { ...f, subfuncoes: visiveis }
+    })
 }
 
 export type Localizacao = { modulo: Modulo; funcao: Funcao | null; subfuncao: Subfuncao | null }
