@@ -7,6 +7,7 @@ import {
   codigoDoQr,
   explicarMaioria,
   minimoAFavor,
+  presentesDoFechamento,
   quorumPrimeiraChamada,
   codigoDaPortaria,
   textoDaAta,
@@ -219,5 +220,17 @@ describe('o texto para o Word e a portaria (parte 14)', () => {
     assert.equal(codigoDaPortaria('https://ieadespa.github.io/comep/teste/assembleias/abc?portaria=k7q2m9'), 'K7Q2M9')
     assert.equal(codigoDaPortaria(' K7Q2M9 '), 'K7Q2M9')
     assert.equal(codigoDaPortaria('https://ieadespa.github.io/comep/validar/abc'), null)
+  })
+})
+
+describe('o número de presentes do fechamento (revisão da parte 14, achado 6)', () => {
+  it('na assembleia, os presentes aptos contra os aptos; os em atraso à parte', () => {
+    assert.equal(presentesDoFechamento({ assembleia: true, presentes: 1, presentesAptos: 0, aptos: 33 }), '0 de 33 aptos · 1 em atraso')
+    assert.equal(presentesDoFechamento({ assembleia: true, presentes: 20, presentesAptos: 20, aptos: 33 }), '20 de 33 aptos')
+    assert.equal(presentesDoFechamento({ assembleia: true, presentes: 22, presentesAptos: 20, aptos: 33 }), '20 de 33 aptos · 2 em atraso')
+  })
+
+  it('na reunião mensal, só quantos vieram', () => {
+    assert.equal(presentesDoFechamento({ assembleia: false, presentes: 7, presentesAptos: 5, aptos: 33 }), '7')
   })
 })

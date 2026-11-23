@@ -186,6 +186,16 @@ export function quorumPrimeiraChamada(aptos: number): number {
   return Math.floor((aptos + 3) / 2)
 }
 
+/**
+ * Os presentes no fechamento. Na assembleia, a conta é a do quórum: os presentes aptos contra os aptos; quem veio em
+ * atraso aparece à parte ("0 de 33 aptos · 1 em atraso"). Na reunião mensal, só quantos vieram.
+ */
+export function presentesDoFechamento(d: { assembleia: boolean; presentes: number; presentesAptos: number; aptos: number }): string {
+  if (!d.assembleia) return String(d.presentes)
+  const emAtraso = Math.max(0, d.presentes - d.presentesAptos)
+  return `${d.presentesAptos} de ${d.aptos} aptos${emAtraso > 0 ? ` · ${emAtraso} em atraso` : ''}`
+}
+
 /** Votos a favor exigidos: 3/5 ou 2/3 dos votos válidos, sim + não (pergunta 24); null = maioria simples. */
 export function minimoAFavor(maioria: 'simples' | 'tres_quintos' | 'dois_tercos', validos: number): number | null {
   if (maioria === 'simples') return null

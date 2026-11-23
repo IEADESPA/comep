@@ -32,7 +32,7 @@ import {
 } from '../../dados/encontros'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { textoDaAta, textoDaAtaParaWord } from '../../utilitarios/encontros'
+import { presentesDoFechamento, textoDaAta, textoDaAtaParaWord } from '../../utilitarios/encontros'
 import { formatarDataHora } from '../../utilitarios/formatos'
 import { prepararComprovante } from '../../utilitarios/imagens'
 import { LinkArquivo } from './Conducao'
@@ -138,7 +138,9 @@ function ConteudoFechamento({ id }: { id: string }) {
             <ul className="numeros-grandes numeros-fechamento" aria-label="Os números do encontro">
               <li className="bloco">
                 <span className="rotulo">Presentes</span>
-                <strong className="numero-ok">{assembleia ? `${presentes} de ${aptos} aptos` : `${presentes}`}</strong>
+                <strong className="numero-ok">
+                  {presentesDoFechamento({ assembleia, presentes, presentesAptos: quorum.presentes_aptos, aptos })}
+                </strong>
               </li>
               <li className="bloco">
                 <span className="rotulo">Faltas</span>
