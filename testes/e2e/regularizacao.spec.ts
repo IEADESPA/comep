@@ -63,6 +63,8 @@ test('a igreja suspensa no dia: o caminho de volta com os 30 dias; o alvará do 
   await abrirAbaDaIgreja(page, 'Situação')
   await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Suspensa')
   await expect(page.getByText(`Suspensa desde ${br(dia(0))}`)).toBeVisible()
+  // D-12: no dia da suspensão, 30 dias (a mesma conta em todas as telas)
+  await expect(page.getByText(/para mandar o alvará \(faltam 30 dias\)/)).toBeVisible()
 
   // 2. O pastor presidente (associado com login): no Início, o aviso; na Minha igreja, o caminho de volta
   const sessaoPastor = await criarAssociadoComLogin(page, {
@@ -73,6 +75,7 @@ test('a igreja suspensa no dia: o caminho de volta com os 30 dias; o alvará do 
     pastorPresidente: true,
   })
   await expect(page.getByText('A igreja está suspensa:')).toBeVisible()
+  await expect(page.getByText('faltam 30 dias para mandar o alvará')).toBeVisible()
   await page.goto('minha-igreja')
   await expect(page.getByRole('heading', { name: 'Para a igreja voltar a ser regular', level: 1 })).toBeVisible()
   const contagem = page.getByRole('region', { name: 'Os dias para mandar' })
