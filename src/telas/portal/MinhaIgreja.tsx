@@ -332,6 +332,14 @@ function DadosDaIgreja({
 // Aba "Ministros"
 // ---------------------------------------------------------------------
 
+/** O título, a função e a marca de pastor presidente, que só entra se a função ainda não diz isso (D-09). */
+function descricaoDoMinistro(m: MinistroDaMinhaIgreja): string {
+  const partes = [m.titulo, m.funcao].filter((p): p is string => Boolean(p))
+  const jaDiz = partes.some((p) => p.toLocaleLowerCase('pt-BR').includes('pastor presidente'))
+  if (m.pastor_presidente && !jaDiz) partes.push('pastor presidente')
+  return partes.join(' · ')
+}
+
 function MinistrosDaIgreja({
   ministros,
   pedidos,
@@ -358,7 +366,7 @@ function MinistrosDaIgreja({
                 <strong>
                   <span className="numero">Nº {String(m.numero_registro).padStart(4, '0')}</span> {m.nome}
                 </strong>
-                <span>{[m.titulo, m.funcao, m.pastor_presidente && 'pastor presidente'].filter(Boolean).join(' · ')}</span>
+                <span>{descricaoDoMinistro(m)}</span>
                 {m.telefone && (
                   <span>
                     <a href={`tel:${m.telefone.replace(/[^\d+]/g, '')}`}>{m.telefone}</a>
