@@ -71,7 +71,7 @@ const TELAS: Record<string, Tela> = {
   caixa: {
     funcao: 'Caixa',
     titulo: 'Lançamentos',
-    conteudo: (c) => <ExtratoCaixa pessoaId={c.pessoaId} concluir={c.concluir} somenteLeitura={!c.opera} />,
+    conteudo: (c) => <ExtratoCaixa pessoaId={c.pessoaId} perfis={c.perfis} concluir={c.concluir} somenteLeitura={!c.opera} />,
   },
   'caixa/contas': { funcao: 'Caixa', titulo: 'Contas e saldos', conteudo: (c) => <ContasESaldos somenteLeitura={!c.opera} /> },
   'caixa/transferencias': {

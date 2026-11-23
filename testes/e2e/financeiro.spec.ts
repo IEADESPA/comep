@@ -89,9 +89,19 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
 
   // O pagamento confirmado entrou sozinho no caixa (PIX → conta bancária)
   await abrirFuncao(page, 'Caixa')
-  await expect(page.getByRole('listitem', { name: `Contribuição de ${nome} — ${anuidade.toLowerCase()}` })).toContainText(
-    'R$ 200,00',
-  )
+  const noCaixa = page.getByRole('listitem', { name: `Contribuição de ${nome} — ${anuidade.toLowerCase()}` })
+  await expect(noCaixa).toContainText('R$ 200,00')
+
+  // D-05: o "De onde veio" leva cada um a uma tela que abre. A presidência vai à ficha do ministro…
+  const origem = noCaixa.getByRole('link', { name: `${anuidade} de ${nome}`, exact: true })
+  await expect(origem).toHaveAttribute('href', /\/ministros\/[0-9a-f-]{36}\/contribuicao$/)
+  // …e a tesouraria, que não abre Ministros, à pessoa em Financeiro › Contribuições (antes: "Sem acesso")
+  await trocarPara(page, 'tesouraria')
+  await page.goto('financeiro/caixa')
+  await origem.click()
+  await expect(page).toHaveURL(/\/financeiro\/contribuicoes\?ministro=[0-9a-f-]{36}$/)
+  await expect(page.getByRole('heading', { name: 'Sem acesso' })).toHaveCount(0)
+  await expect(page.getByRole('list', { name: 'Do lançamento do Caixa' }).getByRole('listitem', { name: nome })).toContainText('Em dia')
 
   // 4. O associado está em dia (pode votar e ser votado)
   await trocarPara(page, associado)

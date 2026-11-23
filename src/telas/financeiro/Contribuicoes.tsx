@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { MostrarCarga } from '../../componentes/Basicos'
 import { Chip } from '../../componentes/Telas'
 import { ok } from '../../dados/cliente'
@@ -60,6 +60,9 @@ export function PainelContribuicoes({
     if (certo) recarregar()
     return certo
   }
+  // D-05: o "De onde veio" do Caixa traz a pessoa do lançamento (?ministro=<id>), que aparece em cima
+  const [parametros] = useSearchParams()
+  const doLancamento = parametros.get('ministro')
 
   return (
     <MostrarCarga carga={carga} recarregar={recarregar}>
@@ -72,6 +75,14 @@ export function PainelContribuicoes({
         const c = numeros.contribuicoes
         return (
           <>
+            {doLancamento && (
+              <PessoaDoLancamento
+                p={pessoas.find((p) => p.pessoa_id === doLancamento) ?? null}
+                opera={opera}
+                pessoaId={pessoaId}
+                concluir={concluirERecarregar}
+              />
+            )}
             <div className="fin-medidores">
               <Medidor
                 rotulo="Em dia"
@@ -116,6 +127,33 @@ export function PainelContribuicoes({
         )
       }}
     </MostrarCarga>
+  )
+}
+
+/**
+ * A pessoa do lançamento que veio do Caixa ("De onde veio", D-05): a mensalidade, a anuidade ou a taxa de inscrição.
+ * Quem não abre a ficha do ministro (a tesouraria, o Conselho Fiscal) vê aqui a situação e, quem opera, a ação.
+ */
+function PessoaDoLancamento({ p, opera, pessoaId, concluir }: { p: Pessoa | null; opera: boolean; pessoaId: string; concluir: Concluir }) {
+  return (
+    <section className="bloco" aria-labelledby="titulo-pessoa-do-lancamento">
+      <div className="titulo-com-acao">
+        <h2 id="titulo-pessoa-do-lancamento">Do lançamento do Caixa</h2>
+        <Link to="/financeiro/contribuicoes" className="botao-link">
+          Fechar
+        </Link>
+      </div>
+      {p ? (
+        <ul className="lista-linhas" aria-label="Do lançamento do Caixa">
+          <LinhaPessoa p={p} opera={opera} minha={p.pessoa_id === pessoaId} concluir={concluir} />
+        </ul>
+      ) : (
+        <p className="vazio">
+          Esta pessoa não está na lista das contribuições: por exemplo, a taxa de inscrição de quem ainda não foi aceito
+          como associado.
+        </p>
+      )}
+    </section>
   )
 }
 
