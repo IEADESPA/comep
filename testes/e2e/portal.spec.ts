@@ -86,6 +86,13 @@ test.describe('ministro', () => {
       await expect(page.getByRole('heading', { name: 'Sem acesso' }), area).toBeVisible()
     }
   })
+
+  test('o Início abre a credencial já com o QR Code grande (D-02)', async ({ page }) => {
+    await page.goto('painel')
+    await page.getByRole('link', { name: 'Mostrar o QR Code' }).click()
+    await expect(page).toHaveURL(/\/minha-credencial\?qr=1$/)
+    await expect(page.getByRole('dialog', { name: 'QR Code da credencial' })).toBeVisible()
+  })
 })
 
 test.describe('pessoa sem perfil', () => {
@@ -99,5 +106,11 @@ test.describe('pessoa sem perfil', () => {
     const menu = await abrirMenu(page)
     await expect(menu.getByRole('link', { name: 'Financeiro', exact: true })).toHaveCount(0)
     await expect(menu.getByRole('link', { name: 'Meu pedido', exact: true })).toBeVisible()
+  })
+
+  test('Meus dados não manda pedir correção na aba Correções, que ela não tem (D-01)', async ({ page }) => {
+    await page.goto('meu-perfil')
+    await expect(page.getByText('Pela LGPD, você pode ver e corrigir os seus dados aqui.', { exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Correções' })).toHaveCount(0)
   })
 })

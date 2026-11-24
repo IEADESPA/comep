@@ -84,6 +84,34 @@ test.describe('presidência', () => {
   })
 })
 
+test.describe('presidência: o menu recolhido', () => {
+  test.use({ storageState: arquivoDaSessao('presidencia') })
+
+  // rodada 18, menu-recolhido opção 1 (parte 14): o trilho de ícones, só no computador
+  test('recolher deixa só os ícones, com o nome ao passar o mouse, e a escolha fica guardada', async ({ page }) => {
+    test.skip(noCelular(page), 'no celular nada muda: lá não existe a coluna')
+    await page.goto('assembleias')
+    const coluna = page.getByRole('navigation', { name: 'Menu principal' })
+    await expect(coluna).toContainText('7 funções')
+    await coluna.getByRole('button', { name: 'Recolher o menu' }).click()
+    await expect(coluna.getByRole('button', { name: 'Abrir o menu' })).toBeVisible()
+    await expect(coluna).not.toContainText('7 funções')
+    expect((await coluna.boundingBox())!.width, 'a coluna fica fina').toBeLessThan(100)
+    // as funções continuam lá: o ícone, o nome para o leitor de tela e a dica ao passar o mouse
+    const presenca = coluna.getByRole('link', { name: nomeDaFuncao('Presença') })
+    await expect(presenca).toHaveAttribute('data-dica', 'Presença')
+    await presenca.hover()
+    await presenca.click()
+    await expect(page).toHaveURL(/\/assembleias\/presenca/)
+    // a escolha fica guardada (para esta pessoa, neste aparelho)
+    await page.reload()
+    await expect(coluna.getByRole('button', { name: 'Abrir o menu' })).toBeVisible()
+    await coluna.getByRole('button', { name: 'Abrir o menu' }).click()
+    await expect(coluna).toContainText('7 funções')
+    await expect(coluna.getByRole('button', { name: 'Recolher o menu' })).toBeVisible()
+  })
+})
+
 test.describe('ministro', () => {
   test.use({ storageState: arquivoDaSessao('ministro') })
 

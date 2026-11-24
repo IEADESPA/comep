@@ -158,7 +158,7 @@ function TelaDoTermo({ termo, primeira, aoAceitar, aoAdiar }: { termo: Termo; pr
                 <ul>
                   {termo.mudancas.map((m) => (
                     <li key={m}>
-                      <span className="selo-novo">NOVO</span>
+                      <span className="etiqueta-novo">NOVO</span>
                       <span>{m}</span>
                     </li>
                   ))}

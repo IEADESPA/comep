@@ -61,15 +61,22 @@ export type Encontro = {
   presentes_na_instalacao: number | null
   /** minutos até a 2ª chamada, guardados na convocação */
   segunda_chamada_minutos: number | null
+  /** o roteiro da condução (parte 14): os itens da abertura, antes da pauta */
+  roteiro_abertura: string[]
+  /** o item de agora (vai para o telão): abertura:N, pauta:<id> ou encerramento */
+  roteiro_atual: string | null
 }
 
-export type ItemDaPauta = ItemPauta & { id: string; ordem: number }
+/** edital = a pauta da convocação; periodo = chegou depois e a secretaria juntou ao roteiro (parte 14) */
+export type OrigemDaPauta = 'edital' | 'periodo'
+
+export type ItemDaPauta = ItemPauta & { id: string; ordem: number; origem: OrigemDaPauta }
 export type EncontroCompleto = Encontro & { pauta: ItemDaPauta[] }
 
 const CAMPOS =
   'id, tipo, titulo, inicio, local, edital, fundamento, situacao, convocado_em, cancelado_em, motivo_cancelamento, criado_em, ' +
   'presenca_encerrada_em, instalada_em, chamada, aptos_na_instalacao, presentes_aptos_na_instalacao, presentes_na_instalacao, ' +
-  'segunda_chamada_minutos'
+  'segunda_chamada_minutos, roteiro_abertura, roteiro_atual'
 
 /** Os encontros que a pessoa vê (rascunhos, só a secretaria e a presidência — o banco garante). */
 export async function listarEncontros(): Promise<Resultado<Encontro[]>> {
@@ -87,7 +94,7 @@ export async function buscarEncontro(id: string): Promise<Resultado<EncontroComp
     cliente().from('encontros').select(CAMPOS).eq('id', id).is('arquivado_em', null).maybeSingle<Encontro>(),
     cliente()
       .from('encontro_pauta')
-      .select('id, ordem, titulo, descricao, deliberativo, maioria, desligamento_pessoa_id, jubilacao_pessoa_id')
+      .select('id, ordem, titulo, descricao, deliberativo, maioria, desligamento_pessoa_id, jubilacao_pessoa_id, origem')
       .eq('encontro_id', id)
       .is('arquivado_em', null)
       .order('ordem')
@@ -228,6 +235,16 @@ export async function justificarFalta(encontroId: string, texto: string): Promis
   return error ? falha(error) : ok(null)
 }
 
+/** Como a presença foi marcada (parte 14: a portaria, além da credencial e do nome). */
+export type FormaDaPresenca = 'qr_code' | 'lista' | 'portaria_qr' | 'portaria_codigo'
+
+export const COMO_MARCOU: Record<FormaDaPresenca, string> = {
+  portaria_qr: 'QR da portaria',
+  portaria_codigo: 'código digitado',
+  qr_code: 'credencial lida',
+  lista: 'pelo nome (secretaria)',
+}
+
 export type LinhaPresenca = {
   pessoa_id: string
   nome: string
@@ -235,7 +252,7 @@ export type LinhaPresenca = {
   em_dia: boolean
   confirmou_em: string | null
   presente_em: string | null
-  forma: 'qr_code' | 'lista' | null
+  forma: FormaDaPresenca | null
   justificativa: 'pendente' | 'aceita' | 'recusada' | null
 }
 
@@ -462,4 +479,116 @@ export async function anexarArquivoAta(encontroId: string, arquivo: Blob, extens
 export async function linkArquivoAta(caminho: string): Promise<string | null> {
   const { data } = await cliente().storage.from('atas').createSignedUrl(caminho, 600)
   return data?.signedUrl ?? null
+}
+
+// ---------- A portaria, o roteiro, os convidados e as resoluções (Fase 5.5, parte 14) ----------
+
+export type Portaria = {
+  /** o código de 6 letras deste minuto */
+  codigo: string
+  /** segundos até o código mudar */
+  segundos: number
+  presentes: number
+  chegaram: { nome: string; presente_em: string; forma: FormaDaPresenca }[]
+}
+
+/** A tela da portaria (secretaria e presidência): o código de agora e quem chegou por último. */
+export async function portariaDoEncontro(encontroId: string): Promise<Resultado<Portaria>> {
+  const { data, error } = await cliente().rpc('portaria_do_encontro', { p_encontro_id: encontroId })
+  return error ? falha(error) : ok(data as Portaria)
+}
+
+export type MinhaPresencaMarcada = { resultado: 'registrada' | 'ja_presente'; presente_em: string; em_dia: boolean }
+
+/** O ministro marca a própria presença com o código da portaria (lido no QR ou digitado). */
+export async function marcarMinhaPresenca(encontroId: string, codigo: string, peloQr: boolean): Promise<Resultado<MinhaPresencaMarcada>> {
+  const { data, error } = await cliente().rpc('marcar_minha_presenca', { p_encontro_id: encontroId, p_codigo: codigo, p_pelo_qr: peloQr })
+  return error ? falha(error) : ok(data as MinhaPresencaMarcada)
+}
+
+/** O endereço que vai no QR da portaria: abre o encontro no celular do ministro, já com o código. */
+export function enderecoDaPortaria(encontroId: string, codigo: string): string {
+  return `${window.location.origin}${import.meta.env.BASE_URL}assembleias/${encontroId}?portaria=${codigo}`
+}
+
+export type NovaPautaDoPeriodo = { titulo: string; descricao: string; deliberativo: boolean; maioria: Maioria | null }
+
+/** A secretaria junta ao roteiro uma pauta que chegou depois da convocação. */
+export async function incluirNaPauta(encontroId: string, dados: NovaPautaDoPeriodo): Promise<Resultado<string>> {
+  const { data, error } = await cliente().rpc('incluir_na_pauta', { p_encontro_id: encontroId, p_dados: dados })
+  return error ? falha(error) : ok(data as string)
+}
+
+export async function salvarAberturaDoRoteiro(encontroId: string, itens: string[]): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('salvar_abertura_do_roteiro', { p_encontro_id: encontroId, p_itens: itens })
+  return error ? falha(error) : ok(null)
+}
+
+/** O item de agora do roteiro (null: nenhum). */
+export async function avancarRoteiro(encontroId: string, item: string | null): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('avancar_roteiro', { p_encontro_id: encontroId, p_item: item })
+  return error ? falha(error) : ok(null)
+}
+
+export type Convidado = { id: string; nome: string; quem_e: string | null; chegou_em: string }
+
+export async function listarConvidados(encontroId: string): Promise<Resultado<Convidado[]>> {
+  const { data, error } = await cliente()
+    .from('encontro_convidados')
+    .select('id, nome, quem_e, chegou_em')
+    .eq('encontro_id', encontroId)
+    .is('arquivado_em', null)
+    .order('chegou_em')
+    .returns<Convidado[]>()
+  return error ? falha(error) : ok(data)
+}
+
+export async function registrarConvidado(encontroId: string, nome: string, quemE: string): Promise<Resultado<string>> {
+  const { data, error } = await cliente().rpc('registrar_convidado', { p_encontro_id: encontroId, p_nome: nome, p_quem_e: quemE })
+  return error ? falha(error) : ok(data as string)
+}
+
+export async function arquivarConvidado(id: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('arquivar_convidado', { p_id: id })
+  return error ? falha(error) : ok(null)
+}
+
+export type Resolucao = {
+  id: string
+  ano: number
+  numero: number
+  texto: string
+  pauta_id: string | null
+  protocolada_em: string
+  anulada_em: string | null
+  motivo_anulacao: string | null
+}
+
+/** "01/2027" */
+export function numeroDaResolucao(r: Pick<Resolucao, 'numero' | 'ano'>): string {
+  return `${String(r.numero).padStart(2, '0')}/${r.ano}`
+}
+
+export async function listarResolucoes(encontroId: string): Promise<Resultado<Resolucao[]>> {
+  const { data, error } = await cliente()
+    .from('resolucoes')
+    .select('id, ano, numero, texto, pauta_id, protocolada_em, anulada_em, motivo_anulacao')
+    .eq('encontro_id', encontroId)
+    .order('numero')
+    .returns<Resolucao[]>()
+  return error ? falha(error) : ok(data)
+}
+
+export async function protocolarResolucao(
+  encontroId: string,
+  texto: string,
+  pautaId: string | null,
+): Promise<Resultado<{ id: string; ano: number; numero: number }>> {
+  const { data, error } = await cliente().rpc('protocolar_resolucao', { p_encontro_id: encontroId, p_texto: texto, p_pauta_id: pautaId })
+  return error ? falha(error) : ok(data as { id: string; ano: number; numero: number })
+}
+
+export async function anularResolucao(id: string, motivo: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('anular_resolucao', { p_id: id, p_motivo: motivo })
+  return error ? falha(error) : ok(null)
 }

@@ -1,7 +1,7 @@
 // Fase 4.1 — Assembleias e reuniões: lista, preparar (pauta e edital), convocar, cancelar e compartilhar.
 // Quem prepara: secretaria ou presidência. Quem convoca assembleia: o presidente (Art. 16, §2º).
-import { useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Aviso, BotaoArquivar, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { listarAssociados } from '../../dados/associados'
 import {
@@ -14,6 +14,7 @@ import {
   justificarFalta,
   minhaParticipacao,
   listarEncontros,
+  marcarMinhaPresenca,
   NOME_DA_MAIORIA,
   NOME_DA_SITUACAO_ENCONTRO,
   NOME_DO_TIPO,
@@ -25,24 +26,29 @@ import {
   type EncontroCompleto,
   type ItemPauta,
   type Maioria,
+  type MinhaPresencaMarcada,
   type SituacaoEncontro,
   type TipoEncontro,
 } from '../../dados/encontros'
-import { ok } from '../../dados/cliente'
+import { ok, type Resultado } from '../../dados/cliente'
 import type { Perfil } from '../../dados/perfis'
 import { useSessao } from '../../estado/contexto'
 import { ResultadoDaAssembleia } from './Conducao'
+import { LeitorQr } from './LeitorQr'
+import { horaDe, presencaAberta, useAgora } from './regras'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarDataHora } from '../../utilitarios/formatos'
 import {
   avisosDaData,
+  codigoDaPortaria,
   dataPorExtenso,
   diaEmParauapebas,
   doCampoDataHora,
   mesmasDatasNosProximosMeses,
   paraCampoDataHora,
   textoDoEdital,
+  textoDoEditalParaWord,
   textoWhatsApp,
 } from '../../utilitarios/encontros'
 
@@ -699,14 +705,17 @@ function ConteudoDetalhe({ id }: { id: string }) {
               {/* Ações de quem prepara e de quem convoca */}
               <div className="acoes nao-imprimir">
                 {(e.situacao === 'convocado' || e.situacao === 'realizado') && prepara(perfis) && (
-                  <Link className="botao" to={`/assembleias/${e.id}/presenca`}>
-                    Lista de presença
-                  </Link>
-                )}
-                {(e.situacao === 'convocado' || e.situacao === 'realizado') && e.tipo !== 'reuniao_mensal' && prepara(perfis) && (
-                  <Link className="botao" to={`/assembleias/${e.id}/conducao`}>
-                    Conduzir: quórum, votações e ata
-                  </Link>
+                  <>
+                    <Link className="botao" to={`/assembleias/presenca/${e.id}`}>
+                      Presença
+                    </Link>
+                    <Link className="botao" to={`/assembleias/conducao/${e.id}`}>
+                      Condução
+                    </Link>
+                    <Link className="botao" to={`/assembleias/fechamento/${e.id}`}>
+                      {e.tipo === 'reuniao_mensal' ? 'Fechamento e resoluções' : 'Fechamento e ata'}
+                    </Link>
+                  </>
                 )}
                 {e.situacao === 'agendado' && prepara(perfis) && (
                   <Link className="botao botao-secundario" to={`/assembleias/${e.id}/editar`}>
@@ -757,6 +766,20 @@ function ConteudoDetalhe({ id }: { id: string }) {
                 {e.edital && (
                   <button type="button" className="botao botao-secundario" onClick={() => window.print()}>
                     Imprimir o edital
+                  </button>
+                )}
+                {e.edital && prepara(perfis) && (
+                  <button
+                    type="button"
+                    className="botao botao-secundario"
+                    onClick={() =>
+                      void navigator.clipboard
+                        .writeText(textoDoEditalParaWord(e.edital ?? '', e.tipo))
+                        .then(() => setRetorno({ sucesso: 'Texto do edital copiado: cole no Word para fazer o oficial.' }))
+                        .catch(() => setRetorno({ erro: 'Não deu para copiar sozinho: selecione o texto do edital e copie.' }))
+                    }
+                  >
+                    Copiar o edital para o Word
                   </button>
                 )}
                 {link && (
@@ -824,19 +847,52 @@ function Participacao({ e, pessoaId }: { e: EncontroCompleto; pessoaId: string }
   const [texto, setTexto] = useState('')
   const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
   const [enviando, umaVez] = useUmaVez()
-  const [agora] = useState(() => Date.now())
+  const agora = useAgora(30)
   const futuro = e.situacao === 'convocado' && new Date(e.inicio).getTime() > agora
+  const aberta = presencaAberta(e, agora)
   const concluir = (r: { erro: string | null }, sucesso: string) => {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
     if (r.erro === null) recarregar()
   }
+  const marcou = (r: Resultado<MinhaPresencaMarcada>) => {
+    if (r.erro !== null) return setRetorno({ erro: r.erro })
+    const hora = horaDe(r.dados.presente_em)
+    setRetorno({
+      sucesso:
+        (r.dados.resultado === 'ja_presente' ? `Sua presença já estava marcada (às ${hora}).` : `Presença marcada às ${hora}.`) +
+        (r.dados.em_dia ? '' : ' Para votar, é preciso estar em dia com as mensalidades.'),
+    })
+    recarregar()
+  }
+  // o QR da portaria abre esta página com ?portaria=CÓDIGO: marca sozinho, uma vez, e tira o código do endereço
+  const [busca, setBusca] = useSearchParams()
+  const codigoDoQr = codigoDaPortaria(busca.get('portaria') ?? '')
+  const jaTentou = useRef(false)
+  useEffect(() => {
+    if (!codigoDoQr || jaTentou.current) return
+    jaTentou.current = true
+    void umaVez(async () => {
+      marcou(await marcarMinhaPresenca(e.id, codigoDoQr, true))
+      setBusca(
+        (b) => {
+          b.delete('portaria')
+          return b
+        },
+        { replace: true },
+      )
+    })
+  })
   return (
     <section className="painel nao-imprimir" aria-labelledby="titulo-participacao">
       <h2 id="titulo-participacao">Minha participação</h2>
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {(p) => (
           <>
-            {p.presente_em ? (
+            {p.presente_em && aberta ? (
+              <p>
+                <span className="etiqueta etiqueta-ok">Presença marcada às {horaDe(p.presente_em)}</span>
+              </p>
+            ) : p.presente_em ? (
               <p>
                 <span className="etiqueta etiqueta-ok">Você esteve presente</span> (registrado em {formatarDataHora(p.presente_em)}).
               </p>
@@ -867,6 +923,13 @@ function Participacao({ e, pessoaId }: { e: EncontroCompleto; pessoaId: string }
                   )}
                 </div>
               )
+            )}
+            {!p.presente_em && aberta && (
+              <MarcarMinhaPresenca
+                e={e}
+                enviando={enviando}
+                aoMarcar={(c, peloQr) => void umaVez(async () => marcou(await marcarMinhaPresenca(e.id, c, peloQr)))}
+              />
             )}
             {!p.presente_em && p.justificativa && (
               <p>
@@ -911,5 +974,62 @@ function Participacao({ e, pessoaId }: { e: EncontroCompleto; pessoaId: string }
       </MostrarCarga>
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
     </section>
+  )
+}
+
+/** No dia do encontro: o ministro marca a presença lendo o QR da portaria ou digitando o código da tela da entrada. */
+function MarcarMinhaPresenca({
+  e,
+  enviando,
+  aoMarcar,
+}: {
+  e: Pick<Encontro, 'tipo'>
+  enviando: boolean
+  aoMarcar: (codigo: string, peloQr: boolean) => void
+}) {
+  const [codigo, setCodigo] = useState('')
+  return (
+    <div className="marcar-presenca" role="group" aria-labelledby="titulo-marcar-presenca">
+      <h3 id="titulo-marcar-presenca">Marcar a minha presença</h3>
+      <p className="detalhe">
+        Leia o QR Code da portaria, ou digite o código que está na tela da entrada
+        {e.tipo === 'reuniao_mensal' ? '.' : ' (a secretaria também pode ler a sua credencial).'}
+      </p>
+      <LeitorQr
+        aoLer={(c) => aoMarcar(c, true)}
+        interpretar={codigoDaPortaria}
+        textoDoBotao="Ler o QR Code da portaria"
+        rotuloDaCamera="Câmera para ler o QR Code da portaria"
+        semLeitor="Este navegador não lê QR Code aqui dentro: aponte a câmera do celular para o QR da portaria (ele abre esta página já com o código) ou digite o código abaixo."
+      />
+      <form
+        className="form-linha"
+        aria-label="Marcar a minha presença pelo código"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          aoMarcar(codigo, false)
+          setCodigo('')
+        }}
+      >
+        <label>
+          Ou digite o código
+          <input
+            className="campo-codigo"
+            required
+            minLength={6}
+            maxLength={6}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            value={codigo}
+            onChange={(ev) => setCodigo(ev.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+            placeholder="K7Q2M9"
+          />
+        </label>
+        <button type="submit" className="botao" disabled={enviando}>
+          Marcar presença
+        </button>
+      </form>
+    </div>
   )
 }

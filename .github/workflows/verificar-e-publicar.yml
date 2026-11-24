@@ -119,16 +119,10 @@ jobs:
           E2E_SENHA_SEM_PERFIL: ${{ secrets.E2E_SENHA_SEM_PERFIL }}
           E2E_SENHA_TESOURARIA: ${{ secrets.E2E_SENHA_TESOURARIA }}
           E2E_SENHA_CONSELHO: ${{ secrets.E2E_SENHA_CONSELHO }}
-
-      - name: Guardar o relatório (só quando falha)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: relatorio-ponta-a-ponta
-          path: |
-            playwright-report
-            test-results
-          retention-days: 14
+          E2E_SENHA_PRESIDENTE_IGREJA: ${{ secrets.E2E_SENHA_PRESIDENTE_IGREJA }}
+      # Nada do ponta a ponta sobe como artefato: o repositório é público, e o rastro (trace) do Playwright guardava a
+      # senha digitada no login e a sessão das contas de teste (23/11/2026). O log do reporter "list" basta; no
+      # GitHub, o playwright.config.ts não grava rastro nem foto.
 
   publicar:
     name: Publicar no GitHub Pages

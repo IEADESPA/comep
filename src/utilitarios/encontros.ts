@@ -265,3 +265,70 @@ export function textoDaAta(d: {
   )
   return linhas.join('\n')
 }
+
+// ---------- O texto para o Word (Fase 5.5, parte 14; regra da rodada 30) ----------
+// O edital e a ata têm o RESUMO, feito no sistema, e o OFICIAL, feito no Word para o cartório, que não passa pelo
+// sistema. O gerador monta o rascunho do oficial para copiar e colar no Word: o cabeçalho, a qualificação e as
+// assinaturas ficam marcados entre colchetes, para a secretaria completar lá. Os dados pessoais dos diretores
+// não ficam na tela (decisão do usuário, 18/11/2026).
+
+/** O que a secretaria completa no Word (entre colchetes). */
+export const COMPLETAR_NO_WORD = {
+  cabecalho: '[CABEÇALHO DO COMEP: nome, CNPJ e endereço — completar no Word]',
+  presidente: '[nome e qualificação do Presidente — completar no Word]',
+  secretario: '[nome e qualificação do 1º Secretário — completar no Word]',
+  registro: '[para o registro em cartório: conferir o que o cartório pede — completar no Word]',
+}
+
+type ResolucaoNaAta = { numero: number; ano: number; texto: string; anulada_em: string | null }
+
+/** O rascunho da ata oficial, a partir do resumo do sistema, das resoluções e dos convidados. */
+export function textoDaAtaParaWord(d: Parameters<typeof textoDaAta>[0] & { resolucoes: ResolucaoNaAta[]; convidados: string[] }): string {
+  const resumo = textoDaAta(d).split('\n')
+  // o fim do resumo (encerramento e assinaturas) é trocado pelo do oficial
+  const fim = resumo.findIndex((l) => l.startsWith('Nada mais havendo a tratar'))
+  const corpo = fim >= 0 ? resumo.slice(0, fim) : resumo
+  const data = dataPorExtenso(d.inicio).replace(/^[^,]+, /, '')
+  const linhas = [COMPLETAR_NO_WORD.cabecalho, '', ...corpo]
+  if (d.convidados.length > 0) {
+    linhas.push('', `Estiveram presentes como convidados, sem direito a voto: ${d.convidados.join('; ')}.`)
+  }
+  const validas = d.resolucoes.filter((r) => !r.anulada_em)
+  if (validas.length > 0) {
+    linhas.push('', 'Resoluções:')
+    for (const r of validas) linhas.push(`Resolução nº ${String(r.numero).padStart(2, '0')}/${r.ano}: ${r.texto}`)
+  }
+  linhas.push(
+    '',
+    `Nada mais havendo a tratar, o Presidente, ${COMPLETAR_NO_WORD.presidente}, encerrou a ${TIPO_NA_ATA[d.tipo]}, e eu, ${COMPLETAR_NO_WORD.secretario}, 1º Secretário, lavrei a presente ata, que vai assinada por mim e pelo Presidente (Art. 12, §2º, IV e §4º).`,
+    '',
+    `Parauapebas, ${data.replace(/, às .*$/, '')}.`,
+    '',
+    '_______________________________________',
+    '1º Secretário',
+    '',
+    '_______________________________________',
+    'Presidente',
+    '',
+    COMPLETAR_NO_WORD.registro,
+  )
+  return linhas.join('\n')
+}
+
+/** O rascunho do edital oficial para o Word: o resumo do sistema com o cabeçalho e a assinatura a completar. */
+export function textoDoEditalParaWord(edital: string, tipo: TipoEncontro): string {
+  return [
+    COMPLETAR_NO_WORD.cabecalho,
+    '',
+    edital.trim(),
+    '',
+    '_______________________________________',
+    tipo === 'reuniao_mensal' ? '[nome de quem assina pela secretaria — completar no Word]' : COMPLETAR_NO_WORD.presidente,
+  ].join('\n')
+}
+
+/** O código da portaria dentro do que o QR leu (o endereço do encontro com ?portaria=, ou só as 6 letras). */
+export function codigoDaPortaria(texto: string): string | null {
+  const achado = texto.match(/[?&]portaria=([A-Za-z0-9]{6})\b/) ?? texto.trim().match(/^([A-Za-z0-9]{6})$/)
+  return achado ? achado[1].toUpperCase() : null
+}

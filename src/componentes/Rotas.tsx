@@ -11,7 +11,8 @@ export function RotaProtegida() {
 
   if (estado.situacao === 'carregando') return <Carregando />
   if (estado.situacao === 'deslogado') {
-    return <Navigate to="/entrar" replace state={{ voltarPara: location.pathname }} />
+    // com o que vem depois do "?" (ex.: o código da portaria lido no QR, parte 14)
+    return <Navigate to="/entrar" replace state={{ voltarPara: location.pathname + location.search }} />
   }
   return <Outlet />
 }

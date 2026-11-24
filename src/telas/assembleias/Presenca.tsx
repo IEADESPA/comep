@@ -1,19 +1,30 @@
-// Fase 4.2 — Lista de presença (secretaria e presidência) e faltas/justificativas.
-// A presença vale como "livro ou controle similar" (Art. 16, §1º). Check-in pelo QR Code da credencial:
-//   * aqui mesmo, com a câmera (navegadores que leem QR Code: Chrome e Edge no Android e no computador);
-//   * ou com a câmera do celular: o QR abre a página de validação, que mostra o botão "Marcar presença".
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router'
+// A presença no encontro (secretaria e presidência) e as faltas e justificativas.
+// A presença vale como "livro ou controle similar" (Art. 16, §1º). Telas novas, parte 14 (asm-presenca, opção 3,
+// juntando as três): três jeitos de marcar —
+//   1. a tela da portaria: um celular ou tablet na entrada com o QR Code e o código de 6 letras que muda a cada
+//      minuto; o ministro lê o QR (ou digita o código) no próprio celular;
+//   2. a secretaria lê o QR Code da credencial do ministro;
+//   3. a secretaria marca pelo nome (quem chegou atrasado ou está sem a credencial).
+import { useEffect, useRef, useState } from 'react'
+import { Link, Navigate, useParams } from 'react-router'
 import { Aviso, Mensagem, MostrarCarga } from '../../componentes/Basicos'
+import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
+import { Icone } from '../../componentes/Icone'
+import { QrCode } from '../../componentes/QrCode'
+import { Chip } from '../../componentes/Telas'
 import {
   buscarEncontro,
   buscarConfigAssembleias,
+  COMO_MARCOU,
+  contagemQuorum,
   decidirJustificativa,
   desfazerPresenca,
   encerrarPresenca,
+  enderecoDaPortaria,
   faltasDosAssociados,
   listaPresenca,
   listarJustificativas,
+  portariaDoEncontro,
   registrarPresenca,
   registrarPresencaPorCodigo,
   type JustificativaParaDecidir,
@@ -22,264 +33,261 @@ import {
 import { ok } from '../../dados/cliente'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { contemTexto, formatarDataHora } from '../../utilitarios/formatos'
-import { codigoDoQr, dataPorExtenso } from '../../utilitarios/encontros'
+import { contemTexto, formatarDataHora, iniciaisDe } from '../../utilitarios/formatos'
+import { codigoDoQr } from '../../utilitarios/encontros'
+import { CabecalhoDoEncontro, CartaoQuorum, SoSecretaria } from './comum'
+import { ABRE_ANTES, FECHA_DEPOIS, horaDe, presencaAberta, useAgora, useAtualizarACada } from './regras'
+import { LeitorQr } from './LeitorQr'
 
 type Retorno = { sucesso?: string; erro?: string }
 
-const horaDe = (instante: string) =>
-  new Date(instante).toLocaleTimeString('pt-BR', { timeZone: 'America/Belem', hour: '2-digit', minute: '2-digit' })
-
-/** A lista fica aberta de 6 horas antes a 18 horas depois do horário marcado (a mesma regra do banco). */
-const HORA = 3_600_000
-const ABRE_ANTES = 6 * HORA
-const FECHA_DEPOIS = 18 * HORA
-
-// ---------------------------------------------------------------------
-// Leitor de QR Code com a câmera (quando o navegador tem o leitor embutido)
-// ---------------------------------------------------------------------
-
-type Detector = { detect: (fonte: HTMLVideoElement) => Promise<{ rawValue: string }[]> }
-type ConstrutorDetector = new (opcoes: { formats: string[] }) => Detector
-
-function construtorDetector(): ConstrutorDetector | null {
-  return (window as unknown as { BarcodeDetector?: ConstrutorDetector }).BarcodeDetector ?? null
-}
-
-function LeitorQr({ aoLer }: { aoLer: (codigo: string) => void }) {
-  const video = useRef<HTMLVideoElement>(null)
-  const [ligado, setLigado] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
-  const ultimo = useRef<{ codigo: string; quando: number } | null>(null)
-  const temLeitor = construtorDetector() !== null
-
-  useEffect(() => {
-    if (!ligado) return
-    const Construtor = construtorDetector()
-    if (!Construtor) return
-    let fluxo: MediaStream | null = null
-    let ativo = true
-    let tempo = 0
-    const detector = new Construtor({ formats: ['qr_code'] })
-    void navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-      .then((f) => {
-        fluxo = f
-        // a câmera foi desligada (ou a tela fechada) antes de o navegador liberar: solta a câmera
-        if (!ativo) {
-          f.getTracks().forEach((t) => t.stop())
-          return
-        }
-        if (!video.current) return
-        video.current.srcObject = f
-        void video.current.play()
-        const ler = async () => {
-          if (!ativo || !video.current) return
-          try {
-            for (const achado of await detector.detect(video.current)) {
-              const codigo = codigoDoQr(achado.rawValue)
-              const agora = Date.now()
-              // a mesma credencial na frente da câmera não registra de novo por 3 segundos
-              if (codigo && !(ultimo.current?.codigo === codigo && agora - ultimo.current.quando < 3000)) {
-                ultimo.current = { codigo, quando: agora }
-                aoLer(codigo)
-              }
-            }
-          } catch {
-            // quadro sem imagem ainda: tenta no próximo
-          }
-          tempo = window.setTimeout(() => void ler(), 350)
-        }
-        void ler()
-      })
-      .catch(() => setErro('Não foi possível usar a câmera. Confira a permissão do navegador.'))
-    return () => {
-      ativo = false
-      window.clearTimeout(tempo)
-      fluxo?.getTracks().forEach((t) => t.stop())
-    }
-  }, [ligado, aoLer])
-
-  if (!temLeitor) {
-    return (
-      <p className="detalhe">
-        Este navegador não lê QR Code aqui dentro. Use a <strong>câmera do celular</strong>: aponte para o QR Code da
-        credencial; a página de validação abre com o botão <strong>"Marcar presença"</strong>. Ou busque o nome abaixo.
-      </p>
-    )
-  }
-  return (
-    <div className="leitor-qr">
-      <button type="button" className="botao" onClick={() => setLigado((v) => !v)}>
-        {ligado ? 'Desligar a câmera' : 'Ler o QR Code das credenciais'}
-      </button>
-      {ligado && <video ref={video} className="leitor-video" muted playsInline aria-label="Câmera lendo QR Code" />}
-      <Mensagem erro={erro} />
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------
-// /assembleias/:id/presenca — lista de presença
-// ---------------------------------------------------------------------
-
-export function ListaDePresenca() {
+/** O endereço antigo (/assembleias/:id/presenca) leva ao novo. */
+export function PresencaEnderecoAntigo() {
   const { id = '' } = useParams()
-  return <ConteudoPresenca key={id} id={id} />
+  return <Navigate to={`/assembleias/presenca/${id}`} replace />
+}
+
+// ---------------------------------------------------------------------
+// /assembleias/presenca/:id — a presença do encontro
+// ---------------------------------------------------------------------
+
+export function PresencaDoEncontro() {
+  const { id = '' } = useParams()
+  return (
+    <SoSecretaria oQue="A lista de presença">
+      <ConteudoPresenca key={id} id={id} />
+    </SoSecretaria>
+  )
 }
 
 function ConteudoPresenca({ id }: { id: string }) {
   const [carga, recarregar] = useCarregar(async () => {
-    const [encontro, lista] = await Promise.all([buscarEncontro(id), listaPresenca(id)])
+    const [encontro, lista, quorum] = await Promise.all([buscarEncontro(id), listaPresenca(id), contagemQuorum(id)])
     if (encontro.erro !== null) return encontro
     if (lista.erro !== null) return lista
-    return ok({ encontro: encontro.dados, lista: lista.dados })
+    if (quorum.erro !== null) return quorum
+    return ok({ encontro: encontro.dados, lista: lista.dados, quorum: quorum.dados })
   })
   const [busca, setBusca] = useState('')
   const [retorno, setRetorno] = useState<Retorno>({})
   const [perguntando, setPerguntando] = useState(false)
   const [enviando, umaVez] = useUmaVez()
   // a hora de agora, atualizada a cada 30 segundos (o botão de encerrar aparece quando o encontro começa)
-  const [agora, setAgora] = useState(() => Date.now())
-  useEffect(() => {
-    const relogio = window.setInterval(() => setAgora(Date.now()), 30_000)
-    return () => window.clearInterval(relogio)
-  }, [])
+  const agora = useAgora(30)
+  const aberta = carga.situacao === 'ok' && carga.dados.encontro !== null && presencaAberta(carga.dados.encontro, agora)
+  // quem chega pela portaria aparece sozinho na lista
+  useAtualizarACada(recarregar, 15, aberta)
 
   const concluir = (r: { erro: string | null }, sucesso: string) => {
     setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso })
     if (r.erro === null) recarregar()
   }
 
-  const aoLer = useMemo(
-    () => (codigo: string) =>
-      void registrarPresencaPorCodigo(id, codigo).then((r) => {
-        if (r.erro !== null) return setRetorno({ erro: r.erro })
-        setRetorno({
-          sucesso:
-            r.dados.resultado === 'ja_presente'
-              ? `${r.dados.nome} já estava presente.`
-              : `Presença registrada: ${r.dados.nome}${r.dados.em_dia ? '' : ' (contribuição em atraso: não vota)'}.`,
-        })
-        recarregar()
-      }),
-    [id, recarregar],
-  )
+  const aoLerCredencial = (codigo: string) =>
+    void registrarPresencaPorCodigo(id, codigo).then((r) => {
+      if (r.erro !== null) return setRetorno({ erro: r.erro })
+      setRetorno({
+        sucesso:
+          r.dados.resultado === 'ja_presente'
+            ? `${r.dados.nome} já estava presente.`
+            : `Presença registrada: ${r.dados.nome}${r.dados.em_dia ? '' : ' (contribuição em atraso: não vota)'}.`,
+      })
+      recarregar()
+    })
 
   return (
-    <>
-      <p className="nao-imprimir">
-        <Link to={`/assembleias/${id}`}>← Voltar ao encontro</Link>
-      </p>
-      <MostrarCarga carga={carga} recarregar={recarregar}>
-        {({ encontro, lista }) => {
-          if (!encontro) {
-            return (
-              <Aviso titulo="Encontro não encontrado">
-                <p>Ele pode ter sido arquivado.</p>
-              </Aviso>
-            )
-          }
-          const presentes = lista.filter((l) => l.presente_em)
-          const aptos = presentes.filter((l) => l.em_dia).length
-          const ativos = lista.length
-          const inicio = new Date(encontro.inicio).getTime()
-          const convocado = encontro.situacao === 'convocado' && !encontro.presenca_encerrada_em
-          const cedo = agora < inicio - ABRE_ANTES
-          const tarde = agora > inicio + FECHA_DEPOIS
-          // marcar e desfazer: só na janela do encontro
-          const aberta = convocado && !cedo && !tarde
-          const assembleia = encontro.tipo !== 'reuniao_mensal'
-          // encerrar: depois do horário marcado; assembleia, só depois de instalada (quórum)
-          const podeEncerrar = convocado && inicio <= agora + 60_000 && (!assembleia || encontro.instalada_em !== null)
-          const visiveis = lista.filter((l) => contemTexto(l.nome, busca) || String(l.numero_registro) === busca.trim().replace(/^0+/, ''))
+    <MostrarCarga carga={carga} recarregar={recarregar}>
+      {({ encontro, lista, quorum }) => {
+        if (!encontro) {
           return (
-            <>
-              <h1>Lista de presença</h1>
-              <p>
-                <strong>{encontro.titulo}</strong> — {dataPorExtenso(encontro.inicio)}
-              </p>
-              <dl className="definicoes" aria-label="Resumo da presença">
-                <dt>Presentes</dt>
-                <dd>
-                  {presentes.length} de {ativos} associados ({aptos} em dia, que votam)
-                </dd>
-                <dt>Confirmaram</dt>
-                <dd>{lista.filter((l) => l.confirmou_em).length}</dd>
-              </dl>
-              <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
-              {encontro.situacao === 'realizado' && (
-                <p className="etiqueta etiqueta-marca">Lista encerrada: quem não esteve presente tem falta.</p>
-              )}
-              {convocado && cedo && (
-                <p className="aviso-texto" role="status">
-                  A lista abre 6 horas antes do encontro, a partir de {formatarDataHora(new Date(inicio - ABRE_ANTES).toISOString())}.
-                </p>
-              )}
-              {convocado && tarde && (
-                <p className="aviso-texto" role="status">
-                  A lista fechou para novas marcações (18 horas depois do horário marcado).
-                  {assembleia && !encontro.instalada_em
-                    ? ' A assembleia não foi instalada: se não aconteceu, cancele o encontro na página dele, com o motivo.'
-                    : ''}
-                </p>
-              )}
-              {aberta && <LeitorQr aoLer={aoLer} />}
-              <label>
-                Buscar associado
-                <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou nº de registro" />
-              </label>
-              <ul className="lista" aria-label="Associados">
-                {visiveis.map((l) => (
-                  <LinhaDaLista
-                    key={l.pessoa_id}
-                    l={l}
-                    aberta={aberta}
-                    enviando={enviando}
-                    aoMarcar={() => void umaVez(async () => concluir(await registrarPresenca(id, l.pessoa_id), `Presença registrada: ${l.nome}.`))}
-                    aoDesfazer={() => void umaVez(async () => concluir(await desfazerPresenca(id, l.pessoa_id), `Presença desfeita: ${l.nome}.`))}
-                  />
-                ))}
-              </ul>
-              {convocado && assembleia && !encontro.instalada_em && inicio <= agora + 60_000 && !tarde && (
-                <p className="detalhe">
-                  Para encerrar a lista, primeiro instale a assembleia (quórum) na{' '}
-                  <Link to={`/assembleias/${encontro.id}/conducao`}>condução</Link>.
-                </p>
-              )}
-              {podeEncerrar && (
-                <div className="acoes">
-                  {perguntando ? (
-                    <span className="confirmar-linha">
-                      <button
-                        type="button"
-                        className="botao botao-perigo-cheio"
-                        disabled={enviando}
-                        onClick={() =>
-                          void umaVez(async () => {
-                            setPerguntando(false)
-                            concluir(await encerrarPresenca(id), 'Lista encerrada: o encontro está registrado como realizado.')
-                          })
-                        }
-                      >
-                        Confirmar — encerrar (quem não está presente fica com falta)
-                      </button>
-                      <button type="button" className="botao-texto" onClick={() => setPerguntando(false)}>
-                        Não
-                      </button>
-                    </span>
-                  ) : (
-                    <button type="button" className="botao" onClick={() => setPerguntando(true)}>
-                      Encerrar a lista de presença
-                    </button>
-                  )}
-                </div>
-              )}
-            </>
+            <Aviso titulo="Encontro não encontrado">
+              <p>Ele pode ter sido arquivado.</p>
+            </Aviso>
           )
-        }}
-      </MostrarCarga>
-    </>
+        }
+        const presentes = lista.filter((l) => l.presente_em).sort((a, b) => (b.presente_em ?? '').localeCompare(a.presente_em ?? ''))
+        const inicio = new Date(encontro.inicio).getTime()
+        const convocado = encontro.situacao === 'convocado' && !encontro.presenca_encerrada_em
+        const cedo = agora < inicio - ABRE_ANTES
+        const tarde = agora > inicio + FECHA_DEPOIS
+        const assembleia = encontro.tipo !== 'reuniao_mensal'
+        // encerrar: depois do horário marcado; assembleia, só depois de instalada (quórum)
+        const podeEncerrar = convocado && inicio <= agora + 60_000 && (!assembleia || encontro.instalada_em !== null)
+        const termo = busca.trim()
+        const achados =
+          termo.length < 2 ? [] : lista.filter((l) => contemTexto(l.nome, termo) || String(l.numero_registro) === termo.replace(/^0+/, ''))
+        return (
+          <>
+            <CabecalhoDoEncontro
+              e={encontro}
+              titulo="Presença"
+              acoes={
+                aberta && (
+                  <Link className="botao botao-com-icone" to={`/assembleias/presenca/${id}/portaria`}>
+                    <Icone nome="qr" tamanho={18} />
+                    Abrir a tela da portaria
+                  </Link>
+                )
+              }
+            />
+            <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+            {encontro.situacao === 'realizado' && (
+              <p className="aviso-texto" role="status">
+                Lista encerrada: quem não esteve presente tem falta.
+              </p>
+            )}
+            {convocado && cedo && (
+              <p className="aviso-texto" role="status">
+                A lista abre 6 horas antes do encontro, a partir de {formatarDataHora(new Date(inicio - ABRE_ANTES).toISOString())}.
+              </p>
+            )}
+            {convocado && tarde && (
+              <p className="aviso-texto" role="status">
+                A lista fechou para novas marcações (18 horas depois do horário marcado).
+                {assembleia && !encontro.instalada_em
+                  ? ' A assembleia não foi instalada: se não aconteceu, cancele o encontro na página dele, com o motivo.'
+                  : ''}
+              </p>
+            )}
+            <div className="duas-colunas presenca-colunas">
+              <div className="coluna-pilha">
+                <section className="bloco bloco-tabela" aria-labelledby="titulo-chegaram">
+                  <h2 id="titulo-chegaram">
+                    Quem chegou <span className="detalhe">({presentes.length})</span>
+                  </h2>
+                  {presentes.length === 0 ? (
+                    <p className="vazio">Ninguém marcou presença ainda.</p>
+                  ) : (
+                    <div className="tabela-rolagem">
+                      <table className="tabela-simples tabela-presenca" aria-label="Quem chegou">
+                        <thead>
+                          <tr>
+                            <th scope="col">Ministro</th>
+                            <th scope="col">Chegou</th>
+                            <th scope="col">Como marcou</th>
+                            <th scope="col">Vota?</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {presentes.map((l) => (
+                            <tr key={l.pessoa_id}>
+                              <td>
+                                <span className="nome-com-iniciais">
+                                  <span className="iniciais-redondas" aria-hidden="true">
+                                    {iniciaisDe(l.nome)}
+                                  </span>
+                                  <strong>{l.nome}</strong>
+                                </span>
+                              </td>
+                              <td>{l.presente_em ? horaDe(l.presente_em) : '—'}</td>
+                              <td>{l.forma ? COMO_MARCOU[l.forma] : '—'}</td>
+                              <td>{l.em_dia ? <Chip area="financas">sim</Chip> : <Chip area="pessoas">em atraso</Chip>}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+
+                <section className="bloco" aria-labelledby="titulo-pelo-nome">
+                  <h2 id="titulo-pelo-nome">Marcar pelo nome</h2>
+                  <p className="detalhe">Para quem chegou atrasado ou está sem a credencial. Confira o documento.</p>
+                  <label>
+                    Buscar associado
+                    <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou nº de registro" />
+                  </label>
+                  {termo.length >= 2 && achados.length === 0 && <p className="vazio">Ninguém com esse nome ou número.</p>}
+                  {achados.length > 0 && (
+                    <ul className="lista" aria-label="Associados">
+                      {achados.map((l) => (
+                        <LinhaDaLista
+                          key={l.pessoa_id}
+                          l={l}
+                          aberta={aberta}
+                          enviando={enviando}
+                          aoMarcar={() =>
+                            void umaVez(async () => concluir(await registrarPresenca(id, l.pessoa_id), `Presença registrada: ${l.nome}.`))
+                          }
+                          aoDesfazer={() =>
+                            void umaVez(async () => concluir(await desfazerPresenca(id, l.pessoa_id), `Presença desfeita: ${l.nome}.`))
+                          }
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                {convocado && assembleia && !encontro.instalada_em && inicio <= agora + 60_000 && !tarde && (
+                  <p className="detalhe">
+                    Para encerrar a lista, primeiro instale a assembleia (quórum) na{' '}
+                    <Link to={`/assembleias/conducao/${encontro.id}`}>condução</Link>.
+                  </p>
+                )}
+                {podeEncerrar && (
+                  <div className="acoes">
+                    {perguntando ? (
+                      <span className="confirmar-linha">
+                        <button
+                          type="button"
+                          className="botao botao-perigo-cheio"
+                          disabled={enviando}
+                          onClick={() =>
+                            void umaVez(async () => {
+                              setPerguntando(false)
+                              concluir(await encerrarPresenca(id), 'Lista encerrada: o encontro está registrado como realizado.')
+                            })
+                          }
+                        >
+                          Confirmar — encerrar (quem não está presente fica com falta)
+                        </button>
+                        <button type="button" className="botao-texto" onClick={() => setPerguntando(false)}>
+                          Não
+                        </button>
+                      </span>
+                    ) : (
+                      <button type="button" className="botao botao-secundario" onClick={() => setPerguntando(true)}>
+                        Encerrar a lista de presença
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="coluna-pilha">
+                <CartaoQuorum e={encontro} quorum={quorum} />
+                <section className="bloco" aria-labelledby="titulo-tres-jeitos">
+                  <h2 id="titulo-tres-jeitos">Três jeitos de marcar</h2>
+                  <p>
+                    1 · o ministro lê o <strong>QR da portaria</strong> com o celular; 2 · ou <strong>digita o código</strong> da tela da
+                    entrada; 3 · ou a secretaria <strong>lê a credencial</strong> dele.
+                  </p>
+                  {aberta && (
+                    <>
+                      <Link className="botao botao-secundario alinhar-esquerda" to={`/assembleias/presenca/${id}/portaria`}>
+                        Abrir a tela da portaria
+                      </Link>
+                      <LeitorQr
+                        aoLer={aoLerCredencial}
+                        interpretar={codigoDoQr}
+                        textoDoBotao="Ler a credencial do ministro"
+                        rotuloDaCamera="Câmera lendo a credencial"
+                        semLeitor={
+                          <>
+                            Este navegador não lê QR Code aqui dentro. Use a <strong>câmera do celular</strong>: aponte para o QR Code da
+                            credencial; a página de validação abre com o botão <strong>"Marcar presença"</strong>. Ou marque pelo nome.
+                          </>
+                        }
+                      />
+                    </>
+                  )}
+                </section>
+              </div>
+            </div>
+          </>
+        )
+      }}
+    </MostrarCarga>
   )
 }
 
@@ -304,7 +312,7 @@ function LinhaDaLista({
       <span>
         {l.presente_em ? (
           <span className="etiqueta etiqueta-ok">
-            Presente às {horaDe(l.presente_em)} ({l.forma === 'qr_code' ? 'QR Code' : 'lista'})
+            Presente às {horaDe(l.presente_em)} ({l.forma ? COMO_MARCOU[l.forma] : '—'})
           </span>
         ) : l.confirmou_em ? (
           <span className="etiqueta etiqueta-neutra">Confirmou que vem</span>
@@ -313,9 +321,7 @@ function LinhaDaLista({
         )}{' '}
         {!l.em_dia && <span className="etiqueta etiqueta-atraso">Em atraso: não vota</span>}{' '}
         {l.justificativa && (
-          <span className="etiqueta etiqueta-neutra">
-            Justificativa {l.justificativa === 'pendente' ? 'em análise' : l.justificativa}
-          </span>
+          <span className="etiqueta etiqueta-neutra">Justificativa {l.justificativa === 'pendente' ? 'em análise' : l.justificativa}</span>
         )}
       </span>
       {aberta && (
@@ -336,6 +342,122 @@ function LinhaDaLista({
 }
 
 // ---------------------------------------------------------------------
+// /assembleias/presenca/:id/portaria — a tela da portaria (num celular ou tablet na entrada)
+// ---------------------------------------------------------------------
+
+export function TelaDaPortaria() {
+  const { id = '' } = useParams()
+  return (
+    <SoSecretaria oQue="A tela da portaria">
+      <ConteudoPortaria key={id} id={id} />
+    </SoSecretaria>
+  )
+}
+
+function ConteudoPortaria({ id }: { id: string }) {
+  const [carga, recarregar] = useCarregar(async () => {
+    const [encontro, portaria, quorum] = await Promise.all([buscarEncontro(id), portariaDoEncontro(id), contagemQuorum(id)])
+    if (encontro.erro !== null) return encontro
+    if (portaria.erro !== null) return portaria
+    if (quorum.erro !== null) return quorum
+    return ok({ encontro: encontro.dados, portaria: portaria.dados, quorum: quorum.dados, buscadoEm: Date.now() })
+  })
+  const tela = useRef<HTMLDivElement>(null)
+  // a contagem até o código mudar; quando chega a zero, busca o código novo
+  const [agora, setAgora] = useState(() => Date.now())
+  useEffect(() => {
+    const relogio = window.setInterval(() => setAgora(Date.now()), 1000)
+    return () => window.clearInterval(relogio)
+  }, [])
+  useAtualizarACada(recarregar, 8)
+  const restante =
+    carga.situacao === 'ok' ? Math.max(0, Math.ceil(carga.dados.portaria.segundos - (agora - carga.dados.buscadoEm) / 1000)) : 60
+  const vencido = carga.situacao === 'ok' && restante === 0
+  useEffect(() => {
+    if (vencido) recarregar()
+  }, [vencido, recarregar])
+
+  return (
+    <MostrarCarga carga={carga} recarregar={recarregar}>
+      {({ encontro, portaria, quorum }) => {
+        if (!encontro) {
+          return (
+            <Aviso titulo="Encontro não encontrado">
+              <p>Ele pode ter sido arquivado.</p>
+            </Aviso>
+          )
+        }
+        return (
+          <>
+            <CabecalhoDoEncontro
+              e={encontro}
+              titulo="Presença · tela da portaria"
+              acoes={
+                <>
+                  <button type="button" className="botao botao-secundario" onClick={() => void tela.current?.requestFullscreen?.()}>
+                    Tela cheia
+                  </button>
+                  <Link className="botao-texto" to={`/assembleias/presenca/${id}`}>
+                    Voltar à lista
+                  </Link>
+                </>
+              }
+            />
+            <div className="duas-colunas presenca-colunas" ref={tela}>
+              <section className="bloco portaria-cartao" aria-labelledby="titulo-portaria">
+                <h2 id="titulo-portaria">Marque a sua presença</h2>
+                <p>Leia este QR Code com o celular, pelo aplicativo do COMEP</p>
+                <QrCode
+                  className="portaria-qr"
+                  texto={enderecoDaPortaria(id, portaria.codigo)}
+                  rotulo="QR Code da portaria: abre a presença no celular do ministro"
+                />
+                <p className="detalhe">ou digite o código</p>
+                <p className="portaria-codigo" aria-label={`Código da portaria: ${portaria.codigo.split('').join(' ')}`}>
+                  {portaria.codigo.split('').map((letra, i) => (
+                    <span key={i} aria-hidden="true">
+                      {letra}
+                    </span>
+                  ))}
+                </p>
+                <p className="detalhe">
+                  O código muda a cada minuto, para só valer para quem está aqui.{' '}
+                  <span aria-live="off">Muda em {restante} s.</span>
+                </p>
+              </section>
+              <div className="coluna-pilha">
+                <CartaoQuorum e={encontro} quorum={quorum} />
+                <section className="bloco" aria-labelledby="titulo-chegaram-agora">
+                  <h2 id="titulo-chegaram-agora">Chegaram agora</h2>
+                  {portaria.chegaram.length === 0 ? (
+                    <p className="vazio">Ninguém ainda.</p>
+                  ) : (
+                    <ul className="lista-chegadas" aria-label="Chegaram agora">
+                      {portaria.chegaram.map((c) => (
+                        <li key={`${c.nome}-${c.presente_em}`}>
+                          <span className="iniciais-redondas" aria-hidden="true">
+                            {iniciaisDe(c.nome)}
+                          </span>
+                          <span>
+                            <strong>{c.nome}</strong>
+                            <span className="detalhe">{COMO_MARCOU[c.forma]}</span>
+                          </span>
+                          <span className="detalhe">{horaDe(c.presente_em)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </div>
+            </div>
+          </>
+        )
+      }}
+    </MostrarCarga>
+  )
+}
+
+// ---------------------------------------------------------------------
 // /assembleias/faltas — justificativas (o 1º secretário decide) e faltas seguidas (Art. 8º, IV)
 // ---------------------------------------------------------------------
 
@@ -350,10 +472,11 @@ export function FaltasEJustificativas() {
   const [retorno, setRetorno] = useState<Retorno>({})
   return (
     <>
-      <p className="nao-imprimir">
-        <Link to="/assembleias">← Assembleias e reuniões</Link>
-      </p>
-      <h1>Faltas e justificativas</h1>
+      <CabecalhoFuncao
+        modulo="Assembleias"
+        titulo="Faltas e justificativas"
+        sub="As justificativas para decidir e as faltas seguidas às assembleias."
+      />
       <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {({ justificativas, faltas, config }) => {

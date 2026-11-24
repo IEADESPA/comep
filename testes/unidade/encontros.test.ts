@@ -8,7 +8,10 @@ import {
   explicarMaioria,
   minimoAFavor,
   quorumPrimeiraChamada,
+  codigoDaPortaria,
   textoDaAta,
+  textoDaAtaParaWord,
+  textoDoEditalParaWord,
   doCampoDataHora,
   mesmasDatasNosProximosMeses,
   nomesDosMeses,
@@ -171,5 +174,50 @@ describe('quórum, maiorias e ata (Fase 4.3)', () => {
     assert.match(texto, /3\/5 dos 21 votos válidos = 13 votos a favor\)\. Fica desligado\(a\) do COMEP: Fulano de Tal/)
     assert.match(texto, /3\. Informes: \(informe/)
     assert.match(texto, /Parauapebas, 22 de abril de 2027\./)
+  })
+})
+
+describe('o texto para o Word e a portaria (parte 14)', () => {
+  const base = {
+    tipo: 'ago' as const,
+    inicio: '2027-04-28T19:00:00-03:00',
+    local: 'Sede',
+    chamada: 'primeira' as const,
+    aptos: 66,
+    presentesAptos: 38,
+    presentes: 40,
+    pauta: [{ id: 'a', ordem: 1, titulo: 'Prestação de contas de 2026', deliberativo: true }],
+    votos: [{ pauta_id: 'a', maioria: 'simples' as const, votantes: 38, a_favor: 31, contra: 2, abstencoes: 1, aprovada: true }],
+  }
+
+  it('a ata para o Word: o resumo, os convidados, as resoluções válidas e o que completar entre colchetes', () => {
+    const texto = textoDaAtaParaWord({
+      ...base,
+      convidados: ['Vereador (exemplo)'],
+      resolucoes: [
+        { numero: 1, ano: 2027, texto: 'Aprovada a prestação de contas de 2026.', anulada_em: null },
+        { numero: 2, ano: 2027, texto: 'Anulada por engano.', anulada_em: '2027-04-28T20:00:00-03:00' },
+      ],
+    })
+    assert.ok(texto.startsWith('[CABEÇALHO DO COMEP'), texto)
+    assert.match(texto, /1\. Prestação de contas de 2026: APROVADO, com 31 votos a favor/)
+    assert.match(texto, /convidados, sem direito a voto: Vereador \(exemplo\)\./)
+    assert.match(texto, /Resolução nº 01\/2027: Aprovada a prestação de contas de 2026\./)
+    assert.ok(!texto.includes('Anulada por engano'))
+    assert.match(texto, /\[nome e qualificação do Presidente — completar no Word\]/)
+    // o encerramento do resumo não se repete
+    assert.equal(texto.split('Nada mais havendo a tratar').length, 2)
+  })
+
+  it('o edital para o Word leva o cabeçalho e a assinatura a completar', () => {
+    const texto = textoDoEditalParaWord('EDITAL DE CONVOCAÇÃO\n\nTexto.', 'ago')
+    assert.ok(texto.startsWith('[CABEÇALHO DO COMEP'))
+    assert.ok(texto.endsWith('[nome e qualificação do Presidente — completar no Word]'))
+  })
+
+  it('o código da portaria: do endereço do QR ou digitado', () => {
+    assert.equal(codigoDaPortaria('https://ieadespa.github.io/comep/teste/assembleias/abc?portaria=k7q2m9'), 'K7Q2M9')
+    assert.equal(codigoDaPortaria(' K7Q2M9 '), 'K7Q2M9')
+    assert.equal(codigoDaPortaria('https://ieadespa.github.io/comep/validar/abc'), null)
   })
 })

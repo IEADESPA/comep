@@ -15,8 +15,11 @@ import { GaleriaModelos, PaginaOrdem, QuemRecebe } from './telas/credencial/Mode
 import { BibliotecaDeSimbolos } from './telas/credencial/Simbolos'
 import { ValidadeEVerso } from './telas/credencial/ValidadeEVerso'
 import { DetalheEncontro, EditarEncontro, ListaEncontros, NovoEncontro } from './telas/assembleias/Assembleias'
-import { FaltasEJustificativas, ListaDePresenca } from './telas/assembleias/Presenca'
-import { ConducaoAssembleia } from './telas/assembleias/Conducao'
+import { FaltasEJustificativas, PresencaDoEncontro, PresencaEnderecoAntigo, TelaDaPortaria } from './telas/assembleias/Presenca'
+import { ConducaoDoEncontro, ConducaoEnderecoAntigo } from './telas/assembleias/Conducao'
+import { FechamentoDoEncontro } from './telas/assembleias/Fechamento'
+import { TelaoDoEncontro } from './telas/assembleias/Telao'
+import { EscolherEncontro } from './telas/assembleias/comum'
 import { DetalhePedidoAge, ListaPedidosAge, NovoPedidoAge } from './telas/assembleias/PedidosAge'
 import { DetalheComissao, EditarComissao, ListaComissoes, NovaComissao } from './telas/comissoes/Comissoes'
 import { DetalheEvento, EditarEvento, ListaEventos, NovoEvento } from './telas/eventos/Eventos'
@@ -109,6 +112,10 @@ export default function App() {
             <Route path="credenciais/modelos/:id/editar" element={<Area caminho="/credenciais" />}>
               <Route index element={<EditorTelaInteira />} />
             </Route>
+            {/* O telão da assembleia (rodada 15, asm-conducao): para a TV ou o projetor, fora da moldura */}
+            <Route path="assembleias/telao/:id" element={<Area caminho="/assembleias" />}>
+              <Route index element={<TelaoDoEncontro />} />
+            </Route>
             <Route element={<Layout />}>
               <Route path="painel" element={<Inicio />} />
               <Route path="modulos" element={<Modulos />} />
@@ -159,9 +166,17 @@ export default function App() {
                 <Route path="pedidos" element={<ListaPedidosAge />} />
                 <Route path="pedidos/novo" element={<NovoPedidoAge />} />
                 <Route path="pedidos/:id" element={<DetalhePedidoAge />} />
+                {/* parte 14: a presença (com a tela da portaria), a condução ao vivo e o fechamento, cada uma com endereço */}
+                <Route path="presenca" element={<EscolherEncontro funcao="presenca" />} />
+                <Route path="presenca/:id" element={<PresencaDoEncontro />} />
+                <Route path="presenca/:id/portaria" element={<TelaDaPortaria />} />
+                <Route path="conducao" element={<EscolherEncontro funcao="conducao" />} />
+                <Route path="conducao/:id" element={<ConducaoDoEncontro />} />
+                <Route path="fechamento" element={<EscolherEncontro funcao="fechamento" />} />
+                <Route path="fechamento/:id" element={<FechamentoDoEncontro />} />
                 <Route path=":id" element={<DetalheEncontro />} />
-                <Route path=":id/presenca" element={<ListaDePresenca />} />
-                <Route path=":id/conducao" element={<ConducaoAssembleia />} />
+                <Route path=":id/presenca" element={<PresencaEnderecoAntigo />} />
+                <Route path=":id/conducao" element={<ConducaoEnderecoAntigo />} />
                 <Route path=":id/editar" element={<EditarEncontro />} />
               </Route>
               <Route path="diretoria" element={<Area caminho="/diretoria" />}>
