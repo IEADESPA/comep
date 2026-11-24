@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { Aviso, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
-import { Icone } from '../../componentes/Icone'
+import { Icone, MarcaCaixa } from '../../componentes/Icone'
 import { QrCode } from '../../componentes/QrCode'
 import { Chip } from '../../componentes/Telas'
 import {
@@ -24,6 +24,7 @@ import {
   faltasDosAssociados,
   listaPresenca,
   listarJustificativas,
+  NOME_DO_TIPO,
   portariaDoEncontro,
   registrarPresenca,
   registrarPresencaPorCodigo,
@@ -36,7 +37,7 @@ import { useUmaVez } from '../../estado/useUmaVez'
 import { contemTexto, formatarDataHora, iniciaisDe } from '../../utilitarios/formatos'
 import { codigoDoQr } from '../../utilitarios/encontros'
 import { CabecalhoDoEncontro, CartaoQuorum, SoSecretaria } from './comum'
-import { ABRE_ANTES, FECHA_DEPOIS, horaDe, presencaAberta, useAgora, useAtualizarACada } from './regras'
+import { ABRE_ANTES, FECHA_DEPOIS, horaDe, nomeCurto, presencaAberta, useAgora, useAtualizarACada } from './regras'
 import { LeitorQr } from './LeitorQr'
 
 type Retorno = { sucesso?: string; erro?: string }
@@ -342,7 +343,8 @@ function LinhaDaLista({
 }
 
 // ---------------------------------------------------------------------
-// /assembleias/presenca/:id/portaria — a tela da portaria (num celular ou tablet na entrada)
+// /assembleias/presenca/:id/portaria — a tela da portaria (num celular ou tablet na entrada), fora da moldura:
+// sem o menu, a busca e o sino da secretaria (revisão da parte 14, achado 2)
 // ---------------------------------------------------------------------
 
 export function TelaDaPortaria() {
@@ -378,82 +380,89 @@ function ConteudoPortaria({ id }: { id: string }) {
   }, [vencido, recarregar])
 
   return (
-    <MostrarCarga carga={carga} recarregar={recarregar}>
-      {({ encontro, portaria, quorum }) => {
-        if (!encontro) {
+    <div className="telao portaria-tela" ref={tela}>
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {({ encontro, portaria, quorum }) => {
+          if (!encontro) {
+            return (
+              <Aviso titulo="Encontro não encontrado">
+                <p>Ele pode ter sido arquivado.</p>
+              </Aviso>
+            )
+          }
           return (
-            <Aviso titulo="Encontro não encontrado">
-              <p>Ele pode ter sido arquivado.</p>
-            </Aviso>
-          )
-        }
-        return (
-          <>
-            <CabecalhoDoEncontro
-              e={encontro}
-              titulo="Presença · tela da portaria"
-              acoes={
-                <>
+            <>
+              <header className="telao-topo">
+                <span className="telao-marca">
+                  <MarcaCaixa tamanho={44} />
+                  <span>
+                    <strong>COMEP</strong>
+                    <span>
+                      {NOME_DO_TIPO[encontro.tipo]} · {nomeCurto(encontro)}
+                    </span>
+                  </span>
+                </span>
+                <span className="telao-acoes nao-imprimir">
                   <button type="button" className="botao botao-secundario" onClick={() => void tela.current?.requestFullscreen?.()}>
                     Tela cheia
                   </button>
                   <Link className="botao-texto" to={`/assembleias/presenca/${id}`}>
                     Voltar à lista
                   </Link>
-                </>
-              }
-            />
-            <div className="duas-colunas presenca-colunas" ref={tela}>
-              <section className="bloco portaria-cartao" aria-labelledby="titulo-portaria">
-                <h2 id="titulo-portaria">Marque a sua presença</h2>
-                <p>Leia este QR Code com o celular, pelo aplicativo do COMEP</p>
-                <QrCode
-                  className="portaria-qr"
-                  texto={enderecoDaPortaria(id, portaria.codigo)}
-                  rotulo="QR Code da portaria: abre a presença no celular do ministro"
-                />
-                <p className="detalhe">ou digite o código</p>
-                <p className="portaria-codigo" aria-label={`Código da portaria: ${portaria.codigo.split('').join(' ')}`}>
-                  {portaria.codigo.split('').map((letra, i) => (
-                    <span key={i} aria-hidden="true">
-                      {letra}
-                    </span>
-                  ))}
-                </p>
-                <p className="detalhe">
-                  O código muda a cada minuto, para só valer para quem está aqui.{' '}
-                  <span aria-live="off">Muda em {restante} s.</span>
-                </p>
-              </section>
-              <div className="coluna-pilha">
-                <CartaoQuorum e={encontro} quorum={quorum} />
-                <section className="bloco" aria-labelledby="titulo-chegaram-agora">
-                  <h2 id="titulo-chegaram-agora">Chegaram agora</h2>
-                  {portaria.chegaram.length === 0 ? (
-                    <p className="vazio">Ninguém ainda.</p>
-                  ) : (
-                    <ul className="lista-chegadas" aria-label="Chegaram agora">
-                      {portaria.chegaram.map((c) => (
-                        <li key={`${c.nome}-${c.presente_em}`}>
-                          <span className="iniciais-redondas" aria-hidden="true">
-                            {iniciaisDe(c.nome)}
-                          </span>
-                          <span>
-                            <strong>{c.nome}</strong>
-                            <span className="detalhe">{COMO_MARCOU[c.forma]}</span>
-                          </span>
-                          <span className="detalhe">{horaDe(c.presente_em)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                </span>
+              </header>
+              <main className="duas-colunas presenca-colunas" aria-label="Tela da portaria">
+                <section className="bloco portaria-cartao" aria-labelledby="titulo-portaria">
+                  <h1 id="titulo-portaria">Marque a sua presença</h1>
+                  <p>Leia este QR Code com o celular, pelo aplicativo do COMEP</p>
+                  <QrCode
+                    className="portaria-qr"
+                    texto={enderecoDaPortaria(id, portaria.codigo)}
+                    rotulo="QR Code da portaria: abre a presença no celular do ministro"
+                  />
+                  <p className="detalhe">ou digite o código</p>
+                  <p className="portaria-codigo" aria-label={`Código da portaria: ${portaria.codigo.split('').join(' ')}`}>
+                    {portaria.codigo.split('').map((letra, i) => (
+                      <span key={i} aria-hidden="true">
+                        {letra}
+                      </span>
+                    ))}
+                  </p>
+                  <p className="detalhe">
+                    O código muda a cada minuto, para só valer para quem está aqui.{' '}
+                    <span aria-live="off">Muda em {restante} s.</span>
+                  </p>
                 </section>
-              </div>
-            </div>
-          </>
-        )
-      }}
-    </MostrarCarga>
+                <div className="coluna-pilha">
+                  <CartaoQuorum e={encontro} quorum={quorum} />
+                  <section className="bloco" aria-labelledby="titulo-chegaram-agora">
+                    <h2 id="titulo-chegaram-agora">Chegaram agora</h2>
+                    {portaria.chegaram.length === 0 ? (
+                      <p className="vazio">Ninguém ainda.</p>
+                    ) : (
+                      <ul className="lista-chegadas" aria-label="Chegaram agora">
+                        {portaria.chegaram.map((c) => (
+                          <li key={`${c.nome}-${c.presente_em}`}>
+                            <span className="iniciais-redondas" aria-hidden="true">
+                              {iniciaisDe(c.nome)}
+                            </span>
+                            <span>
+                              <strong>{c.nome}</strong>
+                              <span className="detalhe">{COMO_MARCOU[c.forma]}</span>
+                            </span>
+                            <span className="detalhe">{horaDe(c.presente_em)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                </div>
+              </main>
+            </>
+          )
+        }}
+      </MostrarCarga>
+    </div>
   )
 }
 

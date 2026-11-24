@@ -60,6 +60,11 @@ async function codigoDaPortaria(page: Page, id: string): Promise<string> {
   await page.goto(`assembleias/presenca/${id}/portaria`)
   await expect(page.getByRole('heading', { name: 'Marque a sua presença' })).toBeVisible()
   await expect(page.getByRole('img', { name: /^QR Code da portaria/ })).toBeVisible()
+  // fora da moldura (revisão da parte 14, achado 2): o aparelho da entrada não mostra o menu, a busca nem o sino
+  await expect(page.getByRole('navigation', { name: 'Menu principal' })).toHaveCount(0)
+  await expect(page.getByLabel('Buscar ministro, igreja ou tela')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Avisos/ })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Voltar à lista' })).toBeVisible()
   const rotulo = (await page.getByLabel(/^Código da portaria:/).getAttribute('aria-label')) ?? ''
   const codigo = rotulo.replace('Código da portaria:', '').replace(/\s/g, '')
   expect(codigo).toMatch(/^[A-Z2-9]{6}$/)

@@ -116,6 +116,10 @@ export default function App() {
             <Route path="assembleias/telao/:id" element={<Area caminho="/assembleias" />}>
               <Route index element={<TelaoDoEncontro />} />
             </Route>
+            {/* A tela da portaria, no aparelho deixado na entrada: fora da moldura, sem o menu, a busca e o sino (revisão da parte 14) */}
+            <Route path="assembleias/presenca/:id/portaria" element={<Area caminho="/assembleias" />}>
+              <Route index element={<TelaDaPortaria />} />
+            </Route>
             <Route element={<Layout />}>
               <Route path="painel" element={<Inicio />} />
               <Route path="modulos" element={<Modulos />} />
@@ -169,7 +173,6 @@ export default function App() {
                 {/* parte 14: a presença (com a tela da portaria), a condução ao vivo e o fechamento, cada uma com endereço */}
                 <Route path="presenca" element={<EscolherEncontro funcao="presenca" />} />
                 <Route path="presenca/:id" element={<PresencaDoEncontro />} />
-                <Route path="presenca/:id/portaria" element={<TelaDaPortaria />} />
                 <Route path="conducao" element={<EscolherEncontro funcao="conducao" />} />
                 <Route path="conducao/:id" element={<ConducaoDoEncontro />} />
                 <Route path="fechamento" element={<EscolherEncontro funcao="fechamento" />} />
