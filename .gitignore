@@ -39,5 +39,6 @@ test-results/
 # Sessões dos usuários fictícios dos testes de ponta a ponta
 playwright/.auth/
 
-# Estado do trabalho de cada pessoa: nunca vai para o Git (regra de 17/11/2026)
-/HANDOFF.md
+# O estado do trabalho (o HANDOFF completo e as memorias) fica na bancada privada (C:\MCP\bancada\projetos\comep):
+.claude/continuidade/memoria/
+.claude/continuidade/memoria-claude/
