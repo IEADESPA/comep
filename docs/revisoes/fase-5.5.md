@@ -943,7 +943,7 @@ O desenho aprovado `minha-igreja-2` (opção 1, aba Dados) tem o link **Pedir co
 
 **O que ficou de fora e por quê:**
 
-- **A rodada 33** (tela `correcao-igreja`: a fila com as pílulas Todas/Igrejas/Ministros, a tela "Conferir a correção do CNPJ" com "O que o sistema já conferiu" e "Consultar o CNPJ na Receita", e a resposta na aba Dados com "Corrigido em …") está publicada e ainda **não foi aprovada**. Por isso a fila ficou onde já estava, como diz o plano, e o resto espera a aprovação.
+- **A rodada 33** (tela `correcao-igreja`: a fila com as pílulas Todas/Igrejas/Ministros, a tela "Conferir a correção do CNPJ" com "O que o sistema já conferiu" e "Consultar o CNPJ na Receita", e a resposta na aba Dados com "Corrigido em …") foi aprovada em 25/11 na opção 2 (Igrejas › Para conferir), e a diretoria pediu o documento anexo como prova em toda correção que exige prova (rodada 35). Isso vem num PR próprio; aqui a fila ficou onde já estava, como diz o plano.
 - **O cartão CNPJ depois da troca do CNPJ** (a pergunta do plano e da rodada 33, ainda sem resposta): por enquanto, como propõe o plano, aceitar não mexe nos documentos; se precisar, a secretaria pede o cartão novo pela aba Documentos.
 
 **Verificação (25/11/2026):**
