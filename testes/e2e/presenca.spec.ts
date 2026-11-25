@@ -94,6 +94,13 @@ test('presença: o código da portaria, o QR dela, a credencial lida e pelo nome
     await page.goto(`assembleias/presenca/${id}`)
     await expect(page.getByRole('table', { name: 'Quem chegou' })).toContainText('credencial lida')
     await expect(page.getByRole('table', { name: 'Quem chegou' })).toContainText('em atraso')
+    // a tabela cabe no cartão, também no celular: "Como marcou" sem corte e "Vota?" à vista, sem rolar de lado (revisão
+    // da parte 14, achado 10)
+    const rolagem = await page.getByRole('table', { name: 'Quem chegou' }).evaluate((t) => {
+      const caixa = t.parentElement!
+      return { dentro: caixa.scrollWidth - caixa.clientWidth, pagina: document.documentElement.scrollWidth - window.innerWidth }
+    })
+    expect(rolagem).toEqual({ dentro: 0, pagina: 0 })
   } finally {
     await ministro.close()
     await cancelarEArquivarEncontro(page, endereco, titulo)

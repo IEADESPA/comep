@@ -9885,6 +9885,37 @@ li.feito .numero-passo {
   border-bottom: 0;
 }
 
+/* No celular, a tabela de quem chegou cabe no cartão sem rolar de lado: o texto quebra e as iniciais saem */
+@media (max-width: 599.98px) {
+  .tabela-presenca th,
+  .tabela-presenca td {
+    padding: 10px 8px;
+    white-space: normal;
+  }
+
+  .tabela-presenca th:first-child,
+  .tabela-presenca td:first-child {
+    padding-left: 18px;
+  }
+
+  .tabela-presenca th:last-child,
+  .tabela-presenca td:last-child {
+    padding-right: 18px;
+  }
+
+  .tabela-presenca thead th {
+    letter-spacing: 0.02em;
+  }
+
+  .tabela-presenca .iniciais-redondas {
+    display: none;
+  }
+
+  .tabela-presenca .chip {
+    white-space: nowrap;
+  }
+}
+
 .nome-com-iniciais {
   display: inline-flex;
   align-items: center;
