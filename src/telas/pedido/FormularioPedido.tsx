@@ -16,6 +16,7 @@ import {
 import { SUGESTOES_FUNCAO } from '../../dados/associados'
 import { prepararComprovante, prepararFoto, type ArquivoPronto } from '../../utilitarios/imagens'
 import { hojeIso } from '../../utilitarios/formatos'
+import { TAMANHO_DO_NOME, TAMANHO_DO_TELEFONE } from '../../utilitarios/textoLimpo'
 
 const OUTRA_IGREJA = '__outra__'
 
@@ -140,11 +141,11 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
           <div className="grade-form">
             <label className="largura-total">
               Nome completo *
-              <input required autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
+              <input required autoComplete="name" maxLength={TAMANHO_DO_NOME} value={nome} onChange={(e) => setNome(e.target.value)} />
             </label>
             <label>
               Telefone (WhatsApp) *
-              <input required type="tel" autoComplete="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+              <input required type="tel" autoComplete="tel" maxLength={TAMANHO_DO_TELEFONE} value={telefone} onChange={(e) => setTelefone(e.target.value)} />
             </label>
             <CamposIdentidade valor={identidade} gravada={dadosPessoa} aoMudar={setIdentidade} obrigatorio />
           </div>

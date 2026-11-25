@@ -41,6 +41,7 @@ import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
 import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
 import { prepararFoto } from '../../utilitarios/imagens'
+import { TAMANHO_DO_NOME, TAMANHO_DO_TELEFONE } from '../../utilitarios/textoLimpo'
 
 // /meu-perfil — telas novas (Fase 5.5): a ficha com abas (aprovada: "a ficha com todas as abas").
 // Cada aba tem endereço próprio: /meu-perfil (Meus dados), /meu-perfil/comep, /igreja, /senha, /avisos e /correcoes.
@@ -306,7 +307,7 @@ function MeusDados({
                 </Link>
               )}
             </span>
-            <input id={idNome} required value={nome} disabled={nomeTravado} onChange={(e) => setNome(e.target.value)} />
+            <input id={idNome} required maxLength={TAMANHO_DO_NOME} value={nome} disabled={nomeTravado} onChange={(e) => setNome(e.target.value)} />
           </div>
           <label>
             E-mail de login
@@ -314,7 +315,7 @@ function MeusDados({
           </label>
           <label>
             Telefone (WhatsApp)
-            <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+            <input type="tel" maxLength={TAMANHO_DO_TELEFONE} value={telefone} onChange={(e) => setTelefone(e.target.value)} />
           </label>
           <CamposIdentidade valor={identidade} gravada={dados} aoMudar={setIdentidade} />
         </div>

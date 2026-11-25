@@ -9,6 +9,10 @@ import { como, criarBanco, criarUsuario, darPerfil, erroComCodigo } from './ambi
 const BLOQUEADO_PELO_BANCO = 'P0001'
 const FORA_DO_FORMATO = '23514'
 
+/** Recusado pelo banco (P0001) com a mensagem que casa com o padrão. */
+const recusadoCom = (padrao: RegExp) => (erro: unknown) =>
+  (erro as { code?: string }).code === BLOQUEADO_PELO_BANCO && padrao.test((erro as { message?: string }).message ?? '')
+
 describe('Revisão permanente, módulo 1 — segurança do banco', () => {
   let db: PGlite
 
@@ -275,9 +279,9 @@ describe('Revisão permanente, módulo 1 — segurança do banco', () => {
     // caracteres invisíveis que quebram a linha, invertem o texto ou se escondem
     const QUEBRA = '\n'
     const TAB = '\t'
-    const INVERTE = '‮'
-    const ISOLA = '⁦'
-    const ESPACO_ZERO = '​'
+    const INVERTE = '\u202e'
+    const ISOLA = '\u2066'
+    const ESPACO_ZERO = '\u200b'
     const NOMES_REAIS = [
       'José Antônio de Araújo Conceição',
       'Ângela Maria D’Ávila Müller',
@@ -307,20 +311,32 @@ describe('Revisão permanente, módulo 1 — segurança do banco', () => {
       assert.equal((await nomeDe(conta)).length, 150)
     })
 
-    it('o próprio não grava nome gigante nem com caractere de controle', async () => {
-      await assert.rejects(trocarNome('A'.repeat(151)), erroComCodigo(FORA_DO_FORMATO))
-      await assert.rejects(trocarNome('B'.repeat(1_000_000)), erroComCodigo(FORA_DO_FORMATO))
+    // Revisão do portão (25/11/2026): o caractere de controle sai na gravação, em vez de recusar com a mensagem genérica,
+    // e o tamanho tem a mensagem do campo (testes/banco/seguranca_portao.test.ts, Portão 2). A regra da tabela continua.
+    it('o próprio não grava nome gigante; o caractere de controle sai do nome', async () => {
+      await assert.rejects(trocarNome('A'.repeat(151)), recusadoCom(/nome.*150/))
+      await assert.rejects(trocarNome('B'.repeat(1_000_000)), recusadoCom(/nome.*150/))
       for (const ruim of [QUEBRA, TAB, INVERTE, ISOLA, ESPACO_ZERO, '\u0007', '\u0085']) {
-        await assert.rejects(trocarNome(`Nome${ruim}Falso`), erroComCodigo(FORA_DO_FORMATO), JSON.stringify(ruim))
+        await trocarNome(`Nome${ruim}Falso`)
+        assert.match(await nomeDe(conta), /^Nome ?Falso$/, JSON.stringify(ruim))
+      }
+      // a regra da tabela segura o que não passar pela limpeza (por exemplo, com o gatilho desligado)
+      await db.exec('alter table public.pessoas disable trigger limpar_nome_e_telefone')
+      try {
+        await assert.rejects(db.query('update public.pessoas set nome = $1 where id = $2', [`Nome${INVERTE}Falso`, pessoa]), erroComCodigo(FORA_DO_FORMATO))
+      } finally {
+        await db.exec('alter table public.pessoas enable trigger limpar_nome_e_telefone')
       }
     })
 
-    it('o telefone: até 30 caracteres, sem caractere de controle', async () => {
+    it('o telefone: até 40 caracteres; o caractere de controle sai', async () => {
       await trocarTelefone('(94) 99999-0000')
       await trocarTelefone('+55 (94) 9 9999-0000')
-      await assert.rejects(trocarTelefone('9'.repeat(31)), erroComCodigo(FORA_DO_FORMATO))
-      await assert.rejects(trocarTelefone(`94${QUEBRA}99999-0000`), erroComCodigo(FORA_DO_FORMATO))
-      await assert.rejects(trocarTelefone(`94${INVERTE}0000`), erroComCodigo(FORA_DO_FORMATO))
+      await trocarTelefone('9'.repeat(40))
+      await assert.rejects(trocarTelefone('9'.repeat(41)), recusadoCom(/telefone.*40/))
+      await trocarTelefone(`94${QUEBRA}99999-0000`)
+      await trocarTelefone(`94${INVERTE}0000`)
+      assert.equal((await um<{ telefone: string }>('select telefone from public.pessoas where id = $1', [pessoa])).telefone, '940000')
     })
 
     it('o cadastro aberto limpa o nome que vem do site (corta no tamanho e tira os caracteres de controle)', async () => {

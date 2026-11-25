@@ -8,6 +8,7 @@ import { listarIgrejas, listarTitulos, type Igreja, type Titulo } from '../../da
 import { ok } from '../../dados/cliente'
 import { useCarregar } from '../../estado/useCarregar'
 import { hojeIso } from '../../utilitarios/formatos'
+import { TAMANHO_DO_NOME, TAMANHO_DO_TELEFONE } from '../../utilitarios/textoLimpo'
 
 // Ministros e inscrições › Cadastrar ministro (aprovado em 18/11/2026: opção 2, o passo a passo).
 // Três passos, um de cada vez, com os passos marcados no alto e "Continuar": 1 Dados pessoais,
@@ -144,11 +145,11 @@ function PassoAPasso({ titulos, igrejas }: { titulos: Titulo[]; igrejas: Igreja[
           <div className="grade-form">
             <label className="largura-total">
               Nome completo *
-              <input required autoComplete="off" placeholder="Nome e sobrenomes" {...campo('nome')} />
+              <input required autoComplete="off" placeholder="Nome e sobrenomes" maxLength={TAMANHO_DO_NOME} {...campo('nome')} />
             </label>
             <label>
               Telefone (WhatsApp)
-              <input type="tel" placeholder="(94) 9____-____" {...campo('telefone')} />
+              <input type="tel" placeholder="(94) 9____-____" maxLength={TAMANHO_DO_TELEFONE} {...campo('telefone')} />
             </label>
             <label>
               E-mail

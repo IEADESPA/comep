@@ -19,7 +19,7 @@ language sql
 immutable
 set search_path = ''
 as $$
-  select coalesce(p_texto, '') ~ '[\u0001-\u001f\u007f-\u009f؜​-‏ -‮⁠-⁤⁦-⁩﻿]';
+  select coalesce(p_texto, '') ~ '[\u0001-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028-\u202e\u2060-\u2064\u2066-\u2069\ufeff]';
 $$;
 comment on function interno.tem_caractere_invisivel(text) is
   'O texto tem caractere de controle, que inverte ou isola o texto, ou que não aparece (nome e telefone não aceitam).';
@@ -34,7 +34,7 @@ as $$
   select btrim(left(btrim(regexp_replace(
            regexp_replace(
              regexp_replace(coalesce(p_texto, ''), '[\u0001-\u001f\u007f-\u009f]', ' ', 'g'),
-             '[؜​-‏ -‮⁠-⁤⁦-⁩﻿]', '', 'g'),
+             '[\u061c\u200b-\u200f\u2028-\u202e\u2060-\u2064\u2066-\u2069\ufeff]', '', 'g'),
            '[[:space:]]+', ' ', 'g')), p_maximo));
 $$;
 comment on function interno.texto_limpo(text, integer) is
