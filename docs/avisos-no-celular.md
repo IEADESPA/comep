@@ -23,7 +23,7 @@ Sem o envio ligado, os avisos aparecem só no **sino**. Com ele, chegam também 
 O script `scripts/ligar-avisos.mjs` faz tudo o que tem segredo, sem mostrar nada:
 
 1. gera, com o `crypto` do Node, o par de chaves do envio (VAPID, curva P-256; a pública no formato não comprimido, em base64url) e o segredo do envio (48 caracteres aleatórios);
-2. grava nos **Secrets das Edge Functions**: `VAPID_PUBLICA`, `VAPID_PRIVADA`, `VAPID_CONTATO` e `ENVIO_SEGREDO` (por um arquivo temporário, que apaga no fim);
+2. grava nos **Secrets das Edge Functions**: `VAPID_PUBLICA`, `VAPID_PRIVADA`, `VAPID_CONTATO` e `ENVIO_SEGREDO` (por um arquivo temporário, que apaga no fim e também no Ctrl+C; se uma rodada anterior caiu no meio, as sobras dela são apagadas antes de começar; o erro do Supabase CLI aparece com os segredos trocados por `****`);
 3. grava o segredo no **Vault** do banco, com o nome `envio_avisos_segredo`;
 4. agenda no **Cron** (`pg_cron` + `pg_net`) a chamada da função a cada 5 minutos, com o cabeçalho `x-comep-envio` lido do Vault;
 5. mostra só a chave **pública**.

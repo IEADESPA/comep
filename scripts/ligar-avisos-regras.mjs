@@ -32,6 +32,19 @@ export function conferirArgumentos(a) {
   return null
 }
 
+/** O começo do nome da pasta temporária dos arquivos com os segredos (em os.tmpdir(), só da conta de quem roda). */
+export const PREFIXO_DA_PASTA = 'comep-avisos-'
+
+/** As pastas temporárias que uma rodada anterior deixou para trás (caiu no meio): o script apaga antes de começar. */
+export function sobrasDeQueda(nomes) {
+  return nomes.filter((nome) => nome.startsWith(PREFIXO_DA_PASTA) && nome.length > PREFIXO_DA_PASTA.length)
+}
+
+/** O texto (o erro do Supabase CLI, que pode trazer um trecho do SQL) com cada segredo trocado por ****. */
+export function mascararSegredos(texto, segredos) {
+  return segredos.filter(Boolean).reduce((t, s) => t.split(s).join('****'), String(texto))
+}
+
 /** A lista dos Secrets (só os nomes e o resumo, nunca o valor) já tem as chaves do envio? */
 export function jaLigado(listaDosSecrets) {
   return /\b(VAPID_PUBLICA|VAPID_PRIVADA|ENVIO_SEGREDO)\b/.test(listaDosSecrets)

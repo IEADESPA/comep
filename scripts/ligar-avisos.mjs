@@ -14,12 +14,24 @@
 //   - a produção só no lançamento: pede --e-o-lancamento e a confirmação digitada;
 //   - rodar de novo troca as chaves (quem já ativou os avisos precisa ativar de novo no aparelho): se o projeto já
 //     tem as chaves, pede --trocar-as-chaves e a confirmação digitada.
+// Os segredos passam por dois arquivos temporários (o CLI só lê os Secrets e o SQL de arquivo), numa pasta da conta de
+// quem roda (no Windows, o mode 0o600 não vale; a pasta temporária do usuário já é só dele). A pasta é apagada no fim,
+// também no Ctrl+C; e, se uma rodada anterior caiu no meio, as sobras dela são apagadas antes de começar. O erro do CLI
+// (que pode trazer um trecho do SQL) aparece com os segredos trocados por ****.
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline/promises'
-import { conferirArgumentos, gerarChaves, jaLigado, lerArgumentos } from './ligar-avisos-regras.mjs'
+import {
+  conferirArgumentos,
+  gerarChaves,
+  jaLigado,
+  lerArgumentos,
+  mascararSegredos,
+  PREFIXO_DA_PASTA,
+  sobrasDeQueda,
+} from './ligar-avisos-regras.mjs'
 
 const args = lerArgumentos(process.argv.slice(2))
 const erro = conferirArgumentos(args)
@@ -43,7 +55,21 @@ async function confirmar(pergunta, palavra) {
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 // no Windows o npx é um .cmd e roda pelo shell: o caminho do arquivo vai entre aspas
 const arquivo = (caminho) => (process.platform === 'win32' ? `"${caminho}"` : caminho)
-const rodar = (parametros) => execFileSync(npx, parametros, { stdio: ['ignore', 'ignore', 'inherit'], shell: process.platform === 'win32' })
+/** Roda o Supabase CLI. Se falhar, o erro vai para a tela sem os segredos (e o processo para, sem o erro cru). */
+function rodar(parametros, segredos) {
+  try {
+    execFileSync(npx, parametros, { stdio: ['ignore', 'ignore', 'pipe'], shell: process.platform === 'win32' })
+  } catch (e) {
+    console.error(mascararSegredos(e.stderr?.toString() ?? '', segredos).trim() || 'O Supabase CLI falhou, sem mensagem.')
+    throw new Error(`O passo "supabase ${parametros[1]} ${parametros[2]}" falhou (a mensagem do CLI está acima, sem os segredos).`)
+  }
+}
+
+// As sobras de uma rodada que caiu no meio (com os arquivos dos segredos): apagadas antes de tudo
+for (const sobra of sobrasDeQueda(readdirSync(tmpdir()))) {
+  rmSync(join(tmpdir(), sobra), { recursive: true, force: true })
+  console.log(`· sobra de uma rodada anterior apagada (${sobra})`)
+}
 
 // As travas, antes de gerar qualquer chave
 if (args.producao && !(await confirmar(`Isto liga os avisos no celular da PRODUÇÃO (${ref}).`, 'LANÇAMENTO'))) {
@@ -72,12 +98,21 @@ if (jaLigado(lista)) {
 // 1. As chaves e o segredo
 const { publica, privada, segredo } = gerarChaves()
 
-const pasta = mkdtempSync(join(tmpdir(), 'comep-avisos-'))
+const pasta = mkdtempSync(join(tmpdir(), PREFIXO_DA_PASTA))
+// Ctrl+C (ou a janela fechada) no meio: a pasta com os segredos não fica para trás
+for (const sinal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(sinal, () => {
+    rmSync(pasta, { recursive: true, force: true })
+    console.error('Parado no meio: os arquivos temporários foram apagados. Confira o projeto antes de rodar de novo.')
+    process.exit(130)
+  })
+}
+const segredos = [privada, segredo]
 try {
   // 2. Os Secrets das Edge Functions (por arquivo, para os valores não irem na linha de comando)
   const env = join(pasta, 'segredos.env')
   writeFileSync(env, `VAPID_PUBLICA=${publica}\nVAPID_PRIVADA=${privada}\nVAPID_CONTATO=${contato}\nENVIO_SEGREDO=${segredo}\n`, { mode: 0o600 })
-  rodar(['supabase', 'secrets', 'set', `--remote=${ref}`, '--env-file', arquivo(env), '--yes'])
+  rodar(['supabase', 'secrets', 'set', `--remote=${ref}`, '--env-file', arquivo(env), '--yes'], segredos)
   console.log('· Secrets das Edge Functions gravados')
 
   // 3. O Vault e o Cron (o Cron manda o segredo no cabeçalho, lido do Vault)
@@ -108,7 +143,7 @@ $cron$);
 `,
     { mode: 0o600 },
   )
-  rodar(['supabase', 'db', 'query', `--remote=${ref}`, '--file', arquivo(sql), '--yes'])
+  rodar(['supabase', 'db', 'query', `--remote=${ref}`, '--file', arquivo(sql), '--yes'], segredos)
   console.log('· segredo no Vault (envio_avisos_segredo) e envio agendado a cada 5 minutos')
 } finally {
   rmSync(pasta, { recursive: true, force: true })

@@ -7,7 +7,10 @@ import {
   gerarChaves,
   jaLigado,
   lerArgumentos,
+  mascararSegredos,
+  PREFIXO_DA_PASTA,
   REF_PRODUCAO,
+  sobrasDeQueda,
 } from '../../scripts/ligar-avisos-regras.mjs'
 
 const TESTE = 'abcdefghij0123456789'
@@ -35,6 +38,26 @@ describe('ligar os avisos no celular: as travas', () => {
     assert.equal(jaLigado('NAME | DIGEST\nOUTRO_SEGREDO | 9f9f\n'), false)
     assert.equal(lerArgumentos([`--remote=${TESTE}`]).trocar, false)
     assert.equal(lerArgumentos([`--remote=${TESTE}`, '--trocar-as-chaves']).trocar, true)
+  })
+})
+
+describe('ligar os avisos no celular: os segredos não sobram nem aparecem (revisão da parte 14, achado 4)', () => {
+  it('o erro do Supabase CLI vai para a tela sem a chave privada nem o segredo (o SQL do Vault tem o segredo)', () => {
+    const { privada, segredo } = gerarChaves()
+    const erro = `ERROR: syntax error at or near "perform"\nLINE 7: perform vault.update_secret(v_id, '${segredo}');\nVAPID_PRIVADA=${privada}`
+    const limpo = mascararSegredos(erro, [privada, segredo, ''])
+    assert.ok(!limpo.includes(segredo) && !limpo.includes(privada), limpo)
+    assert.match(limpo, /update_secret\(v_id, '\*\*\*\*'\)/)
+    assert.match(limpo, /VAPID_PRIVADA=\*\*\*\*/)
+    assert.equal(mascararSegredos('nada de segredo aqui', [segredo]), 'nada de segredo aqui')
+  })
+
+  it('as pastas que uma queda no meio deixou (com os arquivos dos segredos) são achadas para apagar', () => {
+    assert.equal(PREFIXO_DA_PASTA, 'comep-avisos-')
+    assert.deepEqual(sobrasDeQueda(['comep-avisos-a1B2c3', 'outra-pasta', 'comep-avisos-Zz9', 'comep-avisos', 'xcomep-avisos-1']), [
+      'comep-avisos-a1B2c3',
+      'comep-avisos-Zz9',
+    ])
   })
 })
 
