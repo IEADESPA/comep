@@ -926,13 +926,13 @@ Os defeitos achados na homologação de 21 e 22/11/2026 que não entraram com a 
 
 ## Entrega 5.5.18 — Telas novas, parte 14: os ajustes da revisão (versão 5.5.0-teste.19)
 
-A revisão de 23/11/2026, antes da homologação, aprovou a parte 14 com ressalvas: 0 bloqueios, 5 achados importantes e 6 menores. Os ajustes ficaram no ramo `fase-5.5/parte-14-ajustes`, cada um no seu commit, com o teste que falha antes e passa depois. Os do banco (migração `20261123140000_assembleias_ajustes.sql`), o do fechamento e as travas do script dos avisos entraram na `main` com a parte 14, em 23/11; os outros vêm agora.
+A revisão de 23/11/2026, antes da homologação, aprovou a parte 14 com ressalvas: 0 bloqueios, 5 achados importantes e 6 menores. Os ajustes ficaram no ramo `fase-5.5/parte-14-ajustes`, cada um no seu commit, com o teste que falha antes e passa depois. Todos chegam à `main` por este ramo, inclusive a migração `20261123140000_assembleias_ajustes.sql` (o gatilho da auditoria e 6 funções das assembleias), o ajuste do fechamento e as travas do script dos avisos, escritos em 23/11. A migração foi aplicada no `comep-teste` em 25/11.
 
 **Os importantes:**
 
 1. **O segredo da portaria na auditoria.** A auditoria guarda "(protegido)" no lugar do segredo, e as portarias que estavam abertas foram arquivadas. A auditoria não muda (é imutável): as linhas antigas continuam com o segredo, mas ele deixou de valer, porque o código só sai da portaria que não está arquivada. O teste novo abre uma portaria no banco de antes da correção, refaz o código com o que a auditoria guardou, aplica a migração e confere que o código refeito não marca a presença e que a portaria nova tem outro segredo (`criarBanco({ antesDe })` e `aplicarMigracao`, em `testes/banco/ambiente.ts`).
-2. **A tela da portaria fora da moldura.** Ela abre sem o menu, a busca e o sino da secretaria, e "Tela cheia" ocupa a página inteira. O alto (a marca, "Tela cheia" e "Voltar à lista") fica sempre à vista, também quando a portaria ainda não abriu ou o encontro não existe; antes, nesses casos, a tela ficava sem caminho de volta. **O que sobra:** a sessão da secretaria continua no aparelho da entrada. Quem sair da tela cheia e tocar em "Voltar à lista" chega ao sistema (veja as perguntas abaixo).
-3. **Eleger cargo vago com candidatos por item de pauta:** ficou de fora (veja as perguntas abaixo).
+2. **A tela da portaria fora da moldura.** Ela abre sem o menu, a busca e o sino da secretaria, e "Tela cheia" ocupa a página inteira. O alto (a marca, "Tela cheia" e "Voltar à lista") fica sempre à vista, também quando a portaria ainda não abriu ou o encontro não existe; antes, nesses casos, a tela ficava sem caminho de volta. **O que sobra:** o modo portaria sem login, decidido pela diretoria em 25/11 (veja abaixo).
+3. **Eleger cargo vago com candidatos por item de pauta:** ficou de fora (veja abaixo).
 4. **O script dos avisos** (`scripts/ligar-avisos.mjs`). Em 23/11 ganhou as travas: para a produção, para rodar de novo e o `--remote=`. Agora os segredos também não ficam para trás nem aparecem na tela:
    - antes de começar, ele apaga as sobras de uma rodada que caiu no meio (as pastas `comep-avisos-*` na pasta temporária);
    - no Ctrl+C, a pasta com os segredos é apagada;
@@ -962,15 +962,16 @@ A revisão de 23/11/2026, antes da homologação, aprovou a parte 14 com ressalv
     - No celular, a tabela "Quem chegou" cabe no cartão: o texto quebra, e "Vota?" fica à vista.
 11. **A lista de quem chegou, na tela da portaria:** está no desenho aprovado e ficou. **Para a diretoria saber:** a tela da entrada mostra os 8 últimos que chegaram (o nome, como marcou e a hora), à vista de quem passa por ela.
 
-**O que ficou de fora e por quê** (perguntas para a diretoria):
+**O que ficou de fora e por quê** (decisões da diretoria de 25/11/2026, que viram entregas próprias, com desenho antes):
 
-- **A eleição de cargo vago com candidatos, por item de pauta** (desenho asm-conducao). O `PROJETO.md`, nas seções 4.6 e 4.13, não diz como ela é, e uma suposição errada não se desfaz depois de uma eleição. Hoje, pela tela, o item da pauta só vai a votação (A favor, Contra, Abstenção). Pela API, uma enquete com candidatos num item é gravada como votação, e os candidatos somem: a eleição com candidatos só existe fora da pauta, pela enquete comum, e não vai para a ata. As perguntas:
-  - quem pode ser candidato: uma lista cadastrada antes ou nomes livres na hora, e só associados em dia (Art. 11)?
-  - qual maioria elege: a simples dos votos válidos ou o mais votado?
-  - o que acontece no empate?
-  - o eleito entra sozinho na diretoria, com o mandato e o perfil de acesso, e o interino sai (as regras das rodadas 29 e 30)?
-  - em que encontros: só na AGO, ou também na AGE quando a eleição estava no edital?
-- **A sessão da secretaria no aparelho da portaria.** Tirar a sessão pede um modo portaria sem login: um endereço próprio, que só mostra o QR e o código daquele encontro, aberto com uma chave que a secretaria gera e pode desligar. A pergunta: a diretoria quer esse modo, ou basta a regra de deixar o aparelho em tela cheia e com alguém da secretaria por perto?
+- **A eleição de cargo vago com candidatos, por item de pauta** (desenho asm-conducao). O `PROJETO.md`, nas seções 4.6 e 4.13, não dizia como ela é, e uma suposição errada não se desfaz depois de uma eleição. Hoje, pela tela, o item da pauta só vai a votação (A favor, Contra, Abstenção). A diretoria decidiu que a eleição é um processo próprio:
+  - a convocação sai com pelo menos 30 dias;
+  - quem quer concorrer se inscreve e escolhe o cargo, e precisa estar em dia;
+  - a candidatura é por chapa ou por cargo único;
+  - na assembleia, os nomes vêm da lista dos inscritos;
+  - o eleito só assume no sistema (cargo, mandato e acesso) depois da posse confirmada pela secretaria.
+  Quem pode ser candidato segue o estatuto. Vai para o desenho.
+- **A portaria sem login.** A diretoria decidiu por um modo portaria próprio, que só marca a chegada naquele encontro, aberto por um código que a secretaria gera e pode desligar. Vai para o desenho.
 
 **Verificação (25/11/2026):**
 
