@@ -73,8 +73,8 @@ describe('Revisão permanente, módulo 1 — segurança do banco', () => {
         'https://updates.push.services.mozilla.com/wpush/v2/aparelho-ficticio-3',
         'https://web.push.apple.com/QAparelhoFicticio4',
         'https://wns2-bl2p.notify.windows.com/w/?token=aparelho-ficticio-5',
-        // o domínio reservado .invalid (RFC 6761) nunca existe: é o da inscrição falsa do ponta a ponta
-        'https://e2e.invalid/comep/inscricao-falsa',
+        // o domínio reservado .invalid, da inscrição falsa do ponta a ponta, só vale no banco de teste
+        // (testes/banco/seguranca_portao.test.ts, Portão 5)
       ]
       for (const endereco of aceitos) assert.ok(await inscrever(vitima, endereco), endereco)
 

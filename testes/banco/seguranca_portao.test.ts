@@ -359,4 +359,46 @@ describe('Revisão do portão — segurança do banco, módulo 1', () => {
       assert.equal(await tentativasDeHoje(pessoa), 1)
     })
   })
+
+  describe('Portão 5 — o domínio reservado dos testes (.invalid) só vale no banco marcado como de teste', () => {
+    const FALSO = 'https://e2e.invalid/comep/inscricao-falsa'
+    const CHAVE = `B${'A'.repeat(86)}`
+    const SEGREDO = 'A'.repeat(22)
+    const inscrever = (quem: string, endereco: string) =>
+      chamar(quem, "select public.registrar_inscricao_push($1, $2, $3, 'Celular · Chrome') as id", [endereco, CHAVE, SEGREDO])
+    const marcarDeTeste = (sim: boolean) => db.query('update interno.ambiente set de_teste = $1', [sim])
+
+    it('fora do banco de teste (o padrão, como na produção) o endereço .invalid é recusado, pela função e pela tabela', async () => {
+      const conta = await criarUsuario(db, 'aparelho.falso@teste.local', 'Conta Fictícia do Aparelho Falso')
+      assert.equal((await um<{ de_teste: boolean }>('select de_teste from interno.ambiente')).de_teste, false)
+      await assert.rejects(inscrever(conta, FALSO), recusadoCom(/não reconhece/))
+      await assert.rejects(
+        db.query('insert into public.inscricoes_push (pessoa_id, endpoint, p256dh, auth) values ($1, $2, $3, $4)', [
+          await pessoaDe(conta),
+          FALSO,
+          CHAVE,
+          SEGREDO,
+        ]),
+        recusadoCom(/não reconhece/),
+      )
+      // o serviço de verdade continua valendo
+      await inscrever(conta, 'https://fcm.googleapis.com/fcm/send/aparelho-ficticio-portao')
+    })
+
+    it('no banco marcado como de teste, o .invalid vale (a inscrição falsa do ponta a ponta); só o dono do banco marca', async () => {
+      const conta = await criarUsuario(db, 'aparelho.teste@teste.local', 'Conta Fictícia do Banco de Teste')
+      await assert.rejects(chamar(conta, 'update interno.ambiente set de_teste = true'), erroComCodigo('42501'))
+      await marcarDeTeste(true)
+      try {
+        await inscrever(conta, FALSO)
+        const ativo = await um<{ n: number }>(
+          'select count(*)::int as n from public.inscricoes_push where pessoa_id = $1 and endpoint = $2 and arquivado_em is null',
+          [await pessoaDe(conta), FALSO],
+        )
+        assert.equal(ativo.n, 1)
+      } finally {
+        await marcarDeTeste(false)
+      }
+    })
+  })
 })
