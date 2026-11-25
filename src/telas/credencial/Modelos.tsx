@@ -1002,7 +1002,7 @@ function Exclusivo({
           )}
         </>
       ) : (
-        <p className="detalhe">O pagamento é registrado pela tesouraria ou pela presidência.</p>
+        <p className="detalhe">O pagamento é registrado pela tesouraria (em Financeiro › Caixa › Modelos exclusivos) ou pela presidência.</p>
       )}
       <p className="detalhe">
         Vale depois de pago e enquanto a igreja estiver no COMEP. Se ela sair, o modelo é arquivado e os ministros voltam ao

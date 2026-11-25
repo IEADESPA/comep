@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { MostrarCarga } from '../../componentes/Basicos'
 import { Chip } from '../../componentes/Telas'
 import { ok } from '../../dados/cliente'
@@ -27,6 +27,7 @@ import { useUmaVez } from '../../estado/useUmaVez'
 import { contemTexto, hojeIso, iniciaisDe } from '../../utilitarios/formatos'
 import { TaxaInscricao, Valores, Vencimentos } from './ConfigFinanceiro'
 import { Medidor } from './comum'
+import { contarPlanos } from './planos'
 import { plural, porcento, useExercicio, type Concluir } from './util'
 
 // Financeiro › Contribuições (rodada 11, opção 3: o painel e quem precisa de atenção), com as subfunções
@@ -60,6 +61,9 @@ export function PainelContribuicoes({
     if (certo) recarregar()
     return certo
   }
+  // D-05: o "De onde veio" do Caixa traz a pessoa do lançamento (?ministro=<id>), que aparece em cima
+  const [parametros] = useSearchParams()
+  const doLancamento = parametros.get('ministro')
 
   return (
     <MostrarCarga carga={carga} recarregar={recarregar}>
@@ -72,6 +76,14 @@ export function PainelContribuicoes({
         const c = numeros.contribuicoes
         return (
           <>
+            {doLancamento && (
+              <PessoaDoLancamento
+                p={pessoas.find((p) => p.pessoa_id === doLancamento) ?? null}
+                opera={opera}
+                pessoaId={pessoaId}
+                concluir={concluirERecarregar}
+              />
+            )}
             <div className="fin-medidores">
               <Medidor
                 rotulo="Em dia"
@@ -116,6 +128,33 @@ export function PainelContribuicoes({
         )
       }}
     </MostrarCarga>
+  )
+}
+
+/**
+ * A pessoa do lançamento que veio do Caixa ("De onde veio", D-05): a mensalidade, a anuidade ou a taxa de inscrição.
+ * Quem não abre a ficha do ministro (a tesouraria, o Conselho Fiscal) vê aqui a situação e, quem opera, a ação.
+ */
+function PessoaDoLancamento({ p, opera, pessoaId, concluir }: { p: Pessoa | null; opera: boolean; pessoaId: string; concluir: Concluir }) {
+  return (
+    <section className="bloco" aria-labelledby="titulo-pessoa-do-lancamento">
+      <div className="titulo-com-acao">
+        <h2 id="titulo-pessoa-do-lancamento">Do lançamento do Caixa</h2>
+        <Link to="/financeiro/contribuicoes" className="botao-link">
+          Fechar
+        </Link>
+      </div>
+      {p ? (
+        <ul className="lista-linhas" aria-label="Do lançamento do Caixa">
+          <LinhaPessoa p={p} opera={opera} minha={p.pessoa_id === pessoaId} concluir={concluir} />
+        </ul>
+      ) : (
+        <p className="vazio">
+          Esta pessoa não está na lista das contribuições: por exemplo, a taxa de inscrição de quem ainda não foi aceito
+          como associado.
+        </p>
+      )}
+    </section>
   )
 }
 
@@ -569,7 +608,8 @@ export function ValoresEPlanos({ podeEditar }: { podeEditar: boolean }) {
     const [planos, todos] = await Promise.all([planosDoExercicio(exercicio), situacaoDeTodos()])
     if (planos.erro !== null) return planos
     if (todos.erro !== null) return todos
-    return ok({ anual: planos.dados.anual, pagantes: todos.dados.filter((p) => !p.jubilado).length })
+    // D-16: só o plano de quem paga hoje (o associado ativo e não jubilado) entra na conta
+    return ok(contarPlanos(planos.dados, todos.dados))
   })
   const [versaoValores, setVersaoValores] = useState(0)
   const [versaoTaxa, setVersaoTaxa] = useState(0)
@@ -578,10 +618,10 @@ export function ValoresEPlanos({ podeEditar }: { podeEditar: boolean }) {
       <section className="bloco" aria-labelledby="titulo-planos">
         <h2 id="titulo-planos">Os planos em {nomeDoExercicio(exercicio)}</h2>
         <MostrarCarga carga={carga} recarregar={recarregar}>
-          {({ anual, pagantes }) => (
+          {({ anual, mensal }) => (
             <p>
               <strong>{plural(anual, 'ministro escolheu', 'ministros escolheram')}</strong> pagar o ano inteiro (a anuidade, em abril);
-              os outros {Math.max(pagantes - anual, 0)} pagam por mês. Cada ministro escolhe o plano em "Minhas mensalidades".
+              os outros {mensal} pagam por mês. Cada ministro escolhe o plano em "Minhas mensalidades".
             </p>
           )}
         </MostrarCarga>

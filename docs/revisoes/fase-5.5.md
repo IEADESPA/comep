@@ -879,3 +879,47 @@ A rodada 15 (asm-presenca opção 3; asm-conducao: o painel da opção 1, o rote
   - o ícone colado no texto de "Abrir a tela da portaria" e de "Abrir o telão";
   - o exemplo do campo do código cortado no celular;
   - a conta de "associados" da reunião mensal.
+
+## Correções da homologação, lote 2 (ainda na versão 5.5.0-teste.18)
+
+Os defeitos achados na homologação de 21 e 22/11/2026 que não entraram com a Parte 14 (o D-01, o D-02, o D-03 e o D-08 entraram com ela). Só telas e testes: **sem migração** e sem versão nova. Cada defeito tem o seu commit.
+
+**O que mudou:**
+
+- **D-05 — "De onde veio" no extrato do Caixa:** a mensalidade, a anuidade e a taxa de inscrição levavam à ficha do ministro, e o modelo exclusivo a Credenciais › Quem recebe. A tesouraria e o Conselho Fiscal, que não abrem Ministros nem Credenciais, caíam no "Sem acesso". Agora o link depende de quem está vendo (`src/telas/financeiro/origem.ts`):
+  - a presidência continua indo à ficha do ministro;
+  - a tesouraria e o Conselho Fiscal vão à pessoa em Financeiro › Contribuições (`?ministro=`). Ela aparece em cima, em "Do lançamento do Caixa", com a situação e, para quem opera, a ação. Quem não está na lista (a taxa de inscrição de quem ainda não é associado) vê um aviso;
+  - o modelo exclusivo leva a tesouraria ao Caixa › Modelos exclusivos. Para o Conselho Fiscal fica só o texto, sem link.
+- **D-07 — o pagamento do modelo exclusivo:** a tela dizia que a tesouraria registra o pagamento, mas ela não abre Credenciais.
+  - Entrou a subfunção Financeiro › Caixa › **Modelos exclusivos** (`/financeiro/caixa/modelos`, só a tesouraria e a presidência). Ela mostra os modelos esperando o pagamento e os pagos, com "Receber o pagamento" (a entrada vai para o caixa, ligada ao modelo) e o desfazer, com o motivo.
+  - O modelo continua sendo da secretaria, em Credenciais › Modelos, e a frase de lá diz onde a tesouraria registra.
+  - O menu passou a aceitar perfis próprios numa subfunção: o Conselho Fiscal não vê esta.
+- **D-09:** Minha igreja › Ministros mostrava "Pastor(a) · Pastor presidente · pastor presidente". A marca de pastor presidente só entra quando a função cadastrada ainda não diz isso.
+- **D-11:** a tesouraria que digitava o endereço de Administração › Avisos e notificações ou de Termo de uso de dados via a frase da permissão com o botão "Tentar de novo". Agora vê o "Sem acesso" de sempre: as duas telas só abrem para quem vê a função no menu.
+- **D-12:** a mesma igreja suspensa aparecia com 28 dias numas telas e 27 noutras (na ficha da igreja, as duas juntas). Agora é uma conta só, em todas as telas (`src/utilitarios/regularizacao.ts`), contando o dia de hoje, como decidido em 22/11:
+  - 30 dias no dia da suspensão;
+  - "último dia para mandar" no dia do prazo (D+30);
+  - o bloqueio em D+31, como no banco.
+
+  A conta vale no painel e na tabela das igrejas, na Central de regularização, na ficha da igreja e, para quem preside, no Início e na Minha igreja suspensa.
+- **D-13:** Meu perfil › Privacidade › "Quem mexeu nos seus dados" repetia a mesma linha 12 vezes (as 12 mensalidades geradas de uma vez). As mudanças do mesmo autor, no mesmo dia (no fuso de Parauapebas), com a mesma operação e o mesmo dado viram uma linha só, com a quantidade ("· 12 vezes").
+- **D-16:** Contribuições › Valores e planos dizia "268 ministros escolheram pagar o ano inteiro…; os outros 0 pagam por mês", com 106 que pagam. A conta pegava os planos de quem não é mais associado: o ponta a ponta arquiva, a cada rodada, um associado que escolheu a anuidade.
+  - Agora conta só o associado ativo e não jubilado, como as cobranças (seção 4.4). Quem não escolheu paga por mês (`src/telas/financeiro/planos.ts`).
+  - O ano inteiro e o mês somam quem paga: o mesmo número de "Em dia: X de N" da Situação dos ministros.
+
+**O que ficou de fora e por quê:**
+
+- **O D-10** (o "Pedir correção" do nome e do CNPJ na Minha igreja) precisa de migração e da tela. Vai num ramo próprio (`fase-5.5/d10-correcao-igreja`), depois deste.
+- **O D-06** (ligar a compra do patrimônio à saída do Caixa) vai no lote do Patrimônio.
+
+**Verificação:**
+
+- `npm test`: 669 de 669 (25/11). Os testes de unidade novos ou ampliados: `menu.test.ts` (a subfunção da tesouraria, D-07), `origem.test.ts` (D-05), `regularizacao.test.ts` (D-12, em D+1, D+29, D+30 e D+31), `quemMexeu.test.ts` (D-13) e `planos.test.ts` (D-16).
+- Cada teste novo foi visto falhando sem a correção:
+  - em 23/11, contra a base da Parte 14: 4 falhas na unidade e 6 no ponta a ponta, exatamente os testes novos (D-05, D-07, D-09, D-11, D-12 e D-13);
+  - em 25/11, o D-16: com a conta de antes, 4 dos 5 testes de unidade falham; o ponta a ponta, contra o build de antes, achou "283 no ano inteiro" com 108 que pagam.
+- tsc e oxlint sem aviso. O build passa, só com o aviso do tamanho do pacote, que já existia.
+- Ponta a ponta local:
+  - em 23/11, as telas das correções, no computador e no celular: 74 passaram, 1 pulado de propósito e 1 que estourou o tempo no choque de duas rodadas; rodado sozinho, o `credencial-modelo` passou, 12 de 12;
+  - em 25/11, depois de juntar a `main`: o D-16 no computador e no celular, 2 de 2; e, no computador, os arquivos das telas mexidas (financeiro, modelo-exclusivo, notificacoes, caixa, financeiro-blindagem, conselho-fiscal, credencial-modelo, igrejas, configuracoes, menu-modulo e moldura): 33 passaram e 1 foi pulado de propósito (só no celular). O lote parou aí pela regra nova da cota de logs do Supabase (no computador, só o que mudou); a suíte inteira roda na verificação do PR.
+- A tela do D-16 foi conferida com fotos no computador e no celular, no claro e no escuro: só o número muda ("9 ministros escolheram pagar o ano inteiro…; os outros 99 pagam por mês", com 108 que pagam).

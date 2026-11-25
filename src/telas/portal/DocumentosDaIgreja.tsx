@@ -17,7 +17,7 @@ import {
 } from '../../dados/igrejas'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
-import { diasEntre, documentoDoItem, listaCurta, MANDE_AQUI, menorMandato, somarDias, tempoQueFalta, textoDoPrazo } from '../../utilitarios/regularizacao'
+import { diasEntre, diasParaMandar, documentoDoItem, listaCurta, MANDE_AQUI, menorMandato, somarDias, tempoQueFalta, textoDoPrazo } from '../../utilitarios/regularizacao'
 import { EscolherArquivos, FormDiretoria, FormDocumento, LinhaDocumento, PartesDoDocumento, type ArquivoEscolhido, type Concluir } from '../igrejas/componentes'
 import {
   diretoriaEmVigor,
@@ -526,7 +526,7 @@ export function IgrejaSuspensa({ dados, concluir }: { dados: DadosDaMinhaIgreja;
   const { igreja, situacao, documentos, diretoria } = dados
   const vencidos = situacao.vencidos
   const prazo = situacao.prazo_ate ?? hoje
-  const dias = Math.max(0, diasEntre(hoje, prazo) + 1)
+  const dias = diasParaMandar(hoje, prazo)
   const mandados = vencidos.map((v) => ({ item: v, esperando: documentosDoTipo(documentos, documentoDoItem(v), hoje).esperando }))
   const tudoMandado = mandados.every((m) => m.esperando)
   const venceuEm = situacao.suspensa_desde ? formatarData(somarDias(situacao.suspensa_desde, -1)) : ''
@@ -587,8 +587,17 @@ export function IgrejaSuspensa({ dados, concluir }: { dados: DadosDaMinhaIgreja;
         </div>
         <div className="coluna-atalhos">
           <section className="bloco contagem-dias" aria-label="Os dias para mandar">
-            <strong>{dias}</strong>
-            <span>{dias === 1 ? 'dia para mandar' : 'dias para mandar'}</span>
+            {dias === 1 ? (
+              <>
+                <strong>Hoje</strong>
+                <span>é o último dia para mandar</span>
+              </>
+            ) : (
+              <>
+                <strong>{dias}</strong>
+                <span>dias para mandar</span>
+              </>
+            )}
             <span className="detalhe">até {formatarData(prazo)}</span>
           </section>
           <section className="bloco" aria-labelledby="titulo-por-que">
