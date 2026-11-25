@@ -27,6 +27,7 @@ import { useUmaVez } from '../../estado/useUmaVez'
 import { contemTexto, hojeIso, iniciaisDe } from '../../utilitarios/formatos'
 import { TaxaInscricao, Valores, Vencimentos } from './ConfigFinanceiro'
 import { Medidor } from './comum'
+import { contarPlanos } from './planos'
 import { plural, porcento, useExercicio, type Concluir } from './util'
 
 // Financeiro › Contribuições (rodada 11, opção 3: o painel e quem precisa de atenção), com as subfunções
@@ -607,7 +608,8 @@ export function ValoresEPlanos({ podeEditar }: { podeEditar: boolean }) {
     const [planos, todos] = await Promise.all([planosDoExercicio(exercicio), situacaoDeTodos()])
     if (planos.erro !== null) return planos
     if (todos.erro !== null) return todos
-    return ok({ anual: planos.dados.anual, pagantes: todos.dados.filter((p) => !p.jubilado).length })
+    // D-16: só o plano de quem paga hoje (o associado ativo e não jubilado) entra na conta
+    return ok(contarPlanos(planos.dados, todos.dados))
   })
   const [versaoValores, setVersaoValores] = useState(0)
   const [versaoTaxa, setVersaoTaxa] = useState(0)
@@ -616,10 +618,10 @@ export function ValoresEPlanos({ podeEditar }: { podeEditar: boolean }) {
       <section className="bloco" aria-labelledby="titulo-planos">
         <h2 id="titulo-planos">Os planos em {nomeDoExercicio(exercicio)}</h2>
         <MostrarCarga carga={carga} recarregar={recarregar}>
-          {({ anual, pagantes }) => (
+          {({ anual, mensal }) => (
             <p>
               <strong>{plural(anual, 'ministro escolheu', 'ministros escolheram')}</strong> pagar o ano inteiro (a anuidade, em abril);
-              os outros {Math.max(pagantes - anual, 0)} pagam por mês. Cada ministro escolhe o plano em "Minhas mensalidades".
+              os outros {mensal} pagam por mês. Cada ministro escolhe o plano em "Minhas mensalidades".
             </p>
           )}
         </MostrarCarga>
