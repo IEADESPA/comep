@@ -267,4 +267,73 @@ describe('Revisão permanente, módulo 1 — segurança do banco', () => {
       assert.deepEqual(await arquivosQueVe(tesouraria, pastaDaTesouraria), [`${pastaDaTesouraria}/foto-1.jpg`])
     })
   })
+
+  describe('S1-06 — o nome e o telefone da pessoa têm tamanho e não aceitam caracteres de controle', () => {
+    let conta: string
+    let pessoa: string
+
+    // caracteres invisíveis que quebram a linha, invertem o texto ou se escondem
+    const QUEBRA = '\n'
+    const TAB = '\t'
+    const INVERTE = '‮'
+    const ISOLA = '⁦'
+    const ESPACO_ZERO = '​'
+    const NOMES_REAIS = [
+      'José Antônio de Araújo Conceição',
+      'Ângela Maria D’Ávila Müller',
+      "Maria D'Ávila dos Santos",
+      'João-Paulo Ñuñez Çarvalho',
+      'Gisèle Ëmília Ôlïveira Pêssoa',
+      'Ana',
+    ]
+    const trocarNome = (nome: string) => chamar(conta, 'update public.pessoas set nome = $1 where id = $2', [nome, pessoa])
+    const trocarTelefone = (telefone: string) => chamar(conta, 'update public.pessoas set telefone = $1 where id = $2', [telefone, pessoa])
+    const nomeDe = async (usuario: string) => (await um<{ nome: string }>('select nome from public.pessoas where usuario_id = $1', [usuario])).nome
+    /** Cria o login como no cadastro aberto do site, com o nome que veio no metadado. */
+    const cadastrarComNome = (email: string, nome: string) => criarUsuario(db, email, nome)
+
+    before(async () => {
+      conta = await cadastrarComNome('nome.limite@teste.local', 'Pessoa Fictícia do Nome')
+      pessoa = await pessoaDe(conta)
+    })
+
+    it('os nomes reais, com acento, apóstrofo e hífen, continuam valendo (até 150 letras)', async () => {
+      for (const nome of NOMES_REAIS) {
+        await trocarNome(nome)
+        assert.equal(await nomeDe(conta), nome)
+      }
+      const longo = `Maria ${'Aparecida '.repeat(14)}Silva`.slice(0, 150)
+      await trocarNome(longo)
+      assert.equal((await nomeDe(conta)).length, 150)
+    })
+
+    it('o próprio não grava nome gigante nem com caractere de controle', async () => {
+      await assert.rejects(trocarNome('A'.repeat(151)), erroComCodigo(FORA_DO_FORMATO))
+      await assert.rejects(trocarNome('B'.repeat(1_000_000)), erroComCodigo(FORA_DO_FORMATO))
+      for (const ruim of [QUEBRA, TAB, INVERTE, ISOLA, ESPACO_ZERO, '\u0007', '\u0085']) {
+        await assert.rejects(trocarNome(`Nome${ruim}Falso`), erroComCodigo(FORA_DO_FORMATO), JSON.stringify(ruim))
+      }
+    })
+
+    it('o telefone: até 30 caracteres, sem caractere de controle', async () => {
+      await trocarTelefone('(94) 99999-0000')
+      await trocarTelefone('+55 (94) 9 9999-0000')
+      await assert.rejects(trocarTelefone('9'.repeat(31)), erroComCodigo(FORA_DO_FORMATO))
+      await assert.rejects(trocarTelefone(`94${QUEBRA}99999-0000`), erroComCodigo(FORA_DO_FORMATO))
+      await assert.rejects(trocarTelefone(`94${INVERTE}0000`), erroComCodigo(FORA_DO_FORMATO))
+    })
+
+    it('o cadastro aberto limpa o nome que vem do site (corta no tamanho e tira os caracteres de controle)', async () => {
+      const gigante = await cadastrarComNome('nome.gigante@teste.local', `Nome Fictício ${'X'.repeat(1_000_000)}`)
+      assert.equal((await nomeDe(gigante)).length, 150)
+      const sujo = await cadastrarComNome('nome.sujo@teste.local', `  Nome${QUEBRA}Fictício${INVERTE}  de${TAB}${TAB}Teste${ESPACO_ZERO} `)
+      assert.equal(await nomeDe(sujo), 'Nome Fictício de Teste')
+      // só lixo: fica o começo do e-mail, como quem não mandou nome
+      const lixo = await cadastrarComNome('so.lixo@teste.local', `${INVERTE}${QUEBRA}${ESPACO_ZERO}`)
+      assert.equal(await nomeDe(lixo), 'so.lixo')
+      // o acento continua
+      const comAcento = await cadastrarComNome('acento@teste.local', 'José Antônio de Araújo Conceição')
+      assert.equal(await nomeDe(comAcento), 'José Antônio de Araújo Conceição')
+    })
+  })
 })
