@@ -1,5 +1,6 @@
 // Fase 2.1: contribuições — a tesouraria gera, o associado escolhe o plano e informa o pagamento, a tesouraria confirma.
 // Associado FICTÍCIO criado pelo próprio teste (e arquivado no fim). Vale em qualquer dia do ano.
+// D-16: os planos em "Valores e planos" contam só quem paga hoje.
 import { expect, test, type Page } from '@playwright/test'
 import { abrirFuncao, arquivarAssociadoDeTeste, criarAssociadoComLogin, mensagemNaTela, sufixoUnico, trocarPara } from './ajuda'
 
@@ -110,4 +111,25 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
   await expect(lista).toContainText('Paga')
 
   await arquivarAssociadoDeTeste(page, nome)
+})
+
+// D-16: "Valores e planos" contava o plano de quem não é mais associado. O teste acima arquiva, a cada rodada, um
+// associado que escolheu a anuidade; no comep-teste a tela chegou a dizer "268 ministros escolheram pagar o ano
+// inteiro…; os outros 0 pagam por mês", com 106 que pagam. O ano inteiro e o mês têm de somar quem paga.
+test('Valores e planos: os planos somam os ministros que pagam, os mesmos da Situação dos ministros (D-16)', async ({ page }) => {
+  await trocarPara(page, 'tesouraria')
+  await page.goto('financeiro/contribuicoes')
+  const emDia = page.locator('.fin-medidor').filter({ has: page.getByText('Em dia', { exact: true }) }).locator('strong')
+  await expect(emDia).toHaveText(/^\d+ de \d+$/)
+  const pagantes = Number(/de (\d+)$/.exec((await emDia.textContent()) ?? '')?.[1])
+
+  await page.goto('financeiro/contribuicoes/valores')
+  // só o parágrafo: o título ("Os planos em 2026/2027") colado na frase mudaria o primeiro número
+  const planos = page.getByRole('region', { name: `Os planos em ${exercicioAtual()}` }).locator('p')
+  await expect(planos).toContainText('pagam por mês')
+  const frase = (await planos.textContent()) ?? ''
+  const anual = Number(/(\d+) ministros? escolhe(?:u|ram) pagar o ano inteiro/.exec(frase)?.[1])
+  const porMes = Number(/os outros (\d+) pagam por mês/.exec(frase)?.[1])
+  expect(anual).toBeLessThanOrEqual(pagantes)
+  expect(anual + porMes).toBe(pagantes)
 })

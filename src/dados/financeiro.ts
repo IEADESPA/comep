@@ -325,18 +325,19 @@ export async function informesConferidos(limite = 200): Promise<Resultado<Inform
   return error ? falha(error) : ok(data)
 }
 
-/** Quantos escolheram pagar por mês e quantos o ano inteiro, no exercício. */
-export async function planosDoExercicio(exercicio: number): Promise<Resultado<{ mensal: number; anual: number }>> {
-  const r = await todasAsLinhas((de, ate) =>
+/**
+ * Os planos guardados no exercício (de quem é e qual). Vêm também os de quem não é mais associado: quem conta é
+ * contarPlanos (src/telas/financeiro/planos.ts), só com os associados que pagam (D-16).
+ */
+export async function planosDoExercicio(exercicio: number): Promise<Resultado<{ pessoa_id: string; tipo: 'mensal' | 'anual' }[]>> {
+  return todasAsLinhas((de, ate) =>
     cliente()
       .from('planos_contribuicao')
-      .select('tipo')
+      .select('pessoa_id, tipo')
       .eq('exercicio', exercicio)
       .is('arquivado_em', null)
       .order('id')
       .range(de, ate)
-      .returns<{ tipo: 'mensal' | 'anual' }[]>(),
+      .returns<{ pessoa_id: string; tipo: 'mensal' | 'anual' }[]>(),
   )
-  if (r.erro !== null) return r
-  return ok({ mensal: r.dados.filter((p) => p.tipo === 'mensal').length, anual: r.dados.filter((p) => p.tipo === 'anual').length })
 }
