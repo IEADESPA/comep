@@ -26,6 +26,8 @@ Sistema de gestão do COMEP (Conselho de Ministros Evangélicos de Parauapebas).
 - **Dados:** os de teste são sempre fictícios, e nada se apaga (arquivar com `arquivado_em`). Toda tabela nova segue as convenções do banco (RLS, `interno.aplicar_padroes`, testes em `testes/banco/`).
 - **Fluxo:** cada fase ou entrega numa branch própria, com pull request. A `main` só recebe com a verificação do GitHub verde, e entrar na `main` publica o site.
 - **Testes de ponta a ponta:** só uma rodada por vez contra o banco de teste (`comep-teste`), seja local ou no GitHub.
+  - **Poupar o banco de teste (decisão do presidente de 25/11/2026):** a cota de logs do Supabase (1 GB/mês) estourou, e cada rodada completa gera ~17 mil pedidos. No computador, rode só os specs das telas e dos arquivos que mexeu (uma vez para ver o vermelho, uma para o verde), nunca a suíte inteira. A suíte inteira roda uma vez, na verificação do PR. Antes de abrir o PR, confira tudo o que puder localmente (`npm test`, tsc, oxlint e build), para não precisar de outro push.
+  - **Na verificação do GitHub:** o PR que só mexe em documentação (`*.md`, `docs/` e `.claude/`) não roda o ponta a ponta. Na `main` ele não roda de novo, porque a proteção exige o PR em dia com a `main` antes do merge. Rodar tudo à mão: *Actions → Verificar e publicar → Run workflow*.
 - **Produção:** só no lançamento, no fim da Fase 5.5. Não contornar os bloqueios.
 - **Passagem de bastão a cada marco**, não só no fim (commit, resultado de agente, decisão do usuário, antes de mudar de assunto):
   - gravar no `memoria-projeto` as decisões, as regras e os defeitos resolvidos, em observações curtas com data;
