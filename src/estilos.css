@@ -10014,9 +10014,8 @@ li.feito .numero-passo {
   color: var(--cor-titulo);
 }
 
-.presenca-colunas:fullscreen {
-  padding: 24px;
-  background: var(--cor-fundo);
+/* A tela da portaria fica fora da moldura, como o telão (.telao): a tela cheia é a página inteira */
+.portaria-tela:fullscreen {
   overflow-y: auto;
 }
 

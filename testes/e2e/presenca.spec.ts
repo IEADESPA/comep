@@ -141,6 +141,12 @@ test('o ministro confirma que vai, justifica a falta e a presidência decide', a
   const endereco = await reuniaoPublicada(page, titulo, 72)
   const ministro = await browser.newContext({ storageState: arquivoDaSessao('ministro') })
   try {
+    // três dias antes, a portaria não abre; fora da moldura, o caminho de volta continua à vista
+    await page.goto(`assembleias/presenca/${endereco.split('/').pop()}/portaria`)
+    await expect(page.getByRole('alert')).toContainText('A portaria abre no dia do encontro')
+    await expect(page.getByLabel(/^Código da portaria:/)).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Voltar à lista' })).toBeVisible()
+
     const m = await ministro.newPage()
     await m.goto(endereco)
     // três dias antes, a presença ainda não abre

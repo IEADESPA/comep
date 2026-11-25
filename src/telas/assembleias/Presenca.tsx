@@ -379,8 +379,30 @@ function ConteudoPortaria({ id }: { id: string }) {
     if (vencido) recarregar()
   }, [vencido, recarregar])
 
+  const encontroCarregado = carga.situacao === 'ok' ? carga.dados.encontro : null
   return (
     <div className="telao portaria-tela" ref={tela}>
+      {/* o alto fica sempre à vista: sem a moldura, "Voltar à lista" é o único caminho de volta (também quando a portaria
+          ainda não abriu ou o encontro não existe) */}
+      <header className="telao-topo">
+        <span className="telao-marca">
+          <MarcaCaixa tamanho={44} />
+          <span>
+            <strong>COMEP</strong>
+            <span>{encontroCarregado ? `${NOME_DO_TIPO[encontroCarregado.tipo]} · ${nomeCurto(encontroCarregado)}` : 'Tela da portaria'}</span>
+          </span>
+        </span>
+        <span className="telao-acoes nao-imprimir">
+          {encontroCarregado && (
+            <button type="button" className="botao botao-secundario" onClick={() => void tela.current?.requestFullscreen?.()}>
+              Tela cheia
+            </button>
+          )}
+          <Link className="botao-texto" to={`/assembleias/presenca/${id}`}>
+            Voltar à lista
+          </Link>
+        </span>
+      </header>
       <MostrarCarga carga={carga} recarregar={recarregar}>
         {({ encontro, portaria, quorum }) => {
           if (!encontro) {
@@ -391,74 +413,53 @@ function ConteudoPortaria({ id }: { id: string }) {
             )
           }
           return (
-            <>
-              <header className="telao-topo">
-                <span className="telao-marca">
-                  <MarcaCaixa tamanho={44} />
-                  <span>
-                    <strong>COMEP</strong>
-                    <span>
-                      {NOME_DO_TIPO[encontro.tipo]} · {nomeCurto(encontro)}
+            <main className="duas-colunas presenca-colunas" aria-label="Tela da portaria">
+              <section className="bloco portaria-cartao" aria-labelledby="titulo-portaria">
+                <h1 id="titulo-portaria">Marque a sua presença</h1>
+                <p>Leia este QR Code com o celular, pelo aplicativo do COMEP</p>
+                <QrCode
+                  className="portaria-qr"
+                  texto={enderecoDaPortaria(id, portaria.codigo)}
+                  rotulo="QR Code da portaria: abre a presença no celular do ministro"
+                />
+                <p className="detalhe">ou digite o código</p>
+                <p className="portaria-codigo" aria-label={`Código da portaria: ${portaria.codigo.split('').join(' ')}`}>
+                  {portaria.codigo.split('').map((letra, i) => (
+                    <span key={i} aria-hidden="true">
+                      {letra}
                     </span>
-                  </span>
-                </span>
-                <span className="telao-acoes nao-imprimir">
-                  <button type="button" className="botao botao-secundario" onClick={() => void tela.current?.requestFullscreen?.()}>
-                    Tela cheia
-                  </button>
-                  <Link className="botao-texto" to={`/assembleias/presenca/${id}`}>
-                    Voltar à lista
-                  </Link>
-                </span>
-              </header>
-              <main className="duas-colunas presenca-colunas" aria-label="Tela da portaria">
-                <section className="bloco portaria-cartao" aria-labelledby="titulo-portaria">
-                  <h1 id="titulo-portaria">Marque a sua presença</h1>
-                  <p>Leia este QR Code com o celular, pelo aplicativo do COMEP</p>
-                  <QrCode
-                    className="portaria-qr"
-                    texto={enderecoDaPortaria(id, portaria.codigo)}
-                    rotulo="QR Code da portaria: abre a presença no celular do ministro"
-                  />
-                  <p className="detalhe">ou digite o código</p>
-                  <p className="portaria-codigo" aria-label={`Código da portaria: ${portaria.codigo.split('').join(' ')}`}>
-                    {portaria.codigo.split('').map((letra, i) => (
-                      <span key={i} aria-hidden="true">
-                        {letra}
-                      </span>
-                    ))}
-                  </p>
-                  <p className="detalhe">
-                    O código muda a cada minuto, para só valer para quem está aqui.{' '}
-                    <span aria-live="off">Muda em {restante} s.</span>
-                  </p>
+                  ))}
+                </p>
+                <p className="detalhe">
+                  O código muda a cada minuto, para só valer para quem está aqui.{' '}
+                  <span aria-live="off">Muda em {restante} s.</span>
+                </p>
+              </section>
+              <div className="coluna-pilha">
+                <CartaoQuorum e={encontro} quorum={quorum} />
+                <section className="bloco" aria-labelledby="titulo-chegaram-agora">
+                  <h2 id="titulo-chegaram-agora">Chegaram agora</h2>
+                  {portaria.chegaram.length === 0 ? (
+                    <p className="vazio">Ninguém ainda.</p>
+                  ) : (
+                    <ul className="lista-chegadas" aria-label="Chegaram agora">
+                      {portaria.chegaram.map((c) => (
+                        <li key={`${c.nome}-${c.presente_em}`}>
+                          <span className="iniciais-redondas" aria-hidden="true">
+                            {iniciaisDe(c.nome)}
+                          </span>
+                          <span>
+                            <strong>{c.nome}</strong>
+                            <span className="detalhe">{COMO_MARCOU[c.forma]}</span>
+                          </span>
+                          <span className="detalhe">{horaDe(c.presente_em)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </section>
-                <div className="coluna-pilha">
-                  <CartaoQuorum e={encontro} quorum={quorum} />
-                  <section className="bloco" aria-labelledby="titulo-chegaram-agora">
-                    <h2 id="titulo-chegaram-agora">Chegaram agora</h2>
-                    {portaria.chegaram.length === 0 ? (
-                      <p className="vazio">Ninguém ainda.</p>
-                    ) : (
-                      <ul className="lista-chegadas" aria-label="Chegaram agora">
-                        {portaria.chegaram.map((c) => (
-                          <li key={`${c.nome}-${c.presente_em}`}>
-                            <span className="iniciais-redondas" aria-hidden="true">
-                              {iniciaisDe(c.nome)}
-                            </span>
-                            <span>
-                              <strong>{c.nome}</strong>
-                              <span className="detalhe">{COMO_MARCOU[c.forma]}</span>
-                            </span>
-                            <span className="detalhe">{horaDe(c.presente_em)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </section>
-                </div>
-              </main>
-            </>
+              </div>
+            </main>
           )
         }}
       </MostrarCarga>
