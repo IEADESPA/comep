@@ -90,7 +90,7 @@ test('D-10: quem preside pede a correção do nome da igreja, a presidência rec
   await pedidoNome.getByLabel(/^Como deve ficar/).fill(nomeNovo)
   await pedidoNome.getByRole('button', { name: 'Mandar para a secretaria' }).click()
   await expect(mensagemNaTela(page, 'Pedido de correção enviado à secretaria.')).toBeVisible()
-  await expect(page.getByRole('group', { name: 'Nome' })).toContainText('Esperando a secretaria')
+  await expect(page.getByRole('group', { name: 'Nome', exact: true })).toContainText('Esperando a secretaria')
   await expect(page.getByRole('button', { name: 'Pedir correção do nome da igreja' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Pedir correção do CNPJ da igreja' })).toBeVisible()
 
