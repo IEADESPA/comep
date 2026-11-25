@@ -945,3 +945,13 @@ O desenho aprovado `minha-igreja-2` (opção 1, aba Dados) tem o link **Pedir co
 
 - **A rodada 33** (tela `correcao-igreja`: a fila com as pílulas Todas/Igrejas/Ministros, a tela "Conferir a correção do CNPJ" com "O que o sistema já conferiu" e "Consultar o CNPJ na Receita", e a resposta na aba Dados com "Corrigido em …") está publicada e ainda **não foi aprovada**. Por isso a fila ficou onde já estava, como diz o plano, e o resto espera a aprovação.
 - **O cartão CNPJ depois da troca do CNPJ** (a pergunta do plano e da rodada 33, ainda sem resposta): por enquanto, como propõe o plano, aceitar não mexe nos documentos; se precisar, a secretaria pede o cartão novo pela aba Documentos.
+
+**Verificação (25/11/2026):**
+
+- `npm test`: 685 de 685 (PGlite e unidade); `correcao_igreja.test.ts`, 12 de 12; a unidade, 119 de 119, com os 4 testes novos da máscara e da conferência do CNPJ. `tsc -b`, oxlint e `vite build` sem erro.
+- **A migração no comep-teste** (com a trava): `supabase migration list --remote` mostrou que só a `20261123150000` faltava (a `20261123140000`, dos ajustes das assembleias, já estava lá e vem no ramo dela); `db push --dry-run` listou só ela; `db push` a aplicou, e a lista seguinte mostra as duas colunas iguais. `db advisors`: o único aviso (WARN) continua o `auth_leaked_password_protection`, que já se conhecia; no nível INFO, só índices ainda sem uso e chaves sem índice de tabelas antigas (esta migração não cria índice nem chave).
+- **O ponta a ponta**, só os specs das telas mexidas, no build local (porta 4177) contra o comep-teste:
+  - **visto falhar antes da tela:** o teste do D-10 parou no botão "Pedir correção do CNPJ da igreja", que não existia;
+  - **visto falhar antes do ajuste do leiaute:** com o pedido aberto, a Denominação ao lado esticava de 47,4 px para 145,8 px; a grade dos dados agora alinha no alto;
+  - **verde:** `presidente-igreja.spec.ts`, 4 de 4 (computador e celular); `portal-ministro.spec.ts` (o pedido do ministro aceito pela secretaria e o pastor presidente com os ministros e o contato da igreja), 2 de 2 no computador, mais o do pastor presidente no celular; `cadastros.spec.ts` "nenhuma tela da diretoria fica mais larga que a tela", verde.
+- **As fotos** do aprovado ao lado do construído (computador e celular, claro e escuro), com o pedido aberto, o "Esperando a secretaria" e a fila da secretaria, foram olhadas uma a uma. O pedido criado para as fotos foi recusado no fim, e o nome da igreja fictícia não mudou.
