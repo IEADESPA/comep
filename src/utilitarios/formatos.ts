@@ -21,6 +21,31 @@ export function cnpjValido(valor: string): boolean {
   return digito(12) === valores[12] && digito(13) === valores[13]
 }
 
+/**
+ * A máscara do CNPJ enquanto se digita: "112223" → "11.222.3". As 12 primeiras posições aceitam letras (o CNPJ
+ * alfanumérico) e os 2 dígitos do fim, só números; o que passa de 14 fica de fora.
+ */
+export function mascararCnpj(valor: string): string {
+  const limpo = limparCnpj(valor)
+  const base = limpo.slice(0, 12)
+  const digitos = base.length === 12 ? limpo.slice(12).replace(/\D/g, '').slice(0, 2) : ''
+  const c = base + digitos
+  const partes: [number, number, string][] = [
+    [0, 2, ''],
+    [2, 5, '.'],
+    [5, 8, '.'],
+    [8, 12, '/'],
+    [12, 14, '-'],
+  ]
+  return partes.map(([de, ate, antes]) => (c.length > de ? antes + c.slice(de, ate) : '')).join('')
+}
+
+/** A conferência do CNPJ na tela: nada enquanto se digita; com os 14, o aviso quando os dígitos não batem. */
+export function problemaNoCnpj(valor: string): string | null {
+  if (limparCnpj(valor).length < 14 || cnpjValido(valor)) return null
+  return 'Confira o CNPJ: os dois últimos números (os dígitos) não batem.'
+}
+
 /** 11222333000181 → 11.222.333/0001-81 */
 export function formatarCnpj(cnpj: string | null | undefined): string {
   if (!cnpj) return ''
