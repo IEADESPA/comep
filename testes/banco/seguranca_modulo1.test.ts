@@ -474,4 +474,46 @@ describe('Revisão permanente, módulo 1 — segurança do banco', () => {
       await assert.rejects(informar(outra, 'PIX', 'O'.repeat(500_000)), erroComCodigo(FORA_DO_FORMATO))
     })
   })
+
+  describe('S5-03 — o arquivo do pedido de associação é sempre da pasta do próprio candidato', () => {
+    it('com o pedido em pendência, o candidato não aponta a foto nem o comprovante para a pasta de outra pessoa', async () => {
+      const titulo = (await um<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor(a)'")).id
+      const secretaria = await criarUsuario(db, 'secretaria.s503@teste.local', 'Secretaria Fictícia do Arquivo')
+      await darPerfil(db, secretaria, 'secretaria')
+      const candidato = await criarUsuario(db, 'candidato.arquivo@teste.local', 'Candidato Fictício do Arquivo')
+      const outro = await criarUsuario(db, 'outro.arquivo@teste.local', 'Outra Pessoa Fictícia')
+      const pessoa = await pessoaDe(candidato)
+      const pastaDoOutro = `pessoas/${await pessoaDe(outro)}`
+
+      const pedido = (
+        await chamar(
+          candidato,
+          `insert into public.pedidos_associacao (pessoa_id, titulo_id, igreja_informada, foto_caminho, comprovante_caminho,
+             declara_principios_fe, declara_estatuto, consente_lgpd)
+           values ($1, $2, 'Igreja Fictícia', $3, $4, true, true, true) returning id`,
+          [pessoa, titulo, `pessoas/${pessoa}/foto-1.jpg`, `pessoas/${pessoa}/comprovante-1.pdf`],
+        )
+      ).rows[0] as { id: string }
+      await chamar(secretaria, "update public.pedidos_associacao set situacao = 'pendencia', mensagem_pendencia = 'Troque a foto.' where id = $1", [
+        pedido.id,
+      ])
+
+      const trocar = (coluna: 'foto_caminho' | 'comprovante_caminho', caminho: string) =>
+        chamar(candidato, `update public.pedidos_associacao set ${coluna} = $1 where id = $2`, [caminho, pedido.id])
+      await assert.rejects(trocar('comprovante_caminho', `${pastaDoOutro}/comprovante-9.pdf`), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      await assert.rejects(trocar('foto_caminho', `${pastaDoOutro}/foto-9.jpg`), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      await assert.rejects(trocar('foto_caminho', `pessoas/${pessoa}/../${pastaDoOutro.slice(8)}/foto-9.jpg`), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      // o arquivo novo da própria pasta continua valendo, e o pedido fica como estava
+      await trocar('foto_caminho', `pessoas/${pessoa}/foto-2.jpg`)
+      const agora = await um<{ situacao: string; foto_caminho: string; comprovante_caminho: string }>(
+        'select situacao, foto_caminho, comprovante_caminho from public.pedidos_associacao where id = $1',
+        [pedido.id],
+      )
+      assert.deepEqual(agora, {
+        situacao: 'pendencia',
+        foto_caminho: `pessoas/${pessoa}/foto-2.jpg`,
+        comprovante_caminho: `pessoas/${pessoa}/comprovante-1.pdf`,
+      })
+    })
+  })
 })

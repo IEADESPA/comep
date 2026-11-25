@@ -1,4 +1,4 @@
--- Revisão das telas gerais (módulo 5, 25/11/2026), achado S5-01, complemento do S1-06 (o nome e o telefone).
+-- Revisão das telas gerais (módulo 5, 25/11/2026), achados S5-01 e S5-03, complemento do S1-06 (o nome e o telefone).
 -- S5-01: o cadastro do site é aberto, e o que se grava não se apaga (e ainda vai para a auditoria). Por isso o texto
 -- livre do pedido de associação, da troca de igreja e do informe de pagamento ganha limite de tamanho, e pedir e
 -- desistir (ou cancelar) ganha um teto por dia:
@@ -7,6 +7,8 @@
 --   - observações: até 1.000 (como as outras observações do sistema);
 --   - forma de pagamento: até 60 (a tela oferece PIX, depósito, transferência ou dinheiro);
 --   - até 3 pedidos de associação e 3 pedidos de troca de igreja por pessoa e por dia.
+-- S5-03: a foto e o comprovante do pedido de associação passam a ser conferidos em toda gravação, não só no envio:
+-- sempre um arquivo da pasta do próprio candidato.
 
 
 -- ---------------------------------------------------------------------
@@ -106,6 +108,31 @@ create trigger limitar_pedidos_por_dia
 
 
 -- ---------------------------------------------------------------------
--- 4. Permissões: a função do gatilho não é chamada por ninguém de fora
+-- 4. S5-03: os arquivos do pedido de associação, conferidos em toda gravação
+-- ---------------------------------------------------------------------
+create function interno.conferir_arquivos_do_pedido()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if not interno.caminho_seguro(new.foto_caminho, new.pessoa_id)
+     or not interno.caminho_seguro(new.comprovante_caminho, new.pessoa_id) then
+    raise exception 'Os arquivos do pedido precisam ser os enviados pelo próprio candidato.' using errcode = 'P0001';
+  end if;
+  return new;
+end;
+$$;
+comment on function interno.conferir_arquivos_do_pedido() is
+  'A foto e o comprovante do pedido de associação são sempre da pasta do próprio candidato. Revisão das telas gerais, S5-03.';
+
+create trigger conferir_arquivos_do_pedido
+  before insert or update of foto_caminho, comprovante_caminho on public.pedidos_associacao
+  for each row execute function interno.conferir_arquivos_do_pedido();
+
+
+-- ---------------------------------------------------------------------
+-- 5. Permissões: as funções dos gatilhos não são chamadas por ninguém de fora
 -- ---------------------------------------------------------------------
 revoke all on function interno.limitar_pedidos_por_dia() from public;
+revoke all on function interno.conferir_arquivos_do_pedido() from public;
