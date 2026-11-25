@@ -17,7 +17,7 @@ import type { MinhaConta, Perfil } from '../dados/perfis'
 import { trocasPendentes } from '../dados/portal'
 import { listarVotacoes } from '../dados/votacoes'
 import { diaMes, formatarData, horaCurta, hojeIso } from '../utilitarios/formatos'
-import { diasEntre, documentoDoItem, listaCurta, NOME_DO_ITEM, vencimentoMaisProximo } from '../utilitarios/regularizacao'
+import { diasEntre, documentoDoItem, fraseParaMandar, listaCurta, NOME_DO_ITEM, vencimentoMaisProximo } from '../utilitarios/regularizacao'
 
 /** Busca e devolve só os dados (ou null, se deu erro): uma parte que falha não derruba as outras. */
 async function seguro<T>(busca: () => Promise<Resultado<T>>): Promise<T | null> {
@@ -244,13 +244,12 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
   if (igreja?.cadastro === 'em_analise') {
     itens.push({ chave: 'igreja-analise', area: 'pessoas', icone: 'igreja', forte: igreja.nome, texto: 'a secretaria está conferindo o cadastro', acao: 'Acompanhar', para: '/cadastrar-minha-igreja' })
   } else if (igreja?.situacao.situacao === 'suspensa' && !igreja.situacao.perfil_bloqueado && igreja.situacao.prazo_ate) {
-    const dias = diasEntre(hoje, igreja.situacao.prazo_ate) + 1
     itens.unshift({
       chave: 'igreja-suspensa',
       area: 'pessoas',
       icone: 'alerta',
       forte: 'A igreja está suspensa:',
-      texto: `${dias === 1 ? 'falta 1 dia' : `faltam ${dias} dias`} para mandar ${listaCurta(igreja.situacao.vencidos)}`,
+      texto: fraseParaMandar(hoje, igreja.situacao.prazo_ate, listaCurta(igreja.situacao.vencidos)),
       acao: 'Mandar agora',
       para: '/minha-igreja',
       principal: true,

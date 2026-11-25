@@ -7,6 +7,7 @@ import { DIAS_CONECTADO, entrouEm, sairDosOutrosAparelhos } from '../../dados/au
 import { meusDados, minhaPrivacidade, pedirExclusao, salvarPrivacidade, type MinhaPrivacidade } from '../../dados/privacidade'
 import { useCarregar } from '../../estado/useCarregar'
 import { formatarData, formatarDataDeInstante, horaCurta } from '../../utilitarios/formatos'
+import { agruparQuemMexeu } from '../../utilitarios/quemMexeu'
 
 // Meu perfil › Privacidade e Meu perfil › Segurança (rodadas 19, 20 e 22; parte 13).
 
@@ -163,13 +164,14 @@ function ConteudoPrivacidade({ p, recarregar }: { p: MinhaPrivacidade; recarrega
               <p className="vazio">Ninguém além de você.</p>
             ) : (
               <ul className="lista-linhas" aria-label="Quem mexeu nos seus dados">
-                {p.quem_mexeu.map((q, i) => (
+                {agruparQuemMexeu(p.quem_mexeu).map((q, i) => (
                   <li key={`${q.em}-${i}`} className="linha-aparelho">
                     <Icone nome="olho" tamanho={20} />
                     <span className="linha-corpo">
                       <strong>{q.quem}</strong>
                       <span>
                         {formatarDataDeInstante(q.em)} · {q.operacao === 'INSERT' ? 'registrou' : 'mudou'} {q.o_que}
+                        {q.vezes > 1 && ` · ${q.vezes} vezes`}
                       </span>
                     </span>
                   </li>

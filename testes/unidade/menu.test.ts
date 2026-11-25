@@ -103,6 +103,19 @@ describe('o menu do módulo', () => {
       ],
     )
   })
+
+  it('as subfunções com perfis próprios: o Caixa › Modelos exclusivos é da tesouraria e da presidência (D-07)', () => {
+    const financeiro = MODULOS.find((m) => m.chave === 'financeiro')!
+    const subsDoCaixa = (perfis: Parameters<typeof funcoesVisiveis>[1]) =>
+      (funcoesVisiveis(financeiro, perfis).find((f) => f.chave === 'caixa')?.subfuncoes ?? []).map((s) => s.caminho)
+    assert.ok(subsDoCaixa(['tesouraria']).includes('/financeiro/caixa/modelos'))
+    assert.ok(subsDoCaixa(['presidencia']).includes('/financeiro/caixa/modelos'))
+    // o Conselho Fiscal vê o Caixa (só leitura), mas não a subfunção de receber o pagamento
+    assert.ok(subsDoCaixa(['conselho_fiscal']).includes('/financeiro/caixa'))
+    assert.ok(!subsDoCaixa(['conselho_fiscal']).includes('/financeiro/caixa/modelos'))
+    // a lista do módulo não muda (a cópia filtrada é só de quem vê)
+    assert.ok(financeiro.funcoes.find((f) => f.chave === 'caixa')!.subfuncoes!.some((s) => s.caminho === '/financeiro/caixa/modelos'))
+  })
 })
 
 describe('a tabela dos ministros', () => {

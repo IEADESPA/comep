@@ -23,7 +23,7 @@ import { listarEmprestimos, type SituacaoEmprestimo } from '../../dados/patrimon
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { cnpjValido, formatarCnpj, formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
-import { MANDE_AQUI, NOME_DO_ITEM, textoDoPrazo } from '../../utilitarios/regularizacao'
+import { MANDE_AQUI, NOME_DO_ITEM, textoDosDiasParaMandar } from '../../utilitarios/regularizacao'
 import { Limitacoes } from './CadastrarIgreja'
 import { FormDocumento, LinhaDocumento, SeloNivel, type Concluir } from './componentes'
 import { descreverSituacao, diretoriaEmVigor, type OpcaoMinistro } from './regras'
@@ -632,7 +632,7 @@ function AbaSituacao({ igreja, situacao, ministros, concluir }: { igreja: Igreja
                   Venceu: {situacao.vencidos.map((v) => NOME_DO_ITEM[v]).join(', ')}.{' '}
                   {situacao.perfil_bloqueado
                     ? 'Passaram os 30 dias sem o documento: o perfil de pastor presidente foi bloqueado (ele continua ministro associado).'
-                    : `O pastor presidente tem até ${formatarData(situacao.prazo_ate)} para mandar ${situacao.vencidos.map((v) => MANDE_AQUI[v]).join(' e ')} (${textoDoPrazo(hoje, situacao.prazo_ate!)}).`}{' '}
+                    : `O pastor presidente tem até ${formatarData(situacao.prazo_ate)} para mandar ${situacao.vencidos.map((v) => MANDE_AQUI[v]).join(' e ')} (${textoDosDiasParaMandar(hoje, situacao.prazo_ate!)}).`}{' '}
                   A secretaria também pode mandar pela igreja, na aba Documentos.
                 </span>
               </div>

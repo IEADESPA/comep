@@ -5,7 +5,9 @@ import { describe, it } from 'node:test'
 import {
   coordenadasDoLink,
   diasEntre,
+  diasParaMandar,
   documentoDoItem,
+  fraseParaMandar,
   fimDoMandato,
   listaCurta,
   menorMandato,
@@ -13,6 +15,7 @@ import {
   tamanhoDoArquivo,
   tempoQueFalta,
   textoDoPrazo,
+  textoDosDiasParaMandar,
   vencimentoMaisProximo,
 } from '../../src/utilitarios/regularizacao.ts'
 
@@ -55,6 +58,26 @@ describe('os prazos', () => {
     assert.equal(tempoQueFalta('2026-11-18', '2026-12-31'), '43 dias')
     assert.equal(tempoQueFalta('2026-11-18', '2028-12-31'), '2 anos e 1 mês')
     assert.equal(tempoQueFalta('2026-11-18', '2027-05-18'), '5 meses')
+  })
+
+  it('a igreja suspensa: os dias para mandar contam o dia de hoje (D-12)', () => {
+    // o documento venceu em D = 31/12/2026: suspensa desde D+1 (01/01/2027), prazo até D+30 (30/01/2027)
+    const prazo = '2027-01-30'
+    // D+1, o dia da suspensão: 30 dias
+    assert.equal(diasParaMandar('2027-01-01', prazo), 30)
+    assert.equal(textoDosDiasParaMandar('2027-01-01', prazo), 'faltam 30 dias')
+    assert.equal(fraseParaMandar('2027-01-01', prazo, 'o estatuto'), 'faltam 30 dias para mandar o estatuto')
+    // D+29, a véspera do prazo: 2 dias
+    assert.equal(diasParaMandar('2027-01-29', prazo), 2)
+    assert.equal(fraseParaMandar('2027-01-29', prazo), 'faltam 2 dias para mandar')
+    // D+30, o dia do prazo: o último dia
+    assert.equal(diasParaMandar('2027-01-30', prazo), 1)
+    assert.equal(textoDosDiasParaMandar('2027-01-30', prazo), 'último dia')
+    assert.equal(fraseParaMandar('2027-01-30', prazo, 'o estatuto'), 'último dia para mandar o estatuto')
+    // D+31, o bloqueio: acabou
+    assert.equal(diasParaMandar('2027-01-31', prazo), 0)
+    assert.equal(textoDosDiasParaMandar('2027-01-31', prazo), 'prazo encerrado')
+    assert.equal(fraseParaMandar('2027-01-31', prazo), 'acabou o prazo para mandar')
   })
 
   it('o tamanho do arquivo em KB ou MB, com vírgula', () => {

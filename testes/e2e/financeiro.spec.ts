@@ -1,5 +1,6 @@
 // Fase 2.1: contribuições — a tesouraria gera, o associado escolhe o plano e informa o pagamento, a tesouraria confirma.
 // Associado FICTÍCIO criado pelo próprio teste (e arquivado no fim). Vale em qualquer dia do ano.
+// D-16: os planos em "Valores e planos" contam só quem paga hoje.
 import { expect, test, type Page } from '@playwright/test'
 import { abrirFuncao, arquivarAssociadoDeTeste, criarAssociadoComLogin, mensagemNaTela, sufixoUnico, trocarPara } from './ajuda'
 
@@ -89,9 +90,19 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
 
   // O pagamento confirmado entrou sozinho no caixa (PIX → conta bancária)
   await abrirFuncao(page, 'Caixa')
-  await expect(page.getByRole('listitem', { name: `Contribuição de ${nome} — ${anuidade.toLowerCase()}` })).toContainText(
-    'R$ 200,00',
-  )
+  const noCaixa = page.getByRole('listitem', { name: `Contribuição de ${nome} — ${anuidade.toLowerCase()}` })
+  await expect(noCaixa).toContainText('R$ 200,00')
+
+  // D-05: o "De onde veio" leva cada um a uma tela que abre. A presidência vai à ficha do ministro…
+  const origem = noCaixa.getByRole('link', { name: `${anuidade} de ${nome}`, exact: true })
+  await expect(origem).toHaveAttribute('href', /\/ministros\/[0-9a-f-]{36}\/contribuicao$/)
+  // …e a tesouraria, que não abre Ministros, à pessoa em Financeiro › Contribuições (antes: "Sem acesso")
+  await trocarPara(page, 'tesouraria')
+  await page.goto('financeiro/caixa')
+  await origem.click()
+  await expect(page).toHaveURL(/\/financeiro\/contribuicoes\?ministro=[0-9a-f-]{36}$/)
+  await expect(page.getByRole('heading', { name: 'Sem acesso' })).toHaveCount(0)
+  await expect(page.getByRole('list', { name: 'Do lançamento do Caixa' }).getByRole('listitem', { name: nome })).toContainText('Em dia')
 
   // 4. O associado está em dia (pode votar e ser votado)
   await trocarPara(page, associado)
@@ -100,4 +111,25 @@ test('a tesouraria gera as cobranças; o associado escolhe a anuidade e informa 
   await expect(lista).toContainText('Paga')
 
   await arquivarAssociadoDeTeste(page, nome)
+})
+
+// D-16: "Valores e planos" contava o plano de quem não é mais associado. O teste acima arquiva, a cada rodada, um
+// associado que escolheu a anuidade; no comep-teste a tela chegou a dizer "268 ministros escolheram pagar o ano
+// inteiro…; os outros 0 pagam por mês", com 106 que pagam. O ano inteiro e o mês têm de somar quem paga.
+test('Valores e planos: os planos somam os ministros que pagam, os mesmos da Situação dos ministros (D-16)', async ({ page }) => {
+  await trocarPara(page, 'tesouraria')
+  await page.goto('financeiro/contribuicoes')
+  const emDia = page.locator('.fin-medidor').filter({ has: page.getByText('Em dia', { exact: true }) }).locator('strong')
+  await expect(emDia).toHaveText(/^\d+ de \d+$/)
+  const pagantes = Number(/de (\d+)$/.exec((await emDia.textContent()) ?? '')?.[1])
+
+  await page.goto('financeiro/contribuicoes/valores')
+  // só o parágrafo: o título ("Os planos em 2026/2027") colado na frase mudaria o primeiro número
+  const planos = page.getByRole('region', { name: `Os planos em ${exercicioAtual()}` }).locator('p')
+  await expect(planos).toContainText('pagam por mês')
+  const frase = (await planos.textContent()) ?? ''
+  const anual = Number(/(\d+) ministros? escolhe(?:u|ram) pagar o ano inteiro/.exec(frase)?.[1])
+  const porMes = Number(/os outros (\d+) pagam por mês/.exec(frase)?.[1])
+  expect(anual).toBeLessThanOrEqual(pagantes)
+  expect(anual + porMes).toBe(pagantes)
 })

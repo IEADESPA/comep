@@ -87,6 +87,17 @@ test.describe('a tesouraria lembra quem está em atraso', () => {
     await atencao.getByRole('button', { name: 'Lembrar todos' }).click()
     await expect(mensagemNaTela(page, /^(Lembrete mandado para \d+ ministros?|Ninguém para lembrar agora)/)).toBeVisible()
   })
+
+  test('Administração › Avisos e Termo, pelo endereço: "Sem acesso", sem o "Tentar de novo" (D-11)', async ({ page }) => {
+    for (const area of ['configuracoes/avisos', 'configuracoes/termo']) {
+      await page.goto(area)
+      await expect(page.getByRole('heading', { name: 'Sem acesso' }), area).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Tentar de novo' }), area).toHaveCount(0)
+    }
+    // as Configurações (os valores e as contas do caixa) continuam abrindo
+    await page.goto('configuracoes')
+    await expect(page.getByRole('heading', { name: 'Sem acesso' })).toHaveCount(0)
+  })
 })
 
 test.describe('o ministro', () => {

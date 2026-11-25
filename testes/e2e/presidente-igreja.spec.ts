@@ -17,6 +17,9 @@ test('quem preside uma igreja vê o perfil e abre a Minha igreja, regular, com o
   await expect(page.getByRole('heading', { name: IGREJA, level: 2 })).toBeVisible()
   await expect(page.getByText('Regular', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('list', { name: 'Ministros da igreja' })).toContainText(NOME)
+  // D-09: "pastor presidente" uma vez só, mesmo com a função "Pastor presidente"
+  const linha = page.getByRole('list', { name: 'Ministros da igreja' }).getByRole('listitem').filter({ hasText: NOME })
+  expect(((await linha.innerText()).match(/pastor presidente/gi) ?? []).length).toBe(1)
 
   // os documentos estão em dia (mandados pela presidência, já conferidos)
   await page.goto('minha-igreja/documentos')

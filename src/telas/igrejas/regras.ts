@@ -14,7 +14,7 @@ import {
   type SituacaoNaLista,
 } from '../../dados/igrejas'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
-import { diasEntre, fimDoMandato, listaCurta } from '../../utilitarios/regularizacao'
+import { fimDoMandato, fraseParaMandar, listaCurta } from '../../utilitarios/regularizacao'
 
 export const nomeDoDocumento = (d: Pick<DocumentoIgreja, 'tipo' | 'descricao'>) =>
   d.tipo === 'outro' ? (d.descricao ?? NOME_DO_DOCUMENTO.outro) : NOME_DO_DOCUMENTO[d.tipo]
@@ -87,8 +87,7 @@ export function descreverSituacao(s: SituacaoIgreja, hoje: string): string {
     const o = listaCurta(s.vencidos)
     const verbo = s.vencidos.length === 1 ? 'venceu' : 'venceram'
     if (s.perfil_bloqueado) return `${o}: ${verbo} · perfil do pastor bloqueado`
-    const dias = s.prazo_ate ? diasEntre(hoje, s.prazo_ate) + 1 : 0
-    return `${o}: ${verbo} · ${dias === 1 ? 'falta 1 dia' : `faltam ${dias} dias`} para mandar`
+    return `${o}: ${verbo} · ${s.prazo_ate ? fraseParaMandar(hoje, s.prazo_ate) : 'acabou o prazo para mandar'}`
   }
   if (s.pendencias.length > 0) {
     const n = s.pendencias.length

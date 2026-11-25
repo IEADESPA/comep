@@ -8,7 +8,7 @@ import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
-import { diasEntre, NOME_DO_ITEM, textoDoPrazo } from '../../utilitarios/regularizacao'
+import { diasEntre, NOME_DO_ITEM, textoDoPrazo, textoDosDiasParaMandar } from '../../utilitarios/regularizacao'
 import { NumerosGrandes, SeloNivel } from './componentes'
 import { carregarIgrejasComSituacao, descreverSituacao, type LinhaIgreja } from './regras'
 
@@ -68,7 +68,7 @@ export function CentralRegularizacao() {
                       <span className={s.perfil_bloqueado ? 'texto-perigo' : 'texto-atencao'}>
                         {s.perfil_bloqueado
                           ? 'Passaram os 30 dias: o perfil de pastor presidente está bloqueado. A secretaria pode mandar o documento pela igreja.'
-                          : `O pastor tem até ${formatarData(s.prazo_ate)} para mandar (${textoDoPrazo(hoje, s.prazo_ate!)}).`}
+                          : `O pastor tem até ${formatarData(s.prazo_ate)} para mandar (${textoDosDiasParaMandar(hoje, s.prazo_ate!)}).`}
                       </span>
                     </>
                   )

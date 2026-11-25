@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { FaixaAmbiente } from './componentes/Basicos'
 import { Layout } from './componentes/Layout'
 import { ITENS_MENU } from './componentes/menu'
-import { ExigePerfil, RotaProtegida } from './componentes/Rotas'
+import { ExigeFuncao, ExigePerfil, RotaProtegida } from './componentes/Rotas'
 import { bancoConfigurado } from './dados/cliente'
 import { ProvedorSessao } from './estado/ProvedorSessao'
 import { Acessos } from './telas/administracao/Acessos'
@@ -256,8 +256,22 @@ export default function App() {
 
               <Route path="configuracoes" element={<Area caminho="/configuracoes" />}>
                 <Route index element={<Configuracoes />} />
-                <Route path="avisos" element={<SituacaoDosAvisosPagina />} />
-                <Route path="termo" element={<TermoSecretaria />} />
+                <Route
+                  path="avisos"
+                  element={
+                    <ExigeFuncao caminho="/configuracoes/avisos">
+                      <SituacaoDosAvisosPagina />
+                    </ExigeFuncao>
+                  }
+                />
+                <Route
+                  path="termo"
+                  element={
+                    <ExigeFuncao caminho="/configuracoes/termo">
+                      <TermoSecretaria />
+                    </ExigeFuncao>
+                  }
+                />
               </Route>
 
               <Route path="auditoria" element={<Area caminho="/auditoria" />}>
