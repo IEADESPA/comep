@@ -222,4 +222,49 @@ describe('Revisão permanente, módulo 1 — segurança do banco', () => {
       assert.equal(await doLote(await lote(1000), pessoaDestino), 3)
     })
   })
+
+  describe('S1-04 — a tesouraria vê no balde "documentos" só os comprovantes de pagamento (decisão de 25/11/2026)', () => {
+    let tesouraria: string
+    let conselheiro: string
+    let secretaria: string
+    let associado: string
+    let pasta: string
+    let pastaDaTesouraria: string
+
+    const arquivosQueVe = async (quem: string, de: string) =>
+      (await chamar(quem, 'select name from storage.objects where name like $1 order by name', [`${de}/%`])).rows.map(
+        (r) => (r as { name: string }).name,
+      )
+
+    before(async () => {
+      tesouraria = await criarUsuario(db, 'tesouraria.arquivos@teste.local', 'Tesouraria Fictícia dos Arquivos')
+      conselheiro = await criarUsuario(db, 'conselho.arquivos@teste.local', 'Conselho Fiscal Fictício dos Arquivos')
+      secretaria = await criarUsuario(db, 'secretaria.arquivos@teste.local', 'Secretaria Fictícia dos Arquivos')
+      associado = await criarUsuario(db, 'associado.arquivos@teste.local', 'Associado Fictício dos Arquivos')
+      await darPerfil(db, tesouraria, 'tesouraria')
+      await darPerfil(db, conselheiro, 'conselho_fiscal')
+      await darPerfil(db, secretaria, 'secretaria')
+      pasta = `pessoas/${await pessoaDe(associado)}`
+      pastaDaTesouraria = `pessoas/${await pessoaDe(tesouraria)}`
+      // os nomes que as telas gravam (src/dados/pedidos.ts, enviarArquivo): foto-, comprovante- (o do título) e pagamento-
+      for (const nome of ['foto-1.jpg', 'comprovante-1.pdf', 'pagamento-1.pdf', 'pagamento-2.png', 'rg.pdf', 'outra/pagamento-3.pdf']) {
+        await db.query("insert into storage.objects (bucket_id, name) values ('documentos', $1)", [`${pasta}/${nome}`])
+      }
+      await db.query("insert into storage.objects (bucket_id, name) values ('documentos', $1)", [`${pastaDaTesouraria}/foto-1.jpg`])
+    })
+
+    it('a tesouraria abre os comprovantes de pagamento de outra pessoa, e nada além deles', async () => {
+      assert.deepEqual(await arquivosQueVe(tesouraria, pasta), [`${pasta}/pagamento-1.pdf`, `${pasta}/pagamento-2.png`])
+    })
+
+    it('o Conselho Fiscal, com a mesma regra', async () => {
+      assert.deepEqual(await arquivosQueVe(conselheiro, pasta), [`${pasta}/pagamento-1.pdf`, `${pasta}/pagamento-2.png`])
+    })
+
+    it('a secretaria continua vendo tudo; cada um vê o que é seu', async () => {
+      assert.equal((await arquivosQueVe(secretaria, pasta)).length, 6)
+      assert.equal((await arquivosQueVe(associado, pasta)).length, 6)
+      assert.deepEqual(await arquivosQueVe(tesouraria, pastaDaTesouraria), [`${pastaDaTesouraria}/foto-1.jpg`])
+    })
+  })
 })
