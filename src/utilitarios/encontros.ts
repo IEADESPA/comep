@@ -196,6 +196,29 @@ export function presentesDoFechamento(d: { assembleia: boolean; presentes: numbe
   return `${d.presentesAptos} de ${d.aptos} aptos${emAtraso > 0 ? ` · ${emAtraso} em atraso` : ''}`
 }
 
+/**
+ * O que ainda muda na condução, com as mesmas travas do banco (migração 20261123140000): depois da primeira assinatura
+ * da ata (do 1º secretário ou do presidente), nada do que entra no texto dela muda — o roteiro, a abertura, a pauta,
+ * os convidados e as votações. Sem a ata assinada: o roteiro anda no encontro convocado ou realizado; a abertura, a
+ * pauta do período e o convidado novo só no convocado com a lista aberta; o convidado sai a qualquer momento.
+ */
+export function oQueMudaNaConducao(
+  e: { situacao: 'agendado' | 'convocado' | 'realizado' | 'cancelado'; presenca_encerrada_em: string | null },
+  ata: { assinada_secretario_em: string | null; assinada_presidente_em: string | null } | null,
+) {
+  const travadoPelaAta = Boolean(ata?.assinada_secretario_em || ata?.assinada_presidente_em)
+  const aberto = e.situacao === 'convocado' && !e.presenca_encerrada_em
+  return {
+    roteiro: !travadoPelaAta && (e.situacao === 'convocado' || e.situacao === 'realizado'),
+    abertura: !travadoPelaAta && aberto,
+    pauta: !travadoPelaAta && aberto,
+    registrarConvidado: !travadoPelaAta && e.situacao === 'convocado',
+    tirarConvidado: !travadoPelaAta,
+    votacoes: !travadoPelaAta,
+    travadoPelaAta,
+  }
+}
+
 /** Votos a favor exigidos: 3/5 ou 2/3 dos votos válidos, sim + não (pergunta 24); null = maioria simples. */
 export function minimoAFavor(maioria: 'simples' | 'tres_quintos' | 'dois_tercos', validos: number): number | null {
   if (maioria === 'simples') return null

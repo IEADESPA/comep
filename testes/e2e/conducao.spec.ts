@@ -172,6 +172,14 @@ test('assembleia ao vivo: roteiro, instalar, votar, telão, convidado, resoluç�
     await page.goto(`assembleias/conducao/${id}`)
     await expect(page.getByRole('article', { name: `Votação: ${ITEM}` })).toContainText('A ata já começou a ser assinada: as votações não mudam mais.')
     await expect(page.getByRole('form', { name: `Registrar votação: ${ITEM}` })).toHaveCount(0)
+    // nem o roteiro, a abertura e os convidados (revisão da parte 14, achado 8: as mesmas travas do banco)
+    await expect(page.getByText('A ata já começou a ser assinada: o roteiro e os convidados não mudam mais.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Próximo item' })).toHaveCount(0)
+    await expect(page.getByRole('list', { name: 'Roteiro' }).getByRole('button', { name: 'Ir para: Encerramento' })).toBeDisabled()
+    await expect(page.getByText('Ajustar a abertura')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Tirar Convidado Fictício (teste)' })).toHaveCount(0)
+    await expect(page.getByRole('form', { name: 'Registrar convidado' })).toHaveCount(0)
+    await expect(page.getByRole('list', { name: 'Convidados' })).toContainText('Convidado Fictício (teste)')
 
     // a página da assembleia mostra o resultado
     await page.goto(endereco)
