@@ -5860,6 +5860,12 @@ li.feito .numero-passo {
   white-space: nowrap;
 }
 
+/* o pedido aberto é mais alto que o campo: o vizinho da mesma linha fica no alto, sem esticar (o rótulo é uma
+   grade, e esticado ele reparte a sobra entre o texto e o campo) */
+.dados-da-igreja {
+  align-items: start;
+}
+
 .correcao-no-lugar {
   padding: 12px;
   border: 1px solid var(--cor-borda);

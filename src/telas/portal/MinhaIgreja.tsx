@@ -261,7 +261,7 @@ function DadosDaIgreja({
       {/* O pedido de correção do Nome e do CNPJ abre um formulário próprio no lugar do campo; por isso a grade fica fora
           do formulário do contato (formulário dentro de formulário não existe), e cada campo do contato entra nele pelo
           atributo `form`. */}
-      <div className="grade-form">
+      <div className="grade-form dados-da-igreja">
         <CampoDaIgreja
           igrejaId={igreja.id}
           campo="igreja_nome"

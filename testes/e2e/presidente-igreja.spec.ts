@@ -73,9 +73,19 @@ test('D-10: quem preside pede a correção do nome da igreja, a presidência rec
   await expect(page.getByRole('button', { name: 'Pedir correção do CNPJ da igreja' })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Pedir correção/ })).toHaveCount(2)
 
+  // o pedido aberto é mais alto que o campo: o vizinho da mesma linha não estica (a Denominação ao lado do CNPJ,
+  // a Sigla ao lado do Nome); vale no computador, onde os campos ficam em duas colunas
+  const denominacao = page.getByLabel('Denominação', { exact: true })
+  const sigla = page.getByLabel('Sigla (vai na credencial)')
+  const altura = async (campo: typeof sigla) => (await campo.boundingBox())?.height ?? 0
+  const alturaDenominacao = await altura(denominacao)
+  const alturaSigla = await altura(sigla)
+
   // o CNPJ: a máscara e a conferência dos dígitos na tela (sem mandar)
   await page.getByRole('button', { name: 'Pedir correção do CNPJ da igreja' }).click()
   const pedidoCnpj = page.getByRole('form', { name: 'Pedir correção: CNPJ da igreja' })
+  await expect(pedidoCnpj).toBeVisible()
+  expect(await altura(denominacao)).toBe(alturaDenominacao)
   await pedidoCnpj.getByLabel(/^Como deve ficar/).fill('11222333000182')
   await expect(pedidoCnpj.getByLabel(/^Como deve ficar/)).toHaveValue('11.222.333/0001-82')
   await expect(pedidoCnpj).toContainText('Confira o CNPJ: os dois últimos números (os dígitos) não batem.')
@@ -87,6 +97,7 @@ test('D-10: quem preside pede a correção do nome da igreja, a presidência rec
   await page.getByRole('button', { name: 'Pedir correção do nome da igreja' }).click()
   const pedidoNome = page.getByRole('form', { name: 'Pedir correção: Nome da igreja' })
   await expect(pedidoNome.getByLabel('Como está')).toHaveValue(IGREJA)
+  expect(await altura(sigla)).toBe(alturaSigla)
   await pedidoNome.getByLabel(/^Como deve ficar/).fill(nomeNovo)
   await pedidoNome.getByRole('button', { name: 'Mandar para a secretaria' }).click()
   await expect(mensagemNaTela(page, 'Pedido de correção enviado à secretaria.')).toBeVisible()
