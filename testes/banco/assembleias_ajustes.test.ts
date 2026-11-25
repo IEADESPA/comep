@@ -1,5 +1,6 @@
 // Ajustes da Parte 14 pedidos pela revisão de 23/11/2026 (C:\tmp\comep-revisao\REVISAO-telas-parte-14.md):
-// 1. o segredo da portaria não vai para a auditoria (que a presidência e o admin técnico leem);
+// 1. o segredo da portaria não vai para a auditoria (que a presidência e o admin técnico leem), e o que já tinha ido
+//    antes da correção deixa de valer;
 // 5. o visitante (anon) não chama nenhuma das 9 funções; o perfil errado não arquiva convidado nem anula resolução;
 // 7. a entrada lixo recebe uma mensagem em português, não o erro cru do banco;
 // 8. depois da primeira assinatura da ata, nada do que entra no texto da ata muda (convidados, abertura e roteiro).
@@ -8,7 +9,7 @@
 import type { PGlite } from '@electric-sql/pglite'
 import assert from 'node:assert/strict'
 import { before, describe, it } from 'node:test'
-import { como, criarBanco, criarUsuario, darPerfil, erroComCodigo } from './ambiente.ts'
+import { aplicarMigracao, como, criarBanco, criarUsuario, darPerfil, erroComCodigo } from './ambiente.ts'
 
 const SEM_PERMISSAO = '42501'
 const BLOQUEADO_PELO_BANCO = 'P0001'
@@ -103,6 +104,71 @@ describe('Parte 14 — ajustes da revisão', () => {
         refeito = null
       }
       assert.notEqual(refeito, codigo)
+    })
+  })
+
+  describe('o segredo que já estava na auditoria antes da correção (achado 1)', () => {
+    // A auditoria não se altera nem se apaga (gatilho proibir_alteracao): as linhas antigas, com o segredo, ficam.
+    // A correção arquiva as portarias abertas, e o código só sai da portaria não arquivada: o segredo antigo morre.
+    it('não marca a presença com o código refeito da auditoria antiga; a portaria nova tem outro segredo', async () => {
+      const antigo = await criarBanco({ antesDe: '20261123140000' })
+      const quem = async (q: string | null, sql: string, params: unknown[] = []) => como(antigo, q, () => antigo.query(sql, params))
+      const sec = await criarUsuario(antigo, 'secretaria@teste.local', 'Secretaria de Teste')
+      const adm = await criarUsuario(antigo, 'admin@teste.local', 'Admin Técnico de Teste')
+      const min = await criarUsuario(antigo, 'ministro@teste.local', 'Ministro de Teste')
+      await darPerfil(antigo, sec, 'secretaria')
+      await darPerfil(antigo, adm, 'admin_tecnico')
+      await antigo.query(
+        `insert into public.associados (pessoa_id, forma_admissao, admitido_em)
+         select id, 'cadastro_inicial', '2021-06-01' from public.pessoas where usuario_id = $1`,
+        [min],
+      )
+      const r = await antigo.query<{ id: string }>(
+        `insert into public.encontros (tipo, titulo, inicio, local, situacao, convocado_em)
+         values ('reuniao_mensal', 'Encontro de teste', now() - interval '1 hour', 'Local', 'convocado', now()) returning id`,
+      )
+      const id = r.rows[0].id
+      const minuto = 'floor(extract(epoch from now()) / 60)::bigint'
+
+      // antes da correção: o admin técnico lê o segredo na auditoria e refaz o código da tela
+      const antes = (await quem(sec, 'select public.portaria_do_encontro($1) as r', [id])).rows[0] as { r: { codigo: string } }
+      const vazado = (
+        (await quem(adm, `select dados_depois ->> 'segredo' as s from public.auditoria where tabela = 'encontro_portarias'`)).rows[0] as {
+          s: string
+        }
+      ).s
+      assert.match(vazado, /^\\x[0-9a-f]{64}$/, 'o banco de antes da correção deveria mostrar o segredo na auditoria')
+      const refazer = async () =>
+        (
+          await antigo.query<{ c: string }>(`select interno.codigo_da_portaria(decode(substr($1, 3), 'hex'), ${minuto}) as c`, [vazado])
+        ).rows[0].c
+      assert.equal(await refazer(), antes.r.codigo)
+
+      // a correção chega
+      await aplicarMigracao(antigo, '20261123140000')
+
+      // o segredo antigo continua na auditoria (ela não se altera), mas não vale mais
+      await assert.rejects(
+        quem(min, 'select public.marcar_minha_presenca($1, $2, false)', [id, await refazer()]),
+        erroComCodigo(BLOQUEADO_PELO_BANCO),
+      )
+      const depois = (await quem(sec, 'select public.portaria_do_encontro($1) as r', [id])).rows[0] as { r: { codigo: string } }
+      assert.notEqual(depois.r.codigo, await refazer())
+      const marcou = (await quem(min, 'select public.marcar_minha_presenca($1, $2, false) as r', [id, depois.r.codigo])).rows[0] as {
+        r: { resultado: string }
+      }
+      assert.equal(marcou.r.resultado, 'registrada')
+      // e o segredo novo não foi para a auditoria (o primeiro INSERT, de antes da correção, fica como estava)
+      const insercoes = await quem(
+        adm,
+        `select dados_depois ->> 'segredo' as s from public.auditoria
+         where tabela = 'encontro_portarias' and operacao = 'INSERT' order by id`,
+      )
+      assert.deepEqual(
+        (insercoes.rows as { s: string }[]).map((l) => l.s === '(protegido)'),
+        [false, true],
+      )
+      await antigo.close()
     })
   })
 
