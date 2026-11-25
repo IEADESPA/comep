@@ -1,7 +1,12 @@
 name: Verificar e publicar
 
-# Em todo pull request: lint, testes das regras do banco e build.
-# Ao entrar na branch main: os mesmos passos e, se tudo passar, publica no GitHub Pages.
+# Em todo pull request: lint, testes das regras do banco e build; e o ponta a ponta, se o PR mexe em algo além
+# de documentação.
+# Ao entrar na branch main: lint, testes e build e, se tudo passar, publica no GitHub Pages. O ponta a ponta NÃO
+# roda de novo na main: o PR já testou o mesmo código, porque a proteção da main exige o PR em dia com ela
+# ("strict") antes do merge. Decisão do presidente de 25/11/2026: cada rodada completa do ponta a ponta gera
+# ~17 mil pedidos no comep-teste, e a cota de logs do Supabase (1 GB/mês) estourou.
+# O workflow_dispatch (rodar à mão) roda tudo, inclusive o ponta a ponta.
 
 on:
   pull_request:
@@ -17,6 +22,41 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  mudancas:
+    # Diz se o PR mexe em algo além de documentação (*.md, docs/ e .claude/). Só documentação = sem ponta a ponta.
+    # O ponta a ponta pulado conta como aprovado na proteção da main (o GitHub trata o job pulado como sucesso).
+    name: O que o PR muda
+    runs-on: ubuntu-latest
+    outputs:
+      codigo: ${{ steps.conferir.outputs.codigo }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - id: conferir
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          TOPO: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENTO" != "pull_request" ]; then
+            echo "codigo=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          arquivos=$(git diff --name-only "$BASE...$TOPO")
+          echo "Arquivos mudados:"
+          echo "$arquivos"
+          fora_da_doc=$(echo "$arquivos" | grep -v -E '(\.md$|^docs/|^\.claude/)' || true)
+          if [ -n "$fora_da_doc" ]; then
+            echo "Mexe em algo além de documentação:"
+            echo "$fora_da_doc"
+            echo "codigo=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Só documentação: o ponta a ponta não roda."
+            echo "codigo=false" >> "$GITHUB_OUTPUT"
+          fi
+
   verificar:
     name: Lint, testes e build
     runs-on: ubuntu-latest
@@ -72,6 +112,11 @@ jobs:
     # Trava 3 (PROJETO.md, seção 14): um navegador de verdade usa o app ligado ao banco de TESTE,
     # com usuários fictícios de cada perfil, em tamanho de computador e de celular.
     name: Testes de ponta a ponta (banco de teste)
+    needs: [mudancas]
+    # Não roda no push da main (o PR já testou) nem em PR só de documentação; roda à mão (workflow_dispatch).
+    # Na dúvida, roda: se o "O que o PR muda" falhar, a saída fica vazia (não "false") e o ponta a ponta roda.
+    # O !cancelled() (e não always()) deixa o push novo no PR cancelar esta rodada, como antes.
+    if: ${{ !cancelled() && github.event_name != 'push' && needs.mudancas.outputs.codigo != 'false' }}
     runs-on: ubuntu-latest
     # 145 testes (computador e celular) passaram dos 20 minutos em 18/11/2026; com folga para a nova tentativa.
     # Em 20/11/2026, com o Financeiro e o Conselho Fiscal, a verificação da main foi cortada aos 30 minutos
@@ -126,7 +171,12 @@ jobs:
 
   publicar:
     name: Publicar no GitHub Pages
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # O always() deixa publicar com o ponta a ponta PULADO (push da main: o PR já testou); se ele rodou (à mão, pelo
+    # workflow_dispatch), só publica com ele aprovado.
+    if: >-
+      always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
+      needs.verificar.result == 'success' &&
+      (needs.ponta-a-ponta.result == 'success' || needs.ponta-a-ponta.result == 'skipped')
     needs: [verificar, ponta-a-ponta]
     runs-on: ubuntu-latest
     permissions:
