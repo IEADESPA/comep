@@ -567,22 +567,23 @@ export const MODULOS: readonly Modulo[] = [
     area: 'assembleias',
     item: '/assembleias',
     bases: ['/assembleias'],
-    // rodada 15 (18/11/2026), parte 14: as 7 funções do desenho (asm-presenca, asm-conducao e asm-fechamento)
+    // rodada 15 (18/11/2026), parte 14: as 7 funções do desenho (asm-presenca, asm-conducao e asm-fechamento), com os
+    // nomes e os ícones de lá (revisão da parte 14, achado 10)
     funcoes: [
-      { chave: 'encontros', titulo: 'Assembleias e reuniões', icone: 'assembleia', caminho: '/assembleias' },
-      { chave: 'preparar', titulo: 'Preparar assembleia', icone: 'mais', caminho: '/assembleias/novo', perfis: SECRETARIA_PRESIDENCIA },
+      { chave: 'encontros', titulo: 'Assembleias', icone: 'assembleia', caminho: '/assembleias' },
+      { chave: 'preparar', titulo: 'Preparar', icone: 'pedido', caminho: '/assembleias/novo', perfis: SECRETARIA_PRESIDENCIA },
       { chave: 'presenca', titulo: 'Presença', icone: 'qr', caminho: '/assembleias/presenca', perfis: SECRETARIA_PRESIDENCIA },
       { chave: 'conducao', titulo: 'Condução', icone: 'votar', caminho: '/assembleias/conducao', perfis: SECRETARIA_PRESIDENCIA },
       { chave: 'fechamento', titulo: 'Fechamento e ata', icone: 'check', caminho: '/assembleias/fechamento', perfis: SECRETARIA_PRESIDENCIA },
       {
         chave: 'faltas',
         titulo: 'Faltas e justificativas',
-        icone: 'relogio',
+        icone: 'alerta',
         caminho: '/assembleias/faltas',
         perfis: SECRETARIA_PRESIDENCIA,
         pendencia: 'justificativas',
       },
-      { chave: 'pedidos', titulo: 'Pedidos de AGE', icone: 'pedido', caminho: '/assembleias/pedidos' },
+      { chave: 'pedidos', titulo: 'Pedidos de AGE', icone: 'aviso', caminho: '/assembleias/pedidos' },
     ],
   },
   {

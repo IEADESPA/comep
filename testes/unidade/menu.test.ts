@@ -87,6 +87,22 @@ describe('o menu do módulo', () => {
       ['configuracoes'],
     )
   })
+
+  it('as funções das Assembleias com os nomes e os ícones do desenho (rodada 15; revisão da parte 14, achado 10)', () => {
+    const assembleias = MODULOS.find((m) => m.chave === 'assembleias')!
+    assert.deepEqual(
+      assembleias.funcoes.map((f) => [f.titulo, f.icone]),
+      [
+        ['Assembleias', 'assembleia'],
+        ['Preparar', 'pedido'],
+        ['Presença', 'qr'],
+        ['Condução', 'votar'],
+        ['Fechamento e ata', 'check'],
+        ['Faltas e justificativas', 'alerta'],
+        ['Pedidos de AGE', 'aviso'],
+      ],
+    )
+  })
 })
 
 describe('a tabela dos ministros', () => {
