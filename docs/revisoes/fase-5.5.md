@@ -879,3 +879,25 @@ A rodada 15 (asm-presenca opção 3; asm-conducao: o painel da opção 1, o rote
   - o ícone colado no texto de "Abrir a tela da portaria" e de "Abrir o telão";
   - o exemplo do campo do código cortado no celular;
   - a conta de "associados" da reunião mensal.
+
+## Correções da homologação: o D-10, pedir a correção do nome e do CNPJ da igreja (ainda na versão 5.5.0-teste.18)
+
+O desenho aprovado `minha-igreja-2` (opção 1, aba Dados) tem o link **Pedir correção** ao lado do rótulo do **Nome** e do **CNPJ**; a tela não tinha (D-10, achado na homologação de 22/11). A decisão de 22/11 e o plano do D-10 (aprovado em 23/11) dizem como: o pedido é de uma pessoa **ou** de uma igreja, só quem preside pede, o CNPJ passa pela conferência dos dígitos, a resposta vai para o sino e nada se apaga. Migração `20261123150000_correcao_da_igreja.sql`. Sem versão nova (a Parte 15 é a 5.5.0-teste.19).
+
+**O que entrou no banco:**
+
+- `pedidos_correcao`: `pessoa_id` aceita nulo, e a regra `pedidos_correcao_alvo` diz que o pedido é de uma pessoa ou de uma igreja (`igreja_nome` e `igreja_cnpj` ⇔ `pessoa_id` nulo). No pedido da igreja, `igreja_id` é a igreja corrigida. A política de leitura não mudou e não abre nada a mais: quem pediu, quem preside a igreja e a secretaria e a presidência.
+- `pedir_correcao_da_igreja(igreja, campo, valor)`, só para quem preside a igreja. A igreja de outro pastor e a que não existe recebem o mesmo erro. O nome vai de 3 a 200 letras; o CNPJ, sem a pontuação, passa por `interno.cnpj_valido` (aceita o alfanumérico) e não pode ser o de outra igreja. Recusa o valor igual ao de hoje e o segundo pedido pendente do mesmo dado.
+- `aplicar_correcao` troca o `igrejas.nome` e o `igrejas.cnpj` (a auditoria guarda o antes e o depois). Se outra igreja passou a usar o CNPJ depois do pedido, aceitar é recusado com a explicação.
+- `responder_correcao`: ninguém aceita o próprio pedido, e a resposta vai para o sino de quem pediu. No pedido da igreja, com o dado (o nome e o CNPJ são públicos). No pedido da pessoa, que até aqui não avisava (o plano pede os dois), **sem o dado**: o aviso pode aparecer na tela do celular, e o dado pode ser o CPF ou a filiação. O link leva o ministro a Meu perfil › Correções e quem preside a Minha igreja › Ministros.
+
+**As telas:**
+
+- **Minha igreja › Dados:** "Pedir correção" à direita do rótulo do Nome e do CNPJ, como no desenho; a Denominação continua sem. O link abre, no lugar do campo, "Como está", "Como deve ficar", "Mandar para a secretaria" e "Cancelar". O CNPJ tem a máscara e o aviso dos dígitos na hora ("Confira o CNPJ: os dois últimos números (os dígitos) não batem."), e o botão só acende com o CNPJ certo. Com um pedido esperando, o link vira **Esperando a secretaria**. A grade saiu de dentro do formulário do contato (formulário dentro de formulário não existe): os campos do contato entram nele pelo atributo `form`, e o "Salvar contato da igreja" funciona como antes.
+- **Ministros e inscrições › Correções pedidas** (a fila que a secretaria já usa): o pedido da igreja aparece com o selo **Igreja**, o link para a ficha da igreja e os botões Aceitar e Recusar, como os outros.
+- **Minha igreja › Ministros › Pedidos de correção:** quem preside vê também os da igreja, com o nome da igreja, a situação e a resposta.
+
+**O que ficou de fora e por quê:**
+
+- **A rodada 33** (tela `correcao-igreja`: a fila com as pílulas Todas/Igrejas/Ministros, a tela "Conferir a correção do CNPJ" com "O que o sistema já conferiu" e "Consultar o CNPJ na Receita", e a resposta na aba Dados com "Corrigido em …") está publicada e ainda **não foi aprovada**. Por isso a fila ficou onde já estava, como diz o plano, e o resto espera a aprovação.
+- **O cartão CNPJ depois da troca do CNPJ** (a pergunta do plano e da rodada 33, ainda sem resposta): por enquanto, como propõe o plano, aceitar não mexe nos documentos; se precisar, a secretaria pede o cartão novo pela aba Documentos.
