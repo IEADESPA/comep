@@ -393,7 +393,7 @@ function InformarPagamento({
           </label>
           <label className="largura-total">
             Observação
-            <input value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+            <input maxLength={1000} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
           </label>
         </div>
         {total > 0 && <p>Total: {formatarReais(total)}</p>}

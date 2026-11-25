@@ -186,17 +186,17 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
               <>
                 <label>
                   Nome da sua igreja *
-                  <input required {...campo('igreja_informada')} />
+                  <input required maxLength={200} {...campo('igreja_informada')} />
                 </label>
                 <label>
                   Denominação
-                  <input {...campo('denominacao_informada')} />
+                  <input maxLength={200} {...campo('denominacao_informada')} />
                 </label>
               </>
             )}
             <label>
               Função na igreja
-              <input list="sugestoes-funcao-pedido" {...campo('funcao')} />
+              <input list="sugestoes-funcao-pedido" maxLength={120} {...campo('funcao')} />
               <datalist id="sugestoes-funcao-pedido">
                 {SUGESTOES_FUNCAO.map((s) => (
                   <option key={s} value={s} />
@@ -284,7 +284,7 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
 
       <label>
         Observações (opcional)
-        <textarea rows={2} {...campo('observacoes')} />
+        <textarea rows={2} maxLength={1000} {...campo('observacoes')} />
       </label>
 
       <Mensagem erro={erro} />

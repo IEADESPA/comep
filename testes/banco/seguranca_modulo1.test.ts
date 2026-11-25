@@ -336,4 +336,142 @@ describe('Revisão permanente, módulo 1 — segurança do banco', () => {
       assert.equal(await nomeDe(comAcento), 'José Antônio de Araújo Conceição')
     })
   })
+
+  // Revisão das telas gerais (módulo 5): o texto livre dos pedidos e do informe tem tamanho, e pedir e desistir tem teto.
+  describe('S5-01 — os pedidos e o informe de pagamento têm tamanho, e pedir de novo tem teto por dia', () => {
+    let tituloPastor: string
+    let igrejaA: string
+
+    /** Recusado com a mensagem do banco (P0001) que fala em "hoje". */
+    const tetoDoDia = (erro: unknown) =>
+      (erro as { code?: string }).code === BLOQUEADO_PELO_BANCO && /hoje/.test((erro as { message?: string }).message ?? '')
+
+    async function pedirAssociacao(usuario: string, mudar: Record<string, unknown> = {}) {
+      const pessoa = await pessoaDe(usuario)
+      const dados = {
+        pessoa_id: pessoa,
+        titulo_id: tituloPastor,
+        igreja_informada: 'Igreja Fictícia do Bairro Novo',
+        foto_caminho: `pessoas/${pessoa}/foto-1.jpg`,
+        comprovante_caminho: `pessoas/${pessoa}/comprovante-1.pdf`,
+        declara_principios_fe: true,
+        declara_estatuto: true,
+        consente_lgpd: true,
+        ...mudar,
+      }
+      const colunas = Object.keys(dados)
+      const r = await chamar(
+        usuario,
+        `insert into public.pedidos_associacao (${colunas.join(', ')})
+         values (${colunas.map((_, i) => `$${i + 1}`).join(', ')}) returning id`,
+        Object.values(dados),
+      )
+      return (r.rows[0] as { id: string }).id
+    }
+    const desistir = (usuario: string, pedido: string) =>
+      chamar(usuario, "update public.pedidos_associacao set situacao = 'desistiu' where id = $1", [pedido])
+
+    async function associarAtivo(usuario: string) {
+      const pessoa = await pessoaDe(usuario)
+      await db.query("insert into public.associados (pessoa_id, forma_admissao) values ($1, 'cadastro_inicial')", [pessoa])
+      await db.query('insert into public.vinculos_igreja (pessoa_id, igreja_id, funcao) values ($1, $2, $3)', [pessoa, igrejaA, 'Pastor auxiliar'])
+      return pessoa
+    }
+    async function pedirTroca(usuario: string, mudar: Record<string, unknown> = {}) {
+      const dados = { pessoa_id: await pessoaDe(usuario), igreja_informada: 'Igreja Fictícia da Troca', ...mudar }
+      const colunas = Object.keys(dados)
+      const r = await chamar(
+        usuario,
+        `insert into public.pedidos_troca_igreja (${colunas.join(', ')})
+         values (${colunas.map((_, i) => `$${i + 1}`).join(', ')}) returning id`,
+        Object.values(dados),
+      )
+      return (r.rows[0] as { id: string }).id
+    }
+    const cancelarTroca = (usuario: string, troca: string) =>
+      chamar(usuario, "update public.pedidos_troca_igreja set situacao = 'cancelado' where id = $1", [troca])
+
+    before(async () => {
+      tituloPastor = (await um<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor(a)'")).id
+      igrejaA = (await um<{ id: string }>("insert into public.igrejas (nome) values ('Igreja Fictícia A') returning id")).id
+    })
+
+    it('o pedido de associação: até o limite vale; texto gigante é recusado em cada campo livre', async () => {
+      const candidato = await criarUsuario(db, 'candidato.tamanho@teste.local', 'Candidato Fictício do Tamanho')
+      const noLimite = await pedirAssociacao(candidato, {
+        igreja_informada: 'I'.repeat(200),
+        denominacao_informada: 'D'.repeat(200),
+        funcao: 'F'.repeat(120),
+        observacoes: 'O'.repeat(1000),
+      })
+      await desistir(candidato, noLimite)
+      for (const [campo, tamanho] of [
+        ['igreja_informada', 201],
+        ['denominacao_informada', 201],
+        ['funcao', 121],
+        ['observacoes', 1001],
+        ['observacoes', 500_000],
+      ] as const) {
+        await assert.rejects(pedirAssociacao(candidato, { [campo]: 'x'.repeat(tamanho) }), erroComCodigo(FORA_DO_FORMATO), `${campo} ${tamanho}`)
+      }
+    })
+
+    it('o pedido de associação: pedir e desistir tem teto de 3 por dia (o de ontem não conta)', async () => {
+      const candidato = await criarUsuario(db, 'candidato.teto@teste.local', 'Candidato Fictício do Teto')
+      const pessoa = await pessoaDe(candidato)
+      // um pedido de ontem, já desistido, não entra na conta de hoje
+      const ontem = (
+        await um<{ id: string }>(
+          `insert into public.pedidos_associacao (pessoa_id, titulo_id, igreja_informada, foto_caminho, comprovante_caminho,
+             declara_principios_fe, declara_estatuto, consente_lgpd, criado_em)
+           values ($1, $2, 'Igreja Fictícia', $3, $4, true, true, true, now() - interval '1 day') returning id`,
+          [pessoa, tituloPastor, `pessoas/${pessoa}/foto-0.jpg`, `pessoas/${pessoa}/comprovante-0.pdf`],
+        )
+      ).id
+      await desistir(candidato, ontem)
+      for (let vez = 1; vez <= 3; vez++) await desistir(candidato, await pedirAssociacao(candidato))
+      await assert.rejects(pedirAssociacao(candidato), tetoDoDia)
+      // o teto é de cada pessoa: outro candidato pede normalmente
+      const outro = await criarUsuario(db, 'candidato.outro@teste.local', 'Outro Candidato Fictício')
+      await pedirAssociacao(outro)
+    })
+
+    it('a troca de igreja: tamanho nos campos livres e teto de 3 pedidos por dia', async () => {
+      const ministro = await criarUsuario(db, 'ministro.troca@teste.local', 'Ministro Fictício da Troca')
+      await associarAtivo(ministro)
+      await cancelarTroca(ministro, await pedirTroca(ministro, { igreja_informada: 'I'.repeat(200), funcao: 'F'.repeat(120), observacao: 'O'.repeat(1000) }))
+      for (const [campo, tamanho] of [
+        ['igreja_informada', 201],
+        ['funcao', 121],
+        ['observacao', 1001],
+        ['observacao', 500_000],
+      ] as const) {
+        await assert.rejects(pedirTroca(ministro, { [campo]: 'x'.repeat(tamanho) }), erroComCodigo(FORA_DO_FORMATO), `${campo} ${tamanho}`)
+      }
+      // já pediu 1 hoje; mais 2 e chega ao teto
+      for (let vez = 2; vez <= 3; vez++) await cancelarTroca(ministro, await pedirTroca(ministro))
+      await assert.rejects(pedirTroca(ministro), tetoDoDia)
+    })
+
+    it('o informe de pagamento: a forma e a observação têm tamanho', async () => {
+      const associado = await criarUsuario(db, 'associado.informe@teste.local', 'Associado Fictício do Informe')
+      const pessoa = await associarAtivo(associado)
+      const cobranca = async (mes: number) =>
+        (
+          await um<{ id: string }>(
+            `insert into public.cobrancas (pessoa_id, exercicio, tipo, competencia, vencimento, categoria, valor)
+             values ($1, 2030, 'mensal', make_date(2030, $2, 1), make_date(2030, $2, 10), 'nao_presidente', 1) returning id`,
+            [pessoa, mes],
+          )
+        ).id
+      const informar = (cobrancaId: string, forma: string, observacao: string | null) =>
+        chamar(associado, 'select public.informar_pagamento($1, current_date, $2, null, $3)', [[cobrancaId], forma, observacao])
+
+      await informar(await cobranca(4), 'F'.repeat(60), 'O'.repeat(1000))
+      const outra = await cobranca(5)
+      await assert.rejects(informar(outra, 'F'.repeat(61), null), erroComCodigo(FORA_DO_FORMATO))
+      await assert.rejects(informar(outra, 'PIX', 'O'.repeat(1001)), erroComCodigo(FORA_DO_FORMATO))
+      await assert.rejects(informar(outra, 'PIX', 'O'.repeat(500_000)), erroComCodigo(FORA_DO_FORMATO))
+    })
+  })
 })

@@ -570,13 +570,13 @@ function MinhaIgrejaEHistorico({
               {escolha === OUTRA_IGREJA && (
                 <label>
                   Nome da igreja nova *
-                  <input required value={troca.igrejaInformada} onChange={(e) => setTroca({ ...troca, igrejaInformada: e.target.value })} />
+                  <input required maxLength={200} value={troca.igrejaInformada} onChange={(e) => setTroca({ ...troca, igrejaInformada: e.target.value })} />
                 </label>
               )}
               <div className="grade-form">
                 <label>
                   Função na igreja nova
-                  <input list="sugestoes-funcao-perfil" value={troca.funcao} onChange={(e) => setTroca({ ...troca, funcao: e.target.value })} />
+                  <input list="sugestoes-funcao-perfil" maxLength={120} value={troca.funcao} onChange={(e) => setTroca({ ...troca, funcao: e.target.value })} />
                   <datalist id="sugestoes-funcao-perfil">
                     {SUGESTOES_FUNCAO.map((s) => (
                       <option key={s} value={s} />
@@ -598,7 +598,7 @@ function MinhaIgrejaEHistorico({
               </label>
               <label>
                 Observação
-                <input value={troca.observacao} onChange={(e) => setTroca({ ...troca, observacao: e.target.value })} />
+                <input maxLength={1000} value={troca.observacao} onChange={(e) => setTroca({ ...troca, observacao: e.target.value })} />
               </label>
               <div className="acoes">
                 <button type="submit" className="botao" disabled={enviando}>
