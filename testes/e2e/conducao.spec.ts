@@ -5,9 +5,10 @@
 // nas Regras (Configurações) e devolve os valores no fim. AGE FICTÍCIA: instalada, ela não se cancela mais (revisão da
 // Fase 4); no fim, a lista de presença é encerrada e ela fica em "Anteriores" do banco de teste, com o título "E2E".
 // Se o teste parar antes de instalar, ela é cancelada e arquivada. O desligamento (sem volta) é testado só no banco
-// (testes/banco/conducao.test.ts); a votação pelo celular, em votacoes.spec.ts.
-import { expect, test, type Page } from '@playwright/test'
-import { arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
+// (testes/banco/conducao.test.ts); a votação pelo celular, em votacoes.spec.ts. No celular, um teste à parte (uma
+// reunião mensal, sem esperar) confere a ordem do desenho do celular, o telão e o fechamento.
+import { expect, test, type Locator, type Page } from '@playwright/test'
+import { arquivoDaSessao, cancelarEArquivarEncontro, mensagemNaTela, reuniaoMensalPublicada, sufixoUnico } from './ajuda'
 
 test.use({ storageState: arquivoDaSessao('presidencia') })
 
@@ -224,4 +225,43 @@ test('o ministro não abre a condução, o telão nem o fechamento', async ({ br
   await m.goto('assembleias/00000000-0000-0000-0000-000000000000/conducao')
   await expect(m).toHaveURL(/\/assembleias\/conducao\/0{8}-/)
   await ministro.close()
+})
+
+test('no celular: a condução começa pelos presentes e pelo item de agora; o telão e o fechamento cabem na tela', async ({ page }, info) => {
+  test.skip(info.project.name !== 'celular', 'no computador, o teste da assembleia ao vivo (acima) passa pelas mesmas telas')
+  test.setTimeout(150_000)
+  // uma reunião mensal daqui a 1 hora: a presença e a condução já abrem, sem esperar nem mexer nas regras
+  const titulo = `Reunião condução celular E2E ${sufixoUnico(info.project.name)}`
+  const endereco = await reuniaoMensalPublicada(page, titulo, 1, 'Informe da diretoria (teste)')
+  const id = endereco.split('/').pop() ?? ''
+  const cabeNaLargura = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+  const altura = async (l: Locator) => (await l.boundingBox())?.y ?? Number.NaN
+  try {
+    await page.goto(`assembleias/conducao/${id}`)
+    await expect(page.getByRole('heading', { name: 'Ao vivo', level: 1 })).toBeVisible()
+    await page.getByRole('button', { name: 'Começar o roteiro' }).click()
+    await expect(mensagemNaTela(page, 'Agora: Introdução.')).toBeVisible()
+    // o desenho do celular (asm-conducao): primeiro os presentes (o quórum), depois o item de agora; o roteiro depois
+    // (revisão da parte 14, achado 10)
+    const presentes = page.getByRole('region', { name: 'Presentes', exact: true })
+    const agora = page.getByRole('heading', { name: 'Introdução', level: 2 })
+    const roteiro = page.getByRole('list', { name: 'Roteiro' })
+    await expect(presentes).toBeVisible()
+    expect(await altura(presentes)).toBeLessThan(await altura(agora))
+    expect(await altura(agora)).toBeLessThan(await altura(roteiro))
+    expect(await cabeNaLargura()).toBe(true)
+
+    // o telão (no celular também funciona) e o fechamento
+    await page.goto(`assembleias/telao/${id}`)
+    const telao = page.getByRole('main', { name: 'Telão' })
+    await expect(telao).toContainText('Introdução')
+    await expect(telao).toContainText('presentes na reunião')
+    expect(await cabeNaLargura()).toBe(true)
+    await page.goto(`assembleias/fechamento/${id}`)
+    await expect(page.getByRole('heading', { name: 'Fechamento e ata', level: 1 })).toBeVisible()
+    await expect(page.getByRole('list', { name: 'Os números do encontro' })).toBeVisible()
+    expect(await cabeNaLargura()).toBe(true)
+  } finally {
+    await cancelarEArquivarEncontro(page, endereco, titulo)
+  }
 })

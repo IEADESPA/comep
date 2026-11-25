@@ -10126,6 +10126,21 @@ li.feito .numero-passo {
   }
 }
 
+/* Numa coluna só (o celular), o desenho começa pelo quórum e pelo item de agora; depois o roteiro e os convidados */
+@media (max-width: 1099.98px) {
+  .conducao-lado {
+    display: contents;
+  }
+
+  .conducao-quorum {
+    order: -2;
+  }
+
+  .conducao-agora {
+    order: -1;
+  }
+}
+
 .roteiro {
   margin: 0;
   padding: 0;

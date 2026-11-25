@@ -142,9 +142,11 @@ function ConteudoConducao({ id }: { id: string }) {
               }
             />
             <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
+            {/* No computador: o roteiro, o item de agora e o quórum, em três colunas. No celular (desenho do celular): o
+                quórum e o item de agora primeiro, depois o roteiro e os convidados (a ordem fica no estilos.css) */}
             <div className="conducao-colunas">
               {/* 1. O roteiro */}
-              <section className="bloco" aria-labelledby="titulo-roteiro">
+              <section className="bloco conducao-roteiro" aria-labelledby="titulo-roteiro">
                 <h2 id="titulo-roteiro">Roteiro</h2>
                 <ol className="roteiro" aria-label="Roteiro">
                   {roteiro.map((item, i) => {
@@ -198,7 +200,7 @@ function ConteudoConducao({ id }: { id: string }) {
               </section>
 
               {/* 2. A votação do item de agora */}
-              <div className="coluna-pilha">
+              <div className="coluna-pilha conducao-agora">
                 {!atual ? (
                   <section className="bloco" aria-labelledby="titulo-agora">
                     <h2 id="titulo-agora">Agora</h2>
@@ -242,34 +244,36 @@ function ConteudoConducao({ id }: { id: string }) {
               </div>
 
               {/* 3. O quórum e os convidados */}
-              <div className="coluna-pilha">
-                <CartaoQuorum e={e} quorum={quorum} />
-                {assembleia && !e.instalada_em && e.situacao === 'convocado' && (
-                  <div className="acoes">
-                    <button
-                      type="button"
-                      className="botao"
-                      disabled={enviando}
-                      onClick={() =>
-                        void umaVez(async () => {
-                          const r = await instalarAssembleia(e.id)
-                          concluir(r, r.erro === null ? `Assembleia instalada em ${r.dados.chamada === 'primeira' ? '1ª' : '2ª'} chamada.` : '')
-                        })
-                      }
-                    >
-                      Instalar a assembleia
-                    </button>
-                    <Link className="botao-texto" to={`/assembleias/presenca/${e.id}`}>
-                      Presença
-                    </Link>
-                  </div>
-                )}
-                {assembleia && !e.instalada_em && e.segunda_chamada_minutos !== null && (
-                  <p className="detalhe">
-                    Sem quórum, a 2ª chamada é com qualquer número, a partir das{' '}
-                    {horaDe(new Date(new Date(e.inicio).getTime() + e.segunda_chamada_minutos * 60_000).toISOString())}.
-                  </p>
-                )}
+              <div className="coluna-pilha conducao-lado">
+                <div className="coluna-pilha conducao-quorum">
+                  <CartaoQuorum e={e} quorum={quorum} />
+                  {assembleia && !e.instalada_em && e.situacao === 'convocado' && (
+                    <div className="acoes">
+                      <button
+                        type="button"
+                        className="botao"
+                        disabled={enviando}
+                        onClick={() =>
+                          void umaVez(async () => {
+                            const r = await instalarAssembleia(e.id)
+                            concluir(r, r.erro === null ? `Assembleia instalada em ${r.dados.chamada === 'primeira' ? '1ª' : '2ª'} chamada.` : '')
+                          })
+                        }
+                      >
+                        Instalar a assembleia
+                      </button>
+                      <Link className="botao-texto" to={`/assembleias/presenca/${e.id}`}>
+                        Presença
+                      </Link>
+                    </div>
+                  )}
+                  {assembleia && !e.instalada_em && e.segunda_chamada_minutos !== null && (
+                    <p className="detalhe">
+                      Sem quórum, a 2ª chamada é com qualquer número, a partir das{' '}
+                      {horaDe(new Date(new Date(e.inicio).getTime() + e.segunda_chamada_minutos * 60_000).toISOString())}.
+                    </p>
+                  )}
+                </div>
                 <Convidados convidados={convidados} registrar={muda.registrarConvidado} tirar={muda.tirarConvidado} e={e} aoConcluir={concluir} />
               </div>
             </div>
