@@ -6,8 +6,8 @@
 // Fase 4); no fim, a lista de presença é encerrada e ela fica em "Anteriores" do banco de teste, com o título "E2E".
 // Se o teste parar antes de instalar, ela é cancelada e arquivada. O desligamento (sem volta) é testado só no banco
 // (testes/banco/conducao.test.ts). A votação pelo celular aberta pela condução (o item 2) aparece na condução e no
-// telão (revisão da parte 14, achado 5); a do módulo Votações está em votacoes.spec.ts. No celular, um teste à parte
-// (uma reunião mensal, sem esperar) confere a ordem do desenho do celular, o telão e o fechamento.
+// telão (revisão da parte 14, achado 5); a do módulo Votações está em votacoes.spec.ts. Um teste à parte, também no
+// celular (uma reunião mensal, sem esperar), confere a ordem do desenho do celular, o telão e o fechamento.
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { arquivoDaSessao, cancelarEArquivarEncontro, mensagemNaTela, reuniaoMensalPublicada, sufixoUnico } from './ajuda'
 
@@ -27,6 +27,12 @@ function campoDaquiMinutos(minutos: number): string {
   const dia = d.toLocaleDateString('sv-SE', { timeZone: 'America/Belem' })
   const hora = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Belem', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
   return `${dia}T${hora}`
+}
+
+/** O espaço, em pixels, entre o fim de um elemento e o começo do que vem embaixo dele. */
+async function espacoEntre(acima: Locator, abaixo: Locator): Promise<number> {
+  const [a, b] = [await acima.boundingBox(), await abaixo.boundingBox()]
+  return a && b ? b.y - (a.y + a.height) : Number.NaN
 }
 
 const ITEM = 'Aprovar o relatório (teste)'
@@ -74,6 +80,8 @@ test('assembleia ao vivo: roteiro, instalar, votar, telão, convidado, resoluç�
     await expect(page.getByRole('heading', { name: 'Ao vivo', level: 1 })).toBeVisible()
     const roteiro = page.getByRole('list', { name: 'Roteiro' })
     await expect(roteiro).toContainText('Introdução')
+    // os botões do alto não encostam no primeiro cartão (revisão da parte 14, achado 10)
+    expect(await espacoEntre(page.getByRole('link', { name: 'Abrir o telão' }), page.getByRole('region', { name: 'Roteiro', exact: true }))).toBeGreaterThanOrEqual(12)
     await expect(roteiro).toContainText(ITEM)
     await page.getByRole('button', { name: 'Começar o roteiro' }).click()
     await expect(mensagemNaTela(page, 'Agora: Introdução.')).toBeVisible()
@@ -256,11 +264,11 @@ test('o ministro não abre a condução, o telão nem o fechamento', async ({ br
   await ministro.close()
 })
 
-test('no celular: a condução começa pelos presentes e pelo item de agora; o telão e o fechamento cabem na tela', async ({ page }, info) => {
-  test.skip(info.project.name !== 'celular', 'no computador, o teste da assembleia ao vivo (acima) passa pelas mesmas telas')
+test('a reunião mensal ao vivo: no celular, os presentes e o item de agora primeiro; o telão numa coluna só', async ({ page }, info) => {
   test.setTimeout(150_000)
+  const celular = info.project.name === 'celular'
   // uma reunião mensal daqui a 1 hora: a presença e a condução já abrem, sem esperar nem mexer nas regras
-  const titulo = `Reunião condução celular E2E ${sufixoUnico(info.project.name)}`
+  const titulo = `Reunião condução E2E ${sufixoUnico(info.project.name)}`
   const endereco = await reuniaoMensalPublicada(page, titulo, 1, 'Informe da diretoria (teste)')
   const id = endereco.split('/').pop() ?? ''
   const cabeNaLargura = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
@@ -270,21 +278,29 @@ test('no celular: a condução começa pelos presentes e pelo item de agora; o t
     await expect(page.getByRole('heading', { name: 'Ao vivo', level: 1 })).toBeVisible()
     await page.getByRole('button', { name: 'Começar o roteiro' }).click()
     await expect(mensagemNaTela(page, 'Agora: Introdução.')).toBeVisible()
-    // o desenho do celular (asm-conducao): primeiro os presentes (o quórum), depois o item de agora; o roteiro depois
-    // (revisão da parte 14, achado 10)
     const presentes = page.getByRole('region', { name: 'Presentes', exact: true })
     const agora = page.getByRole('heading', { name: 'Introdução', level: 2 })
     const roteiro = page.getByRole('list', { name: 'Roteiro' })
     await expect(presentes).toBeVisible()
-    expect(await altura(presentes)).toBeLessThan(await altura(agora))
-    expect(await altura(agora)).toBeLessThan(await altura(roteiro))
+    if (celular) {
+      // o desenho do celular (asm-conducao): primeiro os presentes (o quórum), depois o item de agora; o roteiro depois
+      // (revisão da parte 14, achado 10)
+      expect(await altura(presentes)).toBeLessThan(await altura(agora))
+      expect(await altura(agora)).toBeLessThan(await altura(roteiro))
+      // os botões do alto não encostam no primeiro cartão
+      expect(await espacoEntre(page.getByRole('link', { name: 'Abrir o telão' }), presentes)).toBeGreaterThanOrEqual(12)
+    }
     expect(await cabeNaLargura()).toBe(true)
 
-    // o telão (no celular também funciona) e o fechamento
+    // o telão: sem votação para mostrar, uma coluna só, no centro, sem o título do encontro solto ao lado do número
+    // (revisão da parte 14, achado 10)
     await page.goto(`assembleias/telao/${id}`)
     const telao = page.getByRole('main', { name: 'Telão' })
     await expect(telao).toContainText('Introdução')
     await expect(telao).toContainText('presentes na reunião')
+    await expect(telao).not.toContainText(titulo)
+    const [caixa, item] = [await telao.boundingBox(), await telao.getByRole('heading', { level: 1 }).boundingBox()]
+    expect(Math.abs(item!.x + item!.width / 2 - (caixa!.x + caixa!.width / 2))).toBeLessThan(caixa!.width * 0.05)
     expect(await cabeNaLargura()).toBe(true)
     await page.goto(`assembleias/fechamento/${id}`)
     await expect(page.getByRole('heading', { name: 'Fechamento e ata', level: 1 })).toBeVisible()

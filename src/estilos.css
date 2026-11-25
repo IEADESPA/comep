@@ -10382,6 +10382,17 @@ li.feito .numero-passo {
   }
 }
 
+/* Sem votação para mostrar, uma coluna só, no centro */
+.telao-miolo.telao-uma-coluna {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  text-align: center;
+}
+
+.telao-uma-coluna .telao-esquerda {
+  align-items: center;
+}
+
 .telao-esquerda,
 .telao-direita {
   min-width: 0;

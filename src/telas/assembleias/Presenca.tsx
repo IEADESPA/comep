@@ -118,7 +118,7 @@ function ConteudoPresenca({ id }: { id: string }) {
         const achados =
           termo.length < 2 ? [] : lista.filter((l) => contemTexto(l.nome, termo) || String(l.numero_registro) === termo.replace(/^0+/, ''))
         return (
-          <>
+          <div className="tela-nova">
             <CabecalhoDoEncontro
               e={encontro}
               titulo="Presença"
@@ -281,7 +281,7 @@ function ConteudoPresenca({ id }: { id: string }) {
                 </section>
               </div>
             </div>
-          </>
+          </div>
         )
       }}
     </MostrarCarga>

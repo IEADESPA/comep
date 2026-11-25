@@ -117,7 +117,7 @@ function ConteudoFechamento({ id }: { id: string }) {
         const algumaAssinatura = Boolean(ata?.assinada_secretario_em || ata?.assinada_presidente_em)
         const titulo = encerrada ? (assembleia ? 'A assembleia encerrada' : 'A reunião encerrada') : 'Fechamento e ata'
         return (
-          <>
+          <div className="tela-nova">
             <CabecalhoDoEncontro
               e={e}
               titulo={titulo}
@@ -185,7 +185,7 @@ function ConteudoFechamento({ id }: { id: string }) {
                 )}
               </div>
             </div>
-          </>
+          </div>
         )
       }}
     </MostrarCarga>

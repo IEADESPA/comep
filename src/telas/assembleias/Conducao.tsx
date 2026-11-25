@@ -125,7 +125,7 @@ function ConteudoConducao({ id }: { id: string }) {
         const atual = roteiro.find((i) => i.chave === e.roteiro_atual) ?? null
         const mexer = (item: string | null, sucesso: string) => void umaVez(async () => concluir(await avancarRoteiro(e.id, item), sucesso))
         return (
-          <>
+          <div className="tela-nova">
             <CabecalhoDoEncontro
               e={e}
               titulo="Ao vivo"
@@ -277,7 +277,7 @@ function ConteudoConducao({ id }: { id: string }) {
                 <Convidados convidados={convidados} registrar={muda.registrarConvidado} tirar={muda.tirarConvidado} e={e} aoConcluir={concluir} />
               </div>
             </div>
-          </>
+          </div>
         )
       }}
     </MostrarCarga>
