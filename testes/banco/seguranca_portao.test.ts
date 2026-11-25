@@ -195,4 +195,91 @@ describe('Revisão do portão — segurança do banco, módulo 1', () => {
       assert.equal((await lido(await pessoaDe(conta))).nome, 'Nome Fictício Duro')
     })
   })
+
+  describe('Portão 3 (S5-06) — o nome, o endereço e o telefone da igreja têm tamanho', () => {
+    let denominacao: string
+    let igreja: string
+    let secretaria: string
+    let pastor: string
+    let ministroNovo: string
+
+    /** CNPJ fictício com os dígitos verificadores certos (12 números de base). */
+    const cnpjFicticio = (base: string) => {
+      const v = base.split('').map((c) => c.charCodeAt(0) - 48)
+      const dv = (pesos: number[]) => {
+        const soma = pesos.reduce((s, p, i) => s + v[i] * p, 0)
+        return soma % 11 < 2 ? 0 : 11 - (soma % 11)
+      }
+      v.push(dv([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]))
+      v.push(dv([6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]))
+      return base + v.slice(12).join('')
+    }
+    const daIgreja = (id: string) =>
+      um<{ nome: string; endereco: string | null; telefone: string | null }>('select nome, endereco, telefone from public.igrejas where id = $1', [id])
+
+    before(async () => {
+      denominacao = (await um<{ id: string }>("insert into public.denominacoes (nome) values ('Denominação Fictícia do Portão') returning id")).id
+      igreja = (
+        await um<{ id: string }>("insert into public.igrejas (nome, denominacao_id) values ('Igreja Fictícia do Portão', $1) returning id", [denominacao])
+      ).id
+      secretaria = await criarUsuario(db, 'secretaria.igreja@teste.local', 'Secretaria Fictícia da Igreja')
+      await darPerfil(db, secretaria, 'secretaria')
+      pastor = await criarUsuario(db, 'pastor.portao@teste.local', 'Pastor Fictício do Portão')
+      ministroNovo = await criarUsuario(db, 'ministro.igreja.nova@teste.local', 'Ministro Fictício da Igreja Nova')
+      for (const usuario of [pastor, ministroNovo]) {
+        await db.query("insert into public.associados (pessoa_id, forma_admissao, admitido_em) values ($1, 'cadastro_inicial', '2021-06-01')", [
+          await pessoaDe(usuario),
+        ])
+      }
+      await db.query('insert into public.vinculos_igreja (pessoa_id, igreja_id, pastor_presidente) values ($1, $2, true)', [await pessoaDe(pastor), igreja])
+    })
+
+    it('o pastor presidente grava o endereço até 300 e o telefone até 40; o que passa recebe a mensagem do campo', async () => {
+      const gravar = (coluna: 'endereco' | 'telefone', valor: string) =>
+        chamar(pastor, `update public.igrejas set ${coluna} = $1 where id = $2`, [valor, igreja])
+      await assert.rejects(gravar('endereco', 'R'.repeat(301)), recusadoCom(/endereço.*300/))
+      await assert.rejects(gravar('endereco', 'R'.repeat(1_000_000)), recusadoCom(/endereço.*300/))
+      await assert.rejects(gravar('telefone', '9'.repeat(41)), recusadoCom(/telefone.*40/))
+      await assert.rejects(gravar('telefone', '9'.repeat(1_000_000)), recusadoCom(/telefone.*40/))
+      // no limite, vale
+      await gravar('endereco', `Rua Fictícia, ${'R'.repeat(286)}`)
+      await gravar('telefone', '(94) 99999-0000 / (94) 98888-0000 recado')
+      const g = await daIgreja(igreja)
+      assert.equal(g.endereco?.length, 300)
+      assert.equal(g.telefone, '(94) 99999-0000 / (94) 98888-0000 recado')
+    })
+
+    it('o nome da igreja vai até 200, no cadastro pela secretaria e na tabela', async () => {
+      const cadastrar = (nome: string) =>
+        chamar(secretaria, 'select public.cadastrar_igreja($1::jsonb) as id', [JSON.stringify({ tem_registro: false, nome, denominacao_id: denominacao })])
+      await assert.rejects(cadastrar(`Igreja Fictícia ${'I'.repeat(185)}`), recusadoCom(/nome.*200/))
+      await assert.rejects(cadastrar('I'.repeat(1_000_000)), recusadoCom(/nome.*200/))
+      const nome200 = `Igreja Fictícia ${'I'.repeat(184)}`
+      const id = ((await cadastrar(nome200)).rows[0] as { id: string }).id
+      assert.equal((await daIgreja(id)).nome, nome200)
+      await assert.rejects(
+        chamar(secretaria, 'update public.igrejas set nome = $1 where id = $2', [`${nome200}I`, id]),
+        recusadoCom(/nome.*200/),
+      )
+    })
+
+    it('o ministro que cadastra a própria igreja também fica no limite, no pedido e na correção', async () => {
+      const dados = {
+        nome: 'Igreja Nova Fictícia do Portão',
+        denominacao_id: '',
+        cnpj: cnpjFicticio('778889990001'),
+        natureza_juridica: 'organizacao_religiosa',
+      }
+      dados.denominacao_id = denominacao
+      const pedir = (nome: string) =>
+        chamar(ministroNovo, 'select public.pedir_cadastro_igreja($1::jsonb) as id', [JSON.stringify({ ...dados, nome })])
+      await assert.rejects(pedir('I'.repeat(201)), recusadoCom(/nome.*200/))
+      const nova = ((await pedir(dados.nome)).rows[0] as { id: string }).id
+      await assert.rejects(
+        chamar(ministroNovo, 'select public.corrigir_cadastro_igreja($1, $2, $3::jsonb)', [nova, 'dados', JSON.stringify({ ...dados, nome: 'I'.repeat(1_000_000) })]),
+        recusadoCom(/nome.*200/),
+      )
+      assert.equal((await daIgreja(nova)).nome, dados.nome)
+    })
+  })
 })
