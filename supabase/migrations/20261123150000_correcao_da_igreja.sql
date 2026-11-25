@@ -8,7 +8,8 @@
 -- 2. `pedir_correcao_da_igreja`: só quem preside a igreja. O CNPJ passa pela conferência dos dígitos
 --    (`interno.cnpj_valido`, que já aceita o alfanumérico da Receita) e não pode ser o de outra igreja.
 -- 3. Aceitar aplica sozinho no cadastro da igreja; ninguém aceita o próprio pedido; a resposta vai para o sino de quem
---    pediu (a tabela de notificações). Nada se apaga.
+--    pediu (a tabela de notificações), no pedido da igreja e também no da pessoa (este sem o dado, que pode ser o CPF).
+--    Nada se apaga.
 
 -- ---------------------------------------------------------------------
 -- 1. O pedido é de uma pessoa OU de uma igreja
@@ -239,8 +240,9 @@ begin
       respondido_por = v_eu, respondido_em = now()
   where id = p_id;
 
-  -- D-10: a resposta do pedido da igreja vai para o sino de quem pediu
+  -- D-10: a resposta vai para o sino de quem pediu
   if v_pedido.pessoa_id is null then
+    -- o pedido da igreja: o nome e o CNPJ da igreja são públicos e vão no aviso
     perform interno.notificar(
       array[v_pedido.pedido_por],
       'recado',
@@ -249,6 +251,25 @@ begin
         || case when p_atendido then '. A correção já está no cadastro da igreja.'
                 else '. Motivo: ' || trim(p_resposta) end,
       '/minha-igreja',
+      'correcao:' || p_id
+    );
+  else
+    -- o pedido da pessoa (plano do D-10: "também para o da pessoa"): SEM o dado pedido no aviso, porque o aviso pode
+    -- aparecer na tela do celular, e o dado pode ser o CPF ou a filiação. Quem pediu pode ser o próprio ministro
+    -- (Meu perfil › Correções) ou quem preside a igreja dele (Minha igreja › Ministros).
+    perform interno.notificar(
+      array[v_pedido.pedido_por],
+      'recado',
+      case when p_atendido then 'Pedido de correção atendido' else 'Pedido de correção recusado' end,
+      coalesce(interno.nome_do_campo(v_pedido.campo), 'A correção no cadastro')
+        || case when v_pedido.pedido_por = v_pedido.pessoa_id then ''
+                else ' de ' || (select p.nome from public.pessoas p where p.id = v_pedido.pessoa_id) end
+        || ': '
+        || case when not p_atendido then 'o pedido foi recusado. Motivo: ' || trim(p_resposta)
+                when v_pedido.campo is null then 'a secretaria atendeu o pedido.'
+                when v_pedido.pedido_por = v_pedido.pessoa_id then 'a correção já está no seu cadastro.'
+                else 'a correção já está no cadastro.' end,
+      case when v_pedido.pedido_por = v_pedido.pessoa_id then '/meu-perfil/correcoes' else '/minha-igreja/ministros' end,
       'correcao:' || p_id
     );
   end if;

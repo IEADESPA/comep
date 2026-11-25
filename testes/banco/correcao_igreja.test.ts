@@ -233,6 +233,37 @@ describe('D-10 — a correção do nome e do CNPJ da igreja', () => {
     assert.equal((await um<{ nome: string }>('select nome from public.igrejas where id = $1', [igrejaC])).nome, 'Igreja Fictícia da Secretária e do Bairro')
   })
 
+  it('o pedido da pessoa também avisa quem pediu, sem o dado no aviso (ele pode aparecer na tela do celular)', async () => {
+    const pedirDado = (quem: string, de: string, campo: string, valor: string) =>
+      chamar(quem, 'select public.pedir_correcao_dado($1, $2, $3, null) as id', [pessoa[de], campo, valor]).then(
+        (r) => (r.rows[0] as { id: string }).id,
+      )
+    // o próprio ministro pede o telefone; quem preside a igreja dele pede o nome
+    const telefone = await pedirDado(ministroA, ministroA, 'telefone', '(94) 98888-7777')
+    const nome = await pedirDado(pastorA, ministroA, 'nome', 'Ministro A da Silva Fictício')
+    await responder(secretaria, telefone, true)
+    await responder(presidencia, nome, false, 'O nome segue a identidade.')
+    const aviso = (id: string) =>
+      um<{ pessoa_id: string; tipo: string; titulo: string; texto: string; link: string }>(
+        'select pessoa_id, tipo, titulo, texto, link from public.notificacoes where chave = $1',
+        [`correcao:${id}`],
+      )
+    assert.deepEqual(await aviso(telefone), {
+      pessoa_id: pessoa[ministroA],
+      tipo: 'recado',
+      titulo: 'Pedido de correção atendido',
+      texto: 'Telefone: a correção já está no seu cadastro.',
+      link: '/meu-perfil/correcoes',
+    })
+    assert.deepEqual(await aviso(nome), {
+      pessoa_id: pessoa[pastorA],
+      tipo: 'recado',
+      titulo: 'Pedido de correção recusado',
+      texto: 'Nome completo de Ministro A: o pedido foi recusado. Motivo: O nome segue a identidade.',
+      link: '/minha-igreja/ministros',
+    })
+  })
+
   it('nada se apaga: os pedidos da igreja não se excluem', async () => {
     await assert.rejects(chamar(secretaria, 'delete from public.pedidos_correcao where pessoa_id is null'), erroComCodigo(SEM_PERMISSAO))
   })
