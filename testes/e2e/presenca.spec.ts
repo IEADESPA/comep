@@ -81,6 +81,8 @@ test('presença: o código da portaria, o QR dela, a credencial lida e pelo nome
     // pelo nome (a secretaria): marcar e desfazer
     await page.getByRole('main').getByRole('link', { name: 'Presença', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Presença', level: 1 })).toBeVisible()
+    // "Abrir a tela da portaria" uma vez só, no alto (revisão da parte 14, achado 10)
+    await expect(page.getByRole('link', { name: 'Abrir a tela da portaria' })).toHaveCount(1)
     await page.getByLabel('Buscar associado').fill(MINISTRO)
     const linha = page.getByRole('listitem', { name: MINISTRO })
     await linha.getByRole('button', { name: 'Marcar presente' }).click()

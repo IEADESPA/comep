@@ -263,24 +263,20 @@ function ConteudoPresenca({ id }: { id: string }) {
                     1 · o ministro lê o <strong>QR da portaria</strong> com o celular; 2 · ou <strong>digita o código</strong> da tela da
                     entrada; 3 · ou a secretaria <strong>lê a credencial</strong> dele.
                   </p>
+                  {/* "Abrir a tela da portaria" fica só no alto da tela (antes aparecia duas vezes; revisão da parte 14) */}
                   {aberta && (
-                    <>
-                      <Link className="botao botao-secundario alinhar-esquerda" to={`/assembleias/presenca/${id}/portaria`}>
-                        Abrir a tela da portaria
-                      </Link>
-                      <LeitorQr
-                        aoLer={aoLerCredencial}
-                        interpretar={codigoDoQr}
-                        textoDoBotao="Ler a credencial do ministro"
-                        rotuloDaCamera="Câmera lendo a credencial"
-                        semLeitor={
-                          <>
-                            Este navegador não lê QR Code aqui dentro. Use a <strong>câmera do celular</strong>: aponte para o QR Code da
-                            credencial; a página de validação abre com o botão <strong>"Marcar presença"</strong>. Ou marque pelo nome.
-                          </>
-                        }
-                      />
-                    </>
+                    <LeitorQr
+                      aoLer={aoLerCredencial}
+                      interpretar={codigoDoQr}
+                      textoDoBotao="Ler a credencial do ministro"
+                      rotuloDaCamera="Câmera lendo a credencial"
+                      semLeitor={
+                        <>
+                          Este navegador não lê QR Code aqui dentro. Use a <strong>câmera do celular</strong>: aponte para o QR Code da
+                          credencial; a página de validação abre com o botão <strong>"Marcar presença"</strong>. Ou marque pelo nome.
+                        </>
+                      }
+                    />
                   )}
                 </section>
               </div>

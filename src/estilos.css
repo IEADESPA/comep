@@ -2798,6 +2798,10 @@ fieldset .caixa-marcar + .caixa-marcar {
 
 .alinhar-esquerda {
   justify-self: start;
+}
+
+/* Só o botão de texto encosta o texto na margem; o botão cheio (.botao) mantém o recuo dele */
+.botao-texto.alinhar-esquerda {
   padding-left: 0;
 }
 

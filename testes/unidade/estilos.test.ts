@@ -65,4 +65,14 @@ describe('estilos.css', () => {
       if (fundo) assert.equal(fundo, 'var(--area-fundo)')
     }
   })
+
+  it('.alinhar-esquerda só tira o recuo do botão de texto, não o do botão cheio (revisão da parte 14, achado 10)', () => {
+    // .alinhar-esquerda vem depois de .botao no arquivo: um padding nela passava por cima do recuo de todo .botao com
+    // essa classe ("Abrir a tela da portaria", "Encerrar e apurar" e outros, com o texto colado na borda)
+    const sozinha = regrasDeCima(CSS).filter((r) => r.seletor.split(',').map((s) => s.trim()).includes('.alinhar-esquerda'))
+    assert.ok(sozinha.length > 0)
+    for (const r of sozinha) assert.doesNotMatch(r.corpo, /(?:^|;)\s*padding(?:-left|-inline-start|-inline)?\s*:/, `linha ${r.linha}`)
+    const texto = regrasDeCima(CSS).filter((r) => r.seletor.split(',').map((s) => s.trim()).includes('.botao-texto.alinhar-esquerda'))
+    assert.ok(texto.some((r) => /(?:^|;)\s*padding-left\s*:\s*0\s*(?:;|$)/.test(r.corpo)))
+  })
 })
