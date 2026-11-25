@@ -282,4 +282,81 @@ describe('Revisão do portão — segurança do banco, módulo 1', () => {
       assert.equal((await daIgreja(nova)).nome, dados.nome)
     })
   })
+
+  describe('Portão 4 (S1-05) — cada conta tenta poucos CPFs por dia', () => {
+    // CPFs fictícios válidos (nenhum é de gente de verdade cadastrada aqui)
+    const CPF_DE_OUTRO = '52998224725'
+    const CPF_PROPRIO = '11144477735'
+    const CPF_LIVRE = '12345678909'
+    const CPF_LIVRE_2 = '98765432100'
+    let secretaria: string
+
+    const gravar = (quem: string, pessoa: string, cpf: string) =>
+      chamar(quem, 'select public.gravar_identidade($1, $2::jsonb) as r', [pessoa, JSON.stringify({ cpf })]).then(
+        (r) => (r.rows[0] as { r: string }).r,
+      )
+    const cpfDe = async (pessoa: string) => (await um<{ cpf: string | null }>('select cpf from public.pessoas where id = $1', [pessoa])).cpf
+    const tentativasDeHoje = async (pessoa: string) =>
+      Number(
+        (await um<{ n: string }>('select count(*) as n from public.tentativas_cpf where pessoa_id = $1 and criado_em >= current_date', [pessoa]))
+          .n,
+      )
+
+    before(async () => {
+      secretaria = await criarUsuario(db, 'secretaria.cpf@teste.local', 'Secretaria Fictícia do CPF')
+      await darPerfil(db, secretaria, 'secretaria')
+      const outro = await criarUsuario(db, 'dono.do.cpf@teste.local', 'Pessoa Fictícia Dona do CPF')
+      await db.query('update public.pessoas set cpf = $1 where id = $2', [CPF_DE_OUTRO, await pessoaDe(outro)])
+    })
+
+    it('quem já tem CPF não sonda: o CPF de outra pessoa e o CPF livre recebem a mesma resposta', async () => {
+      const conta = await criarUsuario(db, 'ja.tem.cpf@teste.local', 'Conta Fictícia Com CPF')
+      const pessoa = await pessoaDe(conta)
+      assert.equal(await gravar(conta, pessoa, CPF_PROPRIO), 'ok')
+      const resposta = (cpf: string) =>
+        gravar(conta, pessoa, cpf).then(
+          (r) => `devolveu ${r}`,
+          (e: { code?: string; message?: string }) => `${e.code} ${e.message}`,
+        )
+      const deOutro = await resposta(CPF_DE_OUTRO)
+      assert.match(deOutro, /^42501 .*secretaria corrige/)
+      assert.equal(await resposta(CPF_LIVRE), deOutro)
+      assert.equal(await cpfDe(pessoa), CPF_PROPRIO)
+    })
+
+    it('sem CPF: até 10 tentativas por dia (o CPF livre e o de outra pessoa contam); as de ontem não contam', async () => {
+      const conta = await criarUsuario(db, 'sem.cpf@teste.local', 'Conta Fictícia Sem CPF')
+      const pessoa = await pessoaDe(conta)
+      // 8 tentativas hoje e 3 ontem, com CPF que estava livre (o CPF tentado não é guardado)
+      await db.query(
+        `insert into public.tentativas_cpf (pessoa_id, encontrado, criado_em)
+         select $1, false, case when g <= 8 then now() else now() - interval '1 day' end from generate_series(1, 11) g`,
+        [pessoa],
+      )
+      // o aviso do CPF repetido continua (a 9ª e a 10ª de hoje)
+      assert.equal(await gravar(conta, pessoa, CPF_DE_OUTRO), 'cpf_repetido')
+      assert.equal(await gravar(conta, pessoa, CPF_DE_OUTRO), 'cpf_repetido')
+      assert.equal(await tentativasDeHoje(pessoa), 10)
+      // a 11ª de hoje é barrada, mesmo com o CPF livre, e nada é gravado
+      await assert.rejects(gravar(conta, pessoa, CPF_LIVRE), recusadoCom(/10 CPFs hoje/))
+      assert.equal(await cpfDe(pessoa), null)
+      // a secretaria continua gravando
+      assert.equal(await gravar(secretaria, pessoa, CPF_LIVRE), 'ok')
+      // a tabela das tentativas não guarda o CPF tentado
+      const colunas = await db.query<{ column_name: string }>(
+        "select column_name from information_schema.columns where table_schema = 'public' and table_name = 'tentativas_cpf'",
+      )
+      assert.ok(!colunas.rows.some((c) => c.column_name.includes('cpf')), JSON.stringify(colunas.rows))
+    })
+
+    it('o CPF livre gravado pela própria pessoa também conta como tentativa', async () => {
+      const conta = await criarUsuario(db, 'cpf.livre@teste.local', 'Conta Fictícia do CPF Livre')
+      const pessoa = await pessoaDe(conta)
+      assert.equal(await gravar(conta, pessoa, CPF_LIVRE_2), 'ok')
+      assert.equal(await tentativasDeHoje(pessoa), 1)
+      // regravar o mesmo CPF não é tentativa nova
+      assert.equal(await gravar(conta, pessoa, CPF_LIVRE_2), 'ok')
+      assert.equal(await tentativasDeHoje(pessoa), 1)
+    })
+  })
 })
