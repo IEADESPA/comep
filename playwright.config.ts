@@ -25,15 +25,18 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // Só o log na tela: nenhum relatório em arquivo, que poderia levar o rastro com a sessão
+  reporter: 'list',
   // Rede de verdade: o login no Supabase às vezes passa de 5 s (padrão do Playwright)
   timeout: 60_000,
   expect: { timeout: 15_000 },
   use: {
     baseURL: urlExterna ?? 'http://localhost:4173/comep/',
     locale: 'pt-BR',
-    trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
+    // No GitHub (repositório público), nem rastro nem foto: o rastro guarda a senha digitada no login e a sessão.
+    // No computador, ficam só na pasta local test-results (fora do Git), para achar o defeito.
+    trace: process.env.CI ? 'off' : 'retain-on-failure',
+    screenshot: process.env.CI ? 'off' : 'only-on-failure',
     // Sem a placa de vídeo: num dos notebooks da equipe, o navegador sem tela com a GPU dá tela azul (regra da bancada)
     launchOptions: { args: ['--disable-gpu'] },
   },
