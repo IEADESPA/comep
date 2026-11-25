@@ -4,48 +4,11 @@
 // mostra o botão) e a secretaria marca pelo nome. O ministro confirma que vai, justifica a falta e a presidência
 // (no lugar do 1º secretário) decide.
 import { expect, test, type Page } from '@playwright/test'
-import { arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
+import { arquivoDaSessao, cancelarEArquivarEncontro, mensagemNaTela, reuniaoMensalPublicada, sufixoUnico } from './ajuda'
 
 test.use({ storageState: arquivoDaSessao('presidencia') })
 
 const MINISTRO = 'Ministro de Teste'
-
-/** Campo data e hora (hora de Parauapebas) daqui a N horas. */
-function campoDaquiHoras(horas: number): string {
-  const d = new Date(Date.now() + horas * 3_600_000)
-  const dia = d.toLocaleDateString('sv-SE', { timeZone: 'America/Belem' })
-  const hora = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Belem', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-  return `${dia}T${hora}`
-}
-
-async function reuniaoPublicada(page: Page, titulo: string, horas: number): Promise<string> {
-  await page.goto('assembleias/novo')
-  await page.getByLabel('Tipo *').selectOption({ label: 'Reunião mensal' })
-  await page.getByLabel('Data e hora (1ª chamada) *').fill(campoDaquiHoras(horas))
-  await page.getByLabel(/^Título/).fill(titulo)
-  await page.getByLabel('Local *').fill('Local do teste automático (E2E)')
-  await page.getByLabel('Item 1 da pauta').fill('Oração')
-  await page.getByRole('button', { name: 'Salvar (ainda sem convocar)' }).click()
-  await expect(mensagemNaTela(page, 'Encontro preparado. Confira e convoque.')).toBeVisible()
-  await page.getByRole('button', { name: 'Publicar a reunião' }).click()
-  await page.getByRole('button', { name: 'Confirmar — publicar' }).click()
-  await expect(mensagemNaTela(page, 'Reunião publicada.')).toBeVisible()
-  return page.url()
-}
-
-async function cancelarEArquivar(page: Page, endereco: string, titulo: string) {
-  await page.goto(endereco)
-  await expect(page.getByRole('heading', { name: titulo })).toBeVisible()
-  if (await page.getByText('Cancelar este encontro').count()) {
-    await page.getByText('Cancelar este encontro').click()
-    await page.getByRole('form', { name: 'Cancelar o encontro' }).getByLabel('Motivo *').fill('Teste automático')
-    await page.getByRole('button', { name: 'Cancelar o encontro' }).click()
-    await expect(mensagemNaTela(page, 'Encontro cancelado.')).toBeVisible()
-  }
-  await page.getByRole('button', { name: `Arquivar ${titulo}` }).click()
-  await page.getByRole('button', { name: `Confirmar — Arquivar ${titulo}` }).click()
-  await expect(page).toHaveURL(/\/assembleias$/)
-}
 
 /** A presença do encontro: busca o ministro e desfaz a presença dele. */
 async function desfazer(page: Page, id: string) {
@@ -74,7 +37,7 @@ async function codigoDaPortaria(page: Page, id: string): Promise<string> {
 test('presença: o código da portaria, o QR dela, a credencial lida e pelo nome', async ({ page, browser }, info) => {
   test.setTimeout(240_000)
   const titulo = `Reunião presença E2E ${sufixoUnico(info.project.name)}`
-  const endereco = await reuniaoPublicada(page, titulo, 1)
+  const endereco = await reuniaoMensalPublicada(page, titulo, 1)
   const id = endereco.split('/').pop() ?? ''
   const ministro = await browser.newContext({ storageState: arquivoDaSessao('ministro') })
   try {
@@ -133,14 +96,14 @@ test('presença: o código da portaria, o QR dela, a credencial lida e pelo nome
     await expect(page.getByRole('table', { name: 'Quem chegou' })).toContainText('em atraso')
   } finally {
     await ministro.close()
-    await cancelarEArquivar(page, endereco, titulo)
+    await cancelarEArquivarEncontro(page, endereco, titulo)
   }
 })
 
 test('o ministro confirma que vai, justifica a falta e a presidência decide', async ({ page, browser }, info) => {
   test.setTimeout(150_000)
   const titulo = `Reunião justificativa E2E ${sufixoUnico(info.project.name)}`
-  const endereco = await reuniaoPublicada(page, titulo, 72)
+  const endereco = await reuniaoMensalPublicada(page, titulo, 72)
   const ministro = await browser.newContext({ storageState: arquivoDaSessao('ministro') })
   try {
     // três dias antes, a portaria não abre; fora da moldura, o caminho de volta continua à vista
@@ -174,7 +137,7 @@ test('o ministro confirma que vai, justifica a falta e a presidência decide', a
     await expect(m.getByText('aceita', { exact: true })).toBeVisible()
   } finally {
     await ministro.close()
-    await cancelarEArquivar(page, endereco, titulo)
+    await cancelarEArquivarEncontro(page, endereco, titulo)
   }
 })
 
