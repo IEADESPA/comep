@@ -923,3 +923,45 @@ Os defeitos achados na homologação de 21 e 22/11/2026 que não entraram com a 
   - em 23/11, as telas das correções, no computador e no celular: 74 passaram, 1 pulado de propósito e 1 que estourou o tempo no choque de duas rodadas; rodado sozinho, o `credencial-modelo` passou, 12 de 12;
   - em 25/11, depois de juntar a `main`: o D-16 no computador e no celular, 2 de 2; e, no computador, os arquivos das telas mexidas (financeiro, modelo-exclusivo, notificacoes, caixa, financeiro-blindagem, conselho-fiscal, credencial-modelo, igrejas, configuracoes, menu-modulo e moldura): 33 passaram e 1 foi pulado de propósito (só no celular). O lote parou aí pela regra nova da cota de logs do Supabase (no computador, só o que mudou); a suíte inteira roda na verificação do PR.
 - A tela do D-16 foi conferida com fotos no computador e no celular, no claro e no escuro: só o número muda ("9 ministros escolheram pagar o ano inteiro…; os outros 99 pagam por mês", com 108 que pagam).
+
+## Segurança do banco, módulo 1 (ainda na versão 5.5.0-teste.18)
+
+A revisão permanente do código inteiro (decisão do presidente de 25/11/2026) começou pela segurança do banco. Este ramo corrige os achados do módulo 1 que não dependem de decisão nem de outro ramo, com os complementos que o revisor mandou ao revisar as notificações (módulo 3) e as telas gerais (módulo 5). Cada correção tem o seu commit e o seu teste em `testes/banco/seguranca_modulo1.test.ts`, que falha sem a migração dela. Sem tela nova.
+
+**Os avisos no celular ficam mais robustos** (S1-01, com os complementos do S3-04; migração `20261125132435_seguranca_avisos_no_celular.sql` e a função `enviar-avisos`):
+
+- o aparelho só se inscreve com o endereço de um serviço de push dos navegadores (Google, Mozilla, Apple e Microsoft, pela lista de referência dos serviços conhecidos), na função e numa regra da tabela para os aparelhos ativos. O domínio reservado `.invalid`, que não existe na internet, é aceito para a inscrição falsa do ponta a ponta;
+- cada pessoa tem até 10 aparelhos ativos: quando entra o 11º, o mais antigo sai (motivo "limite");
+- o lote do envio reparte a vez: até 3 avisos de cada pessoa por lote (o recado também), o 1º aviso de todos antes do 2º de alguém, e o aviso vai inteiro, para todos os aparelhos da pessoa;
+- o aviso ganha uma tentativa por rodada, e não uma por aparelho que falhou; a rede caída ou o tempo esgotado (sem resposta do serviço) não contam contra o aparelho;
+- o recado pelo aplicativo: até 30 por dia de quem manda para a mesma pessoa;
+- a função manda em grupos de 10, ao mesmo tempo, com 10 segundos para cada envio, e grava o resultado a cada grupo; depois de 60 segundos não começa grupo novo, e o resto vai na rodada seguinte. A parte que não depende do Deno foi para `supabase/functions/enviar-avisos/envio.ts`, com teste no Node (`testes/unidade/enviar-avisos.test.ts`);
+- o `docs/avisos-no-celular.md` ganhou a seção "Os limites do envio".
+
+**A tesouraria vê no balde `documentos` só os comprovantes de pagamento** (S1-04, decisão do presidente de 25/11/2026; migração `20261125133434_seguranca_tesouraria_comprovantes.sql`): a mesma regra do Conselho Fiscal. As fotos, o comprovante do título e os outros documentos pessoais ficam com a própria pessoa, a secretaria e a presidência. As telas do Financeiro e do Conselho Fiscal só gravam e abrem comprovantes de pagamento (`pagamento-*`), e a tesouraria não entra em Inscrições nem em Credenciais: nada muda nas telas.
+
+**O nome e o telefone da pessoa** (S1-06; migração `20261125133624_seguranca_nome_e_telefone.sql`): o nome até 150 letras e o telefone até 30 caracteres, sem caractere invisível de controle (quebra de linha, os que invertem ou isolam o texto e os que não aparecem). A regra está na tabela e vale para toda gravação. Os nomes reais com acento, apóstrofo e hífen continuam valendo. O cadastro aberto do site limpa o nome que vem do formulário, para a conta nova não falhar por isso.
+
+**Os pedidos e o informe de pagamento têm tamanho** (S5-01, complemento do S1-06; migração `20261125141911_seguranca_pedidos_e_informes.sql`): o texto livre do pedido de associação, da troca de igreja e do informe de pagamento ganha limite na tabela (a igreja e a denominação informadas até 200 caracteres, a função até 120, as observações até 1.000 e a forma de pagamento até 60), e as três telas ganham o mesmo limite nos campos. Pedir e desistir, ou pedir e cancelar a troca, fica com teto de 3 pedidos por pessoa e por dia; o quarto recebe "Você já fez 3 pedidos hoje. Tente de novo amanhã ou fale com a secretaria do COMEP." O que já passava do limite foi cortado no tamanho (a auditoria guarda o texto de antes).
+
+**Os arquivos do pedido de associação** (S5-03, mesma migração): a foto e o comprovante passam a ser conferidos em toda gravação, também com o pedido devolvido com pendência, e não só no envio: sempre um arquivo da pasta do próprio candidato.
+
+**O que ficou de fora e por quê:**
+
+- **S1-02** (o que cada um vê das igrejas): espera a confirmação do presidente, e o D-10 mexe em igrejas.
+- **S1-03** (a ordem das mensagens em algumas funções): toca funções das assembleias que outro ramo está ajustando.
+- **S1-05** (a resposta da gravação do CPF): a correção completa muda a experiência do cadastro e pede uma tela nova na análise do pedido. Foi levada ao presidente como proposta; nada mudou.
+- As telas não ganharam o limite de letras no campo do nome (outros ramos mexem nelas): o nome maior que 150 letras mostra "Algum dado está fora do formato esperado".
+
+**Decisões tomadas sem o desenho:**
+
+- Os números: 10 aparelhos por pessoa, 3 avisos por pessoa em cada lote, grupos de 10 envios, 10 segundos por envio, 60 segundos por rodada, 30 recados por dia para a mesma pessoa, 150 letras no nome e 30 no telefone, os tamanhos dos pedidos e do informe e os 3 pedidos por dia. Ficam como constantes com comentário nas migrações e no `envio.ts`.
+- O navegador cujo serviço de push não está na lista recebe a mensagem para usar o Chrome, o Edge, o Firefox ou o Safari.
+
+**Verificação (25/11/2026):**
+
+- `npm test`: 694 de 694 (com a `main` trazida). Os testes novos, rodados sem a migração de cada correção, falham: 6 de 6 nos avisos, 2 de 3 nos comprovantes, 3 de 4 no nome, 4 de 4 nos pedidos e no informe e 1 de 1 nos arquivos do pedido (os que passam são as guardas do que não muda). A unidade do envio: 7 de 7.
+- No `notificacoes.test.ts`, os endereços fictícios passaram a ser do serviço do Chrome, e o teste do envio dá como mandados os avisos dos testes de cima (o lote leva até 3 por pessoa).
+- tsc e oxlint sem aviso; o build passa (só o aviso antigo do tamanho do pacote).
+- No comep-teste: antes de aplicar, a contagem do que as migrações iam tocar deu zero em tudo (nenhum aparelho fora da lista ou acima de 10, nenhum nome, telefone, pedido, troca ou informe acima do limite). As 4 migrações foram aplicadas e conferidas no histórico; a função `enviar-avisos` foi publicada, e a rodada seguinte do Cron respondeu 200, já no formato novo.
+- Ponta a ponta no computador, contra o comep-teste já com as migrações: 19 de 19 (as sessões, o `notificacoes.spec.ts` inteiro, o informe de pagamento do `financeiro.spec.ts`, o `conselho-fiscal.spec.ts` inteiro, o `pedido.spec.ts` inteiro, que passa pelo cadastro aberto e pelo pedido com pendência, e no `portal-ministro.spec.ts` o telefone e a troca de igreja).
