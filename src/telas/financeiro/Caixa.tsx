@@ -21,6 +21,7 @@ import {
   type TipoLancamento,
 } from '../../dados/caixa'
 import { ok } from '../../dados/cliente'
+import type { Perfil } from '../../dados/perfis'
 import { formatarReais } from '../../dados/configuracoes'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
@@ -29,6 +30,7 @@ import { prepararComprovante } from '../../utilitarios/imagens'
 import { DICA_VALOR, lerValor, PADRAO_VALOR } from '../../utilitarios/valores'
 import { ContasECategorias } from './ConfigFinanceiro'
 import { LinkComprovante, Valor } from './comum'
+import { linkDaOrigem } from './origem'
 import { diaPorExtenso, fimDoMes, nomeDoMes, somarMes, type Concluir } from './util'
 
 // Financeiro › Caixa (rodada 11, opção 2: o extrato). Os lançamentos do mês por dia, com o saldo depois de cada um,
@@ -134,7 +136,17 @@ function montarExtrato(
 }
 
 /** /financeiro/caixa — o extrato do mês (?mes=AAAA-MM). */
-export function ExtratoCaixa({ pessoaId, concluir, somenteLeitura }: { pessoaId: string; concluir: Concluir; somenteLeitura: boolean }) {
+export function ExtratoCaixa({
+  pessoaId,
+  perfis,
+  concluir,
+  somenteLeitura,
+}: {
+  pessoaId: string
+  perfis: readonly Perfil[]
+  concluir: Concluir
+  somenteLeitura: boolean
+}) {
   const [parametros, setParametros] = useSearchParams()
   const hojeMes = hojeIso().slice(0, 7)
   const pedido = parametros.get('mes') ?? ''
@@ -148,7 +160,18 @@ export function ExtratoCaixa({ pessoaId, concluir, somenteLeitura }: { pessoaId:
       },
       { replace: true },
     )
-  return <ConteudoExtrato key={mes} mes={mes} hojeMes={hojeMes} irPara={irPara} pessoaId={pessoaId} concluir={concluir} somenteLeitura={somenteLeitura} />
+  return (
+    <ConteudoExtrato
+      key={mes}
+      mes={mes}
+      hojeMes={hojeMes}
+      irPara={irPara}
+      pessoaId={pessoaId}
+      perfis={perfis}
+      concluir={concluir}
+      somenteLeitura={somenteLeitura}
+    />
+  )
 }
 
 function ConteudoExtrato({
@@ -156,6 +179,7 @@ function ConteudoExtrato({
   hojeMes,
   irPara,
   pessoaId,
+  perfis,
   concluir,
   somenteLeitura,
 }: {
@@ -163,6 +187,7 @@ function ConteudoExtrato({
   hojeMes: string
   irPara: (m: string) => void
   pessoaId: string
+  perfis: readonly Perfil[]
   concluir: Concluir
   somenteLeitura: boolean
 }) {
@@ -319,7 +344,7 @@ function ConteudoExtrato({
                       <h3>{diaPorExtenso(dia)}</h3>
                       <ul aria-label={`Lançamentos de ${diaPorExtenso(dia)}`}>
                         {linhas.map((l) => (
-                          <LinhaDoExtrato key={l.chave} l={l} concluir={concluirERecarregar} somenteLeitura={somenteLeitura} />
+                          <LinhaDoExtrato key={l.chave} l={l} perfis={perfis} concluir={concluirERecarregar} somenteLeitura={somenteLeitura} />
                         ))}
                       </ul>
                     </div>
@@ -357,13 +382,25 @@ function ConteudoExtrato({
   )
 }
 
-function LinhaDoExtrato({ l, concluir, somenteLeitura }: { l: LinhaExtrato; concluir: Concluir; somenteLeitura: boolean }) {
+function LinhaDoExtrato({
+  l,
+  perfis,
+  concluir,
+  somenteLeitura,
+}: {
+  l: LinhaExtrato
+  perfis: readonly Perfil[]
+  concluir: Concluir
+  somenteLeitura: boolean
+}) {
   const [motivo, setMotivo] = useState('')
   const [enviando, umaVez] = useUmaVez()
   const lc = l.linha
   const desfeito = lc !== null && ['cancelado', 'recusado'].includes(lc.situacao)
   // parte 12: o lançamento automático também se cancela (com o motivo), e a origem volta para "a pagar"
   const podeCancelar = !somenteLeitura && lc !== null && !desfeito
+  // D-05: o link vai para uma tela que quem está vendo abre (ou some, e fica só o texto)
+  const linkOrigem = linkDaOrigem(lc?.origem_link ?? null, perfis)
   const volta =
     lc?.origem === 'contribuicao' || lc?.origem === 'taxa_inscricao'
       ? 'A contribuição volta para "em aberto".'
@@ -389,7 +426,7 @@ function LinhaDoExtrato({ l, concluir, somenteLeitura }: { l: LinhaExtrato; conc
         )}
         {lc && lc.origem && lc.origem !== 'avulso' && lc.origem !== 'transferencia' && (
           <span className="fin-origem">
-            De onde veio: {lc.origem_link ? <Link to={lc.origem_link}>{lc.origem_texto}</Link> : lc.origem_texto}
+            De onde veio: {linkOrigem ? <Link to={linkOrigem}>{lc.origem_texto}</Link> : lc.origem_texto}
           </span>
         )}
         {lc?.motivo && <span>Motivo: {lc.motivo}</span>}

@@ -10622,3 +10622,19 @@ li.feito .numero-passo {
     z-index: 50;
   }
 }
+
+/* Financeiro › Caixa › Modelos exclusivos (D-07): o modelo e, embaixo ou ao lado, receber ou desfazer o pagamento */
+.lista-linhas > li.linha-modelo-exclusivo {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 12px 0;
+}
+
+.linha-modelo-exclusivo > .linha-corpo {
+  flex: 1 1 260px;
+}
+
+.linha-modelo-exclusivo > form,
+.linha-modelo-exclusivo > details {
+  flex: 1 1 340px;
+}

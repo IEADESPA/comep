@@ -74,6 +74,30 @@ export function textoDoPrazo(hoje: string, ate: string): string {
   return dias === -1 ? 'venceu ontem' : `venceu há ${-dias} dias`
 }
 
+/**
+ * A igreja suspensa: os dias que ainda tem para mandar o documento, contando hoje (D-12, 22/11/2026). O documento venceu
+ * no dia D; a suspensão começa em D+1 e o prazo vai até D+30 (`prazo_ate`); o bloqueio começa em D+31. Então: 30 no dia
+ * da suspensão, 1 no dia do prazo (o último dia) e 0 depois. Todas as telas usam esta conta.
+ */
+export function diasParaMandar(hoje: string, prazoAte: string): number {
+  return Math.max(0, diasEntre(hoje, prazoAte) + 1)
+}
+
+/** "faltam 30 dias", "último dia" ou "prazo encerrado" (o texto curto, entre parênteses ou no selo). */
+export function textoDosDiasParaMandar(hoje: string, prazoAte: string): string {
+  const dias = diasParaMandar(hoje, prazoAte)
+  if (dias > 1) return `faltam ${dias} dias`
+  return dias === 1 ? 'último dia' : 'prazo encerrado'
+}
+
+/** "faltam 30 dias para mandar o estatuto", "último dia para mandar o estatuto" ou "acabou o prazo para mandar o estatuto". */
+export function fraseParaMandar(hoje: string, prazoAte: string, oQue = ''): string {
+  const dias = diasParaMandar(hoje, prazoAte)
+  const resto = oQue ? ` ${oQue}` : ''
+  if (dias > 1) return `faltam ${dias} dias para mandar${resto}`
+  return dias === 1 ? `último dia para mandar${resto}` : `acabou o prazo para mandar${resto}`
+}
+
 /** "2 anos e 1 mês", "5 meses", "43 dias": o tempo que falta, do jeito de falar. */
 export function tempoQueFalta(hoje: string, ate: string): string {
   const dias = diasEntre(hoje, ate)

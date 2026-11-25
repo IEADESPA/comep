@@ -93,6 +93,14 @@ test.describe('ministro', () => {
     await expect(page).toHaveURL(/\/minha-credencial\?qr=1$/)
     await expect(page.getByRole('dialog', { name: 'QR Code da credencial' })).toBeVisible()
   })
+
+  test('Privacidade: "quem mexeu nos seus dados" junta as linhas iguais do mesmo dia (D-13)', async ({ page }) => {
+    await page.goto('meu-perfil/privacidade')
+    await expect(page.getByRole('heading', { name: 'Quem mexeu nos seus dados (últimos 90 dias)' })).toBeVisible()
+    // o ministro fictício tem as mensalidades registradas de uma vez (enquanto estiverem nos últimos 90 dias)
+    const linhas = await page.getByRole('list', { name: 'Quem mexeu nos seus dados' }).getByRole('listitem').allInnerTexts()
+    expect(new Set(linhas).size).toBe(linhas.length)
+  })
 })
 
 test.describe('pessoa sem perfil', () => {
