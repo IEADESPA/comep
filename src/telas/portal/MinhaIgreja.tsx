@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { Aviso, Carregando, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { Icone, Ladrilho } from '../../componentes/Icone'
@@ -12,6 +12,9 @@ import {
   listarDocumentosIgreja,
   listarPedidosCorrecao,
   minhaIgreja,
+  NOME_DO_CAMPO,
+  pedirCorrecaoDaIgreja,
+  type CampoCorrecaoIgreja,
   type MinhaIgrejaResumo,
   type PedidoCorrecao,
   type TipoDocumentoIgreja,
@@ -21,7 +24,8 @@ import { atualizarContatoIgreja, ministrosDaMinhaIgreja, type MinistroDaMinhaIgr
 import { useSessao } from '../../estado/contexto'
 import { agendaProxima } from '../../estado/resumos'
 import { useCarregar } from '../../estado/useCarregar'
-import { diaEMes, formatarCnpj, formatarData, hojeIso } from '../../utilitarios/formatos'
+import { useUmaVez } from '../../estado/useUmaVez'
+import { cnpjValido, diaEMes, formatarCnpj, formatarData, hojeIso, mascararCnpj, problemaNoCnpj } from '../../utilitarios/formatos'
 import { SeloNivel, type Concluir } from '../igrejas/componentes'
 import { FiliaisDaIgreja } from '../igrejas/Filiais'
 import { CartoesDocumentos, DiretoriaDaMinhaIgreja, IgrejaSuspensa, PaginaDocumento, type DadosDaMinhaIgreja } from './DocumentosDaIgreja'
@@ -169,7 +173,7 @@ export function MinhaIgreja() {
               ) : aba === 'agenda' ? (
                 <AgendaDaIgreja igreja={igreja} />
               ) : (
-                <DadosDaIgreja igreja={igreja} bairros={regular.bairros} concluir={concluir} />
+                <DadosDaIgreja igreja={igreja} bairros={regular.bairros} pedidos={regular.pedidos} concluir={concluir} />
               )}
             </>
           )
@@ -209,15 +213,29 @@ function TopoDaIgreja({ igreja, ministros }: { igreja: Igreja; ministros: Minist
 // Aba "Dados"
 // ---------------------------------------------------------------------
 
+/** O formulário do contato: os campos ficam na grade, ao lado do Nome e do CNPJ, e entram nele pelo atributo `form`. */
+const FORM_CONTATO = 'form-contato-igreja'
+
+/** O nome do "Pedir correção" para o leitor de tela (os dois links dizem só "Pedir correção" na tela). */
+const PEDIR_CORRECAO_DO: Record<CampoCorrecaoIgreja, string> = {
+  igreja_nome: 'Pedir correção do nome da igreja',
+  igreja_cnpj: 'Pedir correção do CNPJ da igreja',
+}
+
 function DadosDaIgreja({
   igreja,
   bairros,
+  pedidos,
   concluir,
 }: {
   igreja: Igreja
   bairros: ItemLista[]
+  /** os pedidos que quem preside pode ver: daqui saem os da igreja que ainda esperam a secretaria */
+  pedidos: PedidoCorrecao[]
   concluir: (r: { erro: string | null }, sucesso: string) => void
 }) {
+  const esperando = (campo: CampoCorrecaoIgreja) =>
+    pedidos.some((p) => p.pessoa_id === null && p.igreja_id === igreja.id && p.campo === campo && p.situacao === 'pendente')
   const [endereco, setEndereco] = useState(igreja.endereco ?? '')
   const [bairroId, setBairroId] = useState(igreja.bairro_id ?? '')
   const [telefone, setTelefone] = useState(igreja.telefone ?? '')
@@ -240,7 +258,88 @@ function DadosDaIgreja({
       <h3 id="titulo-contato-igreja" className="somente-leitor">
         Dados e contato da igreja
       </h3>
+      {/* O pedido de correção do Nome e do CNPJ abre um formulário próprio no lugar do campo; por isso a grade fica fora
+          do formulário do contato (formulário dentro de formulário não existe), e cada campo do contato entra nele pelo
+          atributo `form`. */}
+      <div className="grade-form dados-da-igreja">
+        <CampoDaIgreja
+          igrejaId={igreja.id}
+          campo="igreja_nome"
+          rotulo="Nome"
+          atual={igreja.nome}
+          esperando={esperando('igreja_nome')}
+          concluir={concluir}
+        />
+        <label>
+          Sigla (vai na credencial)
+          <input
+            form={FORM_CONTATO}
+            maxLength={20}
+            autoCapitalize="characters"
+            placeholder="Ex.: IEADESPA"
+            value={sigla}
+            onChange={(e) => setSigla(e.target.value)}
+          />
+        </label>
+        <label>
+          <span className="rotulo-com-cadeado">
+            <Icone nome="cadeado" tamanho={16} /> Denominação
+          </span>
+          <input value={igreja.denominacao?.nome ?? 'Não informada'} disabled />
+        </label>
+        <CampoDaIgreja
+          igrejaId={igreja.id}
+          campo="igreja_cnpj"
+          rotulo="CNPJ"
+          atual={formatarCnpj(igreja.cnpj)}
+          esperando={esperando('igreja_cnpj')}
+          concluir={concluir}
+        />
+        <label className="largura-total">
+          Endereço
+          <input form={FORM_CONTATO} value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+        </label>
+        <label>
+          Bairro
+          <select form={FORM_CONTATO} value={bairroId} onChange={(e) => setBairroId(e.target.value)}>
+            <option value="">— Não informado —</option>
+            {bairros.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.nome}
+              </option>
+            ))}
+            {igreja.bairro_id && !bairros.some((b) => b.id === igreja.bairro_id) && (
+              <option value={igreja.bairro_id}>{igreja.bairro?.nome} (arquivado)</option>
+            )}
+          </select>
+        </label>
+        <label>
+          Telefone da igreja
+          <input form={FORM_CONTATO} type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+        </label>
+        <label>
+          CEP
+          <input form={FORM_CONTATO} inputMode="numeric" {...campoExtra('cep')} />
+        </label>
+        <label>
+          E-mail da igreja
+          <input form={FORM_CONTATO} type="email" {...campoExtra('email')} />
+        </label>
+        <label>
+          Site da igreja
+          <input form={FORM_CONTATO} placeholder="Ex.: minhaigreja.com.br" {...campoExtra('site')} />
+        </label>
+        <label>
+          Membros (aproximado)
+          <input form={FORM_CONTATO} inputMode="numeric" maxLength={7} {...campoExtra('membros')} />
+        </label>
+        <label className="largura-total">
+          Convenção estadual ou nacional (se tiver)
+          <input form={FORM_CONTATO} {...campoExtra('convencao')} />
+        </label>
+      </div>
       <form
+        id={FORM_CONTATO}
         onSubmit={async (e) => {
           e.preventDefault()
           setEnviando(true)
@@ -248,75 +347,10 @@ function DadosDaIgreja({
           setEnviando(false)
         }}
       >
-        <div className="grade-form">
-          <label>
-            <span className="rotulo-com-cadeado">
-              <Icone nome="cadeado" tamanho={16} /> Nome
-            </span>
-            <input value={igreja.nome} disabled />
-          </label>
-          <label>
-            Sigla (vai na credencial)
-            <input maxLength={20} autoCapitalize="characters" placeholder="Ex.: IEADESPA" value={sigla} onChange={(e) => setSigla(e.target.value)} />
-          </label>
-          <label>
-            <span className="rotulo-com-cadeado">
-              <Icone nome="cadeado" tamanho={16} /> Denominação
-            </span>
-            <input value={igreja.denominacao?.nome ?? 'Não informada'} disabled />
-          </label>
-          <label>
-            <span className="rotulo-com-cadeado">
-              <Icone nome="cadeado" tamanho={16} /> CNPJ
-            </span>
-            <input value={formatarCnpj(igreja.cnpj) || 'Não informado'} disabled />
-          </label>
-          <label className="largura-total">
-            Endereço
-            <input value={endereco} onChange={(e) => setEndereco(e.target.value)} />
-          </label>
-          <label>
-            Bairro
-            <select value={bairroId} onChange={(e) => setBairroId(e.target.value)}>
-              <option value="">— Não informado —</option>
-              {bairros.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.nome}
-                </option>
-              ))}
-              {igreja.bairro_id && !bairros.some((b) => b.id === igreja.bairro_id) && (
-                <option value={igreja.bairro_id}>{igreja.bairro?.nome} (arquivado)</option>
-              )}
-            </select>
-          </label>
-          <label>
-            Telefone da igreja
-            <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
-          </label>
-          <label>
-            CEP
-            <input inputMode="numeric" {...campoExtra('cep')} />
-          </label>
-          <label>
-            E-mail da igreja
-            <input type="email" {...campoExtra('email')} />
-          </label>
-          <label>
-            Site da igreja
-            <input placeholder="Ex.: minhaigreja.com.br" {...campoExtra('site')} />
-          </label>
-          <label>
-            Membros (aproximado)
-            <input inputMode="numeric" maxLength={7} {...campoExtra('membros')} />
-          </label>
-          <label className="largura-total">
-            Convenção estadual ou nacional (se tiver)
-            <input {...campoExtra('convencao')} />
-          </label>
-        </div>
         <p className="detalhe">
-          Nome, CNPJ e denominação (com cadeado) são atualizados pela secretaria. O COMEP representa e apoia as igrejas da
-          cidade: quanto mais ministros associados e em dia, mais a igreja é representada no Conselho.
+          Nome, CNPJ e denominação (com cadeado) são atualizados pela secretaria. Para corrigir o nome ou o CNPJ, use o
+          "Pedir correção". O COMEP representa e apoia as igrejas da cidade: quanto mais ministros associados e em dia, mais
+          a igreja é representada no Conselho.
         </p>
         <div className="acoes">
           <button type="submit" className="botao" disabled={enviando}>
@@ -325,6 +359,126 @@ function DadosDaIgreja({
         </div>
       </form>
     </section>
+  )
+}
+
+/**
+ * O Nome e o CNPJ da igreja: com cadeado (a secretaria atualiza) e, ao lado do rótulo, o "Pedir correção" (D-10,
+ * desenho minha-igreja-2). Ele abre, no lugar do campo, "Como está", "Como deve ficar" e "Mandar para a secretaria".
+ * Com um pedido esperando, o link vira "Esperando a secretaria" (o banco aceita um só pedido por dado).
+ */
+function CampoDaIgreja({
+  igrejaId,
+  campo,
+  rotulo,
+  atual,
+  esperando,
+  concluir,
+}: {
+  igrejaId: string
+  campo: CampoCorrecaoIgreja
+  rotulo: string
+  /** como está hoje, já formatado ('' = não informado) */
+  atual: string
+  esperando: boolean
+  concluir: (r: { erro: string | null }, sucesso: string) => void
+}) {
+  const id = useId()
+  const [aberto, setAberto] = useState(false)
+  const [valor, setValor] = useState('')
+  const [enviando, umaVez] = useUmaVez()
+  // o "Pedir correção" some quando o formulário abre (o foco vai para o "Como deve ficar"); no Cancelar, o foco volta
+  const botao = useRef<HTMLButtonElement>(null)
+  const devolverFoco = useRef(false)
+  useEffect(() => {
+    if (!aberto && devolverFoco.current) {
+      devolverFoco.current = false
+      botao.current?.focus()
+    }
+  }, [aberto])
+  const cnpj = campo === 'igreja_cnpj'
+  const problema = cnpj ? problemaNoCnpj(valor) : null
+  const pronto = cnpj ? cnpjValido(valor) : valor.trim().length >= 3
+  const fechar = (voltarAoBotao: boolean) => {
+    devolverFoco.current = voltarAoBotao
+    setAberto(false)
+    setValor('')
+  }
+
+  return (
+    <div className="campo-com-link" role="group" aria-labelledby={`${id}-rotulo`}>
+      <span className="rotulo-com-link">
+        <span id={`${id}-rotulo`} className="rotulo-com-cadeado rotulo-campo">
+          <Icone nome="cadeado" tamanho={16} /> {rotulo}
+        </span>
+        {esperando ? (
+          <span className="marca-correcao area-eventos">
+            <Icone nome="relogio" tamanho={14} traco={2.4} />
+            Esperando a secretaria
+          </span>
+        ) : (
+          !aberto && (
+            <button ref={botao} type="button" className="botao-link link-pequeno" aria-label={PEDIR_CORRECAO_DO[campo]} onClick={() => setAberto(true)}>
+              Pedir correção
+            </button>
+          )
+        )}
+      </span>
+      {aberto && !esperando ? (
+        <form
+          className="correcao-no-lugar"
+          aria-label={`Pedir correção: ${NOME_DO_CAMPO[campo]}`}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void umaVez(async () => {
+              const r = await pedirCorrecaoDaIgreja(igrejaId, campo, valor)
+              concluir(r, 'Pedido de correção enviado à secretaria.')
+              if (r.erro === null) fechar(false)
+            })
+          }}
+        >
+          <label>
+            Como está
+            <input value={atual || 'Não informado'} disabled />
+          </label>
+          <label>
+            Como deve ficar *
+            {cnpj ? (
+              <input
+                required
+                autoFocus
+                inputMode="text"
+                autoCapitalize="characters"
+                autoComplete="off"
+                maxLength={18}
+                placeholder="00.000.000/0000-00"
+                aria-describedby={problema ? `${id}-problema` : undefined}
+                aria-invalid={problema ? true : undefined}
+                value={valor}
+                onChange={(e) => setValor(mascararCnpj(e.target.value))}
+              />
+            ) : (
+              <input required autoFocus minLength={3} maxLength={200} autoComplete="off" value={valor} onChange={(e) => setValor(e.target.value)} />
+            )}
+          </label>
+          {problema && (
+            <p id={`${id}-problema`} className="erro" role="alert">
+              {problema}
+            </p>
+          )}
+          <div className="acoes">
+            <button type="submit" className="botao" disabled={enviando || !pronto}>
+              Mandar para a secretaria
+            </button>
+            <button type="button" className="botao botao-secundario" onClick={() => fechar(true)}>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      ) : (
+        <input aria-labelledby={`${id}-rotulo`} value={atual || 'Não informado'} disabled />
+      )}
+    </div>
   )
 }
 

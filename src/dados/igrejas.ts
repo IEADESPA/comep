@@ -411,7 +411,10 @@ export type SituacaoPedidoCorrecao = 'pendente' | 'atendido' | 'recusado'
 /** A lista fechada dos dados que se pedem para corrigir (nada de texto livre: 18/11/2026). */
 export type CampoCorrecao = 'nome' | 'telefone' | 'email' | 'cpf' | 'nome_mae' | 'nome_pai' | 'titulo' | 'funcao' | 'igreja'
 
-export const NOME_DO_CAMPO: Record<CampoCorrecao, string> = {
+/** Os dados da IGREJA que quem preside pede para corrigir (D-10, desenho minha-igreja-2): só o nome e o CNPJ. */
+export type CampoCorrecaoIgreja = 'igreja_nome' | 'igreja_cnpj'
+
+export const NOME_DO_CAMPO: Record<CampoCorrecao | CampoCorrecaoIgreja, string> = {
   nome: 'Nome completo',
   telefone: 'Telefone',
   email: 'E-mail',
@@ -421,15 +424,19 @@ export const NOME_DO_CAMPO: Record<CampoCorrecao, string> = {
   titulo: 'Título ministerial',
   funcao: 'Função na igreja',
   igreja: 'Igreja',
+  igreja_nome: 'Nome da igreja',
+  igreja_cnpj: 'CNPJ da igreja',
 }
 
 export type PedidoCorrecao = {
   id: string
-  pessoa_id: string
+  /** null = o pedido é da IGREJA (`igreja_id` é a igreja corrigida; D-10) */
+  pessoa_id: string | null
+  /** no pedido da pessoa, a igreja dela; no da igreja, a igreja corrigida */
   igreja_id: string | null
   texto: string
   /** null = pedido antigo, em texto (antes de 18/11/2026) */
-  campo: CampoCorrecao | null
+  campo: CampoCorrecao | CampoCorrecaoIgreja | null
   valor_atual: string | null
   valor_pedido: string | null
   situacao: SituacaoPedidoCorrecao
@@ -439,11 +446,14 @@ export type PedidoCorrecao = {
   /** só vem para quem pode ler o cadastro (a secretaria, ou a própria pessoa) */
   pessoa: { nome: string } | null
   autor: { nome: string } | null
+  /** a igreja do pedido (no pedido da igreja, a corrigida) */
+  igreja: { nome: string } | null
 }
 
 const CAMPOS_PEDIDO =
   'id, pessoa_id, igreja_id, texto, campo, valor_atual, valor_pedido, situacao, resposta, criado_em, respondido_em, ' +
-  'pessoa:pessoas!pedidos_correcao_pessoa_id_fkey(nome), autor:pessoas!pedidos_correcao_pedido_por_fkey(nome)'
+  'pessoa:pessoas!pedidos_correcao_pessoa_id_fkey(nome), autor:pessoas!pedidos_correcao_pedido_por_fkey(nome), ' +
+  'igreja:igrejas!pedidos_correcao_igreja_id_fkey(nome)'
 
 /** Os pedidos que quem está logado pode ver (os seus, os da sua igreja ou, para a secretaria, todos). */
 export async function listarPedidosCorrecao(filtro: { pessoaId?: string; pendentes?: boolean } = {}): Promise<Resultado<PedidoCorrecao[]>> {
@@ -470,6 +480,15 @@ export async function pedirCorrecaoDado(
     p_valor: valor.trim() || null,
     p_referencia: referencia,
   })
+  return error ? falha(error) : ok(null)
+}
+
+/**
+ * Quem preside a igreja pede a correção do nome ou do CNPJ dela (D-10). O banco confere tudo de novo (os dígitos do
+ * CNPJ, o CNPJ de outra igreja, o igual ao de hoje e o pedido que já espera) e guarda como está hoje.
+ */
+export async function pedirCorrecaoDaIgreja(igrejaId: string, campo: CampoCorrecaoIgreja, valor: string): Promise<Resultado<null>> {
+  const { error } = await cliente().rpc('pedir_correcao_da_igreja', { p_igreja_id: igrejaId, p_campo: campo, p_valor: valor.trim() })
   return error ? falha(error) : ok(null)
 }
 

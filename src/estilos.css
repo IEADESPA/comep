@@ -5834,6 +5834,49 @@ li.feito .numero-passo {
   color: var(--cor-titulo);
 }
 
+/* D-10: o pedido da igreja na fila da secretaria, com o selo "Igreja" antes do nome */
+.correcao-da-igreja {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+/* D-10: Minha igreja › Dados, o Nome e o CNPJ com o "Pedir correção" ao lado do rótulo (desenho minha-igreja-2) */
+.rotulo-campo {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* o alvo do toque fica com 24 px ou mais, sem mudar a altura da linha do rótulo */
+.rotulo-com-link .botao-link {
+  padding: 6px 0;
+  margin: -6px 0;
+}
+
+.marca-correcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--area-cor);
+  white-space: nowrap;
+}
+
+/* o pedido aberto é mais alto que o campo: o vizinho da mesma linha fica no alto, sem esticar (o rótulo é uma
+   grade, e esticado ele reparte a sobra entre o texto e o campo) */
+.dados-da-igreja {
+  align-items: start;
+}
+
+.correcao-no-lugar {
+  padding: 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background: var(--cor-fundo);
+}
+
 /* ---------- Igrejas e a regularização (Fase 5.5, partes 5 e 6) ---------- */
 
 /* Os números grandes do alto (regulares, suspensas, sem registro, filiais) */

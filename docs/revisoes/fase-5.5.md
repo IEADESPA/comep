@@ -988,3 +988,35 @@ A revisão de 23/11/2026, antes da homologação, aprovou a parte 14 com ressalv
   - contra o build novo, já com a `main` junta: 24 passaram e 2 foram pulados de propósito (a AGE, que espera a assembleia começar, roda só no computador; o menu recolhido é só do computador).
 - A tabela "Quem chegou", no celular, foi conferida também só com o CSS, sem o banco. Com o `estilos.css` de antes, ela passava 193px da largura do cartão; com o de agora, 0.
 - As telas foram conferidas com fotos de uma reunião mensal fictícia (presença, portaria, condução, telão e fechamento), no computador e no celular, no claro e no escuro, ao lado do desenho aprovado.
+
+## Correções da homologação: o D-10, pedir a correção do nome e do CNPJ da igreja (ainda na versão 5.5.0-teste.18)
+
+O desenho aprovado `minha-igreja-2` (opção 1, aba Dados) tem o link **Pedir correção** ao lado do rótulo do **Nome** e do **CNPJ**; a tela não tinha (D-10, achado na homologação de 22/11). A decisão de 22/11 e o plano do D-10 (aprovado em 23/11) dizem como: o pedido é de uma pessoa **ou** de uma igreja, só quem preside pede, o CNPJ passa pela conferência dos dígitos, a resposta vai para o sino e nada se apaga. Migração `20261123150000_correcao_da_igreja.sql`. Sem versão nova (a Parte 15 é a 5.5.0-teste.19).
+
+**O que entrou no banco:**
+
+- `pedidos_correcao`: `pessoa_id` aceita nulo, e a regra `pedidos_correcao_alvo` diz que o pedido é de uma pessoa ou de uma igreja (`igreja_nome` e `igreja_cnpj` ⇔ `pessoa_id` nulo). No pedido da igreja, `igreja_id` é a igreja corrigida. A política de leitura não mudou e não abre nada a mais: quem pediu, quem preside a igreja e a secretaria e a presidência.
+- `pedir_correcao_da_igreja(igreja, campo, valor)`, só para quem preside a igreja. A igreja de outro pastor e a que não existe recebem o mesmo erro. O nome vai de 3 a 200 letras; o CNPJ, sem a pontuação, passa por `interno.cnpj_valido` (aceita o alfanumérico) e não pode ser o de outra igreja. Recusa o valor igual ao de hoje e o segundo pedido pendente do mesmo dado.
+- `aplicar_correcao` troca o `igrejas.nome` e o `igrejas.cnpj` (a auditoria guarda o antes e o depois). Se outra igreja passou a usar o CNPJ depois do pedido, aceitar é recusado com a explicação.
+- `responder_correcao`: ninguém aceita o próprio pedido, e a resposta vai para o sino de quem pediu. No pedido da igreja, com o dado (o nome e o CNPJ são públicos). No pedido da pessoa, que até aqui não avisava (o plano pede os dois), **sem o dado**: o aviso pode aparecer na tela do celular, e o dado pode ser o CPF ou a filiação. O link leva o ministro a Meu perfil › Correções e quem preside a Minha igreja › Ministros.
+
+**As telas:**
+
+- **Minha igreja › Dados:** "Pedir correção" à direita do rótulo do Nome e do CNPJ, como no desenho; a Denominação continua sem. O link abre, no lugar do campo, "Como está", "Como deve ficar", "Mandar para a secretaria" e "Cancelar". O CNPJ tem a máscara e o aviso dos dígitos na hora ("Confira o CNPJ: os dois últimos números (os dígitos) não batem."), e o botão só acende com o CNPJ certo. Com um pedido esperando, o link vira **Esperando a secretaria**. A grade saiu de dentro do formulário do contato (formulário dentro de formulário não existe): os campos do contato entram nele pelo atributo `form`, e o "Salvar contato da igreja" funciona como antes.
+- **Ministros e inscrições › Correções pedidas** (a fila que a secretaria já usa): o pedido da igreja aparece com o selo **Igreja**, o link para a ficha da igreja e os botões Aceitar e Recusar, como os outros.
+- **Minha igreja › Ministros › Pedidos de correção:** quem preside vê também os da igreja, com o nome da igreja, a situação e a resposta.
+
+**O que ficou de fora e por quê:**
+
+- **A rodada 33** (tela `correcao-igreja`: a fila com as pílulas Todas/Igrejas/Ministros, a tela "Conferir a correção do CNPJ" com "O que o sistema já conferiu" e "Consultar o CNPJ na Receita", e a resposta na aba Dados com "Corrigido em …") foi aprovada em 25/11 na opção 2 (Igrejas › Para conferir), e a diretoria pediu o documento anexo como prova em toda correção que exige prova (rodada 35). Isso vem num PR próprio; aqui a fila ficou onde já estava, como diz o plano.
+- **O cartão CNPJ depois da troca do CNPJ** (a pergunta do plano e da rodada 33, ainda sem resposta): por enquanto, como propõe o plano, aceitar não mexe nos documentos; se precisar, a secretaria pede o cartão novo pela aba Documentos.
+
+**Verificação (25/11/2026):**
+
+- `npm test`: 685 de 685 (PGlite e unidade); `correcao_igreja.test.ts`, 12 de 12; a unidade, 119 de 119, com os 4 testes novos da máscara e da conferência do CNPJ. `tsc -b`, oxlint e `vite build` sem erro.
+- **A migração no comep-teste** (com a trava): `supabase migration list --remote` mostrou que só a `20261123150000` faltava (a `20261123140000`, dos ajustes das assembleias, já estava lá e vem no ramo dela); `db push --dry-run` listou só ela; `db push` a aplicou, e a lista seguinte mostra as duas colunas iguais. `db advisors`: o único aviso (WARN) continua o `auth_leaked_password_protection`, que já se conhecia; no nível INFO, só índices ainda sem uso e chaves sem índice de tabelas antigas (esta migração não cria índice nem chave).
+- **O ponta a ponta**, só os specs das telas mexidas, no build local (porta 4177) contra o comep-teste:
+  - **visto falhar antes da tela:** o teste do D-10 parou no botão "Pedir correção do CNPJ da igreja", que não existia;
+  - **visto falhar antes do ajuste do leiaute:** com o pedido aberto, a Denominação ao lado esticava de 47,4 px para 145,8 px; a grade dos dados agora alinha no alto;
+  - **verde:** `presidente-igreja.spec.ts`, 4 de 4 (computador e celular); `portal-ministro.spec.ts` (o pedido do ministro aceito pela secretaria e o pastor presidente com os ministros e o contato da igreja), 2 de 2 no computador, mais o do pastor presidente no celular; `cadastros.spec.ts` "nenhuma tela da diretoria fica mais larga que a tela", verde.
+- **As fotos** do aprovado ao lado do construído (computador e celular, claro e escuro), com o pedido aberto, o "Esperando a secretaria" e a fila da secretaria, foram olhadas uma a uma. O pedido criado para as fotos foi recusado no fim, e o nome da igreja fictícia não mudou.
