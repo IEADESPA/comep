@@ -2,6 +2,8 @@
 // TV ou o projetor da sede, fora da moldura. Mostra o quórum, o item de agora do roteiro e a votação dele (a parcial
 // só no voto aberto; no secreto, só quantos já votaram; encerrada, o resultado). Os controles ficam na condução,
 // no celular ou no computador de quem conduz. Sem fundo preto (decisão do usuário): segue o tema claro ou escuro.
+// Sem votação para mostrar (a reunião mensal, a abertura, um item de informe), o telão fica numa coluna só, no centro:
+// o lado direito vazio deixava o título do encontro solto ao lado do número (revisão da parte 14, achado 10).
 import { useRef } from 'react'
 import { Link, useParams } from 'react-router'
 import { Aviso, MostrarCarga } from '../../componentes/Basicos'
@@ -64,6 +66,8 @@ function ConteudoTelao({ id }: { id: string }) {
           const aptos = instalada ? (e.aptos_na_instalacao ?? quorum.aptos) : quorum.aptos
           const presentes = assembleia ? (instalada ? (e.presentes_aptos_na_instalacao ?? quorum.presentes_aptos) : quorum.presentes_aptos) : quorum.presentes
           const voto = atual?.pauta ? (votos.find((v) => v.pauta_id === atual.pauta!.id) ?? null) : null
+          const votacaoAberta = votacao?.situacao === 'aberta' && parcial ? parcial : null
+          const temLadoDireito = Boolean(votacaoAberta || voto || atual?.pauta?.deliberativo)
           return (
             <>
               <header className="telao-topo">
@@ -85,7 +89,7 @@ function ConteudoTelao({ id }: { id: string }) {
                   </Link>
                 </span>
               </header>
-              <main className="telao-miolo" aria-label="Telão">
+              <main className={temLadoDireito ? 'telao-miolo' : 'telao-miolo telao-uma-coluna'} aria-label="Telão">
                 <section className="telao-esquerda">
                   <p className="telao-rotulo">{assembleia ? 'Quórum' : 'Presentes'}</p>
                   <p className="telao-numero">{presentes}</p>
@@ -113,38 +117,38 @@ function ConteudoTelao({ id }: { id: string }) {
                     )}
                   </h1>
                 </section>
-                <section className="telao-direita" aria-live="polite">
-                  {votacao?.situacao === 'aberta' && parcial ? (
-                    <>
-                      {parcial.mostra_contagem ? (
-                        <BarrasDaVotacao opcoes={parcial.opcoes} />
-                      ) : (
-                        <p className="telao-secreto">Voto secreto: o resultado aparece quando a votação for apurada.</p>
-                      )}
-                      <p className="telao-sub">
-                        {parcial.votantes} de {parcial.aptos} votantes em dia já votaram.
-                      </p>
-                      <p className="telao-chamada">Vote pelo celular: aplicativo do COMEP › Votações</p>
-                    </>
-                  ) : voto ? (
-                    <>
-                      <p className={voto.aprovada ? 'telao-resultado telao-aprovado' : 'telao-resultado telao-rejeitado'}>
-                        {voto.aprovada ? 'Aprovado' : 'Rejeitado'}
-                      </p>
-                      <BarrasDaVotacao
-                        opcoes={[
-                          { id: 'a', texto: 'A favor', papel: 'a_favor', votos: voto.a_favor },
-                          { id: 'c', texto: 'Contra', papel: 'contra', votos: voto.contra },
-                          { id: 'b', texto: 'Abstenções', papel: 'abstencao', votos: voto.abstencoes },
-                        ]}
-                      />
-                    </>
-                  ) : atual?.pauta?.deliberativo ? (
-                    <p className="telao-secreto">Este item vai a votação. Aguarde a abertura.</p>
-                  ) : (
-                    <p className="telao-secreto">{e.titulo}</p>
-                  )}
-                </section>
+                {temLadoDireito && (
+                  <section className="telao-direita" aria-live="polite">
+                    {votacaoAberta ? (
+                      <>
+                        {votacaoAberta.mostra_contagem ? (
+                          <BarrasDaVotacao opcoes={votacaoAberta.opcoes} />
+                        ) : (
+                          <p className="telao-secreto">Voto secreto: o resultado aparece quando a votação for apurada.</p>
+                        )}
+                        <p className="telao-sub">
+                          {votacaoAberta.votantes} de {votacaoAberta.aptos} votantes em dia já votaram.
+                        </p>
+                        <p className="telao-chamada">Vote pelo celular: aplicativo do COMEP › Votações</p>
+                      </>
+                    ) : voto ? (
+                      <>
+                        <p className={voto.aprovada ? 'telao-resultado telao-aprovado' : 'telao-resultado telao-rejeitado'}>
+                          {voto.aprovada ? 'Aprovado' : 'Rejeitado'}
+                        </p>
+                        <BarrasDaVotacao
+                          opcoes={[
+                            { id: 'a', texto: 'A favor', papel: 'a_favor', votos: voto.a_favor },
+                            { id: 'c', texto: 'Contra', papel: 'contra', votos: voto.contra },
+                            { id: 'b', texto: 'Abstenções', papel: 'abstencao', votos: voto.abstencoes },
+                          ]}
+                        />
+                      </>
+                    ) : (
+                      <p className="telao-secreto">Este item vai a votação. Aguarde a abertura.</p>
+                    )}
+                  </section>
+                )}
               </main>
             </>
           )

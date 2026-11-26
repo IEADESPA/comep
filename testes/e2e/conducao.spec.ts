@@ -5,9 +5,11 @@
 // nas Regras (Configurações) e devolve os valores no fim. AGE FICTÍCIA: instalada, ela não se cancela mais (revisão da
 // Fase 4); no fim, a lista de presença é encerrada e ela fica em "Anteriores" do banco de teste, com o título "E2E".
 // Se o teste parar antes de instalar, ela é cancelada e arquivada. O desligamento (sem volta) é testado só no banco
-// (testes/banco/conducao.test.ts); a votação pelo celular, em votacoes.spec.ts.
-import { expect, test, type Page } from '@playwright/test'
-import { arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
+// (testes/banco/conducao.test.ts). A votação pelo celular aberta pela condução (o item 2) aparece na condução e no
+// telão (revisão da parte 14, achado 5); a do módulo Votações está em votacoes.spec.ts. Um teste à parte, também no
+// celular (uma reunião mensal, sem esperar), confere a ordem do desenho do celular, o telão e o fechamento.
+import { expect, test, type Locator, type Page } from '@playwright/test'
+import { arquivoDaSessao, cancelarEArquivarEncontro, mensagemNaTela, reuniaoMensalPublicada, sufixoUnico } from './ajuda'
 
 test.use({ storageState: arquivoDaSessao('presidencia') })
 
@@ -27,7 +29,14 @@ function campoDaquiMinutos(minutos: number): string {
   return `${dia}T${hora}`
 }
 
+/** O espaço, em pixels, entre o fim de um elemento e o começo do que vem embaixo dele. */
+async function espacoEntre(acima: Locator, abaixo: Locator): Promise<number> {
+  const [a, b] = [await acima.boundingBox(), await abaixo.boundingBox()]
+  return a && b ? b.y - (a.y + a.height) : Number.NaN
+}
+
 const ITEM = 'Aprovar o relatório (teste)'
+const ITEM2 = 'Aprovar o plano anual (teste)'
 
 test('assembleia ao vivo: roteiro, instalar, votar, telão, convidado, resolução e ata', async ({ page }, info) => {
   test.skip(info.project.name === 'celular', 'espera a assembleia começar (2 minutos): roda só no computador')
@@ -46,6 +55,9 @@ test('assembleia ao vivo: roteiro, instalar, votar, telão, convidado, resoluç�
     await page.getByLabel(/^Quem pediu/).fill('Conselho Diretor (teste automático)')
     await page.getByLabel('Item 1 da pauta').fill(ITEM)
     await page.getByRole('checkbox', { name: 'Vai a votação' }).check()
+    await page.getByRole('button', { name: '+ Item da pauta' }).click()
+    await page.getByLabel('Item 2 da pauta').fill(ITEM2)
+    await page.getByRole('checkbox', { name: 'Vai a votação' }).nth(1).check()
     await page.getByRole('button', { name: 'Gerar o texto do edital' }).click()
     await page.getByRole('button', { name: 'Salvar (ainda sem convocar)' }).click()
     await expect(mensagemNaTela(page, 'Encontro preparado. Confira e convoque.')).toBeVisible()
@@ -68,6 +80,8 @@ test('assembleia ao vivo: roteiro, instalar, votar, telão, convidado, resoluç�
     await expect(page.getByRole('heading', { name: 'Ao vivo', level: 1 })).toBeVisible()
     const roteiro = page.getByRole('list', { name: 'Roteiro' })
     await expect(roteiro).toContainText('Introdução')
+    // os botões do alto não encostam no primeiro cartão (revisão da parte 14, achado 10)
+    expect(await espacoEntre(page.getByRole('link', { name: 'Abrir o telão' }), page.getByRole('region', { name: 'Roteiro', exact: true }))).toBeGreaterThanOrEqual(12)
     await expect(roteiro).toContainText(ITEM)
     await page.getByRole('button', { name: 'Começar o roteiro' }).click()
     await expect(mensagemNaTela(page, 'Agora: Introdução.')).toBeVisible()
@@ -120,6 +134,28 @@ test('assembleia ao vivo: roteiro, instalar, votar, telão, convidado, resoluç�
     await expect(telao).toContainText('Rejeitado')
     await expect(telao).toContainText('instalada')
 
+    // o item 2: a votação pelo celular dos presentes em dia, aberta pela condução, em voto aberto (a parcial aparece na
+    // condução e no telão). O único presente está em atraso: 0 de 0 votantes, e o resultado vai para o item
+    await page.goto(`assembleias/conducao/${id}`)
+    await roteiro.getByRole('button', { name: `Ir para: 2. ${ITEM2}` }).click()
+    await expect(mensagemNaTela(page, `Agora: ${ITEM2}.`)).toBeVisible()
+    const cartao2 = page.getByRole('article', { name: `Votação: ${ITEM2}` })
+    await cartao2.getByRole('checkbox', { name: /^Voto secreto/ }).uncheck()
+    await cartao2.getByRole('button', { name: 'Abrir a votação pelo celular' }).click()
+    await expect(mensagemNaTela(page, 'Votação aberta: os presentes em dia votam pelo celular.')).toBeVisible()
+    await expect(cartao2.getByText('0 de 0 votantes em dia já votaram pelo celular.')).toBeVisible()
+    await expect(cartao2.getByRole('list', { name: 'Votos até agora' })).toContainText('A favor')
+    await page.goto(`assembleias/telao/${id}`)
+    await expect(telao).toContainText(`2 · ${ITEM2}`)
+    await expect(telao.getByRole('list', { name: 'Votos até agora' })).toBeVisible()
+    await expect(telao).toContainText('0 de 0 votantes em dia já votaram.')
+    await expect(telao).toContainText('Vote pelo celular')
+    await page.goto(`assembleias/conducao/${id}`)
+    await cartao2.getByRole('button', { name: 'Encerrar e apurar' }).click()
+    await expect(mensagemNaTela(page, 'Votação apurada: rejeitado.')).toBeVisible()
+    await expect(cartao2).toContainText('Rejeitado')
+    await expect(cartao2).toContainText('0 a favor, 0 contra, 0 abstenções')
+
     // o fechamento: a resolução protocolada (número por ano), anulada e protocolada de novo
     await page.goto(`assembleias/fechamento/${id}`)
     await expect(page.getByRole('heading', { name: 'Fechamento e ata', level: 1 })).toBeVisible()
@@ -169,9 +205,19 @@ test('assembleia ao vivo: roteiro, instalar, votar, telão, convidado, resoluç�
     await expect(page.getByRole('button', { name: '+ Resolução' })).toHaveCount(0)
     // o PDF do oficial só entra depois das duas assinaturas
     await expect(page.getByText('Anexar a ata oficial em PDF')).toHaveCount(0)
+    // (o item de agora é o 2, votado pelo celular: o cartão dele não oferece votar de novo)
     await page.goto(`assembleias/conducao/${id}`)
-    await expect(page.getByRole('article', { name: `Votação: ${ITEM}` })).toContainText('A ata já começou a ser assinada: as votações não mudam mais.')
-    await expect(page.getByRole('form', { name: `Registrar votação: ${ITEM}` })).toHaveCount(0)
+    await expect(cartao2).toContainText('A ata já começou a ser assinada: as votações não mudam mais.')
+    await expect(cartao2.getByRole('button', { name: 'Votar de novo pelo celular' })).toHaveCount(0)
+    await expect(cartao2.getByRole('button', { name: 'Contar à mão' })).toHaveCount(0)
+    // nem o roteiro, a abertura e os convidados (revisão da parte 14, achado 8: as mesmas travas do banco)
+    await expect(page.getByText('A ata já começou a ser assinada: o roteiro e os convidados não mudam mais.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Próximo item' })).toHaveCount(0)
+    await expect(page.getByRole('list', { name: 'Roteiro' }).getByRole('button', { name: 'Ir para: Encerramento' })).toBeDisabled()
+    await expect(page.getByText('Ajustar a abertura')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Tirar Convidado Fictício (teste)' })).toHaveCount(0)
+    await expect(page.getByRole('form', { name: 'Registrar convidado' })).toHaveCount(0)
+    await expect(page.getByRole('list', { name: 'Convidados' })).toContainText('Convidado Fictício (teste)')
 
     // a página da assembleia mostra o resultado
     await page.goto(endereco)
@@ -216,4 +262,51 @@ test('o ministro não abre a condução, o telão nem o fechamento', async ({ br
   await m.goto('assembleias/00000000-0000-0000-0000-000000000000/conducao')
   await expect(m).toHaveURL(/\/assembleias\/conducao\/0{8}-/)
   await ministro.close()
+})
+
+test('a reunião mensal ao vivo: no celular, os presentes e o item de agora primeiro; o telão numa coluna só', async ({ page }, info) => {
+  test.setTimeout(150_000)
+  const celular = info.project.name === 'celular'
+  // uma reunião mensal daqui a 1 hora: a presença e a condução já abrem, sem esperar nem mexer nas regras
+  const titulo = `Reunião condução E2E ${sufixoUnico(info.project.name)}`
+  const endereco = await reuniaoMensalPublicada(page, titulo, 1, 'Informe da diretoria (teste)')
+  const id = endereco.split('/').pop() ?? ''
+  const cabeNaLargura = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+  const altura = async (l: Locator) => (await l.boundingBox())?.y ?? Number.NaN
+  try {
+    await page.goto(`assembleias/conducao/${id}`)
+    await expect(page.getByRole('heading', { name: 'Ao vivo', level: 1 })).toBeVisible()
+    await page.getByRole('button', { name: 'Começar o roteiro' }).click()
+    await expect(mensagemNaTela(page, 'Agora: Introdução.')).toBeVisible()
+    const presentes = page.getByRole('region', { name: 'Presentes', exact: true })
+    const agora = page.getByRole('heading', { name: 'Introdução', level: 2 })
+    const roteiro = page.getByRole('list', { name: 'Roteiro' })
+    await expect(presentes).toBeVisible()
+    if (celular) {
+      // o desenho do celular (asm-conducao): primeiro os presentes (o quórum), depois o item de agora; o roteiro depois
+      // (revisão da parte 14, achado 10)
+      expect(await altura(presentes)).toBeLessThan(await altura(agora))
+      expect(await altura(agora)).toBeLessThan(await altura(roteiro))
+      // os botões do alto não encostam no primeiro cartão
+      expect(await espacoEntre(page.getByRole('link', { name: 'Abrir o telão' }), presentes)).toBeGreaterThanOrEqual(12)
+    }
+    expect(await cabeNaLargura()).toBe(true)
+
+    // o telão: sem votação para mostrar, uma coluna só, no centro, sem o título do encontro solto ao lado do número
+    // (revisão da parte 14, achado 10)
+    await page.goto(`assembleias/telao/${id}`)
+    const telao = page.getByRole('main', { name: 'Telão' })
+    await expect(telao).toContainText('Introdução')
+    await expect(telao).toContainText('presentes na reunião')
+    await expect(telao).not.toContainText(titulo)
+    const [caixa, item] = [await telao.boundingBox(), await telao.getByRole('heading', { level: 1 }).boundingBox()]
+    expect(Math.abs(item!.x + item!.width / 2 - (caixa!.x + caixa!.width / 2))).toBeLessThan(caixa!.width * 0.05)
+    expect(await cabeNaLargura()).toBe(true)
+    await page.goto(`assembleias/fechamento/${id}`)
+    await expect(page.getByRole('heading', { name: 'Fechamento e ata', level: 1 })).toBeVisible()
+    await expect(page.getByRole('list', { name: 'Os números do encontro' })).toBeVisible()
+    expect(await cabeNaLargura()).toBe(true)
+  } finally {
+    await cancelarEArquivarEncontro(page, endereco, titulo)
+  }
 })
