@@ -95,36 +95,38 @@ export function EscolherEncontro({ funcao }: { funcao: Funcao }) {
   const agora = useAgora(60)
   return (
     <SoSecretaria oQue={TITULO_DA_FUNCAO[funcao]}>
-      <CabecalhoFuncao modulo="Assembleias" titulo={TITULO_DA_FUNCAO[funcao]} sub="Escolha o encontro." />
-      <MostrarCarga carga={carga} recarregar={recarregar}>
-        {(todos) => {
-          const validos = todos.filter((e) => e.situacao === 'convocado' || e.situacao === 'realizado')
-          const deHoje = validos.filter((e) => presencaAberta(e, agora))
-          if (deHoje.length === 1) return <Navigate to={`/assembleias/${funcao}/${deHoje[0].id}`} replace />
-          const proximos = validos.filter((e) => e.situacao === 'convocado').sort((a, b) => a.inicio.localeCompare(b.inicio))
-          const anteriores = validos.filter((e) => e.situacao === 'realizado').slice(0, 6)
-          const lista = funcao === 'fechamento' ? [...anteriores, ...proximos] : [...proximos, ...anteriores]
-          if (lista.length === 0) return <p className="vazio">Nenhum encontro convocado ou realizado.</p>
-          return (
-            <ul className="lista-encontros-escolher" aria-label="Encontros">
-              {lista.map((e) => (
-                <li key={e.id}>
-                  <Link to={`/assembleias/${funcao}/${e.id}`} className="bloco encontro-escolher">
-                    <Icone nome="assembleia" tamanho={22} />
-                    <span>
-                      <strong>{e.titulo}</strong>
-                      <span className="detalhe">
-                        {nomeCurto(e)} · {e.situacao === 'realizado' ? 'realizado' : presencaAberta(e, agora) ? 'acontecendo agora' : 'convocado'}
+      <div className="tela-nova">
+        <CabecalhoFuncao modulo="Assembleias" titulo={TITULO_DA_FUNCAO[funcao]} sub="Escolha o encontro." />
+        <MostrarCarga carga={carga} recarregar={recarregar}>
+          {(todos) => {
+            const validos = todos.filter((e) => e.situacao === 'convocado' || e.situacao === 'realizado')
+            const deHoje = validos.filter((e) => presencaAberta(e, agora))
+            if (deHoje.length === 1) return <Navigate to={`/assembleias/${funcao}/${deHoje[0].id}`} replace />
+            const proximos = validos.filter((e) => e.situacao === 'convocado').sort((a, b) => a.inicio.localeCompare(b.inicio))
+            const anteriores = validos.filter((e) => e.situacao === 'realizado').slice(0, 6)
+            const lista = funcao === 'fechamento' ? [...anteriores, ...proximos] : [...proximos, ...anteriores]
+            if (lista.length === 0) return <p className="vazio">Nenhum encontro convocado ou realizado.</p>
+            return (
+              <ul className="lista-encontros-escolher" aria-label="Encontros">
+                {lista.map((e) => (
+                  <li key={e.id}>
+                    <Link to={`/assembleias/${funcao}/${e.id}`} className="bloco encontro-escolher">
+                      <Icone nome="assembleia" tamanho={22} />
+                      <span>
+                        <strong>{e.titulo}</strong>
+                        <span className="detalhe">
+                          {nomeCurto(e)} · {e.situacao === 'realizado' ? 'realizado' : presencaAberta(e, agora) ? 'acontecendo agora' : 'convocado'}
+                        </span>
                       </span>
-                    </span>
-                    <Icone nome="seta" tamanho={18} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )
-        }}
-      </MostrarCarga>
+                      <Icone nome="seta" tamanho={18} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )
+          }}
+        </MostrarCarga>
+      </div>
     </SoSecretaria>
   )
 }
