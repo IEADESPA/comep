@@ -989,7 +989,7 @@ A revisão de 23/11/2026, antes da homologação, aprovou a parte 14 com ressalv
 - A tabela "Quem chegou", no celular, foi conferida também só com o CSS, sem o banco. Com o `estilos.css` de antes, ela passava 193px da largura do cartão; com o de agora, 0.
 - As telas foram conferidas com fotos de uma reunião mensal fictícia (presença, portaria, condução, telão e fechamento), no computador e no celular, no claro e no escuro, ao lado do desenho aprovado.
 
-## S5-04 — Tenho um código (ainda na versão 5.5.0-teste.18)
+## S5-04 — Tenho um código (versão 5.5.0-teste.20)
 
 Pedido do presidente (25/11/2026): quem já tinha criado a conta pelo site e depois recebe da secretaria o código de primeiro acesso não tinha como usar o código, porque o Primeiro acesso cria um login novo e o e-mail já tinha login. Agora o código também liga a conta que já existe. A tela segue o cartão aprovado do Início ("Já é associado do COMEP?", opção 2) e a tela `codigo-login` da rodada 37 (o "É você?" e o "Pronto").
 
@@ -1011,7 +1011,7 @@ Pedido do presidente (25/11/2026): quem já tinha criado a conta pelo site e dep
 
 - O código continua com 12 letras (`XXXX-XXXX-XXXX`, uns 59 bits de acaso, desde a criação do código em 11/11/2026), não com 6 como na nota do desenho: 6 letras se adivinham com muito menos tentativas.
 - O Início continua com o leiaute aprovado (o pedido em cima; o cartão ao lado de "Enquanto isso"); o cartão aberto fica no lugar dele.
-- A parte 4 (a aba "Acesso ao sistema" da ficha da secretaria, com a linha do tempo e os arquivados) não entrou: a secretaria recebe o aviso no sino com a lista, e o registro fica em `juncoes_cadastro`.
+- A parte 4 (a aba "Acesso ao sistema" da ficha da secretaria, com a linha do tempo e os arquivados) fica para depois do lançamento (decisão de 26/11/2026). Até lá, a secretaria recebe o aviso no sino com a lista, e o registro fica em `juncoes_cadastro`.
 - O pedido em análise vira "desistiu" (a regra dos pedidos não deixa arquivar o pedido sozinho); a faixa diz "o pedido de associação foi arquivado", como no desenho.
 
 **Verificação:**
