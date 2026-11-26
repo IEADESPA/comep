@@ -4,48 +4,11 @@
 // mostra o botão) e a secretaria marca pelo nome. O ministro confirma que vai, justifica a falta e a presidência
 // (no lugar do 1º secretário) decide.
 import { expect, test, type Page } from '@playwright/test'
-import { arquivoDaSessao, mensagemNaTela, sufixoUnico } from './ajuda'
+import { arquivoDaSessao, cancelarEArquivarEncontro, mensagemNaTela, reuniaoMensalPublicada, sufixoUnico } from './ajuda'
 
 test.use({ storageState: arquivoDaSessao('presidencia') })
 
 const MINISTRO = 'Ministro de Teste'
-
-/** Campo data e hora (hora de Parauapebas) daqui a N horas. */
-function campoDaquiHoras(horas: number): string {
-  const d = new Date(Date.now() + horas * 3_600_000)
-  const dia = d.toLocaleDateString('sv-SE', { timeZone: 'America/Belem' })
-  const hora = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Belem', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-  return `${dia}T${hora}`
-}
-
-async function reuniaoPublicada(page: Page, titulo: string, horas: number): Promise<string> {
-  await page.goto('assembleias/novo')
-  await page.getByLabel('Tipo *').selectOption({ label: 'Reunião mensal' })
-  await page.getByLabel('Data e hora (1ª chamada) *').fill(campoDaquiHoras(horas))
-  await page.getByLabel(/^Título/).fill(titulo)
-  await page.getByLabel('Local *').fill('Local do teste automático (E2E)')
-  await page.getByLabel('Item 1 da pauta').fill('Oração')
-  await page.getByRole('button', { name: 'Salvar (ainda sem convocar)' }).click()
-  await expect(mensagemNaTela(page, 'Encontro preparado. Confira e convoque.')).toBeVisible()
-  await page.getByRole('button', { name: 'Publicar a reunião' }).click()
-  await page.getByRole('button', { name: 'Confirmar — publicar' }).click()
-  await expect(mensagemNaTela(page, 'Reunião publicada.')).toBeVisible()
-  return page.url()
-}
-
-async function cancelarEArquivar(page: Page, endereco: string, titulo: string) {
-  await page.goto(endereco)
-  await expect(page.getByRole('heading', { name: titulo })).toBeVisible()
-  if (await page.getByText('Cancelar este encontro').count()) {
-    await page.getByText('Cancelar este encontro').click()
-    await page.getByRole('form', { name: 'Cancelar o encontro' }).getByLabel('Motivo *').fill('Teste automático')
-    await page.getByRole('button', { name: 'Cancelar o encontro' }).click()
-    await expect(mensagemNaTela(page, 'Encontro cancelado.')).toBeVisible()
-  }
-  await page.getByRole('button', { name: `Arquivar ${titulo}` }).click()
-  await page.getByRole('button', { name: `Confirmar — Arquivar ${titulo}` }).click()
-  await expect(page).toHaveURL(/\/assembleias$/)
-}
 
 /** A presença do encontro: busca o ministro e desfaz a presença dele. */
 async function desfazer(page: Page, id: string) {
@@ -60,6 +23,11 @@ async function codigoDaPortaria(page: Page, id: string): Promise<string> {
   await page.goto(`assembleias/presenca/${id}/portaria`)
   await expect(page.getByRole('heading', { name: 'Marque a sua presença' })).toBeVisible()
   await expect(page.getByRole('img', { name: /^QR Code da portaria/ })).toBeVisible()
+  // fora da moldura (revisão da parte 14, achado 2): o aparelho da entrada não mostra o menu, a busca nem o sino
+  await expect(page.getByRole('navigation', { name: 'Menu principal' })).toHaveCount(0)
+  await expect(page.getByLabel('Buscar ministro, igreja ou tela')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^Avisos/ })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Voltar à lista' })).toBeVisible()
   const rotulo = (await page.getByLabel(/^Código da portaria:/).getAttribute('aria-label')) ?? ''
   const codigo = rotulo.replace('Código da portaria:', '').replace(/\s/g, '')
   expect(codigo).toMatch(/^[A-Z2-9]{6}$/)
@@ -69,13 +37,15 @@ async function codigoDaPortaria(page: Page, id: string): Promise<string> {
 test('presença: o código da portaria, o QR dela, a credencial lida e pelo nome', async ({ page, browser }, info) => {
   test.setTimeout(240_000)
   const titulo = `Reunião presença E2E ${sufixoUnico(info.project.name)}`
-  const endereco = await reuniaoPublicada(page, titulo, 1)
+  const endereco = await reuniaoMensalPublicada(page, titulo, 1)
   const id = endereco.split('/').pop() ?? ''
   const ministro = await browser.newContext({ storageState: arquivoDaSessao('ministro') })
   try {
     // pelo nome (a secretaria): marcar e desfazer
     await page.getByRole('main').getByRole('link', { name: 'Presença', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Presença', level: 1 })).toBeVisible()
+    // "Abrir a tela da portaria" uma vez só, no alto (revisão da parte 14, achado 10)
+    await expect(page.getByRole('link', { name: 'Abrir a tela da portaria' })).toHaveCount(1)
     await page.getByLabel('Buscar associado').fill(MINISTRO)
     const linha = page.getByRole('listitem', { name: MINISTRO })
     await linha.getByRole('button', { name: 'Marcar presente' }).click()
@@ -124,18 +94,31 @@ test('presença: o código da portaria, o QR dela, a credencial lida e pelo nome
     await page.goto(`assembleias/presenca/${id}`)
     await expect(page.getByRole('table', { name: 'Quem chegou' })).toContainText('credencial lida')
     await expect(page.getByRole('table', { name: 'Quem chegou' })).toContainText('em atraso')
+    // a tabela cabe no cartão, também no celular: "Como marcou" sem corte e "Vota?" à vista, sem rolar de lado (revisão
+    // da parte 14, achado 10)
+    const rolagem = await page.getByRole('table', { name: 'Quem chegou' }).evaluate((t) => {
+      const caixa = t.parentElement!
+      return { dentro: caixa.scrollWidth - caixa.clientWidth, pagina: document.documentElement.scrollWidth - window.innerWidth }
+    })
+    expect(rolagem).toEqual({ dentro: 0, pagina: 0 })
   } finally {
     await ministro.close()
-    await cancelarEArquivar(page, endereco, titulo)
+    await cancelarEArquivarEncontro(page, endereco, titulo)
   }
 })
 
 test('o ministro confirma que vai, justifica a falta e a presidência decide', async ({ page, browser }, info) => {
   test.setTimeout(150_000)
   const titulo = `Reunião justificativa E2E ${sufixoUnico(info.project.name)}`
-  const endereco = await reuniaoPublicada(page, titulo, 72)
+  const endereco = await reuniaoMensalPublicada(page, titulo, 72)
   const ministro = await browser.newContext({ storageState: arquivoDaSessao('ministro') })
   try {
+    // três dias antes, a portaria não abre; fora da moldura, o caminho de volta continua à vista
+    await page.goto(`assembleias/presenca/${endereco.split('/').pop()}/portaria`)
+    await expect(page.getByRole('alert')).toContainText('A portaria abre no dia do encontro')
+    await expect(page.getByLabel(/^Código da portaria:/)).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Voltar à lista' })).toBeVisible()
+
     const m = await ministro.newPage()
     await m.goto(endereco)
     // três dias antes, a presença ainda não abre
@@ -161,7 +144,7 @@ test('o ministro confirma que vai, justifica a falta e a presidência decide', a
     await expect(m.getByText('aceita', { exact: true })).toBeVisible()
   } finally {
     await ministro.close()
-    await cancelarEArquivar(page, endereco, titulo)
+    await cancelarEArquivarEncontro(page, endereco, titulo)
   }
 })
 

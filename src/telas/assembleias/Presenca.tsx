@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { Aviso, Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
-import { Icone } from '../../componentes/Icone'
+import { Icone, MarcaCaixa } from '../../componentes/Icone'
 import { QrCode } from '../../componentes/QrCode'
 import { Chip } from '../../componentes/Telas'
 import {
@@ -24,6 +24,7 @@ import {
   faltasDosAssociados,
   listaPresenca,
   listarJustificativas,
+  NOME_DO_TIPO,
   portariaDoEncontro,
   registrarPresenca,
   registrarPresencaPorCodigo,
@@ -36,7 +37,7 @@ import { useUmaVez } from '../../estado/useUmaVez'
 import { contemTexto, formatarDataHora, iniciaisDe } from '../../utilitarios/formatos'
 import { codigoDoQr } from '../../utilitarios/encontros'
 import { CabecalhoDoEncontro, CartaoQuorum, SoSecretaria } from './comum'
-import { ABRE_ANTES, FECHA_DEPOIS, horaDe, presencaAberta, useAgora, useAtualizarACada } from './regras'
+import { ABRE_ANTES, FECHA_DEPOIS, horaDe, nomeCurto, presencaAberta, useAgora, useAtualizarACada } from './regras'
 import { LeitorQr } from './LeitorQr'
 
 type Retorno = { sucesso?: string; erro?: string }
@@ -117,7 +118,7 @@ function ConteudoPresenca({ id }: { id: string }) {
         const achados =
           termo.length < 2 ? [] : lista.filter((l) => contemTexto(l.nome, termo) || String(l.numero_registro) === termo.replace(/^0+/, ''))
         return (
-          <>
+          <div className="tela-nova">
             <CabecalhoDoEncontro
               e={encontro}
               titulo="Presença"
@@ -262,29 +263,25 @@ function ConteudoPresenca({ id }: { id: string }) {
                     1 · o ministro lê o <strong>QR da portaria</strong> com o celular; 2 · ou <strong>digita o código</strong> da tela da
                     entrada; 3 · ou a secretaria <strong>lê a credencial</strong> dele.
                   </p>
+                  {/* "Abrir a tela da portaria" fica só no alto da tela (antes aparecia duas vezes; revisão da parte 14) */}
                   {aberta && (
-                    <>
-                      <Link className="botao botao-secundario alinhar-esquerda" to={`/assembleias/presenca/${id}/portaria`}>
-                        Abrir a tela da portaria
-                      </Link>
-                      <LeitorQr
-                        aoLer={aoLerCredencial}
-                        interpretar={codigoDoQr}
-                        textoDoBotao="Ler a credencial do ministro"
-                        rotuloDaCamera="Câmera lendo a credencial"
-                        semLeitor={
-                          <>
-                            Este navegador não lê QR Code aqui dentro. Use a <strong>câmera do celular</strong>: aponte para o QR Code da
-                            credencial; a página de validação abre com o botão <strong>"Marcar presença"</strong>. Ou marque pelo nome.
-                          </>
-                        }
-                      />
-                    </>
+                    <LeitorQr
+                      aoLer={aoLerCredencial}
+                      interpretar={codigoDoQr}
+                      textoDoBotao="Ler a credencial do ministro"
+                      rotuloDaCamera="Câmera lendo a credencial"
+                      semLeitor={
+                        <>
+                          Este navegador não lê QR Code aqui dentro. Use a <strong>câmera do celular</strong>: aponte para o QR Code da
+                          credencial; a página de validação abre com o botão <strong>"Marcar presença"</strong>. Ou marque pelo nome.
+                        </>
+                      }
+                    />
                   )}
                 </section>
               </div>
             </div>
-          </>
+          </div>
         )
       }}
     </MostrarCarga>
@@ -342,7 +339,8 @@ function LinhaDaLista({
 }
 
 // ---------------------------------------------------------------------
-// /assembleias/presenca/:id/portaria — a tela da portaria (num celular ou tablet na entrada)
+// /assembleias/presenca/:id/portaria — a tela da portaria (num celular ou tablet na entrada), fora da moldura:
+// sem o menu, a busca e o sino da secretaria (revisão da parte 14, achado 2)
 // ---------------------------------------------------------------------
 
 export function TelaDaPortaria() {
@@ -377,35 +375,43 @@ function ConteudoPortaria({ id }: { id: string }) {
     if (vencido) recarregar()
   }, [vencido, recarregar])
 
+  const encontroCarregado = carga.situacao === 'ok' ? carga.dados.encontro : null
   return (
-    <MostrarCarga carga={carga} recarregar={recarregar}>
-      {({ encontro, portaria, quorum }) => {
-        if (!encontro) {
+    <div className="telao portaria-tela" ref={tela}>
+      {/* o alto fica sempre à vista: sem a moldura, "Voltar à lista" é o único caminho de volta (também quando a portaria
+          ainda não abriu ou o encontro não existe) */}
+      <header className="telao-topo">
+        <span className="telao-marca">
+          <MarcaCaixa tamanho={44} />
+          <span>
+            <strong>COMEP</strong>
+            <span>{encontroCarregado ? `${NOME_DO_TIPO[encontroCarregado.tipo]} · ${nomeCurto(encontroCarregado)}` : 'Tela da portaria'}</span>
+          </span>
+        </span>
+        <span className="telao-acoes nao-imprimir">
+          {encontroCarregado && (
+            <button type="button" className="botao botao-secundario" onClick={() => void tela.current?.requestFullscreen?.()}>
+              Tela cheia
+            </button>
+          )}
+          <Link className="botao-texto" to={`/assembleias/presenca/${id}`}>
+            Voltar à lista
+          </Link>
+        </span>
+      </header>
+      <MostrarCarga carga={carga} recarregar={recarregar}>
+        {({ encontro, portaria, quorum }) => {
+          if (!encontro) {
+            return (
+              <Aviso titulo="Encontro não encontrado">
+                <p>Ele pode ter sido arquivado.</p>
+              </Aviso>
+            )
+          }
           return (
-            <Aviso titulo="Encontro não encontrado">
-              <p>Ele pode ter sido arquivado.</p>
-            </Aviso>
-          )
-        }
-        return (
-          <>
-            <CabecalhoDoEncontro
-              e={encontro}
-              titulo="Presença · tela da portaria"
-              acoes={
-                <>
-                  <button type="button" className="botao botao-secundario" onClick={() => void tela.current?.requestFullscreen?.()}>
-                    Tela cheia
-                  </button>
-                  <Link className="botao-texto" to={`/assembleias/presenca/${id}`}>
-                    Voltar à lista
-                  </Link>
-                </>
-              }
-            />
-            <div className="duas-colunas presenca-colunas" ref={tela}>
+            <main className="duas-colunas presenca-colunas" aria-label="Tela da portaria">
               <section className="bloco portaria-cartao" aria-labelledby="titulo-portaria">
-                <h2 id="titulo-portaria">Marque a sua presença</h2>
+                <h1 id="titulo-portaria">Marque a sua presença</h1>
                 <p>Leia este QR Code com o celular, pelo aplicativo do COMEP</p>
                 <QrCode
                   className="portaria-qr"
@@ -449,11 +455,11 @@ function ConteudoPortaria({ id }: { id: string }) {
                   )}
                 </section>
               </div>
-            </div>
-          </>
-        )
-      }}
-    </MostrarCarga>
+            </main>
+          )
+        }}
+      </MostrarCarga>
+    </div>
   )
 }
 

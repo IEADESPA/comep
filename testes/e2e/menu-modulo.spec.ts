@@ -120,7 +120,7 @@ test.describe('ministro', () => {
     await expect(page.getByRole('heading', { name: 'Assembleias e reuniões', level: 1 })).toBeVisible()
     const funcoes = await funcoesDoModulo(page)
     await expect(funcoes.getByRole('link', { name: nomeDaFuncao('Pedidos de AGE') })).toBeVisible()
-    await expect(funcoes.getByRole('link', { name: nomeDaFuncao('Preparar assembleia') })).toHaveCount(0)
+    await expect(funcoes.getByRole('link', { name: nomeDaFuncao('Preparar') })).toHaveCount(0)
     await expect(funcoes.getByRole('link', { name: nomeDaFuncao('Faltas e justificativas') })).toHaveCount(0)
     if (noCelular(page)) await expect(page.getByRole('button', { name: /^Funções do módulo/ })).toContainText('2 funções')
     else await expect(funcoes).toContainText('2 funções')

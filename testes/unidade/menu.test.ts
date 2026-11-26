@@ -88,6 +88,22 @@ describe('o menu do módulo', () => {
     )
   })
 
+  it('as funções das Assembleias com os nomes e os ícones do desenho (rodada 15; revisão da parte 14, achado 10)', () => {
+    const assembleias = MODULOS.find((m) => m.chave === 'assembleias')!
+    assert.deepEqual(
+      assembleias.funcoes.map((f) => [f.titulo, f.icone]),
+      [
+        ['Assembleias', 'assembleia'],
+        ['Preparar', 'pedido'],
+        ['Presença', 'qr'],
+        ['Condução', 'votar'],
+        ['Fechamento e ata', 'check'],
+        ['Faltas e justificativas', 'alerta'],
+        ['Pedidos de AGE', 'aviso'],
+      ],
+    )
+  })
+
   it('as subfunções com perfis próprios: o Caixa › Modelos exclusivos é da tesouraria e da presidência (D-07)', () => {
     const financeiro = MODULOS.find((m) => m.chave === 'financeiro')!
     const subsDoCaixa = (perfis: Parameters<typeof funcoesVisiveis>[1]) =>

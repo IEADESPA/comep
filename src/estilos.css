@@ -2798,6 +2798,10 @@ fieldset .caixa-marcar + .caixa-marcar {
 
 .alinhar-esquerda {
   justify-self: start;
+}
+
+/* Só o botão de texto encosta o texto na margem; o botão cheio (.botao) mantém o recuo dele */
+.botao-texto.alinhar-esquerda {
   padding-left: 0;
 }
 
@@ -9881,6 +9885,37 @@ li.feito .numero-passo {
   border-bottom: 0;
 }
 
+/* No celular, a tabela de quem chegou cabe no cartão sem rolar de lado: o texto quebra e as iniciais saem */
+@media (max-width: 599.98px) {
+  .tabela-presenca th,
+  .tabela-presenca td {
+    padding: 10px 8px;
+    white-space: normal;
+  }
+
+  .tabela-presenca th:first-child,
+  .tabela-presenca td:first-child {
+    padding-left: 18px;
+  }
+
+  .tabela-presenca th:last-child,
+  .tabela-presenca td:last-child {
+    padding-right: 18px;
+  }
+
+  .tabela-presenca thead th {
+    letter-spacing: 0.02em;
+  }
+
+  .tabela-presenca .iniciais-redondas {
+    display: none;
+  }
+
+  .tabela-presenca .chip {
+    white-space: nowrap;
+  }
+}
+
 .nome-com-iniciais {
   display: inline-flex;
   align-items: center;
@@ -9974,7 +10009,7 @@ li.feito .numero-passo {
   padding: 28px 18px;
 }
 
-.portaria-cartao h2 {
+.portaria-cartao h1 {
   font-size: 22px;
 }
 
@@ -10014,9 +10049,8 @@ li.feito .numero-passo {
   color: var(--cor-titulo);
 }
 
-.presenca-colunas:fullscreen {
-  padding: 24px;
-  background: var(--cor-fundo);
+/* A tela da portaria fica fora da moldura, como o telão (.telao): a tela cheia é a página inteira */
+.portaria-tela:fullscreen {
   overflow-y: auto;
 }
 
@@ -10120,6 +10154,21 @@ li.feito .numero-passo {
 @media (min-width: 1100px) {
   .conducao-colunas {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.95fr);
+  }
+}
+
+/* Numa coluna só (o celular), o desenho começa pelo quórum e pelo item de agora; depois o roteiro e os convidados */
+@media (max-width: 1099.98px) {
+  .conducao-lado {
+    display: contents;
+  }
+
+  .conducao-quorum {
+    order: -2;
+  }
+
+  .conducao-agora {
+    order: -1;
   }
 }
 
@@ -10331,6 +10380,17 @@ li.feito .numero-passo {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
     align-items: center;
   }
+}
+
+/* Sem votação para mostrar, uma coluna só, no centro */
+.telao-miolo.telao-uma-coluna {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  text-align: center;
+}
+
+.telao-uma-coluna .telao-esquerda {
+  align-items: center;
 }
 
 .telao-esquerda,
