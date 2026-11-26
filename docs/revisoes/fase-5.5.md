@@ -218,7 +218,7 @@ As telas aprovadas pelo usuário na página de propostas (roteiro e regras em `d
 - A agenda dos próximos dias aparece também no celular, embaixo do "Precisa de você".
 - Os perfis da pessoa continuam como etiquetas logo abaixo da saudação.
 - A saudação segue a hora de Parauapebas: "Bom dia", "Boa tarde" ou "Boa noite", com o primeiro nome.
-- No "Já é associado do COMEP?" (quem não tem perfil) não há o botão "Tenho um código": o sistema ainda não liga um login já criado a um cadastro pelo código. Fica o texto pedindo o código à secretaria.
+- No "Já é associado do COMEP?" (quem não tem perfil) não há o botão "Tenho um código": o sistema ainda não liga um login já criado a um cadastro pelo código. Fica o texto pedindo o código à secretaria. *(Resolvido em 26/11/2026: veja "S5-04 — Tenho um código", no fim deste arquivo.)*
 
 **O que depende do banco (para depois):**
 
@@ -923,3 +923,33 @@ Os defeitos achados na homologação de 21 e 22/11/2026 que não entraram com a 
   - em 23/11, as telas das correções, no computador e no celular: 74 passaram, 1 pulado de propósito e 1 que estourou o tempo no choque de duas rodadas; rodado sozinho, o `credencial-modelo` passou, 12 de 12;
   - em 25/11, depois de juntar a `main`: o D-16 no computador e no celular, 2 de 2; e, no computador, os arquivos das telas mexidas (financeiro, modelo-exclusivo, notificacoes, caixa, financeiro-blindagem, conselho-fiscal, credencial-modelo, igrejas, configuracoes, menu-modulo e moldura): 33 passaram e 1 foi pulado de propósito (só no celular). O lote parou aí pela regra nova da cota de logs do Supabase (no computador, só o que mudou); a suíte inteira roda na verificação do PR.
 - A tela do D-16 foi conferida com fotos no computador e no celular, no claro e no escuro: só o número muda ("9 ministros escolheram pagar o ano inteiro…; os outros 99 pagam por mês", com 108 que pagam).
+
+## S5-04 — Tenho um código (ainda na versão 5.5.0-teste.18)
+
+Pedido do presidente (25/11/2026): quem já tinha criado a conta pelo site e depois recebe da secretaria o código de primeiro acesso não tinha como usar o código, porque o Primeiro acesso cria um login novo e o e-mail já tinha login. Agora o código também liga a conta que já existe. A tela segue o cartão aprovado do Início ("Já é associado do COMEP?", opção 2) e a tela `codigo-login` da rodada 37 (o "É você?" e o "Pronto").
+
+**O que mudou:**
+
+- **No Início de quem ainda não tem perfil**, o cartão "Já é associado do COMEP?" ganhou o botão "Tenho um código", que abre no lugar o campo "Código da secretaria" e "Conferir o código" (`/painel?codigo`).
+- **"É você?"** (`/painel?codigo=conferir`, na trilha "Início › Tenho um código"): a conta de agora e o cadastro da secretaria lado a lado (no celular, só o cadastro), com o número, a igreja, a função e a situação, e "O que acontece ao ligar" em 3 passos. "Sim, sou eu: ligar a conta" liga; "Não sou eu" volta, e nada muda. Conferir não muda nada no banco.
+- **"Pronto"**: a pessoa aceita o termo de novo (o aceite é do cadastro) e cai no Início do ministro com a faixa verde "Pronto! A sua conta está ligada ao seu cadastro." e o número. A faixa aparece uma vez.
+- **No banco** (migração `20261126100000_codigo_junta_cadastro.sql`):
+  - `conferir_codigo_cadastro` e `ligar_login_ao_cadastro`, só para quem está logado, e só se a conta ainda é de um cadastro aberto por ela pelo site (sem associação, sem perfil e sem mandato). O login de um associado não liga, com ou sem código: "fale com a secretaria";
+  - ao ligar, o cadastro que nasceu com a conta é **arquivado**, mesmo com dados (nada se apaga); o pedido enviado ou com pendência vira "desistiu"; a foto e os documentos não passam. O e-mail da conta vai para o cadastro da secretaria e o código fica usado;
+  - o pedido que já foi encaminhado à assembleia não muda: o aviso pede à secretaria que o recuse, com o motivo "Já é associado pelo cadastro da secretaria". A aprovação de um pedido cujo cadastro foi arquivado passa a ser recusada (`aprovar_pedido`);
+  - a secretaria e a presidência recebem o aviso no sino ("<nome> ligou a conta ao cadastro"), com a lista do que o cadastro arquivado tinha (a foto, o CPF, o telefone, a filiação, os arquivos enviados, o pedido);
+  - cada ligação fica em `juncoes_cadastro` (só a secretaria e a presidência leem); as tentativas erradas ficam em `tentativas_codigo`, fora da API. Errou 5 vezes em 15 minutos, espera. O código inventado, vencido, usado, cancelado, de nova senha ou de um cadastro que já tem login dá a mesma resposta;
+  - duas abas ao mesmo tempo: uma trava por login, e a segunda recebe a mesma resposta da primeira.
+- **Os textos que mandavam pedir o código** agora levam ao "Tenho um código": Meu perfil, Módulos, o e-mail que já tem login (no Primeiro acesso), a mensagem do WhatsApp gerada na ficha e o próprio Primeiro acesso, que, para quem já está logado, abre o cartão aberto.
+
+**O que ficou diferente do desenho da rodada 37, e por quê:**
+
+- O código continua com 12 letras (`XXXX-XXXX-XXXX`, uns 59 bits de acaso, desde a criação do código em 11/11/2026), não com 6 como na nota do desenho: 6 letras se adivinham com muito menos tentativas.
+- O Início continua com o leiaute aprovado (o pedido em cima; o cartão ao lado de "Enquanto isso"); o cartão aberto fica no lugar dele.
+- A parte 4 (a aba "Acesso ao sistema" da ficha da secretaria, com a linha do tempo e os arquivados) não entrou: a secretaria recebe o aviso no sino com a lista, e o registro fica em `juncoes_cadastro`.
+- O pedido em análise vira "desistiu" (a regra dos pedidos não deixa arquivar o pedido sozinho); a faixa diz "o pedido de associação foi arquivado", como no desenho.
+
+**Verificação:**
+
+- PGlite `testes/banco/juncao_cadastro.test.ts`: 43 de 43. Sem a migração, 34 de 34 vermelhos; 3 mutações vistas falhando (sem conferir o dono do cadastro aberto, sem a resposta da segunda aba e o limite em 50).
+- Unidade `testes/unidade/codigoLogin.test.ts`: 6 de 6.

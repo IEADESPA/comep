@@ -58,3 +58,4 @@ Não usam e-mail: a secretaria, a presidência ou o administrador técnico gera 
 - O código vale **7 dias** e serve **uma vez**. Gerar outro cancela o anterior.
 - No banco fica só o resumo (hash) do código, numa tabela interna, fora da API e da auditoria.
 - A senha nova é gravada pelo próprio banco no formato do Supabase (bcrypt). Ninguém da diretoria fica sabendo a senha.
+- Quem já criou a conta pelo site usa o código de primeiro acesso já logado, em "Tenho um código", no Início (S5-04): a conta passa a entrar no cadastro da secretaria, e o cadastro que nasceu com ela é arquivado. As tentativas erradas ficam em `tentativas_codigo` (fora da API): 5 em 15 minutos e a pessoa espera. Cada ligação fica em `juncoes_cadastro`, que só a secretaria e a presidência leem. O passo a passo está no `PROJETO.md`, seção 4.1.
