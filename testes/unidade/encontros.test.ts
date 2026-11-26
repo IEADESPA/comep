@@ -7,7 +7,9 @@ import {
   codigoDoQr,
   explicarMaioria,
   minimoAFavor,
+  presentesDoFechamento,
   quorumPrimeiraChamada,
+  oQueMudaNaConducao,
   codigoDaPortaria,
   textoDaAta,
   textoDaAtaParaWord,
@@ -219,5 +221,61 @@ describe('o texto para o Word e a portaria (parte 14)', () => {
     assert.equal(codigoDaPortaria('https://ieadespa.github.io/comep/teste/assembleias/abc?portaria=k7q2m9'), 'K7Q2M9')
     assert.equal(codigoDaPortaria(' K7Q2M9 '), 'K7Q2M9')
     assert.equal(codigoDaPortaria('https://ieadespa.github.io/comep/validar/abc'), null)
+  })
+})
+
+describe('o número de presentes do fechamento (revisão da parte 14, achado 6)', () => {
+  it('na assembleia, os presentes aptos contra os aptos; os em atraso à parte', () => {
+    assert.equal(presentesDoFechamento({ assembleia: true, presentes: 1, presentesAptos: 0, aptos: 33 }), '0 de 33 aptos · 1 em atraso')
+    assert.equal(presentesDoFechamento({ assembleia: true, presentes: 20, presentesAptos: 20, aptos: 33 }), '20 de 33 aptos')
+    assert.equal(presentesDoFechamento({ assembleia: true, presentes: 22, presentesAptos: 20, aptos: 33 }), '20 de 33 aptos · 2 em atraso')
+  })
+
+  it('na reunião mensal, só quantos vieram', () => {
+    assert.equal(presentesDoFechamento({ assembleia: false, presentes: 7, presentesAptos: 5, aptos: 33 }), '7')
+  })
+})
+
+describe('o que ainda muda na condução (revisão da parte 14, achado 8: as mesmas travas do banco)', () => {
+  const convocado = { situacao: 'convocado' as const, presenca_encerrada_em: null }
+  const semAssinatura = { assinada_secretario_em: null, assinada_presidente_em: null }
+
+  it('antes da ata, no encontro convocado: tudo muda', () => {
+    assert.deepEqual(oQueMudaNaConducao(convocado, null), {
+      roteiro: true,
+      abertura: true,
+      pauta: true,
+      registrarConvidado: true,
+      tirarConvidado: true,
+      votacoes: true,
+      travadoPelaAta: false,
+    })
+    assert.equal(oQueMudaNaConducao(convocado, semAssinatura).travadoPelaAta, false)
+  })
+
+  it('depois da primeira assinatura (do secretário ou do presidente), nada do que vai para a ata muda', () => {
+    for (const ata of [
+      { assinada_secretario_em: '2027-04-28T22:00:00Z', assinada_presidente_em: null },
+      { assinada_secretario_em: null, assinada_presidente_em: '2027-04-28T22:00:00Z' },
+    ]) {
+      assert.deepEqual(oQueMudaNaConducao(convocado, ata), {
+        roteiro: false,
+        abertura: false,
+        pauta: false,
+        registrarConvidado: false,
+        tirarConvidado: false,
+        votacoes: false,
+        travadoPelaAta: true,
+      })
+    }
+  })
+
+  it('encerrada a lista (realizado): o roteiro ainda anda e o convidado ainda sai, mas não entra pauta, abertura nem convidado', () => {
+    const r = oQueMudaNaConducao({ situacao: 'realizado', presenca_encerrada_em: '2027-04-28T23:00:00Z' }, semAssinatura)
+    assert.equal(r.roteiro, true)
+    assert.equal(r.tirarConvidado, true)
+    assert.equal(r.abertura, false)
+    assert.equal(r.pauta, false)
+    assert.equal(r.registrarConvidado, false)
   })
 })

@@ -820,7 +820,7 @@ A rodada 15 (asm-presenca opção 3; asm-conducao: o painel da opção 1, o rote
 - **Presença** (`/assembleias/presenca/:id`): o quórum, "Quem chegou" com o jeito de cada um (QR da portaria, código digitado, credencial lida, pelo nome) e se vota, "Marcar pelo nome", "Três jeitos de marcar" e "Abrir a tela da portaria". **A tela da portaria** (`/assembleias/presenca/:id/portaria`) mostra o QR Code e o código grande, que mudam a cada minuto, e "Chegaram agora".
 - **No celular do ministro**, na página do encontro (com a presença aberta): "Marcar a minha presença", com o leitor do QR (quando o navegador tem) e o campo do código. O QR da portaria abre a página do encontro com o código no endereço: a presença é marcada sozinha e o código sai do endereço. Quem está em atraso marca a presença e é avisado de que não vota.
 - **Condução** (`/assembleias/conducao/:id`): o roteiro (a abertura, as pautas do edital, as do período e o encerramento), com "Começar o roteiro", "Próximo item" e "Ir para"; "+ Pauta que chegou no período"; o item de agora com a votação pelo celular ou contada à mão; o quórum e "Instalar a assembleia"; os convidados.
-- **O telão** (`/assembleias/conducao/:id/telao`): fora da moldura, para a TV da sede, com o quórum, o item de agora e a votação (a parcial só no voto aberto). Segue o tema claro ou escuro, **sem fundo preto**.
+- **O telão** (`/assembleias/telao/:id`): fora da moldura, para a TV da sede, com o quórum, o item de agora e a votação (a parcial só no voto aberto). Segue o tema claro ou escuro, **sem fundo preto**.
 - **Fechamento e ata** (`/assembleias/fechamento/:id`): os números (presentes, faltas, votações e resoluções), as resoluções (protocolar e anular), o resumo da ata (gerar, salvar e assinar, que antes ficava na condução), a ata oficial em PDF depois das duas assinaturas, as faltas para conferir e **o texto da ata oficial para o Word**, com "Copiar o texto". Encerrada a lista, o título vira "A assembleia encerrada".
 - **O edital:** "Copiar o edital para o Word" na página do encontro (o oficial também é feito no Word).
 - **O menu recolhido** (rodada 18, opção 1; só no computador, dentro dos módulos): "Recolher o menu" deixa só os ícones, com o nome ao passar o mouse; a escolha fica guardada para a pessoa, naquele navegador.
@@ -830,7 +830,7 @@ A rodada 15 (asm-presenca opção 3; asm-conducao: o painel da opção 1, o rote
 
 - **Os avisos no celular:** o `docs/avisos-no-celular.md` diz o que está ligado no comep-teste (desde 21/11). O script novo `scripts/ligar-avisos.mjs` liga o envio num projeto sem mostrar nenhum segredo: gera as chaves, grava os Secrets e o Vault, agenda o Cron e mostra só a chave pública. O `docs/lancamento.md` manda rodá-lo na produção no dia do lançamento.
 - **A conta de teste de quem preside uma igreja** (`e2e.presidente.igreja`), criada em 22/11 pelos caminhos do próprio sistema, com a igreja fictícia regular e os documentos conferidos. A senha está só no `.env.e2e.local` e no Secret `E2E_SENHA_PRESIDENTE_IGREJA`, que a verificação do GitHub já recebe. O `presidente-igreja.spec` confere o perfil e a Minha igreja, sem mudar nada no banco.
-- **O `AGENTS.md`:** até dois agentes ao mesmo tempo (decisão do usuário, 21/11/2026), um constrói e o outro prepara a homologação; nunca os dois aplicando migração ou rodando o ponta a ponta no comep-teste.
+- **O `AGENTS.md`:** até dois agentes ao mesmo tempo (decisão do usuário, 21/11/2026), um constrói e o outro prepara a homologação; nunca os dois aplicando migração ou rodando o ponta a ponta no comep-teste. Depois, em 22/11/2026, passou a ser de um a quatro, conforme os créditos de uso (vale o `AGENTS.md`).
 - **Os defeitos da homologação** (cada um no seu commit):
   - **D-01:** Meu perfil › Meus dados mandava pedir correção "na aba Correções" a quem não tem a aba (quem não tem cadastro de ministro). A frase agora só aparece para quem tem.
   - **D-02:** o botão do Início dizia "Mostrar a credencial" e abria a credencial. Agora diz "Mostrar o QR Code" e abre a credencial já com o QR grande (`/minha-credencial?qr=1`).
@@ -924,7 +924,72 @@ Os defeitos achados na homologação de 21 e 22/11/2026 que não entraram com a 
   - em 25/11, depois de juntar a `main`: o D-16 no computador e no celular, 2 de 2; e, no computador, os arquivos das telas mexidas (financeiro, modelo-exclusivo, notificacoes, caixa, financeiro-blindagem, conselho-fiscal, credencial-modelo, igrejas, configuracoes, menu-modulo e moldura): 33 passaram e 1 foi pulado de propósito (só no celular). O lote parou aí pela regra nova da cota de logs do Supabase (no computador, só o que mudou); a suíte inteira roda na verificação do PR.
 - A tela do D-16 foi conferida com fotos no computador e no celular, no claro e no escuro: só o número muda ("9 ministros escolheram pagar o ano inteiro…; os outros 99 pagam por mês", com 108 que pagam).
 
-## Segurança do banco, módulo 1 (ainda na versão 5.5.0-teste.18)
+## Entrega 5.5.18 — Telas novas, parte 14: os ajustes da revisão (versão 5.5.0-teste.19)
+
+A revisão de 23/11/2026, antes da homologação, aprovou a parte 14 com ressalvas: 0 bloqueios, 5 achados importantes e 6 menores. Os ajustes ficaram no ramo `fase-5.5/parte-14-ajustes`, cada um no seu commit, com o teste que falha antes e passa depois. Todos chegam à `main` por este ramo, inclusive a migração `20261123140000_assembleias_ajustes.sql` (o gatilho da auditoria e 6 funções das assembleias), o ajuste do fechamento e as travas do script dos avisos, escritos em 23/11. A migração foi aplicada no `comep-teste` em 25/11.
+
+**Os importantes:**
+
+1. **O segredo da portaria na auditoria.** A auditoria guarda "(protegido)" no lugar do segredo, e as portarias que estavam abertas foram arquivadas. A auditoria não muda (é imutável): as linhas antigas continuam com o segredo, mas ele deixou de valer, porque o código só sai da portaria que não está arquivada. O teste novo abre uma portaria no banco de antes da correção, refaz o código com o que a auditoria guardou, aplica a migração e confere que o código refeito não marca a presença e que a portaria nova tem outro segredo (`criarBanco({ antesDe })` e `aplicarMigracao`, em `testes/banco/ambiente.ts`).
+2. **A tela da portaria fora da moldura.** Ela abre sem o menu, a busca e o sino da secretaria, e "Tela cheia" ocupa a página inteira. O alto (a marca, "Tela cheia" e "Voltar à lista") fica sempre à vista, também quando a portaria ainda não abriu ou o encontro não existe; antes, nesses casos, a tela ficava sem caminho de volta. **O que sobra:** o modo portaria sem login, decidido pela diretoria em 25/11 (veja abaixo).
+3. **Eleger cargo vago com candidatos por item de pauta:** ficou de fora (veja abaixo).
+4. **O script dos avisos** (`scripts/ligar-avisos.mjs`). Em 23/11 ganhou as travas: para a produção, para rodar de novo e o `--remote=`. Agora os segredos também não ficam para trás nem aparecem na tela:
+   - antes de começar, ele apaga as sobras de uma rodada que caiu no meio (as pastas `comep-avisos-*` na pasta temporária);
+   - no Ctrl+C, a pasta com os segredos é apagada;
+   - o erro do CLI aparece com os segredos trocados por `****`.
+
+   As regras têm teste em `testes/unidade/ligarAvisos.test.ts`. O script não foi executado.
+5. **Os testes que faltavam:**
+   - o visitante nas 9 funções e o perfil errado em `arquivar_convidado` e `anular_resolucao` (23/11, no banco);
+   - o segredo fora da auditoria (achado 1);
+   - no ponta a ponta, a votação pelo celular aberta pela condução: em voto aberto, a parcial aparece na condução e no telão, e "Encerrar e apurar" leva o resultado ao item;
+   - a reunião mensal ao vivo, no computador e no celular: a condução, o telão e o fechamento (antes, a condução era pulada no celular);
+   - as regras do script dos avisos.
+
+**Os menores:**
+
+6. **O fechamento** mostra "0 de 33 aptos · 1 em atraso", a mesma conta do quórum da condução (23/11).
+7. **A entrada lixo** recebe mensagem em português (23/11, no banco).
+8. **Depois da primeira assinatura da ata,** o banco já travava os convidados, a abertura e o roteiro (23/11). Agora a tela segue as mesmas travas (`oQueMudaNaConducao`): a condução esconde "Próximo item", "Ajustar a abertura", "Tirar" e "+ Convidado", desliga o "Ir para" e avisa: "A ata já começou a ser assinada: o roteiro e os convidados não mudam mais."
+9. **Os documentos:** a rota do telão e o número de agentes, nesta página.
+10. **Os detalhes de tela:**
+    - O botão cheio com `.alinhar-esquerda` perdia o recuo, e o texto encostava na borda, no sistema inteiro: "Abrir a tela da portaria", "Encerrar e apurar", os avisos no celular, o Conselho Fiscal e a Privacidade. A classe vinha depois de `.botao` no `estilos.css`. Agora só o botão de texto encosta na margem, com teste no `testes/unidade/estilos.test.ts`.
+    - "Abrir a tela da portaria" aparece uma vez só, no alto da presença.
+    - Os botões do alto têm espaço até o primeiro cartão. A presença, a condução, o fechamento e a escolha do encontro usam o mesmo invólucro das outras telas novas (`.tela-nova`).
+    - No celular, a condução começa pelo quórum e pelo item de agora, como no desenho do celular; o roteiro e os convidados vêm depois.
+    - O menu tem "Assembleias" e "Preparar", com os ícones do desenho: Preparar, Faltas e Pedidos de AGE.
+    - O telão sem votação para mostrar (a reunião mensal, a abertura, um item de informe) fica numa coluna só, no centro, sem o título do encontro solto ao lado do número.
+    - No celular, a tabela "Quem chegou" cabe no cartão: o texto quebra, e "Vota?" fica à vista.
+11. **A lista de quem chegou, na tela da portaria:** está no desenho aprovado e ficou. **Para a diretoria saber:** a tela da entrada mostra os 8 últimos que chegaram (o nome, como marcou e a hora), à vista de quem passa por ela.
+
+**O que ficou de fora e por quê** (decisões da diretoria de 25/11/2026, que viram entregas próprias, com desenho antes):
+
+- **A eleição de cargo vago com candidatos, por item de pauta** (desenho asm-conducao). O `PROJETO.md`, nas seções 4.6 e 4.13, não dizia como ela é, e uma suposição errada não se desfaz depois de uma eleição. Hoje, pela tela, o item da pauta só vai a votação (A favor, Contra, Abstenção). A diretoria decidiu que a eleição é um processo próprio:
+  - a convocação sai com pelo menos 30 dias;
+  - quem quer concorrer se inscreve e escolhe o cargo, e precisa estar em dia;
+  - a candidatura é por chapa ou por cargo único;
+  - na assembleia, os nomes vêm da lista dos inscritos;
+  - o eleito só assume no sistema (cargo, mandato e acesso) depois da posse confirmada pela secretaria.
+  Quem pode ser candidato segue o estatuto. Vai para o desenho.
+- **A portaria sem login.** A diretoria decidiu por um modo portaria próprio, que só marca a chegada naquele encontro, aberto por um código que a secretaria gera e pode desligar. Vai para o desenho.
+
+**Verificação (25/11/2026):**
+
+- `npm test`: 693 de 693, depois de juntar a `main` com as correções da homologação, lote 2. tsc e oxlint sem aviso. O build passa, só com o aviso do tamanho do pacote, que já existia.
+- Cada teste novo de unidade e de banco foi visto falhando antes da correção:
+  - o `estilos.test` (o recuo do botão);
+  - o `menu.test` (os nomes e os ícones);
+  - o `encontros.test` (`oQueMudaNaConducao`);
+  - o `ligarAvisos.test` (as regras novas);
+  - o `assembleias_ajustes.test`: sem a linha da migração que arquiva as portarias abertas, o código refeito da auditoria ainda marcava a presença.
+- A migração `20261123140000_assembleias_ajustes.sql` foi aplicada no `comep-teste` em 25/11, sem nenhuma rodada do GitHub em andamento. O `supabase db advisors` mostra só o aviso conhecido `auth_leaked_password_protection`.
+- Ponta a ponta local, só nos arquivos tocados (presenca, conducao e menu-modulo), no computador e no celular (decisão de 25/11: poupar o banco de teste):
+  - contra o build de antes dos ajustes: 7 falharam, cada um na asserção nova (o espaço do alto, o título solto no telão, "Abrir a tela da portaria" duas vezes, a portaria fechada sem "Voltar à lista" e a ordem no celular); 17 passaram e 2 foram pulados;
+  - contra o build novo, já com a `main` junta: 24 passaram e 2 foram pulados de propósito (a AGE, que espera a assembleia começar, roda só no computador; o menu recolhido é só do computador).
+- A tabela "Quem chegou", no celular, foi conferida também só com o CSS, sem o banco. Com o `estilos.css` de antes, ela passava 193px da largura do cartão; com o de agora, 0.
+- As telas foram conferidas com fotos de uma reunião mensal fictícia (presença, portaria, condução, telão e fechamento), no computador e no celular, no claro e no escuro, ao lado do desenho aprovado.
+
+## Segurança do banco, módulo 1 (ainda na versão 5.5.0-teste.19)
 
 A revisão permanente do código inteiro (decisão do presidente de 25/11/2026) começou pela segurança do banco. Este ramo corrige os achados do módulo 1 que não dependem de decisão nem de outro ramo, com os complementos que o revisor mandou ao revisar as notificações (módulo 3) e as telas gerais (módulo 5). Cada correção tem o seu commit e o seu teste em `testes/banco/seguranca_modulo1.test.ts`, que falha sem a migração dela. Sem tela nova.
 

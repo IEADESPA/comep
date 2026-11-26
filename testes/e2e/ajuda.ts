@@ -314,3 +314,44 @@ export async function arquivarAssociadoDeTeste(page: Page, nome: string): Promis
   await abrirFichaDoMinistro(page, nome)
   await arquivarCadastroAberto(page)
 }
+
+// ---------- Assembleias ----------
+
+/** Campo data e hora (hora de Parauapebas) daqui a N horas. */
+export function campoDaquiHoras(horas: number): string {
+  const d = new Date(Date.now() + horas * 3_600_000)
+  const dia = d.toLocaleDateString('sv-SE', { timeZone: 'America/Belem' })
+  const hora = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Belem', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+  return `${dia}T${hora}`
+}
+
+/** Uma reunião mensal FICTÍCIA publicada, daqui a N horas (a reunião mensal não depende das regras das assembleias). */
+export async function reuniaoMensalPublicada(page: Page, titulo: string, horas: number, pauta = 'Oração'): Promise<string> {
+  await page.goto('assembleias/novo')
+  await page.getByLabel('Tipo *').selectOption({ label: 'Reunião mensal' })
+  await page.getByLabel('Data e hora (1ª chamada) *').fill(campoDaquiHoras(horas))
+  await page.getByLabel(/^Título/).fill(titulo)
+  await page.getByLabel('Local *').fill('Local do teste automático (E2E)')
+  await page.getByLabel('Item 1 da pauta').fill(pauta)
+  await page.getByRole('button', { name: 'Salvar (ainda sem convocar)' }).click()
+  await expect(mensagemNaTela(page, 'Encontro preparado. Confira e convoque.')).toBeVisible()
+  await page.getByRole('button', { name: 'Publicar a reunião' }).click()
+  await page.getByRole('button', { name: 'Confirmar — publicar' }).click()
+  await expect(mensagemNaTela(page, 'Reunião publicada.')).toBeVisible()
+  return page.url()
+}
+
+/** Limpeza: cancela (se ainda dá) e arquiva o encontro de teste (nada se apaga). */
+export async function cancelarEArquivarEncontro(page: Page, endereco: string, titulo: string): Promise<void> {
+  await page.goto(endereco)
+  await expect(page.getByRole('heading', { name: titulo })).toBeVisible()
+  if (await page.getByText('Cancelar este encontro').count()) {
+    await page.getByText('Cancelar este encontro').click()
+    await page.getByRole('form', { name: 'Cancelar o encontro' }).getByLabel('Motivo *').fill('Teste automático')
+    await page.getByRole('button', { name: 'Cancelar o encontro' }).click()
+    await expect(mensagemNaTela(page, 'Encontro cancelado.')).toBeVisible()
+  }
+  await page.getByRole('button', { name: `Arquivar ${titulo}` }).click()
+  await page.getByRole('button', { name: `Confirmar — Arquivar ${titulo}` }).click()
+  await expect(page).toHaveURL(/\/assembleias$/)
+}

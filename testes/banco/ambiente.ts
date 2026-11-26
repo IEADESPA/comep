@@ -67,24 +67,41 @@ const IMITACAO_SUPABASE = `
   $$;
 `
 
-export async function criarBanco(): Promise<PGlite> {
+const MIGRACOES = readdirSync(PASTA_MIGRACOES)
+  .filter((arquivo) => arquivo.endsWith('.sql'))
+  .sort()
+
+async function aplicar(db: PGlite, arquivo: string): Promise<void> {
+  try {
+    await db.exec(readFileSync(join(PASTA_MIGRACOES, arquivo), 'utf8'))
+  } catch (erro) {
+    throw new Error(`Falha ao aplicar a migração ${arquivo}: ${(erro as Error).message}`)
+  }
+}
+
+/**
+ * O banco com todas as migrações. Com `antesDe` (o começo do nome de uma migração, ex.: '20261123140000'), para antes
+ * dela: serve para provar o que acontece com os dados que já existiam quando a correção chega (aplicarMigracao).
+ */
+export async function criarBanco(opcoes: { antesDe?: string } = {}): Promise<PGlite> {
   const db = new PGlite({ extensions: { pgcrypto } })
   await db.exec(IMITACAO_SUPABASE)
-  const migracoes = readdirSync(PASTA_MIGRACOES)
-    .filter((arquivo) => arquivo.endsWith('.sql'))
-    .sort()
-  for (const arquivo of migracoes) {
-    try {
-      await db.exec(readFileSync(join(PASTA_MIGRACOES, arquivo), 'utf8'))
-    } catch (erro) {
-      throw new Error(`Falha ao aplicar a migração ${arquivo}: ${(erro as Error).message}`)
-    }
+  for (const arquivo of MIGRACOES) {
+    if (opcoes.antesDe && arquivo >= opcoes.antesDe) break
+    await aplicar(db, arquivo)
   }
   // A regularização das igrejas (Fase 5.5) suspende, depois do fim da transição (AGO de 28/04/2027), a igreja que nunca
   // mandou os documentos. Os testes antigos criam igrejas sem documentos: aqui a transição fica aberta, para eles não
   // quebrarem com a passagem do tempo. Os testes da regularização (regularizacao.test.ts) mudam a data quando precisam.
   await db.exec("update public.config_igrejas set transicao_ate = '2999-12-31'")
   return db
+}
+
+/** Aplica uma migração num banco criado com `antesDe` (pelo começo do nome; tem de existir uma só). */
+export async function aplicarMigracao(db: PGlite, comecoDoNome: string): Promise<void> {
+  const achadas = MIGRACOES.filter((arquivo) => arquivo.startsWith(comecoDoNome))
+  if (achadas.length !== 1) throw new Error(`Migração "${comecoDoNome}": ${achadas.length} arquivos com esse começo.`)
+  await aplicar(db, achadas[0])
 }
 
 /** Simula alguém criando login no app (com metadados extras, ex.: código de acesso). Devolve o id do usuário. */

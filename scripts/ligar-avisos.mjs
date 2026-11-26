@@ -10,49 +10,109 @@
 //
 // Uso, na pasta do projeto, com o Supabase CLI já logado:
 //   node scripts/ligar-avisos.mjs --remote=<ref do projeto> [--contato=<endereço do site ou mailto:>]
-// Rodar de novo troca as chaves: quem já ativou os avisos precisa ativar de novo no aparelho.
-// A produção só no lançamento (docs/lancamento.md).
+// Duas travas (revisão da parte 14):
+//   - a produção só no lançamento: pede --e-o-lancamento e a confirmação digitada;
+//   - rodar de novo troca as chaves (quem já ativou os avisos precisa ativar de novo no aparelho): se o projeto já
+//     tem as chaves, pede --trocar-as-chaves e a confirmação digitada.
+// Os segredos passam por dois arquivos temporários (o CLI só lê os Secrets e o SQL de arquivo), numa pasta da conta de
+// quem roda (no Windows, o mode 0o600 não vale; a pasta temporária do usuário já é só dele). A pasta é apagada no fim,
+// também no Ctrl+C; e, se uma rodada anterior caiu no meio, as sobras dela são apagadas antes de começar. O erro do CLI
+// (que pode trazer um trecho do SQL) aparece com os segredos trocados por ****.
 import { execFileSync } from 'node:child_process'
-import { generateKeyPairSync, randomBytes } from 'node:crypto'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createInterface } from 'node:readline/promises'
+import {
+  conferirArgumentos,
+  gerarChaves,
+  jaLigado,
+  lerArgumentos,
+  mascararSegredos,
+  PREFIXO_DA_PASTA,
+  sobrasDeQueda,
+} from './ligar-avisos-regras.mjs'
 
-const argumento = (nome) => process.argv.find((a) => a.startsWith(`--${nome}=`))?.slice(nome.length + 3) ?? null
-const ref = argumento('remote')
-const contato = argumento('contato') ?? 'https://ieadespa.github.io/comep/'
-if (!ref || !/^[a-z0-9]{20}$/.test(ref)) {
-  console.error('Diga o projeto: node scripts/ligar-avisos.mjs --remote=<ref do projeto> (20 letras e números).')
+const args = lerArgumentos(process.argv.slice(2))
+const erro = conferirArgumentos(args)
+if (erro) {
+  console.error(erro)
   process.exit(1)
 }
-if (!/^(https:\/\/|mailto:)/.test(contato)) {
-  console.error('O contato é o endereço do site (https://...) ou um mailto:.')
-  process.exit(1)
-}
+const { ref, contato } = args
 
-// 1. As chaves e o segredo
-const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
-const pub = publicKey.export({ format: 'jwk' })
-const pri = privateKey.export({ format: 'jwk' })
-const bytes = (s) => Buffer.from(s, 'base64url')
-const publica = Buffer.concat([Buffer.from([4]), bytes(pub.x), bytes(pub.y)]).toString('base64url')
-const privada = pri.d
-const segredo = randomBytes(36).toString('base64url')
-if (bytes(publica).length !== 65 || bytes(privada).length !== 32 || segredo.length !== 48) {
-  console.error('As chaves saíram com o tamanho errado: nada foi gravado.')
-  process.exit(1)
+/** A confirmação digitada: sem ela (ou sem quem digite), nada é gravado. */
+async function confirmar(pergunta, palavra) {
+  if (!process.stdin.isTTY) return false
+  const leitor = createInterface({ input: process.stdin, output: process.stdout })
+  try {
+    return (await leitor.question(`${pergunta}\nPara seguir, digite ${palavra}: `)).trim() === palavra
+  } finally {
+    leitor.close()
+  }
 }
 
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 // no Windows o npx é um .cmd e roda pelo shell: o caminho do arquivo vai entre aspas
 const arquivo = (caminho) => (process.platform === 'win32' ? `"${caminho}"` : caminho)
-const rodar = (args) => execFileSync(npx, args, { stdio: ['ignore', 'ignore', 'inherit'], shell: process.platform === 'win32' })
-const pasta = mkdtempSync(join(tmpdir(), 'comep-avisos-'))
+/** Roda o Supabase CLI. Se falhar, o erro vai para a tela sem os segredos (e o processo para, sem o erro cru). */
+function rodar(parametros, segredos) {
+  try {
+    execFileSync(npx, parametros, { stdio: ['ignore', 'ignore', 'pipe'], shell: process.platform === 'win32' })
+  } catch (e) {
+    console.error(mascararSegredos(e.stderr?.toString() ?? '', segredos).trim() || 'O Supabase CLI falhou, sem mensagem.')
+    throw new Error(`O passo "supabase ${parametros[1]} ${parametros[2]}" falhou (a mensagem do CLI está acima, sem os segredos).`)
+  }
+}
+
+// As sobras de uma rodada que caiu no meio (com os arquivos dos segredos): apagadas antes de tudo
+for (const sobra of sobrasDeQueda(readdirSync(tmpdir()))) {
+  rmSync(join(tmpdir(), sobra), { recursive: true, force: true })
+  console.log(`· sobra de uma rodada anterior apagada (${sobra})`)
+}
+
+// As travas, antes de gerar qualquer chave
+if (args.producao && !(await confirmar(`Isto liga os avisos no celular da PRODUÇÃO (${ref}).`, 'LANÇAMENTO'))) {
+  console.error('Nada foi gravado.')
+  process.exit(1)
+}
+// a lista dos Secrets traz só os nomes e um resumo, nunca o valor; e não vai para a tela
+const lista = execFileSync(npx, ['supabase', 'secrets', 'list', `--remote=${ref}`], {
+  stdio: ['ignore', 'pipe', 'inherit'],
+  shell: process.platform === 'win32',
+}).toString()
+if (jaLigado(lista)) {
+  if (!args.trocar) {
+    console.error(
+      'Este projeto já tem as chaves dos avisos. Rodar de novo troca as chaves, e quem já ativou os avisos precisa ' +
+        'ativar de novo no aparelho. Só se a chave vazar: rode com --trocar-as-chaves.',
+    )
+    process.exit(1)
+  }
+  if (!(await confirmar('Isto troca as chaves dos avisos: todos os aparelhos param de receber até ativar de novo.', 'TROCAR'))) {
+    console.error('Nada foi gravado.')
+    process.exit(1)
+  }
+}
+
+// 1. As chaves e o segredo
+const { publica, privada, segredo } = gerarChaves()
+
+const pasta = mkdtempSync(join(tmpdir(), PREFIXO_DA_PASTA))
+// Ctrl+C (ou a janela fechada) no meio: a pasta com os segredos não fica para trás
+for (const sinal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(sinal, () => {
+    rmSync(pasta, { recursive: true, force: true })
+    console.error('Parado no meio: os arquivos temporários foram apagados. Confira o projeto antes de rodar de novo.')
+    process.exit(130)
+  })
+}
+const segredos = [privada, segredo]
 try {
   // 2. Os Secrets das Edge Functions (por arquivo, para os valores não irem na linha de comando)
   const env = join(pasta, 'segredos.env')
   writeFileSync(env, `VAPID_PUBLICA=${publica}\nVAPID_PRIVADA=${privada}\nVAPID_CONTATO=${contato}\nENVIO_SEGREDO=${segredo}\n`, { mode: 0o600 })
-  rodar(['supabase', 'secrets', 'set', `--remote=${ref}`, '--env-file', arquivo(env), '--yes'])
+  rodar(['supabase', 'secrets', 'set', `--remote=${ref}`, '--env-file', arquivo(env), '--yes'], segredos)
   console.log('· Secrets das Edge Functions gravados')
 
   // 3. O Vault e o Cron (o Cron manda o segredo no cabeçalho, lido do Vault)
@@ -83,7 +143,7 @@ $cron$);
 `,
     { mode: 0o600 },
   )
-  rodar(['supabase', 'db', 'query', `--remote=${ref}`, '--file', arquivo(sql), '--yes'])
+  rodar(['supabase', 'db', 'query', `--remote=${ref}`, '--file', arquivo(sql), '--yes'], segredos)
   console.log('· segredo no Vault (envio_avisos_segredo) e envio agendado a cada 5 minutos')
 } finally {
   rmSync(pasta, { recursive: true, force: true })
@@ -92,7 +152,7 @@ $cron$);
 
 console.log(`
 Pronto. Falta:
-  1. publicar a função: npx supabase functions deploy enviar-avisos --project-ref ${ref}
+  1. publicar a função: npx supabase functions deploy enviar-avisos --remote=${ref}
   2. pôr a chave pública na variável do GitHub (TESTE_VAPID_PUBLICA no teste, VAPID_PUBLICA no site oficial):
      ${publica}
   3. publicar a main de novo (o build pega a variável) e conferir (docs/avisos-no-celular.md, passo 6).`)
