@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { Aviso, Carregando } from '../../componentes/Basicos'
 import { Icone, Ladrilho } from '../../componentes/Icone'
 import { ehDaDiretoria, perfisEfetivos } from '../../componentes/menu'
@@ -16,6 +16,7 @@ import { dataPorExtenso, diaEMes, formatarData, saudacaoDaHora } from '../../uti
 import { AtivarAvisos } from '../avisos/AvisosNoCelular'
 import { PassosDoPedido } from '../pedido/PassosDoPedido'
 import { SecaoModulos } from './Modulos'
+import { CartaoCodigo, EVoce, FaixaPronto, type CodigoConferido, type Ligado } from './TenhoUmCodigo'
 
 // Início do sistema (aprovado: Opção 2, "Menu vermelho e blocos por assunto", com o menu curto).
 // Blocos: o que precisa de você, a agenda dos próximos dias (diretoria) ou a credencial (ministro), e os
@@ -56,14 +57,59 @@ export function Inicio() {
         </Aviso>
       )
     case 'ok':
-      return <InicioDaConta key={resultado.conta.pessoaId} conta={resultado.conta} />
+      return <InicioDaConta key={resultado.conta.pessoaId} conta={resultado.conta} email={estado.sessao.email ?? ''} />
   }
 }
 
-function InicioDaConta({ conta }: { conta: MinhaConta }) {
+type EstadoDoInicio = { ligado?: Ligado } | null
+
+function InicioDaConta({ conta, email }: { conta: MinhaConta; email: string }) {
+  const { recarregarConta } = useSessao()
+  const navegar = useNavigate()
+  const { pathname, state } = useLocation()
+  const [parametros, setParametros] = useSearchParams()
+  const [conferido, setConferido] = useState<CodigoConferido | null>(null)
+  const ligacao = (state as EstadoDoInicio)?.ligado ?? null
+  // "Pronto" (S5-04): a faixa aparece uma vez, no Início da conta nova; o aviso sai do histórico (senão voltaria
+  // ao recarregar a página)
+  const [ligado] = useState(() => (ligacao && ligacao.anterior !== conta.pessoaId ? ligacao : null))
+  const avisoLimpo = useRef(false)
+  useEffect(() => {
+    if (!ligado || avisoLimpo.current) return
+    avisoLimpo.current = true
+    void navegar(pathname, { replace: true, state: null })
+  }, [ligado, navegar, pathname])
+
   const primeiroNome = conta.nome.split(' ')[0]
   const diretoria = ehDaDiretoria(conta.perfis)
   const ministro = perfisEfetivos(conta.perfis).has('ministro')
+  const semPerfil = conta.perfis.length === 0
+  // "Tenho um código": ?codigo abre o cartão; ?codigo=conferir é o "É você?" (o código fica só na tela, não no endereço)
+  const etapaCodigo = parametros.has('codigo') ? (parametros.get('codigo') === 'conferir' ? 'conferir' : 'aberto') : null
+
+  // A conta acabou de ser ligada: espera o cadastro novo (e o termo, que a pessoa aceita de novo)
+  if (semPerfil && ligacao && ligacao.anterior === conta.pessoaId) return <Carregando texto="Ligando a sua conta…" />
+
+  if (semPerfil && etapaCodigo === 'conferir' && conferido) {
+    return (
+      <EVoce
+        conferido={conferido}
+        email={email}
+        aoVoltar={() => navegar(-1)}
+        aoNaoSouEu={() => {
+          setConferido(null)
+          setParametros({}, { replace: true })
+        }}
+        aoLigar={(r) => {
+          void navegar('/painel', {
+            replace: true,
+            state: { ligado: { anterior: conta.pessoaId, numero: r.numero, pedido: r.pedido } } satisfies EstadoDoInicio,
+          })
+          recarregarConta()
+        }}
+      />
+    )
+  }
 
   return (
     <div className="inicio">
@@ -81,11 +127,26 @@ function InicioDaConta({ conta }: { conta: MinhaConta }) {
         )}
       </div>
 
+      {ligado && <FaixaPronto ligado={ligado} ministro={ministro} />}
+
       {/* no primeiro acesso: "Receber os avisos no celular?" (parte 11) */}
       <AtivarAvisos />
 
-      {conta.perfis.length === 0 ? (
-        <InicioSemPerfil pessoaId={conta.pessoaId} />
+      {semPerfil ? (
+        <InicioSemPerfil
+          pessoaId={conta.pessoaId}
+          codigo={
+            <CartaoCodigo
+              aberto={etapaCodigo !== null}
+              codigoInicial={conferido?.codigo ?? ''}
+              aoAbrir={() => setParametros({ codigo: '' }, { replace: true })}
+              aoConferir={(c) => {
+                setConferido(c)
+                setParametros({ codigo: 'conferir' })
+              }}
+            />
+          }
+        />
       ) : (
         <>
           {ministro && !conta.perfis.includes('presidente_igreja') && <ConviteIgreja pessoaId={conta.pessoaId} />}
@@ -260,7 +321,7 @@ function CredencialNoInicio({ conta }: { conta: MinhaConta }) {
 // Quem ainda não tem perfil (candidato à associação)
 // ---------------------------------------------------------------------
 
-function InicioSemPerfil({ pessoaId }: { pessoaId: string }) {
+function InicioSemPerfil({ pessoaId, codigo }: { pessoaId: string; codigo: ReactNode }) {
   const [carga] = useCarregar(() => meuPedido(pessoaId))
   const pedido = carga.situacao === 'ok' ? carga.dados : null
   const semPedido = !pedido || pedido.situacao === 'recusado' || pedido.situacao === 'desistiu'
@@ -290,15 +351,8 @@ function InicioSemPerfil({ pessoaId }: { pessoaId: string }) {
         )}
       </section>
       <div className="inicio-duas">
-        <section className="bloco" aria-labelledby="titulo-ja-associado">
-          <h2 id="titulo-ja-associado" style={{ fontSize: 16 }}>
-            Já é associado do COMEP?
-          </h2>
-          <p className="texto-bloco">
-            Peça à secretaria o código de primeiro acesso para ligar o seu cadastro a um login. Este login ainda não tem
-            nenhum perfil no sistema.
-          </p>
-        </section>
+        {/* "Já é associado do COMEP?" e o botão Tenho um código (S5-04) */}
+        {codigo}
         <section className="bloco" aria-labelledby="titulo-enquanto-isso">
           <h2 id="titulo-enquanto-isso" style={{ fontSize: 16 }}>
             Enquanto isso

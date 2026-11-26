@@ -1,4 +1,5 @@
 // Códigos de acesso (sem e-mail — PROJETO.md, 4.1): primeiro acesso e senha esquecida.
+import type { CadastroDoCodigo, PedidoDaConta } from '../utilitarios/codigoLogin'
 import { cliente, falha, ok, type Resultado } from './cliente'
 
 export type FinalidadeCodigo = 'primeiro_acesso' | 'nova_senha'
@@ -20,9 +21,11 @@ export function senhaForte(senha: string): boolean {
   return senha.length >= 8 && /[A-Za-z]/.test(senha) && /[0-9]/.test(senha)
 }
 
+export const CODIGO_INVALIDO = 'Código inválido, vencido ou já usado. Peça um código novo à secretaria.'
+
 function mensagemDoLogin(codigo: string | undefined): string {
   if (codigo === 'user_already_exists' || codigo === 'email_exists') {
-    return 'Este e-mail já tem login. Use "Entrar" ou, se esqueceu a senha, peça um código à secretaria.'
+    return 'Este e-mail já tem login. Entre com ele e use o código em "Tenho um código", no Início. Se esqueceu a senha, peça à secretaria um código de nova senha.'
   }
   if (codigo === 'weak_password') return SENHA_FRACA
   if (codigo === 'over_request_rate_limit') return 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.'
@@ -40,9 +43,7 @@ export async function criarLogin(
   if (extras.codigoAcesso) {
     const conferido = await conferirCodigo(extras.codigoAcesso, 'primeiro_acesso')
     if (conferido.erro !== null) return conferido
-    if (!conferido.dados) {
-      return { dados: null, erro: 'Código inválido, vencido ou já usado. Peça um código novo à secretaria.' }
-    }
+    if (!conferido.dados) return { dados: null, erro: CODIGO_INVALIDO }
   }
   const { data, error } = await cliente().auth.signUp({
     email: email.trim(),
@@ -58,6 +59,34 @@ export async function criarLogin(
   // Sem confirmação por e-mail, o login já volta com a sessão aberta
   if (!data.session) return { dados: null, erro: 'Login criado, mas não foi possível entrar. Tente "Entrar".' }
   return ok(null)
+}
+
+// ---------------------------------------------------------------------
+// "Tenho um código" (S5-04; a tela `codigo-login` da rodada 37): quem JÁ tem conta (criada pelo site) liga a conta
+// ao cadastro que a secretaria fez. Primeiro "É você?" (não muda nada); depois "Sim, sou eu: ligar a conta".
+// Código que não vale: { valido: false }, a mesma resposta para todo motivo. Errou 5 vezes: espera 15 minutos.
+// ---------------------------------------------------------------------
+
+export type ConferenciaDoCodigo =
+  | { valido: false }
+  | {
+      valido: true
+      conta: { nome: string; criada_em: string; pedido: PedidoDaConta | null }
+      cadastro: CadastroDoCodigo & { nome: string }
+    }
+
+/** "É você?": o cadastro do código, ao lado da conta de agora. */
+export async function conferirCodigoDoCadastro(codigo: string): Promise<Resultado<ConferenciaDoCodigo>> {
+  const { data, error } = await cliente().rpc('conferir_codigo_cadastro', { p_codigo: codigo })
+  return error ? falha(error) : ok(data as ConferenciaDoCodigo)
+}
+
+export type LigacaoDoCodigo = { valido: false } | { valido: true; nome: string; numero: number | null; pedido: boolean }
+
+/** "Sim, sou eu": a conta passa para o cadastro da secretaria; o cadastro aberto pelo site é arquivado. */
+export async function ligarContaAoCadastro(codigo: string): Promise<Resultado<LigacaoDoCodigo>> {
+  const { data, error } = await cliente().rpc('ligar_login_ao_cadastro', { p_codigo: codigo })
+  return error ? falha(error) : ok(data as LigacaoDoCodigo)
 }
 
 /** Senha esquecida: troca a senha com o código da secretaria e já entra. */

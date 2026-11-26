@@ -10638,3 +10638,362 @@ li.feito .numero-passo {
 .linha-modelo-exclusivo > details {
   flex: 1 1 340px;
 }
+
+/* ---------- "Tenho um código" (S5-04; a tela codigo-login da rodada 37): a conta criada pelo site passa para o
+   cadastro que a secretaria fez. 1) o cartão do Início abre o campo do código; 2) "É você?" (a conta e o cadastro,
+   lado a lado); 3) "Pronto", a faixa verde no Início. ---------- */
+.codigo-botao-abrir {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.codigo-botao-abrir svg {
+  color: var(--cor-marca-texto);
+}
+
+.codigo-botao-abrir:hover {
+  border-color: var(--cor-campo-borda);
+}
+
+.codigo-cartao-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bloco .codigo-cartao-topo h2 {
+  font-size: 17px;
+}
+
+.codigo-cartao .texto-bloco {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.codigo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.codigo-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cor-titulo);
+}
+
+input.codigo-entrada {
+  height: 54px;
+  width: 100%;
+  padding: 0 10px;
+  border: 2px solid var(--cor-marca);
+  border-radius: 12px;
+  background: var(--cor-campo);
+  color: var(--cor-titulo);
+  text-align: center;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: clamp(18px, 5.4vw, 24px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+input.codigo-entrada::placeholder {
+  color: var(--cor-texto-suave);
+  opacity: 0.55;
+}
+
+.codigo-botao-principal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  width: 100%;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.codigo-botao-linha {
+  height: 46px;
+  width: 100%;
+  border: 1px solid var(--cor-campo-borda);
+  border-radius: 12px;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.codigo-nota {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--cor-texto-suave);
+}
+
+.codigo-evoce {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.codigo-evoce-cabeca {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.codigo-evoce-cabeca h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.codigo-evoce-frase {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--cor-texto);
+}
+
+.codigo-voltar {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.codigo-lado-a-lado {
+  display: flex;
+  gap: 12px;
+}
+
+.codigo-pessoa {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 14px 16px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 14px;
+  background: var(--cor-fundo);
+}
+
+.codigo-pessoa-destaque {
+  border-color: var(--cor-marca);
+  background: var(--cor-marca-suave);
+}
+
+.codigo-pessoa-destaque .rotulo {
+  color: var(--cor-marca-texto);
+}
+
+.codigo-pessoa-nome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.codigo-pessoa-nome strong {
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--cor-titulo);
+}
+
+.codigo-pessoa-iniciais {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 21px;
+  background: var(--cor-borda);
+  color: var(--cor-texto);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.codigo-pessoa-destaque .codigo-pessoa-iniciais {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.codigo-pessoa-linha {
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--cor-texto);
+}
+
+.codigo-seta {
+  flex: none;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 20px;
+  background: var(--cor-superficie);
+  color: var(--cor-marca-texto);
+}
+
+.bloco .codigo-h2 {
+  font-size: 15px;
+}
+
+.codigo-passos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.codigo-passos li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--cor-texto);
+}
+
+.codigo-passo-numero {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--cor-marca-suave);
+  color: var(--cor-marca-texto);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.codigo-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.codigo-acoes .codigo-nota {
+  font-size: 13px;
+}
+
+.codigo-pronto {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: var(--area-financas-fundo);
+}
+
+.codigo-pronto-marca {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--area-financas);
+  color: var(--cor-superficie);
+}
+
+.codigo-pronto-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.codigo-pronto-texto strong {
+  font-size: 15px;
+  color: var(--cor-titulo);
+}
+
+.codigo-pronto-texto span {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--cor-texto);
+}
+
+@media (min-width: 900px) {
+  .bloco .codigo-cartao-topo h2 {
+    font-size: 18px;
+  }
+
+  input.codigo-entrada {
+    height: 58px;
+  }
+
+  .codigo-form .codigo-botao-principal,
+  .codigo-acoes .codigo-botao-principal {
+    align-self: flex-start;
+    height: 40px;
+    width: auto;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .codigo-botao-linha {
+    height: 40px;
+    width: auto;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .codigo-evoce-cabeca h1 {
+    font-size: 28px;
+  }
+
+  .bloco .codigo-h2 {
+    font-size: 16px;
+  }
+
+  .codigo-passos li {
+    font-size: 14px;
+  }
+
+  .codigo-acoes {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .codigo-pronto {
+    padding: 14px 18px;
+  }
+
+  .codigo-pronto-texto strong {
+    font-size: 16px;
+  }
+
+  .codigo-pronto-texto span {
+    font-size: 14px;
+  }
+}

@@ -48,8 +48,10 @@ function itensCurtos(caminho: string, semPerfil: boolean): ItemCurto[] {
   return itens
 }
 
-function trilhaDe(caminho: string, local: Localizacao | null): string {
+function trilhaDe(caminho: string, local: Localizacao | null, busca = ''): string {
   if (caminho === '/meu-perfil' || caminho.startsWith('/meu-perfil/')) return 'Meu perfil'
+  // "Tenho um código" (S5-04): o "É você?" fica no Início
+  if (caminho === '/painel' && new URLSearchParams(busca).get('codigo') === 'conferir') return 'Início › Tenho um código'
   if (caminho === '/modulos') return 'Módulos'
   if (local) {
     const partes = [local.modulo.titulo, local.funcao?.titulo, local.subfuncao?.titulo]
@@ -61,7 +63,7 @@ function trilhaDe(caminho: string, local: Localizacao | null): string {
 
 export function Layout() {
   const { estado, sair } = useSessao()
-  const { pathname, key: chaveDaTela } = useLocation()
+  const { pathname, search, key: chaveDaTela } = useLocation()
   const areaConteudo = useRef<HTMLElement>(null)
   // o painel aberto (sino ou menu) vale só na tela em que foi aberto: trocou de tela, fecha
   const [abertoEm, setAbertoEm] = useState<{ qual: Aberto; tela: string }>({ qual: null, tela: '' })
@@ -165,7 +167,7 @@ export function Layout() {
         <header className="topo">
           {/* Notebook: a barra branca */}
           <div className="topo-computador">
-            <span className="topo-trilha">{trilhaDe(pathname, local)}</span>
+            <span className="topo-trilha">{trilhaDe(pathname, local, search)}</span>
             {conta && ehDaDiretoria(conta.perfis) && <BuscaTopo perfis={conta.perfis} />}
             <button type="button" className="botao-quadrado" aria-label={temaTexto} title={temaTexto} onClick={alternarTema}>
               <Icone nome={tema === 'escuro' ? 'sol' : 'lua'} tamanho={19} />
