@@ -4,7 +4,7 @@ import { TrocasPendentes } from './TrocasPendentes'
 
 /**
  * /ministros/correcoes — Ministros e inscrições › Correções pedidas: o que os ministros e os pastores presidentes
- * pediram para corrigir no cadastro, e as trocas de igreja pedidas pelo perfil.
+ * pediram para corrigir no cadastro (também o nome e o CNPJ da igreja, D-10), e as trocas de igreja pedidas pelo perfil.
  */
 export function CorrecoesPedidas() {
   return (
@@ -12,7 +12,7 @@ export function CorrecoesPedidas() {
       <CabecalhoFuncao
         modulo="Ministros e inscrições"
         titulo="Correções pedidas"
-        sub="Os ministros pedem pelo perfil (ou o pastor presidente, pela igreja). Aceita, a correção entra sozinha no cadastro."
+        sub="Os ministros pedem pelo perfil, e o pastor presidente, pela igreja (também o nome e o CNPJ dela). Aceita, a correção entra sozinha no cadastro."
       />
       <CorrecoesPendentes />
       <TrocasPendentes />
