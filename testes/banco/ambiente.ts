@@ -90,10 +90,23 @@ export async function criarBanco(opcoes: { antesDe?: string } = {}): Promise<PGl
     if (opcoes.antesDe && arquivo >= opcoes.antesDe) break
     await aplicar(db, arquivo)
   }
-  // A regularização das igrejas (Fase 5.5) suspende, depois do fim da transição (AGO de 28/04/2027), a igreja que nunca
-  // mandou os documentos. Os testes antigos criam igrejas sem documentos: aqui a transição fica aberta, para eles não
-  // quebrarem com a passagem do tempo. Os testes da regularização (regularizacao.test.ts) mudam a data quando precisam.
-  await db.exec("update public.config_igrejas set transicao_ate = '2999-12-31'")
+  // A regularização das igrejas suspende a igreja que não mandou os documentos: desde as regras de 26/11/2026, ela tem
+  // 30 dias contados da ativação (antes, até o fim da transição). Os testes antigos criam igrejas sem documentos, direto
+  // na tabela: aqui elas nascem "ativadas" num dia que não chega (só nos testes), para eles não quebrarem com a
+  // passagem do tempo. Quem testa os prazos (regras_regularizacao.test.ts) tira esse padrão ou põe a data que precisa.
+  await db.exec(`
+    do $$
+    begin
+      if exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'igrejas' and column_name = 'ativada_em') then
+        alter table public.igrejas alter column ativada_em set default '2999-12-31';
+      end if;
+      if exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'config_igrejas' and column_name = 'transicao_ate') then
+        update public.config_igrejas set transicao_ate = '2999-12-31';
+      end if;
+    end;
+    $$`)
   return db
 }
 

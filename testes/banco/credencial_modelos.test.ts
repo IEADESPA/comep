@@ -86,6 +86,8 @@ describe('Fase 5.5 (parte 7) — os modelos da credencial', () => {
     veterano = await pessoa('Veterano Fictício', '2014-03-01', igrejaBatista)
     novato = await pessoa('Ministro Novato', '2026-01-05', igrejaPentecostal, false, ministroUsuario)
     readequado = await pessoa('Readequado Fictício', '2010-01-01', igrejaSemRegistro)
+    // o prazo da readequação: 120 dias da ativação da igreja sem registro (regras de 26/11/2026)
+    await db.query('update public.igrejas set ativada_em = current_date - 10 where id = $1', [igrejaSemRegistro])
     await db.query("insert into public.mandatos (pessoa_id, cargo, inicio, fim) values ($1, 'presidente', current_date - 100, current_date + 900)", [presidente])
     await db.query("insert into public.mandatos (pessoa_id, cargo, inicio, fim) values ($1, 'vice_presidente', current_date - 100, current_date + 900)", [readequado])
 
@@ -292,7 +294,7 @@ describe('Fase 5.5 (parte 7) — os modelos da credencial', () => {
     const [doReadequado, doNovato] = r.d.credenciais
     assert.equal(doReadequado.modelo_id, readequacao)
     assert.equal(doReadequado.readequacao, true)
-    assert.equal(doReadequado.prazo_readequacao, '2027-04-28')
+    assert.equal(doReadequado.prazo_readequacao, (await um<{ d: string }>('select (current_date + 110)::text as d')).d)
     assert.ok(!doReadequado.pendencias.includes('Igreja sem CNPJ'), 'a igreja sem registro não tem CNPJ: não é pendência')
     assert.equal(doNovato.readequacao, false)
     assert.equal(doNovato.prazo_readequacao, null)
@@ -315,6 +317,7 @@ describe('Fase 5.5 (parte 7) — os modelos da credencial', () => {
     await db.query("update public.igrejas set cadastro = 'completo' where id = $1", [igrejaSemRegistro])
     assert.notEqual(await modeloDe(readequado), readequacao)
     await db.query("update public.igrejas set cadastro = 'sem_registro' where id = $1", [igrejaSemRegistro])
+    await db.query('update public.igrejas set ativada_em = current_date - 10 where id = $1', [igrejaSemRegistro])
   })
 
   it('a validação pública continua funcionando (sem login) e mostra a readequação com o prazo', async () => {
@@ -336,7 +339,7 @@ describe('Fase 5.5 (parte 7) — os modelos da credencial', () => {
     }
     assert.equal(emReadequacao.v.situacao, 'valida')
     assert.equal(emReadequacao.v.readequacao, true)
-    assert.equal(emReadequacao.v.prazo_readequacao, '2027-04-28')
+    assert.equal(emReadequacao.v.prazo_readequacao, (await um<{ d: string }>('select (current_date + 110)::text as d')).d)
     const inexistente = (await chamar(null, "select public.validar_credencial('0123456789abcdef0123456789abcdef') as v")).rows[0] as { v: { situacao: string } }
     assert.equal(inexistente.v.situacao, 'inexistente')
   })
