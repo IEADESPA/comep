@@ -166,8 +166,9 @@ function Conteudo({ pessoaId, perfis, email, aba }: { pessoaId: string; perfis: 
                 ) : (
                   <Aviso titulo="Você ainda não é associado">
                     <p>
-                      Quer se associar? <Link to="/meu-pedido">Faça ou acompanhe o seu pedido</Link>. Já é associado e este
-                      login não mostra o seu cadastro? Peça à secretaria um código de primeiro acesso.
+                      Quer se associar? <Link to="/meu-pedido">Faça ou acompanhe o seu pedido</Link>. Já é associado e esta
+                      conta não mostra o seu cadastro? Peça à secretaria o código de primeiro acesso e use em{' '}
+                      <Link to="/painel?codigo">Tenho um código</Link>, no Início.
                     </p>
                   </Aviso>
                 )}

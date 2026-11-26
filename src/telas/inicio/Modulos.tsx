@@ -85,7 +85,10 @@ export function Modulos() {
         <p className="inicio-data">Tudo o que você pode abrir no sistema, por assunto.</p>
       </div>
       {modulosDoInicio(perfis).grupos.length === 0 ? (
-        <p className="vazio">Nenhum módulo ainda: o acesso aparece depois que a secretaria ligar o seu cadastro.</p>
+        <p className="vazio">
+          Nenhum módulo ainda. Já é associado? Use o código da secretaria em{' '}
+          <Link to="/painel?codigo">Tenho um código</Link>, no Início.
+        </p>
       ) : (
         <SecaoModulos perfis={perfis} todosNoCelular />
       )}

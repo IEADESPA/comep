@@ -74,7 +74,8 @@ export function PrimeiroAcesso() {
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
-  if (estado.situacao === 'logado') return <Navigate to="/painel" replace />
+  // Já entrou com a conta criada pelo site: o código se usa no Início, em "Tenho um código" (S5-04)
+  if (estado.situacao === 'logado') return <Navigate to="/painel?codigo" replace />
 
   async function enviar() {
     setErro(null)

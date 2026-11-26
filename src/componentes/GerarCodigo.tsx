@@ -28,7 +28,7 @@ export function GerarCodigo({
   const texto = codigo
     ? temLogin
       ? `COMEP — código para criar uma nova senha: ${codigo} (vale por 7 dias). Acesse ${endereco}`
-      : `COMEP — seu código de primeiro acesso ao Portal do membro: ${codigo} (vale por 7 dias). Acesse ${endereco} e crie a sua senha.`
+      : `COMEP — seu código de primeiro acesso ao Portal do membro: ${codigo} (vale por 7 dias). Acesse ${endereco} e crie a sua senha. Se já criou uma conta pelo site, entre com ela e use o código em "Tenho um código", no Início.`
     : ''
   const numero = (telefone ?? '').replace(/\D/g, '')
   const whatsapp = `https://wa.me/${numero.length >= 10 ? (numero.length <= 11 ? `55${numero}` : numero) : ''}?text=${encodeURIComponent(texto)}`
