@@ -4,7 +4,8 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
-import { Selo } from '../../componentes/Telas'
+import { Icone } from '../../componentes/Icone'
+import { Chip, Selo } from '../../componentes/Telas'
 import type { Igreja, Titulo } from '../../dados/cadastros'
 import {
   listarPedidosCorrecao,
@@ -17,17 +18,24 @@ import {
 } from '../../dados/igrejas'
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
-import { formatarCpf, formatarDataDeInstante } from '../../utilitarios/formatos'
+import { formatarCnpj, formatarCpf, formatarDataDeInstante } from '../../utilitarios/formatos'
 
 const CLASSE = { pendente: 'etiqueta etiqueta-conferencia', atendido: 'etiqueta etiqueta-ok', recusado: 'etiqueta etiqueta-atraso' }
 
 /** Um dado que pode ser corrigido, com como está hoje (vazio = não informado). */
 export type DadoCorrigivel = { campo: CampoCorrecao; atual: string }
 
-/** Como mostrar um valor: o CPF com os pontos; vazio vira "(vazio)". */
-function valorParaLer(campo: CampoCorrecao | null, valor: string | null): string {
+/** Como mostrar um valor: o CPF e o CNPJ com a pontuação; vazio vira "(vazio)". */
+function valorParaLer(campo: PedidoCorrecao['campo'], valor: string | null): string {
   if (!valor) return '(vazio)'
-  return campo === 'cpf' ? formatarCpf(valor) : valor
+  if (campo === 'cpf') return formatarCpf(valor)
+  return campo === 'igreja_cnpj' ? formatarCnpj(valor) : valor
+}
+
+/** De quem é o pedido: o nome do ministro ou, no pedido da igreja (D-10), o nome da igreja. */
+function nomeDoPedido(p: PedidoCorrecao, nomes?: Map<string, string>): string {
+  if (p.pessoa_id === null) return p.igreja?.nome ?? 'Igreja'
+  return p.pessoa?.nome ?? nomes?.get(p.pessoa_id) ?? 'Ministro'
 }
 
 /**
@@ -163,13 +171,16 @@ export function SeloDaCorrecao({ p }: { p: PedidoCorrecao }) {
   return <Selo tipo="analise">Esperando a secretaria</Selo>
 }
 
-/** A lista dos pedidos, com a resposta da secretaria. `nomes` completa o nome de quem a RLS não deixa ler. */
+/**
+ * A lista dos pedidos, com a resposta da secretaria. `nomes` completa o nome de quem a RLS não deixa ler. Quem preside
+ * vê aqui também os pedidos da igreja (o nome e o CNPJ, D-10).
+ */
 export function ListaDePedidos({ pedidos, nomes }: { pedidos: PedidoCorrecao[]; nomes?: Map<string, string> }) {
   if (pedidos.length === 0) return <p className="vazio">Nenhum pedido de correção.</p>
   return (
     <ul className="lista" aria-label="Pedidos de correção">
       {pedidos.map((p) => {
-        const nome = p.pessoa?.nome ?? nomes?.get(p.pessoa_id) ?? 'Ministro'
+        const nome = nomeDoPedido(p, nomes)
         return (
           <li key={p.id} className="lista-item lista-item-estatico" aria-label={`Pedido de correção: ${nome}`}>
             <strong>{nome}</strong>
@@ -219,15 +230,31 @@ function Pendente({ p, aoConcluir }: { p: PedidoCorrecao; aoConcluir: (r: { erro
   const [recusando, setRecusando] = useState(false)
   const [resposta, setResposta] = useState('')
   const [enviando, umaVez] = useUmaVez()
-  const nome = p.pessoa?.nome ?? 'Ministro'
+  const nome = nomeDoPedido(p)
   const estruturado = p.campo !== null
+  // D-10: o pedido da igreja (o nome ou o CNPJ, pedido por quem preside) entra na mesma fila, com o selo Igreja e o
+  // link para a ficha da igreja
+  const daIgreja = p.pessoa_id === null
   return (
     <li className="correcao-pendente" aria-label={`Correção: ${nome}`}>
       <span className="linha-corpo">
-        <strong>
-          <Link to={`/ministros/${p.pessoa_id}`}>{nome}</Link>
-          {p.campo && ` · ${NOME_DO_CAMPO[p.campo]}`}
-        </strong>
+        {daIgreja ? (
+          <strong className="correcao-da-igreja">
+            <Chip area="eventos">
+              <Icone nome="igreja" tamanho={14} />
+              Igreja
+            </Chip>
+            <span>
+              <Link to={`/igrejas/${p.igreja_id}`}>{nome}</Link>
+              {p.campo && ` · ${NOME_DO_CAMPO[p.campo]}`}
+            </span>
+          </strong>
+        ) : (
+          <strong>
+            <Link to={`/ministros/${p.pessoa_id}`}>{nome}</Link>
+            {p.campo && ` · ${NOME_DO_CAMPO[p.campo]}`}
+          </strong>
+        )}
         <ResumoDaCorrecao p={p} />
         <span>
           Pedido por {p.autor?.nome ?? '—'} em {formatarDataDeInstante(p.criado_em)}
