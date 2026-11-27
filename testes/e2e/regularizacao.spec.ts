@@ -195,10 +195,8 @@ test('o pastor cadastra a igreja dele: o convite, os 5 passos e o acompanhamento
     await expect(mensagemNaTela(page, `${nome}: conferido.`)).toBeVisible()
   }
   await expect(page.getByRole('button', { name: 'Ativar a igreja' })).toBeDisabled()
-  // o alvará não veio: a igreja pode entrar, suspensa, com os dias das regras (S7-07; regras de 26/11/2026)
-  await expect(item('Alvará de licenciamento')).toContainText(
-    'ainda não veio: a igreja pode entrar, mas fica suspensa até ele chegar; o pastor tem 30 dias, da ativação, para mandar',
-  )
+  // o alvará não veio: a igreja pode entrar e mandar depois, nos dias das regras (S7-07; regras de 26/11/2026)
+  await expect(item('Alvará de licenciamento')).toContainText('ainda não veio: a igreja pode entrar e mandar depois (30 dias, da ativação, ou fica suspensa)')
 
   // o pastor vê o selo em cada item e manda de novo só o que voltou
   await trocarPara(page, sessao)
@@ -219,19 +217,19 @@ test('o pastor cadastra a igreja dele: o convite, os 5 passos e o acompanhamento
   await page.getByRole('button', { name: 'Ativar a igreja' }).click()
   await expect(mensagemNaTela(page, `${igreja}: igreja ativada no COMEP.`)).toBeVisible()
   const endereco = page.url()
-  // sem o alvará, a igreja fica suspensa desde a ativação (hoje), e os 30 dias contam dela (S7-03; regras de 26/11/2026)
-  await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Suspensa')
+  // sem o alvará, a igreja fica regular, com a pendência e os 30 dias contados da ativação (S7-03; a regra 1 de 26/11/2026,
+  // confirmada em 27/11: só passado o prazo ela é suspensa)
+  await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Regular')
   await abrirAbaDaIgreja(page, 'Situação')
-  await expect(page.getByText(`Suspensa desde ${br(dia(0))}`)).toBeVisible()
-  await expect(page.getByText('Não veio: Alvará de licenciamento.')).toBeVisible()
+  await expect(page.getByText(`falta o alvará (até ${br(dia(29))})`, { exact: true })).toBeVisible()
 
-  // o pastor presidente não nasce bloqueado: na Minha igreja, o caminho de volta, com os 30 dias para mandar o alvará
+  // o pastor presidente não nasce bloqueado: no Início, a igreja em regularização, com a data; a Minha igreja abre inteira
   await trocarPara(page, sessao)
+  await page.goto('./')
+  await expect(page.getByText('A igreja está em regularização:')).toBeVisible()
+  await expect(page.getByText(`mande o alvará até ${br(dia(29))}; depois, ela fica suspensa`)).toBeVisible()
   await page.goto('minha-igreja')
-  await expect(page.getByRole('heading', { name: 'Para a igreja voltar a ser regular', level: 1 })).toBeVisible()
-  await expect(page.getByText(`${igreja} · suspensa desde ${br(dia(0))}, porque o alvará não veio.`)).toBeVisible()
-  await expect(page.getByRole('region', { name: 'Os dias para mandar' })).toContainText('30')
-  await expect(page.getByRole('region', { name: 'Mande aqui o alvará' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: igreja, level: 2 })).toBeVisible()
 
   // Limpeza: arquiva o pastor e a igreja de teste
   await arquivarAssociadoDeTeste(page, pastor)
