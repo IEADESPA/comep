@@ -70,7 +70,7 @@ O site fica por **último**: ele já funciona e está aceitável.
 
 | Módulo | O que entra |
 | --- | --- |
-| **Central de regularização** (dentro do módulo Igrejas) | As suspensas com a contagem dos 30 dias, o que vence em 60 dias, a natureza jurídica com prazo, o que falta da transição e as igrejas sem registro, para chamar para perto. Depois, a biblioteca de modelos (estatuto, ata). |
+| **Central de regularização** (dentro do módulo Igrejas) | As suspensas com a contagem dos 30 dias, o que vence em 60 dias, a natureza jurídica com prazo, o que falta e ainda está no prazo (desde 26/11/2026, sem a transição: o alvará na tolerância de janeiro) e as igrejas sem registro, com o prazo para se registrar, para chamar para perto. Depois, a biblioteca de modelos (estatuto, ata). |
 | **Relações institucionais** | Ofícios (só para fora, em nome do COMEP, com modelos e número automático), demandas ao poder público (com apoio mínimo dos ministros em dia e a reunião mensal), conselhos municipais (a cadeira é da associação) e utilidade pública. |
 | **Relatórios** | Todos os gráficos e relatórios do conselho, ajustáveis; o relatório de representatividade fica nele. Rodada 16, com o portal da transparência e a página pública "Igrejas cadastradas". |
 | **Mapa** | As igrejas, as filiais e as ações sociais como pontos no mapa da cidade (a localização das filiais já é guardada). |

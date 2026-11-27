@@ -1020,3 +1020,37 @@ O desenho aprovado `minha-igreja-2` (opção 1, aba Dados) tem o link **Pedir co
   - **visto falhar antes do ajuste do leiaute:** com o pedido aberto, a Denominação ao lado esticava de 47,4 px para 145,8 px; a grade dos dados agora alinha no alto;
   - **verde:** `presidente-igreja.spec.ts`, 4 de 4 (computador e celular); `portal-ministro.spec.ts` (o pedido do ministro aceito pela secretaria e o pastor presidente com os ministros e o contato da igreja), 2 de 2 no computador, mais o do pastor presidente no celular; `cadastros.spec.ts` "nenhuma tela da diretoria fica mais larga que a tela", verde.
 - **As fotos** do aprovado ao lado do construído (computador e celular, claro e escuro), com o pedido aberto, o "Esperando a secretaria" e a fila da secretaria, foram olhadas uma a uma. O pedido criado para as fotos foi recusado no fim, e o nome da igreja fictícia não mudou.
+
+## Antes do lançamento: as regras novas da regularização das igrejas (decisões do presidente de 26/11/2026)
+
+O presidente decidiu em 26/11 seis regras que substituem as de 18/11 (PROJETO.md, seção 4.3, atualizada junto). Elas respondem às perguntas 1 a 4 da revisão do módulo de Igrejas e resolvem os achados S7-03, S7-02 (b), S7-07 e S7-08; o S7-01 e o S7-10 (b) vieram junto. Migrações `20261126150000_regras_regularizacao.sql` e `20261126150100_documento_de_quem_preside.sql`. As colunas antigas (o fim da transição, os dias do Cartão CNPJ novo, a data da readequação e o prazo guardado da natureza) ficam na tabela, sem uso: nada se apaga.
+
+**As regras:**
+
+1. **Sem a transição até 28/04/2027.** O documento que falta tem 30 dias, contados da **ativação da igreja** no sistema: o cadastro pela secretaria, a ativação da igreja cadastrada pelo pastor ou a regularização da igreja sem registro. Nesses dias a igreja fica suspensa e o pastor presidente só manda os documentos; passados os 30 dias, o perfil dele é bloqueado. Nada conta antes da ativação, então a igreja não nasce bloqueada (S7-03, em que os dias contavam da criação do cadastro). O alvará vencido também tem 30 dias. As igrejas que já existiam ganham como ativação a da auditoria (a igreja nova ativada, a sem registro regularizada) ou, sem ela, o dia do cadastro.
+2. **O alvará do ano.** O alvará que vence em 31/12 só suspende a igreja se o novo não chegar até 31/01; o novo que chegou nesse tempo e espera a conferência não suspende. Depois, valem os 30 dias de sempre.
+3. **A recusa depois do prazo.** O pastor mandou dentro do prazo e a secretaria só recusou depois dele: ele ganha 7 dias, contados da recusa, para mandar de novo, e não perde o perfil na hora. O aviso da recusa diz até quando.
+4. **A natureza jurídica é a do Cartão CNPJ conferido**, nos dois sentidos (S7-02 b). Com um Cartão conferido, a ficha não muda a natureza: muda-se mandando o Cartão novo.
+5. **A associação privada tem 120 dias** para mudar para organização religiosa, contados da ativação ou da conferência do Cartão CNPJ que mostra "associação privada". O fim do mandato da diretoria não conta mais. Passou do prazo, a igreja fica suspensa.
+6. **A igreja sem registro tem 120 dias**, contados da ativação, para se registrar, e o prazo não se estende. A AGO de 28/04/2027 sai também da credencial de readequação: a credencial e a conferência pelo QR mostram o prazo da igreja do ministro.
+
+Os prazos continuam configuráveis na Central de regularização, e só a presidência os muda: 30 dias para mandar, 31 dias de tolerância do alvará (até 31/01; 0 desliga), 7 dias depois da recusa, 120 dias da associação privada e 120 da igreja sem registro, cada um com os limites também no banco.
+
+**Junto:**
+
+- **S7-01:** quem é da secretaria (ou da presidência) e preside a igreja não confere o próprio documento, nem com a igreja bloqueada: o "preside" passou a ser o vínculo de pastor presidente.
+- **S7-08:** "Salvar as regras" primeiro mostra quantas igrejas mudam de situação hoje (de regular para suspensa, de suspensa para bloqueada e o contrário), pela função `efeito_das_regras`, que não salva nada; só "Confirmar e salvar as regras" grava. "Voltar" desfaz.
+- **S7-07:** os textos que prometiam prazos fixos leem a configuração: a Conferência da igreja nova, o cadastro (o aviso dos documentos que faltam e a associação privada), as limitações da igreja sem registro e a Central. "Passaram os 30 dias" virou "Acabou o prazo para mandar", porque o prazo pode ter os dias depois da recusa.
+- **S7-10 (b):** "Faltam documentos" na Central conta cada igreja uma vez (a associação privada com documento faltando estava nas duas listas).
+- **O que nunca veio não "venceu":** a situação ganhou `nunca_vieram`. A ficha e a Central dizem "Venceu: …" e "Não veio: …", com os nomes; a lista, "4 itens não vieram · faltam 30 dias para mandar"; a Minha igreja suspensa, "suspensa desde …, porque o alvará não veio". A frase da Minha igreja também deixou de dizer a véspera da suspensão como o dia do vencimento, o que ficaria errado com a tolerância do alvará.
+- **O cadastro pela secretaria** avisa também quando falta o alvará: sem ele, a igreja entra suspensa.
+- **No Início do pastor**, o alvará na tolerância de janeiro diz "venceu; mande o novo até 31/01".
+- **Os avisos do sino** (a rotina do dia) dizem o que falta e até quando, e a associação privada diz até quando mudar.
+
+**A leitura escolhida para a regra 1:** o documento que falta deixa a igreja suspensa desde a ativação, com os 30 dias para mandar, como o PROJETO.md já dava à igreja cadastrada depois da transição. A outra leitura (30 dias de pendência com a igreja regular, e só depois a suspensão com mais 30) muda uma linha da função da situação e alguns textos; fica registrada para a confirmação do presidente.
+
+**No comep-teste:** as igrejas fictícias antigas, sem documentos, passam a ficar suspensas desde o cadastro. O ponta a ponta do patrimônio escolhe agora a primeira igreja que a lista deixa escolher (só a regular pega empréstimo).
+
+**Verificação (27/11/2026):**
+
+- PGlite: `regras_regularizacao.test.ts` (novo, 24 testes, vistos falhar sem as migrações, e o do S7-01 falhando pelo motivo certo só com a primeira), mais os antigos ajustados (`regularizacao`, `credencial_modelos`, e o `ambiente.ts`, que no lugar da transição aberta põe a ativação num dia que não chega, só nos testes). Unidade: `porqueSuspensa`, `separarVencidos`, `oQueSuspendeu` e `fimDaTolerancia`, vistos falhar antes do código.
