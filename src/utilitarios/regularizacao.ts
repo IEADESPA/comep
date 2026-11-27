@@ -98,6 +98,33 @@ export function fraseParaMandar(hoje: string, prazoAte: string, oQue = ''): stri
   return dias === 1 ? `último dia para mandar${resto}` : `acabou o prazo para mandar${resto}`
 }
 
+/** O que suspendeu a igreja, em duas listas: o que venceu e o que nunca veio (faltava na ativação). */
+export function separarVencidos(s: Pick<SituacaoIgreja, 'vencidos' | 'nunca_vieram'>): { venceram: ItemRegularidade[]; nuncaVieram: ItemRegularidade[] } {
+  return {
+    venceram: s.vencidos.filter((v) => !s.nunca_vieram?.includes(v)),
+    nuncaVieram: s.vencidos.filter((v) => s.nunca_vieram?.includes(v)),
+  }
+}
+
+/**
+ * Por que a igreja está suspensa, separando o que venceu do que nunca veio (o que faltava na ativação; regras de
+ * 26/11/2026): "o alvará venceu", "4 itens não vieram", "o alvará venceu e o estatuto não veio".
+ */
+export function porqueSuspensa(s: Pick<SituacaoIgreja, 'vencidos' | 'nunca_vieram'>): string {
+  const { venceram, nuncaVieram: nunca } = separarVencidos(s)
+  const partes: string[] = []
+  if (venceram.length > 0) partes.push(`${listaCurta(venceram)} ${venceram.length === 1 ? 'venceu' : 'venceram'}`)
+  if (nunca.length > 0) partes.push(`${listaCurta(nunca)} ${nunca.length === 1 ? 'não veio' : 'não vieram'}`)
+  return partes.join(' e ')
+}
+
+/** Até quando vai a tolerância do alvará que vence em 31/12 ("31/01" com 31 dias); null sem tolerância. */
+export function fimDaTolerancia(dias: number): string | null {
+  if (dias <= 0) return null
+  const fim = new Date(Date.UTC(2001, 11, 31 + dias, 12)) // a conta num ano comum
+  return `${String(fim.getUTCDate()).padStart(2, '0')}/${String(fim.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
 /** "2 anos e 1 mês", "5 meses", "43 dias": o tempo que falta, do jeito de falar. */
 export function tempoQueFalta(hoje: string, ate: string): string {
   const dias = diasEntre(hoje, ate)

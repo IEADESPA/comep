@@ -3,18 +3,28 @@ import { Link } from 'react-router'
 import { Mensagem, MostrarCarga } from '../../componentes/Basicos'
 import { CabecalhoFuncao } from '../../componentes/MenuDoModulo'
 import { ok } from '../../dados/cliente'
-import { regrasDasIgrejas, salvarRegrasDasIgrejas, type RegrasIgrejas } from '../../dados/igrejas'
+import {
+  efeitoDasRegras,
+  regrasDasIgrejas,
+  salvarRegrasDasIgrejas,
+  type EfeitoDasRegras,
+  type MudancaDeSituacao,
+  type RegrasIgrejas,
+} from '../../dados/igrejas'
 import { useSessao } from '../../estado/contexto'
 import { useCarregar } from '../../estado/useCarregar'
+import { esquecerRegrasDasIgrejas } from '../../estado/useRegrasDasIgrejas'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
-import { diasEntre, NOME_DO_ITEM, textoDoPrazo, textoDosDiasParaMandar } from '../../utilitarios/regularizacao'
+import { diasEntre, fimDaTolerancia, NOME_DO_ITEM, separarVencidos, textoDoPrazo, textoDosDiasParaMandar } from '../../utilitarios/regularizacao'
 import { NumerosGrandes, SeloNivel } from './componentes'
 import { carregarIgrejasComSituacao, descreverSituacao, type LinhaIgreja } from './regras'
 
-// Igrejas › Central de regularização (aprovada no documento para a diretoria e na rodada 12, 18/11/2026):
-// num lugar só, quem está suspensa (com a contagem dos 30 dias), o que vence nos próximos 60 dias, a associação
-// privada com o prazo da natureza, o que falta da transição (AGO de 28/04/2027) e as igrejas sem registro.
+// Igrejas › Central de regularização (aprovada no documento para a diretoria e na rodada 12, 18/11/2026; as regras
+// novas do presidente, de 26/11/2026): num lugar só, quem está suspensa (com a contagem dos dias para mandar), o que
+// vence nos próximos 60 dias, a associação privada com o prazo da natureza, o que falta e ainda está no prazo (o
+// alvará na tolerância de janeiro) e as igrejas sem registro, com o prazo para se registrar. Só a presidência muda as
+// regras, e antes de salvar a tela mostra quais igrejas mudam de situação hoje (S7-08).
 
 const SEM_VENCER = 60
 
@@ -45,29 +55,36 @@ export function CentralRegularizacao() {
             return s?.situacao === 'regular' && s.proximo_vencimento && diasEntre(hoje, s.proximo_vencimento) <= SEM_VENCER && s.pendencias.length === 0
           })
           const natureza = linhas.filter((l) => de(l.s)?.situacao === 'regular' && de(l.s)?.natureza_prazo)
-          const transicao = linhas.filter((l) => de(l.s)?.situacao === 'regular' && (de(l.s)?.pendencias.length ?? 0) > 0)
+          const noPrazo = linhas.filter((l) => de(l.s)?.situacao === 'regular' && (de(l.s)?.pendencias.length ?? 0) > 0)
           const semRegistro = linhas.filter((l) => de(l.s)?.situacao === 'sem_registro')
+          // a associação privada com documento faltando está nas duas listas: conta uma vez só (S7-10 b)
+          const faltam = new Set([...noPrazo, ...natureza].map((l) => l.id)).size
           return (
             <>
               <NumerosGrandes
                 itens={[
                   { rotulo: 'Suspensas', valor: suspensas.length, area: 'pessoas' },
                   { rotulo: `Vencem em ${SEM_VENCER} dias`, valor: vencendo.length, area: 'eventos' },
-                  { rotulo: 'Faltam documentos', valor: transicao.length + natureza.length, area: 'assembleias' },
+                  { rotulo: 'Faltam documentos', valor: faltam, area: 'assembleias' },
                   { rotulo: 'Sem registro', valor: semRegistro.length, area: 'assembleias' },
                 ]}
               />
               <Secao titulo="Suspensas" vazio="Nenhuma igreja suspensa." linhas={suspensas}>
                 {(l) => {
                   const s = l.s!.situacao
+                  const { venceram, nuncaVieram } = separarVencidos(s)
+                  const nomes = (itens: typeof venceram) => itens.map((v) => NOME_DO_ITEM[v]).join(', ')
                   return (
                     <>
                       <span>
-                        {s.vencidos.map((v) => NOME_DO_ITEM[v]).join(', ')} · suspensa desde {formatarData(s.suspensa_desde)}
+                        {[venceram.length > 0 && `Venceu: ${nomes(venceram)}`, nuncaVieram.length > 0 && `Não veio: ${nomes(nuncaVieram)}`]
+                          .filter(Boolean)
+                          .join(' · ')}{' '}
+                        · suspensa desde {formatarData(s.suspensa_desde)}
                       </span>
                       <span className={s.perfil_bloqueado ? 'texto-perigo' : 'texto-atencao'}>
                         {s.perfil_bloqueado
-                          ? 'Passaram os 30 dias: o perfil de pastor presidente está bloqueado. A secretaria pode mandar o documento pela igreja.'
+                          ? 'Acabou o prazo para mandar: o perfil de pastor presidente está bloqueado. A secretaria pode mandar o documento pela igreja.'
                           : `O pastor tem até ${formatarData(s.prazo_ate)} para mandar (${textoDosDiasParaMandar(hoje, s.prazo_ate!)}).`}
                       </span>
                     </>
@@ -85,16 +102,28 @@ export function CentralRegularizacao() {
               <Secao titulo="Associação privada: mudar para organização religiosa" vazio="Nenhuma igreja com esse prazo." linhas={natureza}>
                 {(l) => (
                   <span>
-                    Até {formatarData(l.s!.situacao.natureza_prazo)}: eleger a diretoria nova e, na mesma ata, mudar a natureza; depois,{' '}
-                    {regras.dias_cartao_cnpj} dias para o Cartão CNPJ novo.
+                    Até {formatarData(l.s!.situacao.natureza_prazo)} ({textoDoPrazo(hoje, l.s!.situacao.natureza_prazo!)}): mudar para organização
+                    religiosa e mandar o Cartão CNPJ novo. Depois, a igreja fica suspensa.
                   </span>
                 )}
               </Secao>
-              <Secao titulo={`Faltam documentos (até ${formatarData(regras.transicao_ate)})`} vazio="Nenhuma igreja com documento faltando." linhas={transicao}>
+              <Secao titulo="Faltam documentos (ainda no prazo)" vazio="Nenhuma igreja com documento faltando no prazo." linhas={noPrazo}>
                 {(l) => <span>{descreverSituacao(l.s!.situacao, hoje)}</span>}
               </Secao>
               <Secao titulo="Sem registro: chamar para perto" vazio="Nenhuma igreja sem registro." linhas={semRegistro}>
-                {(l) => <span>{[l.denominacao?.nome, l.telefone, l.presidente_nome].filter(Boolean).join(' · ') || 'sem contato'}</span>}
+                {(l) => {
+                  const ate = l.s?.situacao.readequacao_ate
+                  return (
+                    <>
+                      <span>{[l.denominacao?.nome, l.telefone, l.presidente_nome].filter(Boolean).join(' · ') || 'sem contato'}</span>
+                      {ate && (
+                        <span className={diasEntre(hoje, ate) < 0 ? 'texto-perigo' : undefined}>
+                          Registrar até {formatarData(ate)} ({textoDoPrazo(hoje, ate)}).
+                        </span>
+                      )}
+                    </>
+                  )
+                }}
               </Secao>
               <Regras regras={regras} podeMudar={perfis.includes('presidencia')} aoSalvar={recarregar} />
             </>
@@ -140,81 +169,154 @@ function Secao({
   )
 }
 
+/** Os campos das regras, com os limites do banco. */
+const CAMPOS: { campo: keyof RegrasIgrejas; rotulo: string; curto: string; min: number; max: number }[] = [
+  { campo: 'dias_para_mandar', rotulo: 'Dias para mandar o documento que falta ou que venceu', curto: 'Dias para mandar o documento', min: 1, max: 180 },
+  {
+    campo: 'dias_tolerancia_alvara',
+    rotulo: 'Tolerância do alvará que vence em 31/12, em dias (31: até 31/01; 0: sem tolerância)',
+    curto: 'Tolerância do alvará que vence em 31/12',
+    min: 0,
+    max: 90,
+  },
+  { campo: 'dias_apos_recusa', rotulo: 'Dias para mandar de novo, depois da recusa fora do prazo', curto: 'Dias depois da recusa fora do prazo', min: 1, max: 60 },
+  { campo: 'dias_natureza', rotulo: 'Dias da associação privada para mudar para organização religiosa', curto: 'Dias da associação privada', min: 30, max: 365 },
+  { campo: 'dias_readequacao', rotulo: 'Dias da igreja sem registro para se registrar', curto: 'Dias da igreja sem registro', min: 30, max: 365 },
+]
+
+const NOME_DO_ESTADO: Record<MudancaDeSituacao['antes'], string> = {
+  regular: 'regular',
+  suspensa: 'suspensa',
+  bloqueada: 'suspensa e com o perfil do pastor bloqueado',
+}
+
+/** Quantas mudanças a confirmação lista (as outras ficam no "e mais"). */
+const MOSTRAR_MUDANCAS = 20
+
 function Regras({ regras, podeMudar, aoSalvar }: { regras: RegrasIgrejas; podeMudar: boolean; aoSalvar: () => void }) {
   const [dados, setDados] = useState(regras)
+  const [efeito, setEfeito] = useState<EfeitoDasRegras | null>(null)
   const [retorno, setRetorno] = useState<{ sucesso?: string; erro?: string }>({})
   const [enviando, umaVez] = useUmaVez()
+  const tolerancia = fimDaTolerancia(regras.dias_tolerancia_alvara)
   return (
     <section className="bloco" aria-labelledby="titulo-regras-regularizacao">
       <h2 id="titulo-regras-regularizacao">As regras</h2>
       <p className="detalhe">
-        Venceu a ata ou o alvará, a igreja fica suspensa no mesmo dia. O pastor presidente tem {regras.dias_para_mandar} dias só para mandar o
-        documento; sem mandar, o perfil dele é bloqueado (ele continua ministro associado). Mandado antes de vencer, o documento novo entra
-        sozinho no dia certo.
+        Faltou algum documento na ativação, ou venceu a ata ou o alvará, a igreja fica suspensa (desde a ativação, ou do dia seguinte ao
+        vencimento). O pastor presidente tem então {regras.dias_para_mandar} dias só para mandar o documento; sem mandar, o perfil dele é bloqueado
+        (ele continua ministro associado).{' '}
+        {tolerancia ? `O alvará que vence em 31/12 só suspende se o novo não chegar até ${tolerancia}. ` : ''}Mandado no prazo e recusado depois
+        dele, o pastor ainda tem {regras.dias_apos_recusa} dias, contados da recusa.
+      </p>
+      <p className="detalhe">
+        A associação privada tem {regras.dias_natureza} dias, da ativação ou da conferência do Cartão CNPJ que a mostra assim, para mudar para
+        organização religiosa; depois, a igreja fica suspensa. A igreja sem registro tem {regras.dias_readequacao} dias, da ativação, para se
+        registrar. Mandado antes de vencer, o documento novo entra sozinho no dia certo.
       </p>
       {podeMudar ? (
         <form
           onSubmit={(e) => {
             e.preventDefault()
             void umaVez(async () => {
+              // primeiro o efeito (S7-08): quais igrejas mudam de situação hoje; depois, a confirmação salva
+              if (efeito === null) {
+                const r = await efeitoDasRegras(dados)
+                if (r.erro !== null) setRetorno({ erro: r.erro })
+                else setEfeito(r.dados)
+                return
+              }
               const r = await salvarRegrasDasIgrejas(dados)
+              setEfeito(null)
+              if (r.erro === null) esquecerRegrasDasIgrejas()
               setRetorno(r.erro !== null ? { erro: r.erro } : { sucesso: 'Regras salvas.' })
               if (r.erro === null) aoSalvar()
             })
           }}
         >
           <div className="grade-form">
-            <label>
-              Fim da transição (quem já estava cadastrado)
-              <input type="date" required value={dados.transicao_ate} onChange={(e) => setDados({ ...dados, transicao_ate: e.target.value })} />
-            </label>
-            <label>
-              Dias para mandar o documento vencido
-              <input
-                type="number"
-                min={1}
-                max={180}
-                required
-                value={dados.dias_para_mandar}
-                onChange={(e) => setDados({ ...dados, dias_para_mandar: Number(e.target.value) })}
-              />
-            </label>
-            <label>
-              Dias para o Cartão CNPJ novo (depois da ata que muda a natureza)
-              <input
-                type="number"
-                min={30}
-                max={365}
-                required
-                value={dados.dias_cartao_cnpj}
-                onChange={(e) => setDados({ ...dados, dias_cartao_cnpj: Number(e.target.value) })}
-              />
-            </label>
-            <label>
-              Prazo da readequação (ministros das igrejas sem registro)
-              <input type="date" required value={dados.readequacao_ate} onChange={(e) => setDados({ ...dados, readequacao_ate: e.target.value })} />
-            </label>
+            {CAMPOS.map((c) => (
+              <label key={c.campo}>
+                {c.rotulo}
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={c.min}
+                  max={c.max}
+                  required
+                  value={dados[c.campo]}
+                  onChange={(e) => {
+                    setDados({ ...dados, [c.campo]: Number(e.target.value) })
+                    setEfeito(null)
+                    setRetorno({})
+                  }}
+                />
+              </label>
+            ))}
           </div>
+          {efeito && <EfeitoAntesDeSalvar efeito={efeito} />}
           <Mensagem sucesso={retorno.sucesso} erro={retorno.erro} />
           <div className="acoes">
-            <button type="submit" className="botao" disabled={enviando}>
-              Salvar as regras
-            </button>
+            {efeito ? (
+              <span className="confirmar-linha">
+                <button type="submit" className={efeito.mudam.length > 0 ? 'botao botao-perigo-cheio' : 'botao'} disabled={enviando}>
+                  Confirmar e salvar as regras
+                </button>
+                <button type="button" className="botao-texto" onClick={() => setEfeito(null)}>
+                  Voltar
+                </button>
+              </span>
+            ) : (
+              <button type="submit" className="botao" disabled={enviando}>
+                Salvar as regras
+              </button>
+            )}
           </div>
         </form>
       ) : (
         <dl className="definicoes">
-          <dt>Fim da transição</dt>
-          <dd>{formatarData(regras.transicao_ate)}</dd>
-          <dt>Dias para mandar o documento</dt>
-          <dd>{regras.dias_para_mandar}</dd>
-          <dt>Dias para o Cartão CNPJ novo</dt>
-          <dd>{regras.dias_cartao_cnpj}</dd>
-          <dt>Prazo da readequação</dt>
-          <dd>{formatarData(regras.readequacao_ate)}</dd>
+          {CAMPOS.map((c) => (
+            <ItemDaRegra key={c.campo} rotulo={c.curto} valor={regras[c.campo]} />
+          ))}
         </dl>
       )}
       {!podeMudar && <p className="detalhe">Só a presidência muda estas regras.</p>}
     </section>
+  )
+}
+
+function ItemDaRegra({ rotulo, valor }: { rotulo: string; valor: number }) {
+  return (
+    <>
+      <dt>{rotulo}</dt>
+      <dd>{valor === 1 ? '1 dia' : `${valor} dias`}</dd>
+    </>
+  )
+}
+
+/** S7-08: antes de salvar, o que muda hoje com as regras novas (nada foi salvo ainda). */
+function EfeitoAntesDeSalvar({ efeito }: { efeito: EfeitoDasRegras }) {
+  const n = efeito.mudam.length
+  if (n === 0) {
+    return (
+      <p className="aviso-texto" role="status">
+        Com estas regras, nenhuma das {efeito.igrejas} igrejas muda de situação hoje. Confirme para salvar.
+      </p>
+    )
+  }
+  return (
+    <div className="aviso-texto" role="status">
+      <p>
+        Com estas regras, {n === 1 ? '1 igreja muda' : `${n} igrejas mudam`} de situação hoje. Confira antes de salvar:
+      </p>
+      <ul className="lista-pendencias">
+        {efeito.mudam.slice(0, MOSTRAR_MUDANCAS).map((m) => (
+          <li key={m.igreja_id}>
+            {m.nome}: de {NOME_DO_ESTADO[m.antes]} para {NOME_DO_ESTADO[m.depois]}
+          </li>
+        ))}
+        {n > MOSTRAR_MUDANCAS && <li>e mais {n - MOSTRAR_MUDANCAS}</li>}
+      </ul>
+    </div>
   )
 }

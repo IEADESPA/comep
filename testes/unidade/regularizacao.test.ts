@@ -7,10 +7,13 @@ import {
   diasEntre,
   diasParaMandar,
   documentoDoItem,
+  fimDaTolerancia,
   fraseParaMandar,
   fimDoMandato,
   listaCurta,
   menorMandato,
+  porqueSuspensa,
+  separarVencidos,
   somarDias,
   tamanhoDoArquivo,
   tempoQueFalta,
@@ -107,7 +110,7 @@ describe('a localização da filial, pelo link do Google Maps', () => {
 describe('os avisos (parte 6)', () => {
   const base = { situacao: 'regular' as const, vencidos: [], pendencias: [], perfil_bloqueado: false }
 
-  it('o que vence primeiro: o alvará, a ata, a natureza ou o fim da transição', () => {
+  it('o que vence primeiro: o alvará, a ata, a natureza ou o que falta (o alvará na tolerância de janeiro)', () => {
     assert.deepEqual(vencimentoMaisProximo({ ...base, alvara_ate: '2026-12-31', mandato_ate: '2028-12-31', proximo_vencimento: '2026-12-31' }), {
       item: 'alvara',
       ate: '2026-12-31',
@@ -116,7 +119,7 @@ describe('os avisos (parte 6)', () => {
       item: 'ata_diretoria',
       ate: '2026-12-01',
     })
-    assert.deepEqual(vencimentoMaisProximo({ ...base, pendencias: ['estatuto'], proximo_vencimento: '2027-04-28' }), { item: 'estatuto', ate: '2027-04-28' })
+    assert.deepEqual(vencimentoMaisProximo({ ...base, pendencias: ['alvara'], proximo_vencimento: '2028-01-31' }), { item: 'alvara', ate: '2028-01-31' })
     // suspensa, o aviso é outro (a contagem dos 30 dias)
     assert.equal(vencimentoMaisProximo({ ...base, situacao: 'suspensa', proximo_vencimento: '2026-12-31' }), null)
   })
@@ -127,5 +130,31 @@ describe('os avisos (parte 6)', () => {
     assert.equal(listaCurta(['alvara']), 'o alvará')
     assert.equal(listaCurta(['estatuto', 'alvara']), 'o estatuto e o alvará')
     assert.equal(listaCurta(['estatuto', 'cartao_cnpj', 'alvara']), '3 itens')
+  })
+})
+
+describe('as regras de 26/11/2026 nas frases', () => {
+  it('o que suspendeu: o que venceu e o que nunca veio (faltava na ativação), sem dizer "venceu" do que nunca veio', () => {
+    assert.equal(porqueSuspensa({ vencidos: ['alvara'], nunca_vieram: [] }), 'o alvará venceu')
+    assert.equal(porqueSuspensa({ vencidos: ['ata_diretoria', 'alvara'] }), 'a ata da diretoria e o alvará venceram')
+    assert.equal(porqueSuspensa({ vencidos: ['alvara'], nunca_vieram: ['alvara'] }), 'o alvará não veio')
+    assert.equal(
+      porqueSuspensa({ vencidos: ['estatuto', 'cartao_cnpj', 'ata_diretoria', 'alvara'], nunca_vieram: ['estatuto', 'cartao_cnpj', 'ata_diretoria', 'alvara'] }),
+      '4 itens não vieram',
+    )
+    assert.equal(porqueSuspensa({ vencidos: ['estatuto', 'alvara'], nunca_vieram: ['estatuto'] }), 'o alvará venceu e o estatuto não veio')
+  })
+
+  it('a ficha separa, com os nomes, o que venceu do que nunca veio', () => {
+    assert.deepEqual(separarVencidos({ vencidos: ['estatuto', 'alvara'], nunca_vieram: ['estatuto'] }), { venceram: ['alvara'], nuncaVieram: ['estatuto'] })
+    assert.deepEqual(separarVencidos({ vencidos: ['ata_diretoria'] }), { venceram: ['ata_diretoria'], nuncaVieram: [] })
+    assert.deepEqual(separarVencidos({ vencidos: [], nunca_vieram: [] }), { venceram: [], nuncaVieram: [] })
+  })
+
+  it('a tolerância do alvará que vence em 31/12: o dia em que acaba', () => {
+    assert.equal(fimDaTolerancia(31), '31/01')
+    assert.equal(fimDaTolerancia(15), '15/01')
+    assert.equal(fimDaTolerancia(45), '14/02')
+    assert.equal(fimDaTolerancia(0), null)
   })
 })
