@@ -16,7 +16,7 @@ import { useCarregar } from '../../estado/useCarregar'
 import { esquecerRegrasDasIgrejas } from '../../estado/useRegrasDasIgrejas'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
-import { diasEntre, fimDaTolerancia, NOME_DO_ITEM, separarVencidos, textoDoPrazo, textoDosDiasParaMandar } from '../../utilitarios/regularizacao'
+import { diasEntre, fimDaTolerancia, oQueSuspendeu, textoDoPrazo, textoDosDiasParaMandar } from '../../utilitarios/regularizacao'
 import { NumerosGrandes, SeloNivel } from './componentes'
 import { carregarIgrejasComSituacao, descreverSituacao, type LinhaIgreja } from './regras'
 
@@ -72,15 +72,10 @@ export function CentralRegularizacao() {
               <Secao titulo="Suspensas" vazio="Nenhuma igreja suspensa." linhas={suspensas}>
                 {(l) => {
                   const s = l.s!.situacao
-                  const { venceram, nuncaVieram } = separarVencidos(s)
-                  const nomes = (itens: typeof venceram) => itens.map((v) => NOME_DO_ITEM[v]).join(', ')
                   return (
                     <>
                       <span>
-                        {[venceram.length > 0 && `Venceu: ${nomes(venceram)}`, nuncaVieram.length > 0 && `Não veio: ${nomes(nuncaVieram)}`]
-                          .filter(Boolean)
-                          .join(' · ')}{' '}
-                        · suspensa desde {formatarData(s.suspensa_desde)}
+                        {oQueSuspendeu(s).join(' · ')} · suspensa desde {formatarData(s.suspensa_desde)}
                       </span>
                       <span className={s.perfil_bloqueado ? 'texto-perigo' : 'texto-atencao'}>
                         {s.perfil_bloqueado

@@ -79,6 +79,15 @@ export function faltaNaDiretoria(e: EstadoDiretoria): string | null {
   return null
 }
 
+/**
+ * A igreja suspensa, para o pastor: "suspensa desde 01/02/2027, porque o alvará venceu". O que nunca veio (faltava na
+ * ativação) "não veio"; a data do vencimento não entra, porque com a tolerância do alvará ela não é a véspera da
+ * suspensão (regras de 26/11/2026).
+ */
+export function fraseDaSuspensao(s: SituacaoIgreja): string {
+  return `suspensa desde ${formatarData(s.suspensa_desde)}, porque ${porqueSuspensa(s)}`
+}
+
 /** A frase da situação, para a lista e o painel ("o alvará venceu · faltam 12 dias para mandar"). */
 export function descreverSituacao(s: SituacaoIgreja, hoje: string): string {
   if (s.situacao === 'sem_registro') {

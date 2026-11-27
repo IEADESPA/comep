@@ -106,6 +106,13 @@ export function separarVencidos(s: Pick<SituacaoIgreja, 'vencidos' | 'nunca_vier
   }
 }
 
+/** Para a secretaria, com os nomes: ["Venceu: Alvará de licenciamento", "Não veio: Estatuto"]. */
+export function oQueSuspendeu(s: Pick<SituacaoIgreja, 'vencidos' | 'nunca_vieram'>): string[] {
+  const { venceram, nuncaVieram } = separarVencidos(s)
+  const nomes = (itens: ItemRegularidade[]) => itens.map((v) => NOME_DO_ITEM[v]).join(', ')
+  return [...(venceram.length > 0 ? [`Venceu: ${nomes(venceram)}`] : []), ...(nuncaVieram.length > 0 ? [`Não veio: ${nomes(nuncaVieram)}`] : [])]
+}
+
 /**
  * Por que a igreja está suspensa, separando o que venceu do que nunca veio (o que faltava na ativação; regras de
  * 26/11/2026): "o alvará venceu", "4 itens não vieram", "o alvará venceu e o estatuto não veio".

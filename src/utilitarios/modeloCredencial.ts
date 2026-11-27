@@ -268,7 +268,7 @@ export const DADOS_EXEMPLO: DadosCredencial = {
   jubilado: false,
   pendencias: [],
   cargo: 'vice_presidente',
-  prazo_readequacao: '2027-04-28',
+  prazo_readequacao: '2027-04-02', // exemplo: 120 dias da ativação em 03/12/2026
 }
 
 // ---------------------------------------------------------------------

@@ -23,7 +23,7 @@ import { listarEmprestimos, type SituacaoEmprestimo } from '../../dados/patrimon
 import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { cnpjValido, formatarCnpj, formatarData, formatarDataDeInstante, hojeIso } from '../../utilitarios/formatos'
-import { MANDE_AQUI, NOME_DO_ITEM, textoDosDiasParaMandar } from '../../utilitarios/regularizacao'
+import { MANDE_AQUI, NOME_DO_ITEM, oQueSuspendeu, textoDosDiasParaMandar } from '../../utilitarios/regularizacao'
 import { Limitacoes } from './CadastrarIgreja'
 import { FormDocumento, LinhaDocumento, SeloNivel, type Concluir } from './componentes'
 import { descreverSituacao, diretoriaEmVigor, type OpcaoMinistro } from './regras'
@@ -629,9 +629,9 @@ function AbaSituacao({ igreja, situacao, ministros, concluir }: { igreja: Igreja
               <div className="faixa-resultado faixa-perigo">
                 <strong>Suspensa desde {formatarData(situacao.suspensa_desde)}</strong>
                 <span>
-                  Venceu: {situacao.vencidos.map((v) => NOME_DO_ITEM[v]).join(', ')}.{' '}
+                  {oQueSuspendeu(situacao).map((t) => `${t}. `).join('')}
                   {situacao.perfil_bloqueado
-                    ? 'Passaram os 30 dias sem o documento: o perfil de pastor presidente foi bloqueado (ele continua ministro associado).'
+                    ? 'Acabou o prazo para mandar: o perfil de pastor presidente foi bloqueado (ele continua ministro associado).'
                     : `O pastor presidente tem até ${formatarData(situacao.prazo_ate)} para mandar ${situacao.vencidos.map((v) => MANDE_AQUI[v]).join(' e ')} (${textoDosDiasParaMandar(hoje, situacao.prazo_ate!)}).`}{' '}
                   A secretaria também pode mandar pela igreja, na aba Documentos.
                 </span>
@@ -724,8 +724,8 @@ function Regularizar({ igreja, concluir }: { igreja: Igreja; concluir: Concluir 
     >
       <h2>Regularizar a igreja</h2>
       <p className="detalhe">
-        Com o CNPJ, a igreja passa ao cadastro completo. Depois, mande o estatuto, o Cartão CNPJ, a ata e o alvará (aba Documentos):
-        conferidos, as limitações saem.
+        Com o CNPJ, a igreja passa ao cadastro completo e fica suspensa até chegarem o estatuto, o Cartão CNPJ, a ata e o alvará (aba
+        Documentos): os dias para mandar contam de hoje. Conferidos, as limitações saem.
       </p>
       <label>
         CNPJ *

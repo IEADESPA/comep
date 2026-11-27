@@ -24,6 +24,7 @@ import {
   diretoriaInicial,
   documentosDoTipo,
   faltaNaDiretoria,
+  fraseDaSuspensao,
   membrosDaDiretoria,
   resumoDoDocumento,
   type EstadoDiretoria,
@@ -529,7 +530,6 @@ export function IgrejaSuspensa({ dados, concluir }: { dados: DadosDaMinhaIgreja;
   const dias = diasParaMandar(hoje, prazo)
   const mandados = vencidos.map((v) => ({ item: v, esperando: documentosDoTipo(documentos, documentoDoItem(v), hoje).esperando }))
   const tudoMandado = mandados.every((m) => m.esperando)
-  const venceuEm = situacao.suspensa_desde ? formatarData(somarDias(situacao.suspensa_desde, -1)) : ''
   // as opções da ata: os ministros que já estão na diretoria (suspensa, a lista dos ministros da igreja não abre)
   const ministros: OpcaoMinistro[] = diretoria.filter((m) => m.pessoa_id).map((m) => ({ pessoa_id: m.pessoa_id!, nome: m.nome }))
   const passos = [
@@ -542,7 +542,7 @@ export function IgrejaSuspensa({ dados, concluir }: { dados: DadosDaMinhaIgreja;
       <div className="cabecalho-nova">
         <h1>Para a igreja voltar a ser regular</h1>
         <p className="sub-tela">
-          {igreja.nome} · suspensa desde {formatarData(situacao.suspensa_desde)}, porque {listaCurta(vencidos)} {vencidos.length === 1 ? 'venceu' : 'venceram'} em {venceuEm}.
+          {igreja.nome} · {fraseDaSuspensao(situacao)}.
         </p>
       </div>
       <section className="bloco" aria-label="O caminho de volta">

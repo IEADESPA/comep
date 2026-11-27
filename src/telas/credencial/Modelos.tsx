@@ -625,8 +625,8 @@ function EditarQuemRecebe({ m, painel, opcoes, aoMudar }: { m: ModeloGrupo; pain
               trocado por outro.
             </p>
             <p className="detalhe">
-              Prazo da readequação: {painel.readequacao_ate ? formatarData(painel.readequacao_ate) : '—'} (muda em Igrejas › Central de
-              regularização).
+              Prazo da readequação: {painel.dias_readequacao ? `${painel.dias_readequacao} dias` : '—'}, contados da ativação de cada
+              igreja sem registro; a credencial mostra o prazo da igreja do ministro (muda em Igrejas › Central de regularização).
             </p>
           </>
         )}

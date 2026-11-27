@@ -12,6 +12,7 @@ import {
   fimDoMandato,
   listaCurta,
   menorMandato,
+  oQueSuspendeu,
   porqueSuspensa,
   separarVencidos,
   somarDias,
@@ -149,6 +150,8 @@ describe('as regras de 26/11/2026 nas frases', () => {
     assert.deepEqual(separarVencidos({ vencidos: ['estatuto', 'alvara'], nunca_vieram: ['estatuto'] }), { venceram: ['alvara'], nuncaVieram: ['estatuto'] })
     assert.deepEqual(separarVencidos({ vencidos: ['ata_diretoria'] }), { venceram: ['ata_diretoria'], nuncaVieram: [] })
     assert.deepEqual(separarVencidos({ vencidos: [], nunca_vieram: [] }), { venceram: [], nuncaVieram: [] })
+    assert.deepEqual(oQueSuspendeu({ vencidos: ['estatuto', 'alvara'], nunca_vieram: ['estatuto'] }), ['Venceu: Alvará de licenciamento', 'Não veio: Estatuto'])
+    assert.deepEqual(oQueSuspendeu({ vencidos: ['ata_diretoria', 'alvara'] }), ['Venceu: Ata da diretoria, Alvará de licenciamento'])
   })
 
   it('a tolerância do alvará que vence em 31/12: o dia em que acaba', () => {

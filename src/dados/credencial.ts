@@ -309,7 +309,8 @@ export type ModeloGrupo = {
 
 export type PainelModelos = {
   fim_mandato: string | null
-  readequacao_ate: string | null
+  /** os dias da igreja sem registro para se registrar (cada uma conta da ativação dela; regras de 26/11/2026) */
+  dias_readequacao: number | null
   associados: number
   /** na ordem: os de grupo e os exclusivos, depois o padrão e o de readequação */
   modelos: ModeloGrupo[]
@@ -417,12 +418,14 @@ export type LinhaCredencial = {
   pendencias: string[]
   em_dia: boolean
   readequacao: boolean
+  /** em readequação: até quando a igreja dele tem para se registrar */
+  prazo_readequacao?: string | null
   modelo_id: string | null
   modelo: string | null
   valida_ate: string | null
 }
 
-export type ListaDeCredenciais = { fim_mandato: string | null; readequacao_ate: string | null; credenciais: LinhaCredencial[] }
+export type ListaDeCredenciais = { fim_mandato: string | null; dias_readequacao: number | null; credenciais: LinhaCredencial[] }
 
 /** A lista do módulo Credenciais (secretaria e presidência). */
 export async function listaCredenciais(): Promise<Resultado<ListaDeCredenciais>> {

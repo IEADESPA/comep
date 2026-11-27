@@ -262,7 +262,10 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
         area: 'eventos',
         icone: 'relogio',
         forte: `${NOME_DO_ITEM[vence.item]}:`,
-        texto: `vence ${diasPara(hoje, vence.ate)} (${formatarData(vence.ate)})`,
+        // o alvará que venceu em 31/12 e está na tolerância de janeiro (regras de 26/11/2026): já venceu, falta o novo
+        texto: igreja.situacao.pendencias.includes(vence.item)
+          ? `venceu; mande o novo até ${formatarData(vence.ate)}`
+          : `vence ${diasPara(hoje, vence.ate)} (${formatarData(vence.ate)})`,
         acao: 'Mandar o novo',
         para: vence.item === 'natureza_juridica' ? '/minha-igreja/documentos/cartao_cnpj/atualizar' : `/minha-igreja/documentos/${documentoDoItem(vence.item)}/atualizar`,
       })
