@@ -280,8 +280,8 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
       await associar(pastor, igreja, true)
       await regularizarNoBanco(igreja)
       await db.query("update public.igreja_documentos set arquivado_em = now() where igreja_id = $1 and tipo = 'alvara'", [igreja])
-      // ativada hoje, sem alvará: está nos 30 dias (o pastor ainda manda)
-      await db.query('update public.igrejas set ativada_em = current_date where id = $1', [igreja])
+      // ativada há 5 dias, sem alvará: está nos 30 dias, sem suspender (o pastor ainda manda)
+      await db.query('update public.igrejas set ativada_em = current_date - 5 where id = $1', [igreja])
       await assert.rejects(
         enviar(pastor, igreja, { tipo: 'alvara', valido_de: await hoje(-366), valido_ate: await hoje(-1), partes: [{ caminho: await arquivo(pastor, igreja) }] }),
         erroComCodigo(BLOQUEADO_PELO_BANCO),
@@ -412,15 +412,15 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
   })
 
   describe('o que nunca foi mandado (sem a transição desde 26/11/2026)', () => {
-    it('a igreja sem documentos fica suspensa desde a ativação, com os 30 dias; o fim da transição não conta mais', async () => {
+    it('a igreja sem documentos tem os 30 dias da ativação, sem suspender; o fim da transição não conta mais', async () => {
       // o fim da transição (aberto pelo ambiente dos testes) não muda nada
       await db.query("update public.config_igrejas set transicao_ate = '2999-12-31'")
       await db.query('update public.igrejas set ativada_em = current_date where id = $1', [igrejaX])
       try {
         const s = await situacao(igrejaX)
-        assert.equal(s.situacao, 'suspensa')
-        assert.equal(s.suspensa_desde, await hoje(0))
-        assert.equal(s.prazo_ate, await hoje(29))
+        assert.equal(s.situacao, 'regular')
+        assert.equal(s.pendencias_ate, await hoje(29))
+        assert.equal(s.suspensa_desde, null)
         assert.equal(s.perfil_bloqueado, false)
       } finally {
         await db.query("update public.igrejas set ativada_em = '2999-12-31' where id = $1", [igrejaX])
@@ -609,11 +609,11 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
       await chamar(secretaria, 'select public.ativar_igreja($1)', [igreja])
       const g = await um<{ cadastro: string }>('select cadastro from public.igrejas where id = $1', [igreja])
       assert.equal(g.cadastro, 'completo')
-      // o alvará não é exigido para ativar: ele tem os 30 dias, contados da ativação (o perfil continua, para mandar)
+      // o alvará não é exigido para ativar: ele tem os 30 dias, contados da ativação, sem suspender a igreja
       const s = await situacao(igreja)
-      assert.equal(s.situacao, 'suspensa')
-      assert.deepEqual(s.vencidos, ['alvara'])
-      assert.equal(s.prazo_ate, await hoje(29))
+      assert.equal(s.situacao, 'regular')
+      assert.deepEqual(s.pendencias, ['alvara'])
+      assert.equal(s.pendencias_ate, await hoje(29))
       assert.equal(s.perfil_bloqueado, false)
       assert.equal(await tenhoPerfil(pastorNovo, 'presidente_igreja'), true)
       const minha = await valor<{ m: { igreja_id: string } }>(pastorNovo, 'select public.minha_igreja() as m')

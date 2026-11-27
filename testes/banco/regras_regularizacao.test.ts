@@ -1,5 +1,6 @@
 // As regras novas da regularização das igrejas, decididas pelo presidente em 26/11/2026 (substituem a transição até a
-// AGO de 28/04/2027): os 30 dias contam da ativação da igreja; o alvará que vence em 31/12 tem até 31/01; a recusa
+// AGO de 28/04/2027): o que falta na ativação tem 30 dias, contados dela, sem suspender a igreja (só suspende se passar
+// o prazo sem o documento; leitura confirmada em 27/11/2026); o alvará que vence em 31/12 tem até 31/01; a recusa
 // depois do prazo devolve 7 dias; a natureza jurídica é a do Cartão CNPJ conferido; a associação privada e a igreja sem
 // registro têm 120 dias. Junto: o documento de quem é da secretaria e preside a igreja bloqueada (S7-01) e o efeito das
 // regras antes de salvar (S7-08). Rodar: npm test
@@ -12,6 +13,8 @@ import { aplicarMigracao, como, criarBanco, criarUsuario, darPerfil, erroComCodi
 const SEM_PERMISSAO = '42501'
 const BLOQUEADO_PELO_BANCO = 'P0001'
 const MIGRACAO = '20261126150000'
+/** A S7-01 e a regra 1 lida como o presidente decidiu (27/11/2026): nos 30 dias depois da ativação, sem suspender. */
+const MIGRACOES_SEGUINTES = ['20261126150100', '20261126150200']
 
 type Situacao = {
   situacao: string
@@ -154,27 +157,59 @@ describe('Regularização das igrejas — as regras de 26/11/2026', () => {
     })
   })
 
-  describe('1. o documento que falta: 30 dias contados da ativação', () => {
+  describe('1. o documento que falta: 30 dias contados da ativação, sem suspender', () => {
     semTolerancia()
-    it('a igreja cadastrada hoje, sem documentos, fica suspensa desde hoje, com 30 dias; o pastor tem o perfil para mandar', async () => {
+    const TUDO = ['estatuto', 'cartao_cnpj', 'ata_diretoria', 'alvara']
+    it('a igreja cadastrada hoje, sem documentos, fica regular com os 30 dias para mandar (não suspensa); o pastor tem o perfil', async () => {
       const igreja = await igrejaNova('Igreja Ativada Hoje (fictícia)')
       const pastor = await ministro('pativa@regras.local', 'Pastor Ativado Fictício', igreja, true)
       const s = await situacao(igreja)
       assert.equal(s.ativada_em, await hoje(0))
-      assert.equal(s.situacao, 'suspensa')
-      assert.deepEqual(s.vencidos, ['estatuto', 'cartao_cnpj', 'ata_diretoria', 'alvara'])
-      assert.deepEqual(s.nunca_vieram, ['estatuto', 'cartao_cnpj', 'ata_diretoria', 'alvara'])
-      assert.equal(s.suspensa_desde, await hoje(0))
-      assert.equal(s.prazo_ate, await hoje(29))
+      assert.equal(s.situacao, 'regular')
+      assert.deepEqual(s.pendencias, TUDO)
+      assert.equal(s.pendencias_ate, await hoje(29))
+      assert.deepEqual(s.vencidos, [])
+      assert.deepEqual(s.nunca_vieram, TUDO)
+      assert.equal(s.suspensa_desde, null)
       assert.equal(s.perfil_bloqueado, false)
       assert.equal(await tenhoPerfil(pastor, 'presidente_igreja'), true)
       assert.equal(await cuido(pastor, igreja), true)
-      // o tempo passa: ativada há 29 dias, ainda no prazo; há 30, o perfil é bloqueado
+    })
+
+    it('passou o prazo sem o documento: suspensa no dia seguinte, com os 30 dias de sempre; depois, o perfil é bloqueado', async () => {
+      const igreja = await igrejaNova('Igreja do Prazo Vencido (fictícia)')
+      const pastor = await ministro('pprazo@regras.local', 'Pastor do Prazo Fictício', igreja, true)
+      // ativada há 29 dias: hoje é o último dia, ainda regular
       await db.query('update public.igrejas set ativada_em = current_date - 29 where id = $1', [igreja])
-      assert.equal((await situacao(igreja)).perfil_bloqueado, false)
+      let s = await situacao(igreja)
+      assert.equal(s.situacao, 'regular')
+      assert.equal(s.pendencias_ate, await hoje(0))
+      // há 30: suspensa desde hoje, com os 30 dias para mandar
       await db.query('update public.igrejas set ativada_em = current_date - 30 where id = $1', [igreja])
+      s = await situacao(igreja)
+      assert.equal(s.situacao, 'suspensa')
+      assert.deepEqual(s.vencidos, TUDO)
+      assert.deepEqual(s.nunca_vieram, TUDO)
+      assert.deepEqual(s.pendencias, [])
+      assert.equal(s.suspensa_desde, await hoje(0))
+      assert.equal(s.prazo_ate, await hoje(29))
+      assert.equal(s.perfil_bloqueado, false)
+      // há 59: o último dia para mandar; há 60, o perfil é bloqueado
+      await db.query('update public.igrejas set ativada_em = current_date - 59 where id = $1', [igreja])
+      assert.equal((await situacao(igreja)).perfil_bloqueado, false)
+      await db.query('update public.igrejas set ativada_em = current_date - 60 where id = $1', [igreja])
       assert.equal((await situacao(igreja)).perfil_bloqueado, true)
       assert.equal(await tenhoPerfil(pastor, 'presidente_igreja'), false)
+    })
+
+    it('os dias para mandar são os das regras (a presidência muda)', async () => {
+      const igreja = await igrejaNova('Igreja dos Dias Mudados (fictícia)')
+      await chamar(presidencia, 'update public.config_igrejas set dias_para_mandar = 45')
+      try {
+        assert.equal((await situacao(igreja)).pendencias_ate, await hoje(44))
+      } finally {
+        await chamar(presidencia, 'update public.config_igrejas set dias_para_mandar = 30')
+      }
     })
 
     it('conta da ativação, não da criação do cadastro (S7-03): a igreja nova pedida há 45 dias e ativada hoje', async () => {
@@ -202,10 +237,9 @@ describe('Regularização das igrejas — as regras de 26/11/2026', () => {
       await chamar(secretaria, 'select public.ativar_igreja($1)', [igreja])
       const s = await situacao(igreja)
       assert.equal(s.ativada_em, await hoje(0))
-      assert.equal(s.situacao, 'suspensa')
-      assert.deepEqual(s.vencidos, ['alvara'])
-      assert.equal(s.suspensa_desde, await hoje(0))
-      assert.equal(s.prazo_ate, await hoje(29))
+      assert.equal(s.situacao, 'regular')
+      assert.deepEqual(s.pendencias, ['alvara'])
+      assert.equal(s.pendencias_ate, await hoje(29))
       assert.equal(s.perfil_bloqueado, false)
       // o pastor recebe o perfil e manda o alvará que falta
       assert.equal(await tenhoPerfil(pastor, 'presidente_igreja'), true)
@@ -224,9 +258,8 @@ describe('Regularização das igrejas — as regras de 26/11/2026', () => {
       const pastor = await ministro('pregular@regras.local', 'Pastor Regularizado Fictício', igreja, true)
       const s = await situacao(igreja)
       assert.equal(s.ativada_em, await hoje(0))
-      assert.equal(s.situacao, 'suspensa')
-      assert.equal(s.suspensa_desde, await hoje(0))
-      assert.equal(s.prazo_ate, await hoje(29))
+      assert.equal(s.situacao, 'regular')
+      assert.equal(s.pendencias_ate, await hoje(29))
       assert.equal(s.perfil_bloqueado, false)
       assert.equal(await tenhoPerfil(pastor, 'presidente_igreja'), true)
       assert.equal(await cuido(pastor, igreja), true)
@@ -239,12 +272,19 @@ describe('Regularização das igrejas — as regras de 26/11/2026', () => {
       assert.deepEqual(s.nunca_vieram, [])
       assert.equal(s.suspensa_desde, await hoje(0))
       assert.equal(s.prazo_ate, await hoje(29))
-      // vencido antes da ativação: os dias contam da ativação
+      // vencido antes da ativação: faltava na ativação, então tem os 30 dias dela, sem suspender (ativada há 3 dias)
       await db.query('update public.igrejas set ativada_em = current_date - 3 where id = $1', [igreja])
       await db.query("update public.igreja_documentos set valido_ate = current_date - 200 where igreja_id = $1 and tipo = 'alvara'", [igreja])
       s = await situacao(igreja)
-      assert.equal(s.suspensa_desde, await hoje(-3))
-      assert.equal(s.perfil_bloqueado, false)
+      assert.equal(s.situacao, 'regular')
+      assert.deepEqual(s.pendencias, ['alvara'])
+      assert.equal(s.pendencias_ate, await hoje(26))
+      assert.deepEqual(s.nunca_vieram, [])
+      // passado o prazo, suspensa como o que venceu
+      s = await situacao(igreja, await hoje(27))
+      assert.equal(s.situacao, 'suspensa')
+      assert.equal(s.suspensa_desde, await hoje(27))
+      assert.deepEqual(s.nunca_vieram, [])
     })
   })
 
@@ -380,8 +420,9 @@ describe('Regularização das igrejas — as regras de 26/11/2026', () => {
       await conferido(igreja, 'alvara', await hoje(-10), await hoje(300))
       const s = await situacao(igreja)
       assert.equal(s.natureza_prazo, await hoje(120))
-      // o Cartão CNPJ ainda falta: suspensa por ele, não pela natureza
-      assert.deepEqual(s.vencidos, ['cartao_cnpj'])
+      // o Cartão CNPJ ainda falta: está nos 30 dias por ele, não pela natureza
+      assert.deepEqual(s.pendencias, ['cartao_cnpj'])
+      assert.deepEqual(s.vencidos, [])
       await conferido(igreja, 'cartao_cnpj', null, null, 'associacao_privada')
       assert.equal((await situacao(igreja)).situacao, 'regular')
       // passou dos 120 dias: suspensa pela natureza, com os 30 dias para mandar o Cartão novo
@@ -573,19 +614,24 @@ describe('Regularização das igrejas — as igrejas que já existiam quando as 
     await db.query("update public.igrejas set criado_em = now() - interval '20 days' where id = $1", [simples])
 
     await aplicarMigracao(db, MIGRACAO)
+    for (const m of MIGRACOES_SEGUINTES) await aplicarMigracao(db, m)
 
     const ativadaEm = async (id: string) => (await um<{ a: string | null }>('select ativada_em::text as a from public.igrejas where id = $1', [id])).a
     const dia = async (dias: number) => (await um<{ d: string }>('select (current_date + $1::int)::text as d', [dias])).d
     assert.equal(await ativadaEm(antiga), await dia(-50))
     assert.equal(await ativadaEm(ativada), await dia(-10))
     assert.equal(await ativadaEm(simples), await dia(-20))
-    // a antiga, sem documento nenhum, ativada há 50 dias: suspensa desde a ativação e bloqueada (a transição acabou)
+    // a antiga, sem documento nenhum, ativada há 50 dias: os 30 dias acabaram há 20, então suspensa desde então, ainda
+    // com 10 dias para mandar (a transição acabou)
     const s = (await um<{ s: Situacao }>('select interno.situacao_igreja($1) as s', [antiga])).s
     assert.equal(s.situacao, 'suspensa')
-    assert.equal(s.suspensa_desde, await dia(-50))
-    assert.equal(s.perfil_bloqueado, true)
-    // a ativada há 10 dias ainda está nos 30 dias
-    assert.equal((await um<{ s: Situacao }>('select interno.situacao_igreja($1) as s', [ativada])).s.perfil_bloqueado, false)
+    assert.equal(s.suspensa_desde, await dia(-20))
+    assert.equal(s.prazo_ate, await dia(9))
+    assert.equal(s.perfil_bloqueado, false)
+    // a ativada há 10 dias ainda está nos 30 dias: regular, com o prazo
+    const a = (await um<{ s: Situacao }>('select interno.situacao_igreja($1) as s', [ativada])).s
+    assert.equal(a.situacao, 'regular')
+    assert.equal(a.pendencias_ate, await dia(19))
     assert.equal((await um<{ s: Situacao }>('select interno.situacao_igreja($1) as s', [simples])).s.readequacao_ate, await dia(100))
     await db.close()
   })
