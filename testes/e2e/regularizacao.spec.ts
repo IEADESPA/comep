@@ -225,7 +225,7 @@ test('o pastor cadastra a igreja dele: o convite, os 5 passos e o acompanhamento
 
   // o pastor presidente não nasce bloqueado: no Início, a igreja em regularização, com a data; a Minha igreja abre inteira
   await trocarPara(page, sessao)
-  await page.goto('./')
+  await page.goto('painel')
   await expect(page.getByText('A igreja está em regularização:')).toBeVisible()
   await expect(page.getByText(`mande o alvará até ${br(dia(29))}; depois, ela fica suspensa`)).toBeVisible()
   await page.goto('minha-igreja')
