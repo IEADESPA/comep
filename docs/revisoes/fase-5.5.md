@@ -1083,7 +1083,7 @@ O presidente decidiu em 26/11 seis regras que substituem as de 18/11 (PROJETO.md
 
 1. **Sem a transição até 28/04/2027.** O documento que falta tem 30 dias, contados da **ativação da igreja** no sistema: o cadastro pela secretaria, a ativação da igreja cadastrada pelo pastor ou a regularização da igreja sem registro. Nesses dias a igreja **não fica suspensa**: fica regular, com a pendência e a data ("falta o alvará (até …)"), e o pastor vê no Início "A igreja está em regularização: mande … até …". Passado o prazo sem o documento, ela fica suspensa, e valem os 30 dias de sempre para mandar antes do bloqueio do perfil. Nada conta antes da ativação, então a igreja não nasce bloqueada (S7-03, em que os dias contavam da criação do cadastro). O alvará vencido também tem 30 dias: suspensa no dia seguinte ao vencimento (ou desde a ativação, se ele já tinha vencido), como antes. As igrejas que já existiam ganham como ativação a da auditoria (a igreja nova ativada, a sem registro regularizada) ou, sem ela, o dia do cadastro.
 2. **O alvará do ano.** O alvará que vence em 31/12 só suspende a igreja se o novo não chegar até 31/01; o novo que chegou nesse tempo e espera a conferência não suspende. Depois, valem os 30 dias de sempre.
-3. **A recusa depois do prazo.** O pastor mandou dentro do prazo e a secretaria só recusou depois dele: ele ganha 7 dias, contados da recusa, para mandar de novo, e não perde o perfil na hora. O aviso da recusa diz até quando.
+3. **A recusa depois do prazo.** O pastor mandou dentro do prazo e a secretaria só recusou depois dele: ele ganha 7 dias, contados da recusa, para mandar de novo, e não perde o perfil na hora. O aviso da recusa diz até quando. Os 7 dias não se somam ao 31/01 do alvará do ano (correção do presidente de 27/11/2026): sem o novo mandado até 31/01, ou com ele recusado, a igreja fica suspensa desde 01/02. Na Central, as duas regras ficam em parágrafos separados.
 4. **A natureza jurídica é a do Cartão CNPJ conferido**, nos dois sentidos (S7-02 b). Com um Cartão conferido, a ficha não muda a natureza: muda-se mandando o Cartão novo.
 5. **A associação privada tem 120 dias** para mudar para organização religiosa, contados da ativação ou da conferência do Cartão CNPJ que mostra "associação privada". O fim do mandato da diretoria não conta mais. Passou do prazo, a igreja fica suspensa.
 6. **A igreja sem registro tem 120 dias**, contados da ativação, para se registrar, e o prazo não se estende. A AGO de 28/04/2027 sai também da credencial de readequação: a credencial e a conferência pelo QR mostram o prazo da igreja do ministro.
@@ -1097,7 +1097,7 @@ Os prazos continuam configuráveis na Central de regularização, e só a presid
 - **S7-07:** os textos que prometiam prazos fixos leem a configuração: a Conferência da igreja nova, o cadastro (o aviso dos documentos que faltam e a associação privada), as limitações da igreja sem registro e a Central. "Passaram os 30 dias" virou "Acabou o prazo para mandar", porque o prazo pode ter os dias depois da recusa.
 - **S7-10 (b):** "Faltam documentos" na Central conta cada igreja uma vez (a associação privada com documento faltando estava nas duas listas).
 - **O que nunca veio não "venceu":** a situação ganhou `nunca_vieram`. A ficha e a Central dizem "Venceu: …" e "Não veio: …", com os nomes; a lista, "4 itens não vieram · faltam 30 dias para mandar"; a Minha igreja suspensa, "suspensa desde …, porque o alvará não veio". A frase da Minha igreja também deixou de dizer a véspera da suspensão como o dia do vencimento, o que ficaria errado com a tolerância do alvará.
-- **O cadastro pela secretaria** avisa também quando falta o alvará: sem ele, a igreja entra suspensa.
+- **O cadastro pela secretaria** avisa também quando falta o alvará: sem ele, a igreja fica com a pendência pelos 30 dias e, depois, suspensa.
 - **No Início do pastor**, o alvará na tolerância de janeiro diz "venceu; mande o novo até 31/01".
 - **Os avisos do sino** (a rotina do dia) dizem o que falta e até quando, e a associação privada diz até quando mudar.
 
@@ -1106,6 +1106,8 @@ Os prazos continuam configuráveis na Central de regularização, e só a presid
 **No comep-teste:** as igrejas fictícias antigas, sem documentos, ficam com a pendência por 30 dias contados do cadastro e, depois, suspensas. O ponta a ponta do patrimônio escolhe agora a primeira igreja que a lista deixa escolher (só a regular pega empréstimo).
 
 **Fica para depois do lançamento:** o S7-10 (a) da revisão.
+
+**Fica para antes de 02/01/2027, num item próprio:** o documento mandado dentro dos 30 dias e ainda na conferência não deve suspender a igreja no 31º dia, e os 7 dias da recusa devem contar com a igreja regular e como recusa + 7 (hoje, recusa + 6), como na tela aprovada `minha-igreja-prazos`, que só vai para a homologação depois disso.
 
 **Verificação (27/11/2026):**
 

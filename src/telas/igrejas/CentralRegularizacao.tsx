@@ -201,9 +201,13 @@ function Regras({ regras, podeMudar, aoSalvar }: { regras: RegrasIgrejas; podeMu
         O documento que ainda não veio tem {regras.dias_para_mandar} dias, contados da ativação, com a igreja regular; passado o prazo sem
         ele, a igreja fica suspensa. Venceu a ata ou o alvará, ela fica suspensa no dia seguinte (ou desde a ativação, se já tinha vencido).
         Suspensa, o pastor presidente tem {regras.dias_para_mandar} dias só para mandar o documento; sem mandar, o perfil dele é bloqueado
-        (ele continua ministro associado).{' '}
-        {tolerancia ? `O alvará que vence em 31/12 só suspende se o novo não chegar até ${tolerancia}. ` : ''}Mandado no prazo e recusado depois
-        dele, o pastor ainda tem {regras.dias_apos_recusa} dias, contados da recusa.
+        (ele continua ministro associado).
+      </p>
+      {tolerancia && <p className="detalhe">O alvará que vence em 31/12 só suspende se o novo não chegar até {tolerancia}.</p>}
+      <p className="detalhe">
+        Outra regra, a da recusa: o documento mandado dentro dos {regras.dias_para_mandar} dias do pastor e recusado pela secretaria depois
+        deles dá a ele mais {regras.dias_apos_recusa} dias, contados da recusa, para mandar de novo.
+        {tolerancia ? ` Esses ${regras.dias_apos_recusa} dias não se somam ao ${tolerancia} do alvará.` : ''}
       </p>
       <p className="detalhe">
         A associação privada tem {regras.dias_natureza} dias, da ativação ou da conferência do Cartão CNPJ que a mostra assim, para mudar para

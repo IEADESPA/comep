@@ -115,6 +115,9 @@ test('a credencial do ministro em readequação: cinza, com a faixa, e a confer�
     await expect(resultado).toContainText('ministro em readequação')
     await expect(resultado).toContainText(/Em readequação · sem direito a voto · prazo até \d{2}\/\d{2}\/\d{4}/)
     await expect(resultado).toContainText('(sem registro)')
+    // o prazo da readequação, sem a AGO (decisão 6 de 26/11/2026)
+    await expect(resultado).toContainText(/Até \d{2}\/\d{2}\/\d{4}, para a igreja se regularizar/)
+    await expect(resultado).not.toContainText('(a AGO)')
     await expect(resultado).not.toContainText('não representa')
     await visitante.close()
   } finally {

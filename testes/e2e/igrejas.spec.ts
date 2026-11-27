@@ -30,6 +30,10 @@ test('o painel do módulo, a tabela por situação e a Central de regularizaçã
   await expect(regras.getByLabel('Dias da associação privada para mudar para organização religiosa')).toHaveValue('120')
   await expect(regras.getByLabel('Dias da igreja sem registro para se registrar')).toHaveValue('120')
   await expect(regras).toContainText('O alvará que vence em 31/12 só suspende se o novo não chegar até 31/01.')
+  // a recusa é outra regra, num parágrafo próprio: os 7 dias não se somam ao 31/01 do alvará (presidente, 27/11/2026)
+  await expect(regras.getByText(/^Outra regra, a da recusa: /)).toContainText(
+    'recusado pela secretaria depois deles dá a ele mais 7 dias, contados da recusa, para mandar de novo. Esses 7 dias não se somam ao 31/01 do alvará.',
+  )
 
   // S7-08: antes de salvar, a tela diz quantas igrejas mudam de situação hoje; "Voltar" não salva nada
   await regras.getByLabel('Dias para mandar de novo, depois da recusa fora do prazo').fill('8')

@@ -172,7 +172,7 @@ function Resultado({ v, codigo }: { v: Validacao; codigo: string }) {
                 {v.readequacao && v.prazo_readequacao && (
                   <>
                     <dt>Prazo</dt>
-                    <dd>Até {formatarData(v.prazo_readequacao)} (a AGO), para a igreja se regularizar</dd>
+                    <dd>Até {formatarData(v.prazo_readequacao)}, para a igreja se regularizar</dd>
                   </>
                 )}
                 <dt>Validade</dt>
