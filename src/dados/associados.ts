@@ -2,6 +2,7 @@
 import { cliente, falha, ok, type Resultado } from './cliente'
 import { lerIdentidade, gravarIdentidade, pendenciasDe, type IdentidadeGravada } from './credencial'
 import type { CategoriaContribuicao } from './configuracoes'
+import { semInvisiveis } from '../utilitarios/textoLimpo'
 
 export type SituacaoAssociado = 'ativo' | 'desligado' | 'falecido'
 export type FormaAdmissao = 'cadastro_inicial' | 'assembleia'
@@ -129,9 +130,9 @@ export type NovoAssociado = {
 /** Cadastro direto de associado atual (Art. 7º, a). Tudo ou nada, numa única operação no banco. */
 export async function cadastrarAssociado(novo: NovoAssociado): Promise<Resultado<string>> {
   const { data, error } = await cliente().rpc('cadastrar_associado', {
-    p_nome: novo.nome,
+    p_nome: semInvisiveis(novo.nome),
     p_email: novo.email,
-    p_telefone: novo.telefone,
+    p_telefone: semInvisiveis(novo.telefone),
     p_titulo_id: novo.tituloId || null,
     p_titulo_desde: novo.tituloDesde || null,
     p_igreja_id: novo.igrejaId || null,
@@ -153,7 +154,7 @@ export async function atualizarContato(
   // primeiro CPF e filiação (se o CPF já é de outra pessoa, nada se grava)
   const gravada = await gravarIdentidade(pessoaId, identidade)
   if (gravada.erro !== null) return gravada
-  const linha: Record<string, string | null> = { nome: dados.nome.trim(), telefone: dados.telefone.trim() || null }
+  const linha: Record<string, string | null> = { nome: semInvisiveis(dados.nome), telefone: semInvisiveis(dados.telefone) || null }
   if (dados.email !== undefined) linha.email = dados.email.trim().toLowerCase() || null
   const { error } = await cliente().from('pessoas').update(linha).eq('id', pessoaId)
   return error ? falha(error) : ok(null)

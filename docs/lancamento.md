@@ -73,6 +73,7 @@ Faz parte da trava 4.
 - [ ] Presidente cadastra uma igreja **real** e um associado **real**, e gera um código
 - [ ] O associado faz o primeiro acesso e vê "Meu perfil"
 - [ ] O próximo backup (domingo, ou rodado na hora) traz os dados de produção e abre com a chave
+- [ ] O banco de produção **não** está marcado como de teste: `select de_teste from interno.ambiente` dá `false` (Claude Code, só leitura; a marca existe só no comep-teste)
 
 ### 4. Marcar a versão
 
