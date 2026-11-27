@@ -1,0 +1,535 @@
+// Revisão permanente, módulo 1 (segurança do banco inteiro, 25/11/2026): um teste para cada achado corrigido.
+// Cada bloco falha sem a migração da sua correção. Rodar: npm test
+
+import type { PGlite } from '@electric-sql/pglite'
+import assert from 'node:assert/strict'
+import { before, describe, it } from 'node:test'
+import { como, criarBanco, criarUsuario, darPerfil, erroComCodigo } from './ambiente.ts'
+
+const BLOQUEADO_PELO_BANCO = 'P0001'
+const FORA_DO_FORMATO = '23514'
+
+/** Recusado pelo banco (P0001) com a mensagem que casa com o padrão. */
+const recusadoCom = (padrao: RegExp) => (erro: unknown) =>
+  (erro as { code?: string }).code === BLOQUEADO_PELO_BANCO && padrao.test((erro as { message?: string }).message ?? '')
+
+describe('Revisão permanente, módulo 1 — segurança do banco', () => {
+  let db: PGlite
+
+  const chamar = (quem: string | null, sql: string, params: unknown[] = []) => como(db, quem, () => db.query(sql, params))
+  const um = async <T>(sql: string, params: unknown[] = []) => (await db.query<T>(sql, params)).rows[0]
+  const pessoaDe = async (usuario: string) => (await um<{ id: string }>('select id from public.pessoas where usuario_id = $1', [usuario])).id
+
+  before(async () => {
+    db = await criarBanco()
+  })
+
+  describe('S1-01 — os avisos no celular: uma conta não toma o envio de todos', () => {
+    let intruso: string
+    let vitima: string
+    let pessoaIntruso: string
+    let pessoaVitima: string
+
+    const CHAVE = `B${'A'.repeat(86)}`
+    const SEGREDO = 'A'.repeat(22)
+    const inscrever = (quem: string, endereco: string) =>
+      chamar(quem, "select public.registrar_inscricao_push($1, $2, $3, 'Celular · Chrome') as id", [endereco, CHAVE, SEGREDO]).then(
+        (r) => (r.rows[0] as { id: string }).id,
+      )
+    const ativos = async (pessoa: string) =>
+      (
+        await db.query<{ id: string; endpoint: string }>(
+          'select id, endpoint from public.inscricoes_push where pessoa_id = $1 and arquivado_em is null order by criado_em, id',
+          [pessoa],
+        )
+      ).rows
+    type Linha = { notificacao_id: string; inscricao_id: string }
+    const lote = async (limite: number) => (await db.query<Linha>('select notificacao_id, inscricao_id from interno.push_pendentes($1)', [limite])).rows
+    /** Quantas linhas do lote (aviso × aparelho) são de uma pessoa. */
+    const doLote = async (linhas: Linha[], pessoa: string) => {
+      const dela = new Set(
+        (await db.query<{ id: string }>('select id from public.inscricoes_push where pessoa_id = $1', [pessoa])).rows.map((r) => r.id),
+      )
+      return linhas.filter((l) => dela.has(l.inscricao_id)).length
+    }
+    const avisar = (pessoa: string, chave: string, minutosAtras: number) =>
+      db.query(
+        "select interno.notificar(array[$1]::uuid[], 'recado', 'Recado', 'Um recado de teste.', null, $2, false, now() - make_interval(mins => $3))",
+        [pessoa, chave, minutosAtras],
+      )
+
+    before(async () => {
+      // o intruso só criou a conta (o cadastro é aberto); a vítima é um associado comum
+      intruso = await criarUsuario(db, 'intruso.push@teste.local', 'Conta Fictícia Intrusa')
+      vitima = await criarUsuario(db, 'vitima.push@teste.local', 'Associado Fictício dos Avisos')
+      pessoaIntruso = await pessoaDe(intruso)
+      pessoaVitima = await pessoaDe(vitima)
+    })
+
+    it('só aceita o endereço de um serviço de push conhecido (Google, Mozilla, Apple, Windows)', async () => {
+      const aceitos = [
+        'https://fcm.googleapis.com/fcm/send/aparelho-ficticio-1',
+        'https://fcm.googleapis.com/wp/aparelho-ficticio-2',
+        'https://updates.push.services.mozilla.com/wpush/v2/aparelho-ficticio-3',
+        'https://web.push.apple.com/QAparelhoFicticio4',
+        'https://wns2-bl2p.notify.windows.com/w/?token=aparelho-ficticio-5',
+        // o domínio reservado .invalid, da inscrição falsa do ponta a ponta, só vale no banco de teste
+        // (testes/banco/seguranca_portao.test.ts, Portão 5)
+      ]
+      for (const endereco of aceitos) assert.ok(await inscrever(vitima, endereco), endereco)
+
+      const recusados = [
+        'https://atacante.exemplo/aparelho',
+        'https://localhost:8443/aparelho',
+        'https://169.254.169.254/latest/meta-data',
+        'https://fcm.googleapis.com.atacante.exemplo/fcm/send/x',
+        'https://fcm.googleapis.com@atacante.exemplo/fcm/send/x',
+        'https://fcm.googleapis.com:8443/fcm/send/x',
+        'https://outropush.apple.com/x',
+        'https://push.apple.com.atacante.exemplo/x',
+        'http://fcm.googleapis.com/fcm/send/x',
+      ]
+      for (const endereco of recusados) {
+        await assert.rejects(inscrever(intruso, endereco), erroComCodigo(BLOQUEADO_PELO_BANCO), endereco)
+      }
+      // nem o dono do banco grava um endereço fora da lista num aparelho ativo
+      await assert.rejects(
+        db.query("insert into public.inscricoes_push (pessoa_id, endpoint, p256dh, auth) values ($1, 'https://atacante.exemplo/x', $2, $3)", [
+          pessoaIntruso,
+          CHAVE,
+          SEGREDO,
+        ]),
+        erroComCodigo(FORA_DO_FORMATO),
+      )
+    })
+
+    it('cada pessoa tem no máximo 10 aparelhos ativos: o mais antigo sai quando entra o 11º', async () => {
+      for (let i = 1; i <= 15; i++) await inscrever(intruso, `https://fcm.googleapis.com/fcm/send/intruso-${i}`)
+      const agora = await ativos(pessoaIntruso)
+      assert.equal(agora.length, 10)
+      assert.deepEqual(
+        agora.map((a) => a.endpoint).sort(),
+        Array.from({ length: 10 }, (_, i) => `https://fcm.googleapis.com/fcm/send/intruso-${i + 6}`).sort(),
+        'ficam os 10 mais novos',
+      )
+      const saiu = await um<{ n: number }>(
+        "select count(*)::int as n from public.inscricoes_push where pessoa_id = $1 and motivo_arquivo = 'limite'",
+        [pessoaIntruso],
+      )
+      assert.equal(saiu.n, 5)
+      // o mesmo aparelho de novo não tira ninguém
+      await inscrever(intruso, 'https://fcm.googleapis.com/fcm/send/intruso-15')
+      assert.equal((await ativos(pessoaIntruso)).length, 10)
+    })
+
+    it('o lote do envio não fica com uma pessoa só, e um aviso não se corta no meio dos aparelhos', async () => {
+      // os dois querem os avisos a qualquer hora (o teste vale de dia e de noite)
+      await chamar(intruso, `select public.salvar_preferencias_avisos('{"silencio_noite": false}'::jsonb)`)
+      await chamar(vitima, `select public.salvar_preferencias_avisos('{"silencio_noite": false}'::jsonb)`)
+      // o intruso: 10 aparelhos e 25 avisos mais antigos que o da vítima (250 linhas, mais que o lote de 200)
+      for (let i = 1; i <= 25; i++) await avisar(pessoaIntruso, `intruso:${i}`, 120 - i)
+      await avisar(pessoaVitima, 'vitima:1', 0)
+      const avisoDaVitima = (await um<{ id: string }>("select id from public.notificacoes where chave = 'vitima:1'")).id
+
+      const cheio = await lote(200)
+      assert.ok(
+        cheio.some((l) => l.notificacao_id === avisoDaVitima),
+        'o aviso da vítima entra no lote',
+      )
+      assert.ok((await doLote(cheio, pessoaIntruso)) <= 30, 'no máximo 3 avisos do intruso por lote (10 aparelhos cada)')
+
+      // lote pequeno: a vez de cada pessoa vem antes do 2º aviso de quem tem muitos
+      const pequeno = await lote(11)
+      assert.ok(pequeno.some((l) => l.notificacao_id === avisoDaVitima), 'a vítima entra mesmo no lote pequeno')
+      assert.equal(await doLote(pequeno, pessoaIntruso), 10, 'um aviso do intruso, inteiro')
+
+      // cada aviso que entra vai para todos os aparelhos ativos da pessoa
+      const porAviso = new Map<string, number>()
+      for (const l of await lote(15)) porAviso.set(l.notificacao_id, (porAviso.get(l.notificacao_id) ?? 0) + 1)
+      for (const [aviso, n] of porAviso) {
+        const dono = (await um<{ pessoa_id: string }>('select pessoa_id from public.notificacoes where id = $1', [aviso])).pessoa_id
+        assert.equal(n, (await ativos(dono)).length, `o aviso ${aviso} vai para todos os aparelhos`)
+      }
+    })
+
+    it('S3-04: o resultado conta uma tentativa por aviso a cada rodada, não uma por aparelho que falhou', async () => {
+      const dono = await criarUsuario(db, 'cinco.aparelhos@teste.local', 'Associado Fictício de Cinco Aparelhos')
+      const pessoa = await pessoaDe(dono)
+      for (let i = 1; i <= 5; i++) await inscrever(dono, `https://fcm.googleapis.com/fcm/send/cinco-${i}`)
+      await chamar(dono, `select public.salvar_preferencias_avisos('{"silencio_noite": false}'::jsonb)`)
+      await avisar(pessoa, 'cinco:1', 0)
+      const aviso = (await um<{ id: string }>("select id from public.notificacoes where chave = 'cinco:1'")).id
+      const doAviso = async () => (await lote(1000)).filter((l) => l.notificacao_id === aviso)
+      const tentativas = async () => (await um<{ t: number }>('select push_tentativas as t from public.notificacoes where id = $1', [aviso])).t
+
+      // uma rodada: os 5 aparelhos falham (o serviço respondeu 500)
+      const rodada = await doAviso()
+      assert.equal(rodada.length, 5)
+      await db.query('select interno.push_resultado($1::jsonb)', [
+        JSON.stringify(rodada.map((l) => ({ notificacao_id: aviso, inscricao_id: l.inscricao_id, ok: false, status: 500 }))),
+      ])
+      assert.equal(await tentativas(), 1)
+      assert.equal((await doAviso()).length, 5, 'o aviso continua na fila para a rodada seguinte')
+
+      // na rodada seguinte, um aparelho recebe: o aviso está enviado e a tentativa não sobe
+      const outra = await doAviso()
+      await db.query('select interno.push_resultado($1::jsonb)', [
+        JSON.stringify(outra.map((l, i) => ({ notificacao_id: aviso, inscricao_id: l.inscricao_id, ok: i === 2, status: i === 2 ? 201 : 500 }))),
+      ])
+      assert.equal(await tentativas(), 1)
+      assert.notEqual((await um<{ e: string | null }>('select push_enviado_em as e from public.notificacoes where id = $1', [aviso])).e, null)
+      assert.equal((await doAviso()).length, 0)
+    })
+
+    it('S3-04: a falha de rede ou de tempo (sem resposta do serviço) conta a tentativa do aviso, mas não derruba o aparelho', async () => {
+      const dono = await criarUsuario(db, 'sem.rede@teste.local', 'Associado Fictício Sem Rede')
+      const pessoa = await pessoaDe(dono)
+      for (let i = 1; i <= 2; i++) await inscrever(dono, `https://fcm.googleapis.com/fcm/send/sem-rede-${i}`)
+      await chamar(dono, `select public.salvar_preferencias_avisos('{"silencio_noite": false}'::jsonb)`)
+      await avisar(pessoa, 'sem-rede:1', 0)
+      const aviso = (await um<{ id: string }>("select id from public.notificacoes where chave = 'sem-rede:1'")).id
+      const rodada = (await lote(1000)).filter((l) => l.notificacao_id === aviso)
+      assert.equal(rodada.length, 2)
+      await db.query('select interno.push_resultado($1::jsonb)', [
+        JSON.stringify(rodada.map((l) => ({ notificacao_id: aviso, inscricao_id: l.inscricao_id, ok: false, status: 0 }))),
+      ])
+      assert.equal((await um<{ t: number }>('select push_tentativas as t from public.notificacoes where id = $1', [aviso])).t, 1)
+      const aparelhos = (
+        await db.query<{ falhas: number; arquivado: boolean }>(
+          'select falhas, arquivado_em is not null as arquivado from public.inscricoes_push where pessoa_id = $1',
+          [pessoa],
+        )
+      ).rows
+      assert.deepEqual(aparelhos, [
+        { falhas: 0, arquivado: false },
+        { falhas: 0, arquivado: false },
+      ])
+    })
+
+    it('S3-04: o recado tem limite por dia para a mesma pessoa, e o teto do lote vale para ele', async () => {
+      const secretaria = await criarUsuario(db, 'secretaria.recados@teste.local', 'Secretaria Fictícia dos Recados')
+      await darPerfil(db, secretaria, 'secretaria')
+      const destino = await criarUsuario(db, 'destino.recados@teste.local', 'Associado Fictício dos Recados')
+      const outro = await criarUsuario(db, 'outro.recados@teste.local', 'Outro Associado Fictício')
+      const pessoaDestino = await pessoaDe(destino)
+      await inscrever(destino, 'https://fcm.googleapis.com/fcm/send/destino-recados')
+      await chamar(destino, `select public.salvar_preferencias_avisos('{"silencio_noite": false}'::jsonb)`)
+      const recado = (para: string, n: number) =>
+        chamar(secretaria, "select public.mandar_recado($1, 'recado', 'Recado', $2) as id", [para, `Recado de teste número ${n}.`])
+
+      for (let i = 1; i <= 30; i++) await recado(pessoaDestino, i)
+      await assert.rejects(recado(pessoaDestino, 31), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      // para outra pessoa, continua
+      await recado(await pessoaDe(outro), 1)
+
+      // o recado não se desliga, mas no lote entram só 3 avisos dessa pessoa (1 aparelho: 3 linhas)
+      assert.equal(await doLote(await lote(1000), pessoaDestino), 3)
+    })
+  })
+
+  describe('S1-04 — a tesouraria vê no balde "documentos" só os comprovantes de pagamento (decisão de 25/11/2026)', () => {
+    let tesouraria: string
+    let conselheiro: string
+    let secretaria: string
+    let associado: string
+    let pasta: string
+    let pastaDaTesouraria: string
+
+    const arquivosQueVe = async (quem: string, de: string) =>
+      (await chamar(quem, 'select name from storage.objects where name like $1 order by name', [`${de}/%`])).rows.map(
+        (r) => (r as { name: string }).name,
+      )
+
+    before(async () => {
+      tesouraria = await criarUsuario(db, 'tesouraria.arquivos@teste.local', 'Tesouraria Fictícia dos Arquivos')
+      conselheiro = await criarUsuario(db, 'conselho.arquivos@teste.local', 'Conselho Fiscal Fictício dos Arquivos')
+      secretaria = await criarUsuario(db, 'secretaria.arquivos@teste.local', 'Secretaria Fictícia dos Arquivos')
+      associado = await criarUsuario(db, 'associado.arquivos@teste.local', 'Associado Fictício dos Arquivos')
+      await darPerfil(db, tesouraria, 'tesouraria')
+      await darPerfil(db, conselheiro, 'conselho_fiscal')
+      await darPerfil(db, secretaria, 'secretaria')
+      pasta = `pessoas/${await pessoaDe(associado)}`
+      pastaDaTesouraria = `pessoas/${await pessoaDe(tesouraria)}`
+      // os nomes que as telas gravam (src/dados/pedidos.ts, enviarArquivo): foto-, comprovante- (o do título) e pagamento-
+      for (const nome of ['foto-1.jpg', 'comprovante-1.pdf', 'pagamento-1.pdf', 'pagamento-2.png', 'rg.pdf', 'outra/pagamento-3.pdf']) {
+        await db.query("insert into storage.objects (bucket_id, name) values ('documentos', $1)", [`${pasta}/${nome}`])
+      }
+      await db.query("insert into storage.objects (bucket_id, name) values ('documentos', $1)", [`${pastaDaTesouraria}/foto-1.jpg`])
+    })
+
+    it('a tesouraria abre os comprovantes de pagamento de outra pessoa, e nada além deles', async () => {
+      assert.deepEqual(await arquivosQueVe(tesouraria, pasta), [`${pasta}/pagamento-1.pdf`, `${pasta}/pagamento-2.png`])
+    })
+
+    it('o Conselho Fiscal, com a mesma regra', async () => {
+      assert.deepEqual(await arquivosQueVe(conselheiro, pasta), [`${pasta}/pagamento-1.pdf`, `${pasta}/pagamento-2.png`])
+    })
+
+    it('a secretaria continua vendo tudo; cada um vê o que é seu', async () => {
+      assert.equal((await arquivosQueVe(secretaria, pasta)).length, 6)
+      assert.equal((await arquivosQueVe(associado, pasta)).length, 6)
+      assert.deepEqual(await arquivosQueVe(tesouraria, pastaDaTesouraria), [`${pastaDaTesouraria}/foto-1.jpg`])
+    })
+  })
+
+  describe('S1-06 — o nome e o telefone da pessoa têm tamanho e não aceitam caracteres de controle', () => {
+    let conta: string
+    let pessoa: string
+
+    // caracteres invisíveis que quebram a linha, invertem o texto ou se escondem
+    const QUEBRA = '\n'
+    const TAB = '\t'
+    const INVERTE = '\u202e'
+    const ISOLA = '\u2066'
+    const ESPACO_ZERO = '\u200b'
+    const NOMES_REAIS = [
+      'José Antônio de Araújo Conceição',
+      'Ângela Maria D’Ávila Müller',
+      "Maria D'Ávila dos Santos",
+      'João-Paulo Ñuñez Çarvalho',
+      'Gisèle Ëmília Ôlïveira Pêssoa',
+      'Ana',
+    ]
+    const trocarNome = (nome: string) => chamar(conta, 'update public.pessoas set nome = $1 where id = $2', [nome, pessoa])
+    const trocarTelefone = (telefone: string) => chamar(conta, 'update public.pessoas set telefone = $1 where id = $2', [telefone, pessoa])
+    const nomeDe = async (usuario: string) => (await um<{ nome: string }>('select nome from public.pessoas where usuario_id = $1', [usuario])).nome
+    /** Cria o login como no cadastro aberto do site, com o nome que veio no metadado. */
+    const cadastrarComNome = (email: string, nome: string) => criarUsuario(db, email, nome)
+
+    before(async () => {
+      conta = await cadastrarComNome('nome.limite@teste.local', 'Pessoa Fictícia do Nome')
+      pessoa = await pessoaDe(conta)
+    })
+
+    it('os nomes reais, com acento, apóstrofo e hífen, continuam valendo (até 150 letras)', async () => {
+      for (const nome of NOMES_REAIS) {
+        await trocarNome(nome)
+        assert.equal(await nomeDe(conta), nome)
+      }
+      const longo = `Maria ${'Aparecida '.repeat(14)}Silva`.slice(0, 150)
+      await trocarNome(longo)
+      assert.equal((await nomeDe(conta)).length, 150)
+    })
+
+    // Revisão do portão (25/11/2026): o caractere de controle sai na gravação, em vez de recusar com a mensagem genérica,
+    // e o tamanho tem a mensagem do campo (testes/banco/seguranca_portao.test.ts, Portão 2). A regra da tabela continua.
+    it('o próprio não grava nome gigante; o caractere de controle sai do nome', async () => {
+      await assert.rejects(trocarNome('A'.repeat(151)), recusadoCom(/nome.*150/))
+      await assert.rejects(trocarNome('B'.repeat(1_000_000)), recusadoCom(/nome.*150/))
+      for (const ruim of [QUEBRA, TAB, INVERTE, ISOLA, ESPACO_ZERO, '\u0007', '\u0085']) {
+        await trocarNome(`Nome${ruim}Falso`)
+        assert.match(await nomeDe(conta), /^Nome ?Falso$/, JSON.stringify(ruim))
+      }
+      // a regra da tabela segura o que não passar pela limpeza (por exemplo, com o gatilho desligado)
+      await db.exec('alter table public.pessoas disable trigger limpar_nome_e_telefone')
+      try {
+        await assert.rejects(db.query('update public.pessoas set nome = $1 where id = $2', [`Nome${INVERTE}Falso`, pessoa]), erroComCodigo(FORA_DO_FORMATO))
+      } finally {
+        await db.exec('alter table public.pessoas enable trigger limpar_nome_e_telefone')
+      }
+    })
+
+    it('o telefone: até 40 caracteres; o caractere de controle sai', async () => {
+      await trocarTelefone('(94) 99999-0000')
+      await trocarTelefone('+55 (94) 9 9999-0000')
+      await trocarTelefone('9'.repeat(40))
+      await assert.rejects(trocarTelefone('9'.repeat(41)), recusadoCom(/telefone.*40/))
+      await trocarTelefone(`94${QUEBRA}99999-0000`)
+      await trocarTelefone(`94${INVERTE}0000`)
+      assert.equal((await um<{ telefone: string }>('select telefone from public.pessoas where id = $1', [pessoa])).telefone, '940000')
+    })
+
+    it('o cadastro aberto limpa o nome que vem do site (corta no tamanho e tira os caracteres de controle)', async () => {
+      const gigante = await cadastrarComNome('nome.gigante@teste.local', `Nome Fictício ${'X'.repeat(1_000_000)}`)
+      assert.equal((await nomeDe(gigante)).length, 150)
+      const sujo = await cadastrarComNome('nome.sujo@teste.local', `  Nome${QUEBRA}Fictício${INVERTE}  de${TAB}${TAB}Teste${ESPACO_ZERO} `)
+      assert.equal(await nomeDe(sujo), 'Nome Fictício de Teste')
+      // só lixo: fica o começo do e-mail, como quem não mandou nome
+      const lixo = await cadastrarComNome('so.lixo@teste.local', `${INVERTE}${QUEBRA}${ESPACO_ZERO}`)
+      assert.equal(await nomeDe(lixo), 'so.lixo')
+      // o acento continua
+      const comAcento = await cadastrarComNome('acento@teste.local', 'José Antônio de Araújo Conceição')
+      assert.equal(await nomeDe(comAcento), 'José Antônio de Araújo Conceição')
+    })
+  })
+
+  // Revisão das telas gerais (módulo 5): o texto livre dos pedidos e do informe tem tamanho, e pedir e desistir tem teto.
+  describe('S5-01 — os pedidos e o informe de pagamento têm tamanho, e pedir de novo tem teto por dia', () => {
+    let tituloPastor: string
+    let igrejaA: string
+
+    /** Recusado com a mensagem do banco (P0001) que fala em "hoje". */
+    const tetoDoDia = (erro: unknown) =>
+      (erro as { code?: string }).code === BLOQUEADO_PELO_BANCO && /hoje/.test((erro as { message?: string }).message ?? '')
+
+    async function pedirAssociacao(usuario: string, mudar: Record<string, unknown> = {}) {
+      const pessoa = await pessoaDe(usuario)
+      const dados = {
+        pessoa_id: pessoa,
+        titulo_id: tituloPastor,
+        igreja_informada: 'Igreja Fictícia do Bairro Novo',
+        foto_caminho: `pessoas/${pessoa}/foto-1.jpg`,
+        comprovante_caminho: `pessoas/${pessoa}/comprovante-1.pdf`,
+        declara_principios_fe: true,
+        declara_estatuto: true,
+        consente_lgpd: true,
+        ...mudar,
+      }
+      const colunas = Object.keys(dados)
+      const r = await chamar(
+        usuario,
+        `insert into public.pedidos_associacao (${colunas.join(', ')})
+         values (${colunas.map((_, i) => `$${i + 1}`).join(', ')}) returning id`,
+        Object.values(dados),
+      )
+      return (r.rows[0] as { id: string }).id
+    }
+    const desistir = (usuario: string, pedido: string) =>
+      chamar(usuario, "update public.pedidos_associacao set situacao = 'desistiu' where id = $1", [pedido])
+
+    async function associarAtivo(usuario: string) {
+      const pessoa = await pessoaDe(usuario)
+      await db.query("insert into public.associados (pessoa_id, forma_admissao) values ($1, 'cadastro_inicial')", [pessoa])
+      await db.query('insert into public.vinculos_igreja (pessoa_id, igreja_id, funcao) values ($1, $2, $3)', [pessoa, igrejaA, 'Pastor auxiliar'])
+      return pessoa
+    }
+    async function pedirTroca(usuario: string, mudar: Record<string, unknown> = {}) {
+      const dados = { pessoa_id: await pessoaDe(usuario), igreja_informada: 'Igreja Fictícia da Troca', ...mudar }
+      const colunas = Object.keys(dados)
+      const r = await chamar(
+        usuario,
+        `insert into public.pedidos_troca_igreja (${colunas.join(', ')})
+         values (${colunas.map((_, i) => `$${i + 1}`).join(', ')}) returning id`,
+        Object.values(dados),
+      )
+      return (r.rows[0] as { id: string }).id
+    }
+    const cancelarTroca = (usuario: string, troca: string) =>
+      chamar(usuario, "update public.pedidos_troca_igreja set situacao = 'cancelado' where id = $1", [troca])
+
+    before(async () => {
+      tituloPastor = (await um<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor(a)'")).id
+      igrejaA = (await um<{ id: string }>("insert into public.igrejas (nome) values ('Igreja Fictícia A') returning id")).id
+    })
+
+    it('o pedido de associação: até o limite vale; texto gigante é recusado em cada campo livre', async () => {
+      const candidato = await criarUsuario(db, 'candidato.tamanho@teste.local', 'Candidato Fictício do Tamanho')
+      const noLimite = await pedirAssociacao(candidato, {
+        igreja_informada: 'I'.repeat(200),
+        denominacao_informada: 'D'.repeat(200),
+        funcao: 'F'.repeat(120),
+        observacoes: 'O'.repeat(1000),
+      })
+      await desistir(candidato, noLimite)
+      for (const [campo, tamanho] of [
+        ['igreja_informada', 201],
+        ['denominacao_informada', 201],
+        ['funcao', 121],
+        ['observacoes', 1001],
+        ['observacoes', 500_000],
+      ] as const) {
+        await assert.rejects(pedirAssociacao(candidato, { [campo]: 'x'.repeat(tamanho) }), erroComCodigo(FORA_DO_FORMATO), `${campo} ${tamanho}`)
+      }
+    })
+
+    it('o pedido de associação: pedir e desistir tem teto de 3 por dia (o de ontem não conta)', async () => {
+      const candidato = await criarUsuario(db, 'candidato.teto@teste.local', 'Candidato Fictício do Teto')
+      const pessoa = await pessoaDe(candidato)
+      // um pedido de ontem, já desistido, não entra na conta de hoje
+      const ontem = (
+        await um<{ id: string }>(
+          `insert into public.pedidos_associacao (pessoa_id, titulo_id, igreja_informada, foto_caminho, comprovante_caminho,
+             declara_principios_fe, declara_estatuto, consente_lgpd, criado_em)
+           values ($1, $2, 'Igreja Fictícia', $3, $4, true, true, true, now() - interval '1 day') returning id`,
+          [pessoa, tituloPastor, `pessoas/${pessoa}/foto-0.jpg`, `pessoas/${pessoa}/comprovante-0.pdf`],
+        )
+      ).id
+      await desistir(candidato, ontem)
+      for (let vez = 1; vez <= 3; vez++) await desistir(candidato, await pedirAssociacao(candidato))
+      await assert.rejects(pedirAssociacao(candidato), tetoDoDia)
+      // o teto é de cada pessoa: outro candidato pede normalmente
+      const outro = await criarUsuario(db, 'candidato.outro@teste.local', 'Outro Candidato Fictício')
+      await pedirAssociacao(outro)
+    })
+
+    it('a troca de igreja: tamanho nos campos livres e teto de 3 pedidos por dia', async () => {
+      const ministro = await criarUsuario(db, 'ministro.troca@teste.local', 'Ministro Fictício da Troca')
+      await associarAtivo(ministro)
+      await cancelarTroca(ministro, await pedirTroca(ministro, { igreja_informada: 'I'.repeat(200), funcao: 'F'.repeat(120), observacao: 'O'.repeat(1000) }))
+      for (const [campo, tamanho] of [
+        ['igreja_informada', 201],
+        ['funcao', 121],
+        ['observacao', 1001],
+        ['observacao', 500_000],
+      ] as const) {
+        await assert.rejects(pedirTroca(ministro, { [campo]: 'x'.repeat(tamanho) }), erroComCodigo(FORA_DO_FORMATO), `${campo} ${tamanho}`)
+      }
+      // já pediu 1 hoje; mais 2 e chega ao teto
+      for (let vez = 2; vez <= 3; vez++) await cancelarTroca(ministro, await pedirTroca(ministro))
+      await assert.rejects(pedirTroca(ministro), tetoDoDia)
+    })
+
+    it('o informe de pagamento: a forma e a observação têm tamanho', async () => {
+      const associado = await criarUsuario(db, 'associado.informe@teste.local', 'Associado Fictício do Informe')
+      const pessoa = await associarAtivo(associado)
+      const cobranca = async (mes: number) =>
+        (
+          await um<{ id: string }>(
+            `insert into public.cobrancas (pessoa_id, exercicio, tipo, competencia, vencimento, categoria, valor)
+             values ($1, 2030, 'mensal', make_date(2030, $2, 1), make_date(2030, $2, 10), 'nao_presidente', 1) returning id`,
+            [pessoa, mes],
+          )
+        ).id
+      const informar = (cobrancaId: string, forma: string, observacao: string | null) =>
+        chamar(associado, 'select public.informar_pagamento($1, current_date, $2, null, $3)', [[cobrancaId], forma, observacao])
+
+      await informar(await cobranca(4), 'F'.repeat(60), 'O'.repeat(1000))
+      const outra = await cobranca(5)
+      await assert.rejects(informar(outra, 'F'.repeat(61), null), erroComCodigo(FORA_DO_FORMATO))
+      await assert.rejects(informar(outra, 'PIX', 'O'.repeat(1001)), erroComCodigo(FORA_DO_FORMATO))
+      await assert.rejects(informar(outra, 'PIX', 'O'.repeat(500_000)), erroComCodigo(FORA_DO_FORMATO))
+    })
+  })
+
+  describe('S5-03 — o arquivo do pedido de associação é sempre da pasta do próprio candidato', () => {
+    it('com o pedido em pendência, o candidato não aponta a foto nem o comprovante para a pasta de outra pessoa', async () => {
+      const titulo = (await um<{ id: string }>("select id from public.titulos_ministeriais where nome = 'Pastor(a)'")).id
+      const secretaria = await criarUsuario(db, 'secretaria.s503@teste.local', 'Secretaria Fictícia do Arquivo')
+      await darPerfil(db, secretaria, 'secretaria')
+      const candidato = await criarUsuario(db, 'candidato.arquivo@teste.local', 'Candidato Fictício do Arquivo')
+      const outro = await criarUsuario(db, 'outro.arquivo@teste.local', 'Outra Pessoa Fictícia')
+      const pessoa = await pessoaDe(candidato)
+      const pastaDoOutro = `pessoas/${await pessoaDe(outro)}`
+
+      const pedido = (
+        await chamar(
+          candidato,
+          `insert into public.pedidos_associacao (pessoa_id, titulo_id, igreja_informada, foto_caminho, comprovante_caminho,
+             declara_principios_fe, declara_estatuto, consente_lgpd)
+           values ($1, $2, 'Igreja Fictícia', $3, $4, true, true, true) returning id`,
+          [pessoa, titulo, `pessoas/${pessoa}/foto-1.jpg`, `pessoas/${pessoa}/comprovante-1.pdf`],
+        )
+      ).rows[0] as { id: string }
+      await chamar(secretaria, "update public.pedidos_associacao set situacao = 'pendencia', mensagem_pendencia = 'Troque a foto.' where id = $1", [
+        pedido.id,
+      ])
+
+      const trocar = (coluna: 'foto_caminho' | 'comprovante_caminho', caminho: string) =>
+        chamar(candidato, `update public.pedidos_associacao set ${coluna} = $1 where id = $2`, [caminho, pedido.id])
+      await assert.rejects(trocar('comprovante_caminho', `${pastaDoOutro}/comprovante-9.pdf`), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      await assert.rejects(trocar('foto_caminho', `${pastaDoOutro}/foto-9.jpg`), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      await assert.rejects(trocar('foto_caminho', `pessoas/${pessoa}/../${pastaDoOutro.slice(8)}/foto-9.jpg`), erroComCodigo(BLOQUEADO_PELO_BANCO))
+      // o arquivo novo da própria pasta continua valendo, e o pedido fica como estava
+      await trocar('foto_caminho', `pessoas/${pessoa}/foto-2.jpg`)
+      const agora = await um<{ situacao: string; foto_caminho: string; comprovante_caminho: string }>(
+        'select situacao, foto_caminho, comprovante_caminho from public.pedidos_associacao where id = $1',
+        [pedido.id],
+      )
+      assert.deepEqual(agora, {
+        situacao: 'pendencia',
+        foto_caminho: `pessoas/${pessoa}/foto-2.jpg`,
+        comprovante_caminho: `pessoas/${pessoa}/comprovante-1.pdf`,
+      })
+    })
+  })
+})

@@ -82,3 +82,15 @@ Cada rodada do envio também gera os avisos com data: os documentos da igreja 60
 - **Aparelho que não existe mais** (o navegador responde 404 ou 410): a inscrição é arquivada.
 - **iPhone:** só recebe com o aplicativo adicionado à tela de início (Compartilhar › Adicionar à Tela de Início).
 - **Os testes automáticos** simulam a inscrição (não deixam aparelho falso ativo) e não dependem de o sino estar quieto.
+
+## Os limites do envio (revisão de segurança de 25/11/2026)
+
+Os números ficam como constantes, com comentário, na migração `20261125132435_seguranca_avisos_no_celular.sql` e em `supabase/functions/enviar-avisos/envio.ts`.
+
+- **Só os serviços de push dos navegadores:** o endereço do aparelho tem de ser do Google (Chrome, Edge, Opera, Samsung e Android), da Mozilla (Firefox), da Microsoft (Edge no Windows) ou da Apple (Safari). O navegador que usa outro serviço recebe a mensagem para usar um desses. O domínio reservado `.invalid`, que não existe na internet, é o da inscrição falsa do ponta a ponta: vale só no banco marcado como de teste (a tabela `interno.ambiente`, que nasce "não" e o dono do banco marca à mão só no comep-teste); na produção é recusado como qualquer outro.
+- **Até 10 aparelhos por pessoa:** quando entra o 11º, o mais antigo sai.
+- **A vez de cada um:** cada lote leva no máximo 3 avisos de cada pessoa, e o 1º aviso de todos vai antes do 2º de alguém. O aviso vai inteiro, para todos os aparelhos da pessoa.
+- **Os envios saem em grupos de 10**, ao mesmo tempo, e cada um tem 10 segundos para o serviço responder. O resultado é gravado a cada grupo. Depois de 60 segundos, a função não começa grupo novo: o resto vai na rodada seguinte, 5 minutos depois.
+- **As tentativas:** se nenhum aparelho recebeu o aviso, ele ganha uma tentativa por rodada e sai da fila com 5. O aparelho só conta falha quando o serviço responde com erro; a rede caída ou o tempo esgotado não derrubam o aparelho.
+- **O recado pelo aplicativo:** no máximo 30 por dia de quem manda para a mesma pessoa.
+- **Depois de mudar a função**, publique de novo (`npx supabase functions deploy enviar-avisos`), como no passo 1 acima.

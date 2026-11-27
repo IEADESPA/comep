@@ -16,6 +16,7 @@ import {
 import { SUGESTOES_FUNCAO } from '../../dados/associados'
 import { prepararComprovante, prepararFoto, type ArquivoPronto } from '../../utilitarios/imagens'
 import { hojeIso } from '../../utilitarios/formatos'
+import { TAMANHO_DO_NOME, TAMANHO_DO_TELEFONE } from '../../utilitarios/textoLimpo'
 
 const OUTRA_IGREJA = '__outra__'
 
@@ -140,11 +141,11 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
           <div className="grade-form">
             <label className="largura-total">
               Nome completo *
-              <input required autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
+              <input required autoComplete="name" maxLength={TAMANHO_DO_NOME} value={nome} onChange={(e) => setNome(e.target.value)} />
             </label>
             <label>
               Telefone (WhatsApp) *
-              <input required type="tel" autoComplete="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+              <input required type="tel" autoComplete="tel" maxLength={TAMANHO_DO_TELEFONE} value={telefone} onChange={(e) => setTelefone(e.target.value)} />
             </label>
             <CamposIdentidade valor={identidade} gravada={dadosPessoa} aoMudar={setIdentidade} obrigatorio />
           </div>
@@ -186,17 +187,17 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
               <>
                 <label>
                   Nome da sua igreja *
-                  <input required {...campo('igreja_informada')} />
+                  <input required maxLength={200} {...campo('igreja_informada')} />
                 </label>
                 <label>
                   Denominação
-                  <input {...campo('denominacao_informada')} />
+                  <input maxLength={200} {...campo('denominacao_informada')} />
                 </label>
               </>
             )}
             <label>
               Função na igreja
-              <input list="sugestoes-funcao-pedido" {...campo('funcao')} />
+              <input list="sugestoes-funcao-pedido" maxLength={120} {...campo('funcao')} />
               <datalist id="sugestoes-funcao-pedido">
                 {SUGESTOES_FUNCAO.map((s) => (
                   <option key={s} value={s} />
@@ -284,7 +285,7 @@ export function FormularioPedido({ pessoaId, titulos, igrejas, dadosPessoa, pedi
 
       <label>
         Observações (opcional)
-        <textarea rows={2} {...campo('observacoes')} />
+        <textarea rows={2} maxLength={1000} {...campo('observacoes')} />
       </label>
 
       <Mensagem erro={erro} />

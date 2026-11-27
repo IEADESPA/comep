@@ -326,14 +326,14 @@ describe('Fase 5.5, parte 11 — as notificações', () => {
     })
 
     it('o aparelho inscrito ativa os avisos; o mesmo aparelho com outra pessoa passa para ela; cada um vê só os seus', async () => {
-      await inscrever(m[0], 'https://push.exemplo.test/aparelho-1')
+      await inscrever(m[0], 'https://fcm.googleapis.com/fcm/send/aparelho-1')
       const p = (await chamar(m[0], 'select public.minhas_preferencias_avisos() as p')).rows[0] as {
         p: { ativou_em: string | null; aparelhos: unknown[] }
       }
       assert.notEqual(p.p.ativou_em, null)
       assert.equal(p.p.aparelhos.length, 1)
       // o computador da sede: entrou outra pessoa no mesmo navegador
-      await inscrever(m[1], 'https://push.exemplo.test/aparelho-1')
+      await inscrever(m[1], 'https://fcm.googleapis.com/fcm/send/aparelho-1')
       assert.equal((await chamar(m[0], 'select 1 from public.inscricoes_push where arquivado_em is null')).rows.length, 0)
       assert.equal((await chamar(m[1], 'select 1 from public.inscricoes_push where arquivado_em is null')).rows.length, 1)
       await assert.rejects(
@@ -343,7 +343,7 @@ describe('Fase 5.5, parte 11 — as notificações', () => {
         ),
         erroComCodigo(BLOQUEADO_PELO_BANCO),
       )
-      await inscrever(m[0], 'https://push.exemplo.test/aparelho-2')
+      await inscrever(m[0], 'https://fcm.googleapis.com/fcm/send/aparelho-2')
       await assert.rejects(chamar(m[0], 'select endpoint from public.push_pendentes(10)'), erroComCodigo(SEM_PERMISSAO))
     })
 
@@ -361,6 +361,12 @@ describe('Fase 5.5, parte 11 — as notificações', () => {
       await db.query("select interno.notificar(array[$1]::uuid[], 'recado', 'Recado', 'Para quem não ativou.', null, 'recado:envio')", [
         pessoa[2],
       ])
+      // o lote leva no máximo 3 avisos de cada pessoa (revisão de segurança, S1-01): os avisos dos testes de cima já
+      // foram mandados, e ficam na fila só os deste teste
+      await db.query(
+        "update public.notificacoes set push_enviado_em = now() where pessoa_id = any($1::uuid[]) and coalesce(chave, '') not in ('mural:envio', 'recado:envio')",
+        [[pessoa[0], pessoa[1]]],
+      )
       const lista = await pendentes()
       const ids = async (p: string, chave: string) => (await comChave(p, chave))[0].id
       const doM1Mural = await ids(pessoa[0], 'mural:envio')
@@ -389,7 +395,7 @@ describe('Fase 5.5, parte 11 — as notificações', () => {
       assert.equal(ap.motivo_arquivo, 'expirou')
       assert.ok(!(await pendentes()).some((l) => l.notificacao_id === doM1Mural), 'sem aparelho, nada a mandar')
       // o que deu certo fica marcado
-      const doM2 = (await pendentes()).find((l) => l.endpoint === 'https://push.exemplo.test/aparelho-1')
+      const doM2 = (await pendentes()).find((l) => l.endpoint === 'https://fcm.googleapis.com/fcm/send/aparelho-1')
       if (doM2) {
         await db.query('select interno.push_resultado($1::jsonb)', [
           JSON.stringify([{ notificacao_id: doM2.notificacao_id, inscricao_id: doM2.inscricao_id, ok: true, status: 201 }]),

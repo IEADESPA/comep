@@ -28,7 +28,7 @@ const FOTO = {
 test.describe('ministro fictício (sessão guardada)', () => {
   test.use({ storageState: arquivoDaSessao('ministro') })
 
-  test('vê os próprios dados, corrige o telefone e troca a foto', async ({ page }) => {
+  test('vê os próprios dados e corrige o telefone', async ({ page }) => {
     // a ficha com abas (telas novas, Fase 5.5): cada aba tem endereço próprio
     await page.goto('meu-perfil/comep')
     await expect(page.getByRole('heading', { name: 'Meu perfil', level: 1 })).toBeAttached()
@@ -46,14 +46,12 @@ test.describe('ministro fictício (sessão guardada)', () => {
     await page.getByLabel('Telefone (WhatsApp)').fill(telefone)
     await page.getByRole('button', { name: 'Salvar meus dados' }).click()
     await expect(mensagemNaTela(page, 'Seus dados foram salvos.')).toBeVisible()
-
-    await page.locator('.botao-arquivo input[type=file]').setInputFiles(FOTO)
-    await expect(mensagemNaTela(page, 'Foto atualizada.')).toBeVisible()
-    await expect(page.getByRole('img', { name: 'Sua foto' })).toBeVisible()
+    // a troca da foto fica no teste de baixo, com um ministro novo a cada rodada: a própria pessoa troca a foto
+    // até 10 vezes por dia, e este ministro fictício é o mesmo em todas as rodadas
   })
 })
 
-test('o ministro pede troca de igreja, a secretaria aprova; o ministro troca a própria senha', async ({ page }, info) => {
+test('o ministro troca a foto e pede troca de igreja, a secretaria aprova; o ministro troca a própria senha', async ({ page }, info) => {
   test.setTimeout(120_000)
   const sufixo = sufixoUnico(info.project.name)
   const nome = `Troca E2E ${sufixo}`
@@ -64,6 +62,12 @@ test('o ministro pede troca de igreja, a secretaria aprova; o ministro troca a p
     senha: 'SenhaE2e123',
     igreja: 'Igreja Fictícia A (teste)',
   })
+
+  // O ministro troca a própria foto (aba "Meus dados")
+  await page.goto('meu-perfil')
+  await page.locator('.botao-arquivo input[type=file]').setInputFiles(FOTO)
+  await expect(mensagemNaTela(page, 'Foto atualizada.')).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Sua foto' })).toBeVisible()
 
   // O ministro pede a troca para a Igreja B (aba "Minha igreja" do perfil)
   await page.goto('meu-perfil/igreja')

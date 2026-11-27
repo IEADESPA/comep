@@ -28,6 +28,7 @@ import { useCarregar } from '../../estado/useCarregar'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarData, hojeIso, numeroDoRegistro } from '../../utilitarios/formatos'
 import { erroDaIdentidade, identidadeInicial, identidadeParaGravar } from '../../utilitarios/identidade'
+import { TAMANHO_DO_NOME, TAMANHO_DO_TELEFONE } from '../../utilitarios/textoLimpo'
 import { CredencialNaTela, SituacaoAgora } from '../credencial/Credenciais'
 import { FalarPeloWhatsApp } from './FalarPeloWhatsApp'
 
@@ -225,11 +226,11 @@ function Dados({ ficha, concluir }: Pick<PropsConteudo, 'ficha' | 'concluir'>) {
         <div className="grade-form">
           <label className="largura-total">
             Nome completo *
-            <input required value={nome} onChange={(e) => setNome(e.target.value)} />
+            <input required maxLength={TAMANHO_DO_NOME} value={nome} onChange={(e) => setNome(e.target.value)} />
           </label>
           <label>
             Telefone (WhatsApp)
-            <input type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+            <input type="tel" maxLength={TAMANHO_DO_TELEFONE} value={telefone} onChange={(e) => setTelefone(e.target.value)} />
           </label>
           <label>
             E-mail

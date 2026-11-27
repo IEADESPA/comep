@@ -1,6 +1,7 @@
 // Pedido de associação (Art. 7º) e arquivos (foto e comprovante) no Storage.
 import { cliente, falha, ok, type Resultado } from './cliente'
 import { gravarIdentidade, lerIdentidade, type IdentidadeGravada } from './credencial'
+import { semInvisiveis } from '../utilitarios/textoLimpo'
 
 export type SituacaoPedido = 'enviado' | 'pendencia' | 'aguardando_assembleia' | 'aprovado' | 'recusado' | 'desistiu'
 
@@ -156,7 +157,7 @@ export async function atualizarMeusDados(
   if (gravada.erro !== null) return gravada
   const { error } = await cliente()
     .from('pessoas')
-    .update({ nome: nome.trim(), telefone: telefone.trim() || null })
+    .update({ nome: semInvisiveis(nome), telefone: semInvisiveis(telefone) || null })
     .eq('id', pessoaId)
   return error ? falha(error) : ok(null)
 }
