@@ -2,7 +2,7 @@
 // veio (faltava na ativação) e a tolerância do alvará que vence em 31/12. Rodar: npm test
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { fimDaTolerancia, oQueSuspendeu, porqueSuspensa, separarVencidos } from '../../src/utilitarios/regularizacao.ts'
+import { fimDaTolerancia, oQueSuspendeu, pendenciaDaAtivacao, porqueSuspensa, separarVencidos } from '../../src/utilitarios/regularizacao.ts'
 
 describe('as regras de 26/11/2026 nas frases', () => {
   it('o que suspendeu: o que venceu e o que nunca veio (faltava na ativação), sem dizer "venceu" do que nunca veio', () => {
@@ -22,6 +22,23 @@ describe('as regras de 26/11/2026 nas frases', () => {
     assert.deepEqual(separarVencidos({ vencidos: [], nunca_vieram: [] }), { venceram: [], nuncaVieram: [] })
     assert.deepEqual(oQueSuspendeu({ vencidos: ['estatuto', 'alvara'], nunca_vieram: ['estatuto'] }), ['Venceu: Alvará de licenciamento', 'Não veio: Estatuto'])
     assert.deepEqual(oQueSuspendeu({ vencidos: ['ata_diretoria', 'alvara'] }), ['Venceu: Ata da diretoria, Alvará de licenciamento'])
+  })
+
+  it('a igreja em regularização (regra 1, 27/11/2026): o que nunca veio e ainda está nos dias da ativação, sem suspender', () => {
+    const tudo = ['estatuto', 'cartao_cnpj', 'ata_diretoria', 'alvara'] as const
+    assert.deepEqual(
+      pendenciaDaAtivacao({ situacao: 'regular', pendencias: [...tudo], pendencias_ate: '2027-01-01', nunca_vieram: [...tudo] }),
+      { itens: [...tudo], ate: '2027-01-01' },
+    )
+    // só o que nunca veio (o alvará na tolerância de janeiro, ou vencido antes da ativação, "venceu")
+    assert.deepEqual(
+      pendenciaDaAtivacao({ situacao: 'regular', pendencias: ['estatuto', 'alvara'], pendencias_ate: '2027-01-01', nunca_vieram: ['estatuto'] }),
+      { itens: ['estatuto'], ate: '2027-01-01' },
+    )
+    assert.equal(pendenciaDaAtivacao({ situacao: 'regular', pendencias: ['alvara'], pendencias_ate: '2027-01-31', nunca_vieram: [] }), null)
+    // o novo chegou e espera a conferência (sem data), ou a igreja já está suspensa: não é isto
+    assert.equal(pendenciaDaAtivacao({ situacao: 'regular', pendencias: ['alvara'], pendencias_ate: null, nunca_vieram: ['alvara'] }), null)
+    assert.equal(pendenciaDaAtivacao({ situacao: 'suspensa', pendencias: [], pendencias_ate: null, nunca_vieram: [...tudo] }), null)
   })
 
   it('a tolerância do alvará que vence em 31/12: o dia em que acaba', () => {

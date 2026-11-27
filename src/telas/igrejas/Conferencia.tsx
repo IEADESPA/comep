@@ -236,7 +236,7 @@ function Analise({ id }: { id: string }) {
                               <strong>{NOME_DO_DOCUMENTO[tipo]}</strong>
                               <span>
                                 {tipo === 'alvara'
-                                  ? `ainda não veio: a igreja pode entrar, mas fica suspensa até ele chegar; o pastor tem ${regras.dias_para_mandar} dias, da ativação, para mandar`
+                                  ? `ainda não veio: a igreja pode entrar e mandar depois (${regras.dias_para_mandar} dias, da ativação, ou fica suspensa)`
                                   : 'ainda não veio: o pastor precisa mandar'}
                               </span>
                             </span>
@@ -251,8 +251,8 @@ function Analise({ id }: { id: string }) {
                   <section className="bloco" aria-labelledby="titulo-entrar">
                     <h2 id="titulo-entrar">Para a igreja entrar</h2>
                     <p className="detalhe">
-                      Com os {conferencia.total} itens aprovados, o botão se libera. Ativada, a igreja fica regular (sem o alvará, suspensa até
-                      ele chegar) e o pastor que cadastrou vira o pastor presidente dela.
+                      Com os {conferencia.total} itens aprovados, o botão se libera. Ativada, a igreja fica regular e o pastor que cadastrou vira
+                      o pastor presidente dela.
                     </p>
                     <button
                       type="button"

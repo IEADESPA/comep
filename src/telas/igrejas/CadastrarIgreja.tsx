@@ -326,7 +326,7 @@ export function PassoAPassoIgreja({ quem, listas, eu }: { quem: 'secretaria' | '
 
   const faltaAgora = faltaNoPasso(passo, dados)
   const docsObrigatorios = (['estatuto', 'cartao_cnpj', 'ata_diretoria'] as const).filter((t) => docs[t].length === 0)
-  // sem o alvará, a igreja entra suspensa (regras de 26/11/2026): o aviso lista ele também
+  // sem o alvará, a igreja entra em regularização, com os dias para mandar (regras de 26/11/2026): o aviso lista ele também
   const faltando = docs.alvara.length === 0 ? [...docsObrigatorios, 'alvara' as const] : docsObrigatorios
 
   return (
@@ -554,8 +554,8 @@ export function PassoAPassoIgreja({ quem, listas, eu }: { quem: 'secretaria' | '
             {faltando.length > 0 && `Faltam: ${faltando.map((t) => NOME_DO_DOCUMENTO[t]).join(', ')}. `}
             {!diretoriaPronta && 'Sem a diretoria completa, a ata não vai agora. '}
             {pastor
-              ? `${docsObrigatorios.length > 0 || !diretoriaPronta ? 'Você pode mandar depois, em "Minha igreja": a secretaria só ativa a igreja com o estatuto, o Cartão CNPJ e a ata conferidos. ' : ''}${docs.alvara.length === 0 ? `Sem o alvará, a igreja entra suspensa: você terá ${regras.dias_para_mandar} dias, da ativação, para mandar.` : ''}`
-              : `Dá para mandar depois, na ficha da igreja, mas a igreja entra suspensa: o pastor presidente tem ${regras.dias_para_mandar} dias, contados de hoje, para mandar; depois, o perfil dele é bloqueado.`}
+              ? `${docsObrigatorios.length > 0 || !diretoriaPronta ? 'Você pode mandar depois, em "Minha igreja": a secretaria só ativa a igreja com o estatuto, o Cartão CNPJ e a ata conferidos. ' : ''}${docs.alvara.length === 0 ? `Sem o alvará, a igreja entra em regularização: você terá ${regras.dias_para_mandar} dias, da ativação, para mandar; depois, ela fica suspensa.` : ''}`
+              : `Dá para mandar depois, na ficha da igreja. Sem eles, a igreja fica com a pendência por ${regras.dias_para_mandar} dias, contados de hoje, e depois é suspensa.`}
           </p>
         )}
         {passo === 4 && (

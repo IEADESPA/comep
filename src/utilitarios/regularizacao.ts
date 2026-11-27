@@ -125,6 +125,19 @@ export function porqueSuspensa(s: Pick<SituacaoIgreja, 'vencidos' | 'nunca_viera
   return partes.join(' e ')
 }
 
+/**
+ * A igreja em regularização (a regra 1, confirmada em 27/11/2026): o que nunca veio e ainda está nos dias para mandar,
+ * contados da ativação, com a igreja regular. Null se não há nada assim (o alvará na tolerância de janeiro e o que
+ * venceu antes da ativação "venceram"; o novo que espera a conferência não tem data).
+ */
+export function pendenciaDaAtivacao(
+  s: Pick<SituacaoIgreja, 'situacao' | 'pendencias' | 'pendencias_ate' | 'nunca_vieram'>,
+): { itens: ItemRegularidade[]; ate: string } | null {
+  if (s.situacao !== 'regular' || !s.pendencias_ate) return null
+  const itens = s.pendencias.filter((p) => s.nunca_vieram?.includes(p))
+  return itens.length > 0 ? { itens, ate: s.pendencias_ate } : null
+}
+
 /** Até quando vai a tolerância do alvará que vence em 31/12 ("31/01" com 31 dias); null sem tolerância. */
 export function fimDaTolerancia(dias: number): string | null {
   if (dias <= 0) return null

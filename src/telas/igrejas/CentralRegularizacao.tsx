@@ -198,9 +198,9 @@ function Regras({ regras, podeMudar, aoSalvar }: { regras: RegrasIgrejas; podeMu
     <section className="bloco" aria-labelledby="titulo-regras-regularizacao">
       <h2 id="titulo-regras-regularizacao">As regras</h2>
       <p className="detalhe">
-        Faltou algum documento na ativação, ou venceu a ata ou o alvará, a igreja fica suspensa (desde a ativação, ou do dia seguinte ao
-        vencimento). O pastor presidente tem então {regras.dias_para_mandar} dias só para mandar o documento; sem mandar, o perfil dele é bloqueado
-        (ele continua ministro associado).{' '}
+        O documento que faltou na ativação tem {regras.dias_para_mandar} dias, contados dela, com a igreja ainda regular; passado o prazo, ela
+        fica suspensa. Venceu a ata ou o alvará, a igreja fica suspensa no dia seguinte. Suspensa, o pastor presidente tem{' '}
+        {regras.dias_para_mandar} dias só para mandar o documento; sem mandar, o perfil dele é bloqueado (ele continua ministro associado).{' '}
         {tolerancia ? `O alvará que vence em 31/12 só suspende se o novo não chegar até ${tolerancia}. ` : ''}Mandado no prazo e recusado depois
         dele, o pastor ainda tem {regras.dias_apos_recusa} dias, contados da recusa.
       </p>

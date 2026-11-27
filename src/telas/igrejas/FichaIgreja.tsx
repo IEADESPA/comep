@@ -724,8 +724,8 @@ function Regularizar({ igreja, concluir }: { igreja: Igreja; concluir: Concluir 
     >
       <h2>Regularizar a igreja</h2>
       <p className="detalhe">
-        Com o CNPJ, a igreja passa ao cadastro completo e fica suspensa até chegarem o estatuto, o Cartão CNPJ, a ata e o alvará (aba
-        Documentos): os dias para mandar contam de hoje. Conferidos, as limitações saem.
+        Com o CNPJ, a igreja passa ao cadastro completo. Depois, mande o estatuto, o Cartão CNPJ, a ata e o alvará (aba Documentos):
+        conferidos, as limitações saem.
       </p>
       <label>
         CNPJ *
