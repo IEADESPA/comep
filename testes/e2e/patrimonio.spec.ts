@@ -51,7 +51,10 @@ test.describe('presidência', () => {
     const dia = diaDaqui(info.project.name === 'celular' ? 41 : 40)
     await abrirFuncao(page, 'Pedir emprestado')
     const pedido = page.getByRole('form', { name: 'Pedir emprestado' })
-    await pedido.getByLabel(/^Para \*/).selectOption({ index: 1 })
+    // só a igreja regular pega empréstimo: a primeira que a lista deixa escolher (desde as regras de 26/11/2026, as
+    // igrejas fictícias antigas, sem os documentos, ficam suspensas)
+    const para = pedido.getByLabel(/^Para \*/)
+    await para.selectOption((await para.locator('optgroup[label="Igreja"] option:not([disabled])').first().getAttribute('value')) ?? '')
     await pedido.getByLabel(/^Retirada \*/).fill(dia)
     await pedido.getByLabel(/^Devolução \*/).fill(dia)
     await pedido.getByLabel(/^Para que é \*/).fill('Culto fictício (teste automático)')

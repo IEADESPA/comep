@@ -22,7 +22,24 @@ test('o painel do módulo, a tabela por situação e a Central de regularizaçã
   await abrirFuncao(page, 'Central de regularização')
   await expect(page).toHaveURL(/\/igrejas\/regularizacao$/)
   await expect(page.getByRole('heading', { name: 'As regras' })).toBeVisible()
-  await expect(page.getByLabel('Dias para mandar o documento vencido')).toHaveValue('30')
+  // as regras de 26/11/2026: os dias, sem o fim da transição
+  const regras = page.getByRole('region', { name: 'As regras' })
+  await expect(regras.getByLabel('Dias para mandar o documento que falta ou que venceu')).toHaveValue('30')
+  await expect(regras.getByLabel(/^Tolerância do alvará que vence em 31\/12/)).toHaveValue('31')
+  await expect(regras.getByLabel('Dias para mandar de novo, depois da recusa fora do prazo')).toHaveValue('7')
+  await expect(regras.getByLabel('Dias da associação privada para mudar para organização religiosa')).toHaveValue('120')
+  await expect(regras.getByLabel('Dias da igreja sem registro para se registrar')).toHaveValue('120')
+  await expect(regras).toContainText('O alvará que vence em 31/12 só suspende se o novo não chegar até 31/01.')
+
+  // S7-08: antes de salvar, a tela diz quantas igrejas mudam de situação hoje; "Voltar" não salva nada
+  await regras.getByLabel('Dias para mandar de novo, depois da recusa fora do prazo').fill('8')
+  await regras.getByRole('button', { name: 'Salvar as regras' }).click()
+  await expect(regras.getByRole('status').filter({ hasText: /^Com estas regras, / })).toBeVisible()
+  await expect(regras.getByRole('button', { name: 'Confirmar e salvar as regras' })).toBeVisible()
+  await regras.getByRole('button', { name: 'Voltar' }).click()
+  await expect(regras.getByRole('button', { name: 'Salvar as regras' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('region', { name: 'As regras' }).getByLabel('Dias para mandar de novo, depois da recusa fora do prazo')).toHaveValue('7')
 })
 
 test('a igreja sem registro: o cadastro simples, as limitações e o caminho para regularizar', async ({ page }, info) => {
@@ -41,6 +58,9 @@ test('a igreja sem registro: o cadastro simples, as limitações e o caminho par
   // a aba Situação: as limitações e o "Regularizar a igreja"; a agenda não registra empréstimo
   await abrirAbaDaIgreja(page, 'Situação')
   await expect(page.getByRole('list', { name: 'O que fica limitado' })).toContainText('Ninguém recebe o perfil de pastor presidente')
+  // regras de 26/11/2026: o prazo para se registrar conta do cadastro (120 dias, nas regras)
+  await expect(page.getByRole('list', { name: 'O que fica limitado' })).toContainText('Tem 120 dias para se regularizar')
+  await expect(page.getByText(/^sem CNPJ, estatuto e ata: cadastro simples · registrar até \d{2}\/\d{2}\/\d{4}$/)).toBeVisible()
   await expect(page.getByRole('form', { name: 'Regularizar a igreja' })).toBeVisible()
   await abrirAbaDaIgreja(page, 'Agenda')
   await expect(page.getByText('Sem registro, a igreja não pega empréstimos.')).toBeVisible()

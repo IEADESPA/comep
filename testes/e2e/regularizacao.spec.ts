@@ -195,6 +195,10 @@ test('o pastor cadastra a igreja dele: o convite, os 5 passos e o acompanhamento
     await expect(mensagemNaTela(page, `${nome}: conferido.`)).toBeVisible()
   }
   await expect(page.getByRole('button', { name: 'Ativar a igreja' })).toBeDisabled()
+  // o alvará não veio: a igreja pode entrar, suspensa, com os dias das regras (S7-07; regras de 26/11/2026)
+  await expect(item('Alvará de licenciamento')).toContainText(
+    'ainda não veio: a igreja pode entrar, mas fica suspensa até ele chegar; o pastor tem 30 dias, da ativação, para mandar',
+  )
 
   // o pastor vê o selo em cada item e manda de novo só o que voltou
   await trocarPara(page, sessao)
@@ -215,11 +219,19 @@ test('o pastor cadastra a igreja dele: o convite, os 5 passos e o acompanhamento
   await page.getByRole('button', { name: 'Ativar a igreja' }).click()
   await expect(mensagemNaTela(page, `${igreja}: igreja ativada no COMEP.`)).toBeVisible()
   const endereco = page.url()
-  await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Regular')
+  // sem o alvará, a igreja fica suspensa desde a ativação (hoje), e os 30 dias contam dela (S7-03; regras de 26/11/2026)
+  await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Suspensa')
+  await abrirAbaDaIgreja(page, 'Situação')
+  await expect(page.getByText(`Suspensa desde ${br(dia(0))}`)).toBeVisible()
+  await expect(page.getByText('Não veio: Alvará de licenciamento.')).toBeVisible()
 
+  // o pastor presidente não nasce bloqueado: na Minha igreja, o caminho de volta, com os 30 dias para mandar o alvará
   await trocarPara(page, sessao)
   await page.goto('minha-igreja')
-  await expect(page.getByRole('heading', { name: igreja, level: 2 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Para a igreja voltar a ser regular', level: 1 })).toBeVisible()
+  await expect(page.getByText(`${igreja} · suspensa desde ${br(dia(0))}, porque o alvará não veio.`)).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Os dias para mandar' })).toContainText('30')
+  await expect(page.getByRole('region', { name: 'Mande aqui o alvará' })).toBeVisible()
 
   // Limpeza: arquiva o pastor e a igreja de teste
   await arquivarAssociadoDeTeste(page, pastor)

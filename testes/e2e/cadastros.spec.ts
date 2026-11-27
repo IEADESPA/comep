@@ -41,7 +41,9 @@ test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async 
   await page.getByLabel(/^Sigla/).fill(sigla)
   // os passos: endereço e contato, pastor e diretoria, documentos (dá para mandar depois) e revisar
   for (let passo = 0; passo < 4; passo++) await page.getByRole('button', { name: /^Continuar/ }).click()
-  await expect(page.getByText('Faltam: Estatuto da igreja, Cartão CNPJ, Ata da diretoria.')).toBeVisible()
+  await expect(page.getByText('Faltam: Estatuto da igreja, Cartão CNPJ, Ata da diretoria, Alvará de licenciamento.')).toBeVisible()
+  // regras de 26/11/2026: sem eles, a igreja entra suspensa, e o aviso diz os dias das regras (S7-07)
+  await expect(page.getByText(/a igreja entra suspensa: o pastor presidente tem 30 dias, contados de hoje, para mandar/)).toBeVisible()
   await page.getByRole('button', { name: 'Cadastrar a igreja' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Igreja cadastrada.' })).toBeVisible()
   await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
@@ -51,10 +53,12 @@ test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async 
   await page.getByRole('button', { name: 'Salvar', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Alterações salvas.' })).toBeVisible()
 
-  // sem os documentos, a igreja nova fica regular até o fim da transição, com a pendência (a natureza já veio no cadastro)
+  // sem os documentos, a igreja nova fica suspensa desde a ativação (hoje), com os 30 dias para mandar; o que nunca veio
+  // não "venceu" (regras de 26/11/2026; a natureza já veio no cadastro)
   await abrirAbaDaIgreja(page, 'Situação')
-  await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Regular')
-  await expect(page.getByText(/^faltam 4 itens \(até /)).toBeVisible()
+  await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Suspensa')
+  await expect(page.getByText('4 itens não vieram · faltam 30 dias para mandar', { exact: true })).toBeVisible()
+  await expect(page.getByText('Não veio: Estatuto, Cartão CNPJ, Ata da diretoria, Alvará de licenciamento.')).toBeVisible()
 
   await arquivarIgrejaAberta(page)
   await expect(page.getByRole('status').filter({ hasText: `Igreja "${nome}" arquivada.` })).toBeVisible()
