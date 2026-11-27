@@ -41,7 +41,9 @@ test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async 
   await page.getByLabel(/^Sigla/).fill(sigla)
   // os passos: endereço e contato, pastor e diretoria, documentos (dá para mandar depois) e revisar
   for (let passo = 0; passo < 4; passo++) await page.getByRole('button', { name: /^Continuar/ }).click()
-  await expect(page.getByText('Faltam: Estatuto da igreja, Cartão CNPJ, Ata da diretoria.')).toBeVisible()
+  await expect(page.getByText('Faltam: Estatuto da igreja, Cartão CNPJ, Ata da diretoria, Alvará de licenciamento.')).toBeVisible()
+  // regras de 26/11/2026: sem eles, a pendência tem os dias das regras (S7-07), e só depois a igreja é suspensa
+  await expect(page.getByText(/Sem eles, a igreja fica com a pendência por 30 dias, contados de hoje, e depois é suspensa\./)).toBeVisible()
   await page.getByRole('button', { name: 'Cadastrar a igreja' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Igreja cadastrada.' })).toBeVisible()
   await expect(page.getByRole('heading', { name: nome, level: 1 })).toBeVisible()
@@ -51,10 +53,12 @@ test('cadastra, corrige e arquiva uma igreja; a auditoria registra tudo', async 
   await page.getByRole('button', { name: 'Salvar', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Alterações salvas.' })).toBeVisible()
 
-  // sem os documentos, a igreja nova fica regular até o fim da transição, com a pendência (a natureza já veio no cadastro)
+  // sem os documentos, a igreja nova fica regular, com a pendência e os 30 dias contados da ativação (hoje): a regra 1
+  // de 26/11/2026, confirmada em 27/11 (só passado o prazo ela é suspensa; a natureza já veio no cadastro)
+  const ate = new Date(Date.now() + 29 * 86_400_000).toLocaleDateString('pt-BR', { timeZone: 'America/Belem' })
   await abrirAbaDaIgreja(page, 'Situação')
   await expect(page.getByRole('region', { name: 'A igreja', exact: true })).toContainText('Regular')
-  await expect(page.getByText(/^faltam 4 itens \(até /)).toBeVisible()
+  await expect(page.getByText(`faltam 4 itens (até ${ate})`, { exact: true })).toBeVisible()
 
   await arquivarIgrejaAberta(page)
   await expect(page.getByRole('status').filter({ hasText: `Igreja "${nome}" arquivada.` })).toBeVisible()

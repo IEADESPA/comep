@@ -18,6 +18,7 @@ import {
   type TipoDocumentoIgreja,
 } from '../../dados/igrejas'
 import { useCarregar } from '../../estado/useCarregar'
+import { useRegrasDasIgrejas } from '../../estado/useRegrasDasIgrejas'
 import { cnpjValido, formatarData, hojeIso } from '../../utilitarios/formatos'
 import { menorMandato } from '../../utilitarios/regularizacao'
 import { EscolherArquivos, FormDiretoria, type ArquivoEscolhido } from './componentes'
@@ -98,6 +99,7 @@ export function CadastrarIgreja() {
 
 /** As limitações da igreja sem registro (os dois que não e os dois que sim). */
 export function Limitacoes() {
+  const regras = useRegrasDasIgrejas()
   const linha = (bom: boolean, titulo: string, sub: string) => (
     <li className={bom ? 'limite-bom' : 'limite-ruim'}>
       <Icone nome={bom ? 'check' : 'x'} tamanho={18} traco={2.6} />
@@ -112,7 +114,7 @@ export function Limitacoes() {
       {linha(false, 'Não pede empréstimos do patrimônio', 'sem CNPJ, não há como fazer o contrato')}
       {linha(false, 'Ninguém recebe o perfil de pastor presidente', 'sem ata, não há mandato que o justifique')}
       {linha(true, 'Aparece na lista de igrejas, com nome, sigla e telefone', 'e os ministros dela podem ser associados')}
-      {linha(true, 'Pode se regularizar quando quiser', 'mandando o CNPJ, o estatuto e a ata')}
+      {linha(true, `Tem ${regras.dias_readequacao} dias para se regularizar`, 'contados do cadastro, mandando o CNPJ, o estatuto e a ata')}
     </ul>
   )
 }
@@ -263,6 +265,7 @@ export function PassoAPassoIgreja({ quem, listas, eu }: { quem: 'secretaria' | '
   const [enviando, setEnviando] = useState<string | null>(null)
   const titulo = useRef<HTMLHeadingElement>(null)
   const pastor = quem === 'pastor'
+  const regras = useRegrasDasIgrejas()
 
   const campo = (nome: keyof DadosCadastroIgreja) => ({
     value: dados[nome],
@@ -323,6 +326,8 @@ export function PassoAPassoIgreja({ quem, listas, eu }: { quem: 'secretaria' | '
 
   const faltaAgora = faltaNoPasso(passo, dados)
   const docsObrigatorios = (['estatuto', 'cartao_cnpj', 'ata_diretoria'] as const).filter((t) => docs[t].length === 0)
+  // sem o alvará, a igreja entra em regularização, com os dias para mandar (regras de 26/11/2026): o aviso lista ele também
+  const faltando = docs.alvara.length === 0 ? [...docsObrigatorios, 'alvara' as const] : docsObrigatorios
 
   return (
     <form
@@ -383,9 +388,9 @@ export function PassoAPassoIgreja({ quem, listas, eu }: { quem: 'secretaria' | '
               <div className="faixa-resultado faixa-atencao">
                 <strong>Associação privada: aceita com prazo</strong>
                 <span>
-                  1 · Até o fim do mandato desta diretoria: eleger a nova e, na mesma ata, mudar a natureza para organização religiosa. 2 · Depois
-                  da ata, o prazo para mandar o Cartão CNPJ novo (90 dias; muda na Central de regularização). Igreja é organização religiosa,
-                  não associação (Código Civil, art. 44, IV): essa diferença foi uma conquista dos pastores que vieram antes.
+                  A igreja tem {regras.dias_natureza} dias, contados da ativação, para mudar para organização religiosa e mandar o Cartão CNPJ
+                  novo; depois, fica suspensa. Igreja é organização religiosa, não associação (Código Civil, art. 44, IV): essa diferença foi
+                  uma conquista dos pastores que vieram antes.
                 </span>
               </div>
             )}
@@ -544,13 +549,13 @@ export function PassoAPassoIgreja({ quem, listas, eu }: { quem: 'secretaria' | '
             </Revisao>
           </dl>
         )}
-        {passo === 4 && (docsObrigatorios.length > 0 || !diretoriaPronta) && (
+        {passo === 4 && (faltando.length > 0 || !diretoriaPronta) && (
           <p className="aviso-texto">
-            {docsObrigatorios.length > 0 && `Faltam: ${docsObrigatorios.map((t) => NOME_DO_DOCUMENTO[t]).join(', ')}. `}
+            {faltando.length > 0 && `Faltam: ${faltando.map((t) => NOME_DO_DOCUMENTO[t]).join(', ')}. `}
             {!diretoriaPronta && 'Sem a diretoria completa, a ata não vai agora. '}
             {pastor
-              ? 'Você pode mandar depois, em "Minha igreja": a secretaria só ativa a igreja com tudo conferido.'
-              : 'Dá para mandar depois, na ficha da igreja. Sem eles, a igreja fica com a pendência até o fim da transição (28/04/2027) e depois é suspensa.'}
+              ? `${docsObrigatorios.length > 0 || !diretoriaPronta ? 'Você pode mandar depois, em "Minha igreja": a secretaria só ativa a igreja com o estatuto, o Cartão CNPJ e a ata conferidos. ' : ''}${docs.alvara.length === 0 ? `Sem o alvará, a igreja entra em regularização: você terá ${regras.dias_para_mandar} dias, da ativação, para mandar; depois, ela fica suspensa.` : ''}`
+              : `Dá para mandar depois, na ficha da igreja. Sem eles, a igreja fica com a pendência por ${regras.dias_para_mandar} dias, contados de hoje, e depois é suspensa.`}
           </p>
         )}
         {passo === 4 && (

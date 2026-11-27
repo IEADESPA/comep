@@ -163,17 +163,25 @@ export type SituacaoIgreja = {
   situacao: NivelIgreja
   /** o que suspendeu a igreja */
   vencidos: ItemRegularidade[]
-  /** o que falta e ainda está no prazo da transição */
+  /** o que nunca veio (faltava na ativação), suspenso ou ainda nos dias para mandar */
+  nunca_vieram?: ItemRegularidade[]
+  /** o que falta e ainda está no prazo, sem suspender (o que nunca veio, nos dias depois da ativação; o alvará na tolerância de janeiro) */
   pendencias: ItemRegularidade[]
+  /** até quando mandar o que falta; null quando o novo já chegou e espera a conferência */
   pendencias_ate?: string | null
   suspensa_desde?: string | null
-  /** o último dos 30 dias para mandar o documento */
+  /** o último dia para mandar o documento (os dias das regras, ou os dias depois da recusa fora do prazo) */
   prazo_ate?: string | null
   perfil_bloqueado: boolean
   alvara_ate?: string | null
   mandato_ate?: string | null
+  /** associação privada: até quando mudar para organização religiosa */
   natureza_prazo?: string | null
   proximo_vencimento?: string | null
+  /** o dia em que a igreja passou a valer: os prazos contam dele */
+  ativada_em?: string | null
+  /** sem registro: até quando se registrar */
+  readequacao_ate?: string | null
 }
 
 export const NOME_DO_NIVEL: Record<NivelIgreja, string> = {
@@ -211,28 +219,50 @@ export async function situacaoDasIgrejas(): Promise<Resultado<SituacaoNaLista[]>
   return error ? falha(error) : ok((data ?? []) as SituacaoNaLista[])
 }
 
+/** As regras da regularização (decisões do presidente de 26/11/2026), em dias. Só a presidência muda. */
 export type RegrasIgrejas = {
-  transicao_ate: string
+  /** para mandar o documento que falta (da ativação) ou que venceu, antes de o pastor perder o perfil */
   dias_para_mandar: number
-  dias_cartao_cnpj: number
-  /** o prazo da readequação dos ministros das igrejas sem registro (Fase 5.5, parte 7) */
-  readequacao_ate: string
+  /** o alvará que vence em 31/12 só suspende depois destes dias (31: até 31/01; 0: sem tolerância) */
+  dias_tolerancia_alvara: number
+  /** mandado no prazo e recusado depois dele: os dias, da recusa, para mandar de novo */
+  dias_apos_recusa: number
+  /** para a associação privada mudar para organização religiosa */
+  dias_natureza: number
+  /** para a igreja sem registro se registrar (a readequação dos ministros dela) */
+  dias_readequacao: number
 }
 
+const CAMPOS_REGRAS = 'dias_para_mandar, dias_tolerancia_alvara, dias_apos_recusa, dias_natureza, dias_readequacao'
+
+/** Os padrões do banco, se a linha das regras ainda não existir. */
+export const REGRAS_PADRAO: RegrasIgrejas = { dias_para_mandar: 30, dias_tolerancia_alvara: 31, dias_apos_recusa: 7, dias_natureza: 120, dias_readequacao: 120 }
+
 export async function regrasDasIgrejas(): Promise<Resultado<RegrasIgrejas>> {
-  const { data, error } = await cliente()
-    .from('config_igrejas')
-    .select('transicao_ate, dias_para_mandar, dias_cartao_cnpj, readequacao_ate')
-    .maybeSingle<RegrasIgrejas>()
+  const { data, error } = await cliente().from('config_igrejas').select(CAMPOS_REGRAS).maybeSingle<RegrasIgrejas>()
   if (error) return falha(error)
-  return ok(data ?? { transicao_ate: '2027-04-28', dias_para_mandar: 30, dias_cartao_cnpj: 90, readequacao_ate: '2027-04-28' })
+  return ok(data ?? REGRAS_PADRAO)
 }
 
 /** Só a presidência muda (o banco confere). */
 export async function salvarRegrasDasIgrejas(regras: RegrasIgrejas): Promise<Resultado<null>> {
-  const { data, error } = await cliente().from('config_igrejas').update(regras).eq('id', true).select('id')
+  const { dias_para_mandar, dias_tolerancia_alvara, dias_apos_recusa, dias_natureza, dias_readequacao } = regras
+  const { data, error } = await cliente()
+    .from('config_igrejas')
+    .update({ dias_para_mandar, dias_tolerancia_alvara, dias_apos_recusa, dias_natureza, dias_readequacao })
+    .eq('id', true)
+    .select('id')
   if (error) return falha(error)
   return data.length === 0 ? { dados: null, erro: 'Só a presidência muda as regras da regularização.' } : ok(null)
+}
+
+export type MudancaDeSituacao = { igreja_id: string; nome: string; antes: 'regular' | 'suspensa' | 'bloqueada'; depois: 'regular' | 'suspensa' | 'bloqueada' }
+export type EfeitoDasRegras = { igrejas: number; mudam: MudancaDeSituacao[] }
+
+/** Antes de salvar (S7-08): quais igrejas mudam de situação hoje com as regras novas. Nada é salvo. */
+export async function efeitoDasRegras(regras: RegrasIgrejas): Promise<Resultado<EfeitoDasRegras>> {
+  const { data, error } = await cliente().rpc('efeito_das_regras', { p_regras: regras })
+  return error ? falha(error) : ok(data as EfeitoDasRegras)
 }
 
 // ---------- O cadastro: pela secretaria, pelo pastor, a conferência item por item ----------

@@ -107,7 +107,7 @@ describe('a localização da filial, pelo link do Google Maps', () => {
 describe('os avisos (parte 6)', () => {
   const base = { situacao: 'regular' as const, vencidos: [], pendencias: [], perfil_bloqueado: false }
 
-  it('o que vence primeiro: o alvará, a ata, a natureza ou o fim da transição', () => {
+  it('o que vence primeiro: o alvará, a ata, a natureza ou o que falta (o alvará na tolerância de janeiro)', () => {
     assert.deepEqual(vencimentoMaisProximo({ ...base, alvara_ate: '2026-12-31', mandato_ate: '2028-12-31', proximo_vencimento: '2026-12-31' }), {
       item: 'alvara',
       ate: '2026-12-31',
@@ -116,7 +116,7 @@ describe('os avisos (parte 6)', () => {
       item: 'ata_diretoria',
       ate: '2026-12-01',
     })
-    assert.deepEqual(vencimentoMaisProximo({ ...base, pendencias: ['estatuto'], proximo_vencimento: '2027-04-28' }), { item: 'estatuto', ate: '2027-04-28' })
+    assert.deepEqual(vencimentoMaisProximo({ ...base, pendencias: ['alvara'], proximo_vencimento: '2028-01-31' }), { item: 'alvara', ate: '2028-01-31' })
     // suspensa, o aviso é outro (a contagem dos 30 dias)
     assert.equal(vencimentoMaisProximo({ ...base, situacao: 'suspensa', proximo_vencimento: '2026-12-31' }), null)
   })

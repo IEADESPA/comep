@@ -14,7 +14,7 @@ import {
   type SituacaoNaLista,
 } from '../../dados/igrejas'
 import { formatarData, hojeIso } from '../../utilitarios/formatos'
-import { fimDoMandato, fraseParaMandar, listaCurta } from '../../utilitarios/regularizacao'
+import { fimDoMandato, fraseParaMandar, listaCurta, porqueSuspensa } from '../../utilitarios/regularizacao'
 
 export const nomeDoDocumento = (d: Pick<DocumentoIgreja, 'tipo' | 'descricao'>) =>
   d.tipo === 'outro' ? (d.descricao ?? NOME_DO_DOCUMENTO.outro) : NOME_DO_DOCUMENTO[d.tipo]
@@ -79,19 +79,32 @@ export function faltaNaDiretoria(e: EstadoDiretoria): string | null {
   return null
 }
 
-/** A frase da situação, para a lista e o painel ("o alvará venceu em 31/12 · faltam 12 dias"). */
+/**
+ * A igreja suspensa, para o pastor: "suspensa desde 01/02/2027, porque o alvará venceu". O que nunca veio (faltava na
+ * ativação) "não veio"; a data do vencimento não entra, porque com a tolerância do alvará ela não é a véspera da
+ * suspensão (regras de 26/11/2026).
+ */
+export function fraseDaSuspensao(s: SituacaoIgreja): string {
+  return `suspensa desde ${formatarData(s.suspensa_desde)}, porque ${porqueSuspensa(s)}`
+}
+
+/** A frase da situação, para a lista e o painel ("o alvará venceu · faltam 12 dias para mandar"). */
 export function descreverSituacao(s: SituacaoIgreja, hoje: string): string {
-  if (s.situacao === 'sem_registro') return 'sem CNPJ, estatuto e ata: cadastro simples'
+  if (s.situacao === 'sem_registro') {
+    const prazo = s.readequacao_ate ? ` · registrar até ${formatarData(s.readequacao_ate)}` : ''
+    return `sem CNPJ, estatuto e ata: cadastro simples${prazo}`
+  }
   if (s.situacao === 'em_analise') return 'a secretaria está conferindo o cadastro'
   if (s.situacao === 'suspensa') {
-    const o = listaCurta(s.vencidos)
-    const verbo = s.vencidos.length === 1 ? 'venceu' : 'venceram'
-    if (s.perfil_bloqueado) return `${o}: ${verbo} · perfil do pastor bloqueado`
-    return `${o}: ${verbo} · ${s.prazo_ate ? fraseParaMandar(hoje, s.prazo_ate) : 'acabou o prazo para mandar'}`
+    const o = porqueSuspensa(s)
+    if (s.perfil_bloqueado) return `${o} · perfil do pastor bloqueado`
+    return `${o} · ${s.prazo_ate ? fraseParaMandar(hoje, s.prazo_ate) : 'acabou o prazo para mandar'}`
   }
   if (s.pendencias.length > 0) {
     const n = s.pendencias.length
-    return `${n >= 2 ? 'faltam' : 'falta'} ${listaCurta(s.pendencias)} (até ${formatarData(s.pendencias_ate)})`
+    // pendencias_ate vazio: o novo chegou no prazo e espera a conferência
+    const quando = s.pendencias_ate ? `até ${formatarData(s.pendencias_ate)}` : 'o novo espera a conferência'
+    return `${n >= 2 ? 'faltam' : 'falta'} ${listaCurta(s.pendencias)} (${quando})`
   }
   if (s.natureza_prazo) return `associação privada · mudar até ${formatarData(s.natureza_prazo)}`
   if (s.alvara_ate) return `alvará até ${formatarData(s.alvara_ate)}`

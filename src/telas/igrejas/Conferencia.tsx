@@ -25,6 +25,7 @@ import {
   type MembroDiretoriaIgreja,
 } from '../../dados/igrejas'
 import { useCarregar } from '../../estado/useCarregar'
+import { useRegrasDasIgrejas } from '../../estado/useRegrasDasIgrejas'
 import { useUmaVez } from '../../estado/useUmaVez'
 import { formatarCnpj, formatarData, formatarDataDeInstante } from '../../utilitarios/formatos'
 import { ProgressoConferencia } from '../inscricoes/Inscricoes'
@@ -145,6 +146,7 @@ function Analise({ id }: { id: string }) {
     if (r.erro === null) recarregar()
   }
   const [ativando, umaVez] = useUmaVez()
+  const regras = useRegrasDasIgrejas()
 
   return (
     <div className="tela-nova">
@@ -234,7 +236,7 @@ function Analise({ id }: { id: string }) {
                               <strong>{NOME_DO_DOCUMENTO[tipo]}</strong>
                               <span>
                                 {tipo === 'alvara'
-                                  ? 'ainda não veio: a igreja pode entrar e mandar depois (até 28/04/2027, ou fica suspensa)'
+                                  ? `ainda não veio: a igreja pode entrar e mandar depois (${regras.dias_para_mandar} dias, da ativação, ou fica suspensa)`
                                   : 'ainda não veio: o pastor precisa mandar'}
                               </span>
                             </span>

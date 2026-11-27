@@ -222,7 +222,7 @@ export const DENOMINACAO_DE_TESTE = 'Denominação Fictícia (teste) (DFT)'
 
 /**
  * Igrejas › Cadastrar igreja: o cadastro completo (com o CNPJ e a natureza), passando os 5 passos sem os documentos
- * (dá para mandar depois; até o fim da transição a igreja fica regular, com a pendência). Termina na ficha e devolve
+ * (dá para mandar depois; até lá a igreja fica suspensa, com os dias para mandar). Termina na ficha e devolve
  * o endereço dela.
  */
 export async function cadastrarIgreja(page: Page, dados: { nome: string; sigla?: string; cnpj?: string }): Promise<string> {

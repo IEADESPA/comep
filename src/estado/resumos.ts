@@ -17,7 +17,7 @@ import type { MinhaConta, Perfil } from '../dados/perfis'
 import { trocasPendentes } from '../dados/portal'
 import { listarVotacoes } from '../dados/votacoes'
 import { diaMes, formatarData, horaCurta, hojeIso } from '../utilitarios/formatos'
-import { diasEntre, documentoDoItem, fraseParaMandar, listaCurta, NOME_DO_ITEM, vencimentoMaisProximo } from '../utilitarios/regularizacao'
+import { diasEntre, documentoDoItem, fraseParaMandar, listaCurta, NOME_DO_ITEM, pendenciaDaAtivacao, vencimentoMaisProximo } from '../utilitarios/regularizacao'
 
 /** Busca e devolve só os dados (ou null, se deu erro): uma parte que falha não derruba as outras. */
 async function seguro<T>(busca: () => Promise<Resultado<T>>): Promise<T | null> {
@@ -239,8 +239,10 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
       para: `/eventos/${e.id}`,
     })
   }
-  // A regularização da igreja (Fase 5.5): suspensa, vencendo nos próximos 60 dias ou em análise
+  // A regularização da igreja (Fase 5.5): suspensa, nos dias depois da ativação, vencendo nos próximos 60 dias ou em análise
   const igreja = await igrejaDoPastor(perfis)
+  // os dias depois da ativação (a regra 1, confirmada em 27/11/2026): a igreja ainda não está suspensa
+  const emRegularizacao = igreja ? pendenciaDaAtivacao(igreja.situacao) : null
   if (igreja?.cadastro === 'em_analise') {
     itens.push({ chave: 'igreja-analise', area: 'pessoas', icone: 'igreja', forte: igreja.nome, texto: 'a secretaria está conferindo o cadastro', acao: 'Acompanhar', para: '/cadastrar-minha-igreja' })
   } else if (igreja?.situacao.situacao === 'suspensa' && !igreja.situacao.perfil_bloqueado && igreja.situacao.prazo_ate) {
@@ -254,6 +256,17 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
       para: '/minha-igreja',
       principal: true,
     })
+  } else if (emRegularizacao) {
+    itens.unshift({
+      chave: 'igreja-em-regularizacao',
+      area: 'eventos',
+      icone: 'relogio',
+      forte: 'A igreja está em regularização:',
+      texto: `mande ${listaCurta(emRegularizacao.itens)} até ${formatarData(emRegularizacao.ate)}; depois, ela fica suspensa`,
+      acao: 'Mandar agora',
+      para: '/minha-igreja',
+      principal: true,
+    })
   } else if (igreja) {
     const vence = vencimentoMaisProximo(igreja.situacao)
     if (vence && diasEntre(hoje, vence.ate) <= 60) {
@@ -262,7 +275,10 @@ export async function paraVoce(conta: MinhaConta): Promise<ItemParaVoce[]> {
         area: 'eventos',
         icone: 'relogio',
         forte: `${NOME_DO_ITEM[vence.item]}:`,
-        texto: `vence ${diasPara(hoje, vence.ate)} (${formatarData(vence.ate)})`,
+        // o alvará que venceu em 31/12 e está na tolerância de janeiro (regras de 26/11/2026): já venceu, falta o novo
+        texto: igreja.situacao.pendencias.includes(vence.item)
+          ? `venceu; mande o novo até ${formatarData(vence.ate)}`
+          : `vence ${diasPara(hoje, vence.ate)} (${formatarData(vence.ate)})`,
         acao: 'Mandar o novo',
         para: vence.item === 'natureza_juridica' ? '/minha-igreja/documentos/cartao_cnpj/atualizar' : `/minha-igreja/documentos/${documentoDoItem(vence.item)}/atualizar`,
       })

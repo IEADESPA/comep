@@ -78,9 +78,9 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
       )
     ).id
   }
-  /** Igreja regular: estatuto, Cartão CNPJ (organização religiosa), ata e alvará em dia. */
+  /** Igreja regular: estatuto, Cartão CNPJ (organização religiosa), ata e alvará em dia, ativada há muito tempo. */
   async function regularizarNoBanco(igreja: string, alvaraAte = 400, mandatoAte = 800) {
-    await db.query("update public.igrejas set natureza_juridica = 'organizacao_religiosa' where id = $1", [igreja])
+    await db.query("update public.igrejas set natureza_juridica = 'organizacao_religiosa', ativada_em = current_date - 1000 where id = $1", [igreja])
     await conferido(igreja, 'estatuto', null, null)
     await conferido(igreja, 'cartao_cnpj', null, null, { natureza: 'organizacao_religiosa' })
     await conferido(igreja, 'ata_diretoria', -300, mandatoAte)
@@ -103,6 +103,9 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
 
   before(async () => {
     db = await criarBanco()
+    // sem a tolerância de janeiro do alvará (testada em regras_regularizacao.test.ts): um alvará "vencido ontem" cai em
+    // 31/12 quando o teste roda em 01/01, e a conta mudaria
+    await db.query('update public.config_igrejas set dias_tolerancia_alvara = 0')
     secretaria = await criarUsuario(db, 'secretaria@teste.local', 'Secretaria de Teste')
     await darPerfil(db, secretaria, 'secretaria')
     tesouraria = await criarUsuario(db, 'tesouraria@teste.local', 'Tesouraria de Teste')
@@ -277,6 +280,8 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
       await associar(pastor, igreja, true)
       await regularizarNoBanco(igreja)
       await db.query("update public.igreja_documentos set arquivado_em = now() where igreja_id = $1 and tipo = 'alvara'", [igreja])
+      // ativada hoje, sem alvará: está nos 30 dias (o pastor ainda manda)
+      await db.query('update public.igrejas set ativada_em = current_date where id = $1', [igreja])
       await assert.rejects(
         enviar(pastor, igreja, { tipo: 'alvara', valido_de: await hoje(-366), valido_ate: await hoje(-1), partes: [{ caminho: await arquivo(pastor, igreja) }] }),
         erroComCodigo(BLOQUEADO_PELO_BANCO),
@@ -360,24 +365,20 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
   })
 
   describe('a natureza jurídica', () => {
-    it('associação privada: o prazo é o fim do primeiro mandato; a ata que muda abre os 90 dias; o cartão novo encerra', async () => {
+    it('associação privada: 120 dias desde o Cartão conferido; a ata não muda o prazo; o Cartão novo encerra', async () => {
       const igreja = (await um<{ id: string }>("insert into public.igrejas (nome, denominacao_id) values ('Igreja Associação', $1) returning id", [denominacao])).id
+      await db.query('update public.igrejas set ativada_em = current_date - 10 where id = $1', [igreja])
       await conferido(igreja, 'estatuto', null, null)
       await conferido(igreja, 'alvara', -10, 300)
-      // o Cartão CNPJ diz associação privada
+      await conferido(igreja, 'ata_diretoria', -100, 3000)
+      // o Cartão CNPJ diz associação privada: a igreja passa a ser associação privada, com 120 dias desde a conferência
       const cartao = await enviar(secretaria, igreja, { tipo: 'cartao_cnpj', natureza: 'associacao_privada', partes: [{ caminho: await arquivo(secretaria, igreja) }] })
       assert.ok(cartao)
       assert.equal((await um<{ n: string }>('select natureza_juridica as n from public.igrejas where id = $1', [igreja])).n, 'associacao_privada')
-      // a primeira diretoria: o prazo é o fim do mandato dela
-      await enviar(secretaria, igreja, {
-        tipo: 'ata_diretoria',
-        partes: [{ caminho: await arquivo(secretaria, igreja) }],
-        diretoria: [{ cargo: 'Presidente', nome: 'Presidente Fictício', inicio: await hoje(-100), fim: await hoje(500) }],
-      })
       let s = await situacao(igreja)
       assert.equal(s.situacao, 'regular')
-      assert.equal(s.natureza_prazo, await hoje(500))
-      // a ata da eleição nova muda a natureza: agora são 90 dias para o cartão novo
+      assert.equal(s.natureza_prazo, await hoje(120))
+      // a ata que muda a natureza não muda mais o prazo
       await enviar(secretaria, igreja, {
         tipo: 'ata_diretoria',
         muda_natureza: true,
@@ -385,25 +386,21 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
         diretoria: [{ cargo: 'Presidente', nome: 'Presidente Fictício', inicio: await hoje(-1), fim: await hoje(1400) }],
       })
       s = await situacao(igreja)
-      assert.equal(s.natureza_prazo, await hoje(90))
+      assert.equal(s.natureza_prazo, await hoje(120))
       // o cartão novo, como organização religiosa
       await enviar(secretaria, igreja, { tipo: 'cartao_cnpj', natureza: 'organizacao_religiosa', partes: [{ caminho: await arquivo(secretaria, igreja) }] })
-      const g = await um<{ n: string; p: string | null }>('select natureza_juridica as n, natureza_prazo::text as p from public.igrejas where id = $1', [igreja])
-      assert.deepEqual(g, { n: 'organizacao_religiosa', p: null })
-      // passou o prazo sem o cartão: suspensa, como o documento vencido
-      await db.query("update public.igrejas set natureza_juridica = 'associacao_privada', natureza_prazo = current_date - 1 where id = $1", [igreja])
-      s = await situacao(igreja)
-      assert.equal(s.situacao, 'suspensa')
-      assert.deepEqual(s.vencidos, ['natureza_juridica'])
+      assert.equal((await um<{ n: string }>('select natureza_juridica as n from public.igrejas where id = $1', [igreja])).n, 'organizacao_religiosa')
+      assert.equal((await situacao(igreja)).natureza_prazo, null)
     })
 
-    it('a secretaria muda a natureza na ficha: associação privada ganha o prazo do mandato; organização religiosa, nenhum', async () => {
+    it('a secretaria muda a natureza na ficha (sem Cartão conferido): associação privada ganha os 120 dias', async () => {
       const igreja = (await um<{ id: string }>("insert into public.igrejas (nome, denominacao_id) values ('Igreja Natureza Ficha', $1) returning id", [denominacao])).id
+      await db.query('update public.igrejas set ativada_em = current_date - 10 where id = $1', [igreja])
       await conferido(igreja, 'ata_diretoria', -10, 365)
       await chamar(secretaria, "update public.igrejas set natureza_juridica = 'associacao_privada' where id = $1", [igreja])
-      assert.equal((await situacao(igreja)).natureza_prazo, await hoje(365))
+      assert.equal((await situacao(igreja)).natureza_prazo, await hoje(120))
       await chamar(secretaria, "update public.igrejas set natureza_juridica = 'organizacao_religiosa' where id = $1", [igreja])
-      assert.equal((await um<{ p: string | null }>('select natureza_prazo::text as p from public.igrejas where id = $1', [igreja])).p, null)
+      assert.equal((await situacao(igreja)).natureza_prazo, null)
       // o pastor presidente não muda a natureza
       const r = await chamar(pastorA, "update public.igrejas set natureza_juridica = 'associacao_privada' where id = $1", [igrejaA]).catch((e) => e)
       assert.equal((r as { code?: string }).code, SEM_PERMISSAO)
@@ -414,24 +411,19 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
     })
   })
 
-  describe('a transição: o que nunca foi mandado', () => {
-    it('até o fim da transição, a igreja antiga sem documentos é regular, com as pendências', async () => {
-      // a migração traz a AGO de 28/04/2027 (o ambiente dos testes deixa a transição aberta: testes/banco/ambiente.ts)
-      assert.ok(await um("select 1 from pg_attrdef where adrelid = 'public.config_igrejas'::regclass and pg_get_expr(adbin, adrelid) like '%2027-04-28%'"))
-      const s = await situacao(igrejaX)
-      assert.equal(s.situacao, 'regular')
-      assert.deepEqual(s.pendencias, ['estatuto', 'cartao_cnpj', 'natureza_juridica', 'ata_diretoria', 'alvara'])
-    })
-
-    it('depois dela (a igreja cadastrada hoje), fica suspensa desde o cadastro', async () => {
-      const antes = (await um<{ d: string }>('select transicao_ate::text as d from public.config_igrejas')).d
-      await db.query('update public.config_igrejas set transicao_ate = current_date - 10')
+  describe('o que nunca foi mandado (sem a transição desde 26/11/2026)', () => {
+    it('a igreja sem documentos tem os 30 dias da ativação, sem suspender; o fim da transição não conta mais', async () => {
+      // o fim da transição (aberto pelo ambiente dos testes) não muda nada
+      await db.query("update public.config_igrejas set transicao_ate = '2999-12-31'")
+      await db.query('update public.igrejas set ativada_em = current_date where id = $1', [igrejaX])
       try {
         const s = await situacao(igrejaX)
-        assert.equal(s.situacao, 'suspensa')
-        assert.equal(s.suspensa_desde, await hoje(0))
+        assert.equal(s.situacao, 'regular')
+        assert.equal(s.pendencias_ate, await hoje(29))
+        assert.equal(s.suspensa_desde, null)
+        assert.equal(s.perfil_bloqueado, false)
       } finally {
-        await db.query('update public.config_igrejas set transicao_ate = $1::date', [antes])
+        await db.query("update public.igrejas set ativada_em = '2999-12-31' where id = $1", [igrejaX])
       }
     })
 
@@ -617,7 +609,12 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
       await chamar(secretaria, 'select public.ativar_igreja($1)', [igreja])
       const g = await um<{ cadastro: string }>('select cadastro from public.igrejas where id = $1', [igreja])
       assert.equal(g.cadastro, 'completo')
-      assert.equal((await situacao(igreja)).situacao, 'regular')
+      // o alvará não é exigido para ativar: ele tem os 30 dias, contados da ativação, sem suspender a igreja
+      const s = await situacao(igreja)
+      assert.equal(s.situacao, 'regular')
+      assert.deepEqual(s.pendencias, ['alvara'])
+      assert.equal(s.pendencias_ate, await hoje(29))
+      assert.equal(s.perfil_bloqueado, false)
       assert.equal(await tenhoPerfil(pastorNovo, 'presidente_igreja'), true)
       const minha = await valor<{ m: { igreja_id: string } }>(pastorNovo, 'select public.minha_igreja() as m')
       assert.equal(minha.m.igreja_id, igreja)
