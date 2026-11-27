@@ -165,7 +165,7 @@ export type SituacaoIgreja = {
   vencidos: ItemRegularidade[]
   /** o que nunca veio (faltava na ativação), suspenso ou ainda nos dias para mandar */
   nunca_vieram?: ItemRegularidade[]
-  /** o que falta e ainda está no prazo, sem suspender (o que faltava na ativação, nos dias dela; o alvará na tolerância de janeiro) */
+  /** o que falta e ainda está no prazo, sem suspender (o que nunca veio, nos dias depois da ativação; o alvará na tolerância de janeiro) */
   pendencias: ItemRegularidade[]
   /** até quando mandar o que falta; null quando o novo já chegou e espera a conferência */
   pendencias_ate?: string | null

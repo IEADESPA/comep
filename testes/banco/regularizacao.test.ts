@@ -280,8 +280,8 @@ describe('Fase 5.5 — a regularização das igrejas', () => {
       await associar(pastor, igreja, true)
       await regularizarNoBanco(igreja)
       await db.query("update public.igreja_documentos set arquivado_em = now() where igreja_id = $1 and tipo = 'alvara'", [igreja])
-      // ativada há 5 dias, sem alvará: está nos 30 dias, sem suspender (o pastor ainda manda)
-      await db.query('update public.igrejas set ativada_em = current_date - 5 where id = $1', [igreja])
+      // ativada hoje, sem alvará: está nos 30 dias (o pastor ainda manda)
+      await db.query('update public.igrejas set ativada_em = current_date where id = $1', [igreja])
       await assert.rejects(
         enviar(pastor, igreja, { tipo: 'alvara', valido_de: await hoje(-366), valido_ate: await hoje(-1), partes: [{ caminho: await arquivo(pastor, igreja) }] }),
         erroComCodigo(BLOQUEADO_PELO_BANCO),

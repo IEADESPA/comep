@@ -30,7 +30,7 @@ describe('as regras de 26/11/2026 nas frases', () => {
       pendenciaDaAtivacao({ situacao: 'regular', pendencias: [...tudo], pendencias_ate: '2027-01-01', nunca_vieram: [...tudo] }),
       { itens: [...tudo], ate: '2027-01-01' },
     )
-    // só o que nunca veio (o alvará na tolerância de janeiro, ou vencido antes da ativação, "venceu")
+    // só o que nunca veio (o alvará na tolerância de janeiro "venceu")
     assert.deepEqual(
       pendenciaDaAtivacao({ situacao: 'regular', pendencias: ['estatuto', 'alvara'], pendencias_ate: '2027-01-01', nunca_vieram: ['estatuto'] }),
       { itens: ['estatuto'], ate: '2027-01-01' },

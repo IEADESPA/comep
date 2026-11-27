@@ -7,9 +7,10 @@
 -- para mandar, antes do bloqueio do perfil (como o documento que vence). A 20261126150000 deixava a igreja suspensa
 -- desde a ativação.
 --
--- O que faltava na ativação é o que nunca veio e também o que já tinha vencido antes dela: os dois têm os dias
--- contados da ativação, sem suspender. O que vence depois da ativação suspende no dia seguinte, como antes (com a
--- tolerância de janeiro do alvará).
+-- Muda só o que nunca veio (a linha do "nunca veio" na conta do primeiro dia sem o documento). O que venceu continua
+-- como antes, porque a decisão separa os dois ("o alvará vencido também tem 30 dias"), como o sistema já separava: a
+-- igreja fica suspensa no dia seguinte ao vencimento, ou desde a ativação, se o documento já tinha vencido antes dela,
+-- com os 30 dias para mandar (e a tolerância de janeiro do alvará).
 --
 -- A situação passa a dizer em `nunca_vieram` também o que nunca veio e ainda está no prazo (para as telas dizerem
 -- "mande até", e não "venceu"). O resto da função é o da 20261126150000; as outras funções (o efeito das regras, os
@@ -97,7 +98,8 @@ begin
     -- venceu (ou nunca veio): o primeiro dia sem o documento, nunca antes da ativação
     v_tolerancia := null;
     if v_cob is null then
-      v_desde := v_ativada;
+      -- nunca veio: os dias para mandar contam da ativação, sem suspender (a regra 1, confirmada em 27/11/2026)
+      v_desde := v_ativada + p_cfg.dias_para_mandar;
     else
       v_desde := v_cob + 1;
       -- o alvará que vence em 31/12: a tolerância de janeiro
@@ -105,12 +107,6 @@ begin
         v_tolerancia := v_cob + p_cfg.dias_tolerancia_alvara;
         v_desde := v_tolerancia + 1;
       end if;
-    end if;
-    -- faltava na ativação (nunca veio, ou já tinha vencido antes dela): os dias para mandar contam da ativação, e a
-    -- igreja não fica suspensa neles (a regra 1, como o presidente decidiu; confirmada em 27/11/2026)
-    if (v_cob is null or v_cob < v_ativada) and v_ativada + p_cfg.dias_para_mandar > v_desde then
-      v_desde := v_ativada + p_cfg.dias_para_mandar;
-      v_tolerancia := null;
     end if;
     v_desde := greatest(v_desde, v_ativada);
 

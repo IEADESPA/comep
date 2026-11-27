@@ -272,19 +272,14 @@ describe('Regularização das igrejas — as regras de 26/11/2026', () => {
       assert.deepEqual(s.nunca_vieram, [])
       assert.equal(s.suspensa_desde, await hoje(0))
       assert.equal(s.prazo_ate, await hoje(29))
-      // vencido antes da ativação: faltava na ativação, então tem os 30 dias dela, sem suspender (ativada há 3 dias)
+      // vencido antes da ativação: venceu (não é o que falta), então suspensa desde a ativação, com os 30 dias dela
       await db.query('update public.igrejas set ativada_em = current_date - 3 where id = $1', [igreja])
       await db.query("update public.igreja_documentos set valido_ate = current_date - 200 where igreja_id = $1 and tipo = 'alvara'", [igreja])
       s = await situacao(igreja)
-      assert.equal(s.situacao, 'regular')
-      assert.deepEqual(s.pendencias, ['alvara'])
-      assert.equal(s.pendencias_ate, await hoje(26))
-      assert.deepEqual(s.nunca_vieram, [])
-      // passado o prazo, suspensa como o que venceu
-      s = await situacao(igreja, await hoje(27))
       assert.equal(s.situacao, 'suspensa')
-      assert.equal(s.suspensa_desde, await hoje(27))
+      assert.equal(s.suspensa_desde, await hoje(-3))
       assert.deepEqual(s.nunca_vieram, [])
+      assert.equal(s.perfil_bloqueado, false)
     })
   })
 

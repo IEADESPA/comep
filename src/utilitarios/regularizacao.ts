@@ -127,8 +127,8 @@ export function porqueSuspensa(s: Pick<SituacaoIgreja, 'vencidos' | 'nunca_viera
 
 /**
  * A igreja em regularização (a regra 1, confirmada em 27/11/2026): o que nunca veio e ainda está nos dias para mandar,
- * contados da ativação, com a igreja regular. Null se não há nada assim (o alvará na tolerância de janeiro e o que
- * venceu antes da ativação "venceram"; o novo que espera a conferência não tem data).
+ * contados da ativação, com a igreja regular. Null se não há nada assim (o alvará na tolerância de janeiro venceu; o
+ * novo que espera a conferência não tem data).
  */
 export function pendenciaDaAtivacao(
   s: Pick<SituacaoIgreja, 'situacao' | 'pendencias' | 'pendencias_ate' | 'nunca_vieram'>,
